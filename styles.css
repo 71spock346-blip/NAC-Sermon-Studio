@@ -8,6 +8,7 @@ body { font: 15px/1.45 "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-seri
 header.top { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
 header.top h1 { font-size: 17px; margin: 0; flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 header.top .actions { display: flex; gap: 6px; }
+.badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 999px; padding: 2px 8px; }
 main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); gap: 14px; padding: 14px; max-width: 1500px; margin: 0 auto; align-items: start; }
 .plan-col { position: sticky; top: 56px; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }

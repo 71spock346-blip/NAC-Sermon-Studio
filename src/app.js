@@ -13,7 +13,6 @@
     ['Pr.', 'Schlaphoff', '#A9D18E'], ['Pr.', 'Crerar', '#A9D18E'], ['Pr.', 'Liddle', '#A9D18E'],
     ['Pr.', 'Boniface', '#9DC3E6'], ['Pr.', 'Findlay', '#9DC3E6'], ['Pr.', 'Wentzel', '#9DC3E6']
   ];
-  var DEFAULT_SEATS = { 1: 'Ap', 2: 'De', 3: 'Pr. Coskey', 4: 'Pr. Swart', 5: 'Pr. Schlaphoff', 6: 'Pr. Crerar', 7: 'Pr. Liddle', 8: 'Pr. Boniface', 10: 'Pr. Findlay', 11: 'Pr. Wentzel' };
   var DEFAULT_NOTE = 'All Rectors and Priests to be seated in the Sacristy with the Apostle.';
   var TABS = ['seats', 'communion', 'roster', 'plans', 'layout'];
 
@@ -58,11 +57,16 @@
     return list.sort(function (a, b) { return a.name.localeCompare(b.name); });
   }
   function current() {
-    var p = state.plans.filter(function (x) { return x.id === state.currentId; })[0];
-    if (!p) { p = state.plans[0]; state.currentId = p.id; }
+    var p = state.draft;
     if (!layoutById(p.layoutId)) p.layoutId = allLayouts()[0].id;
     return p;
   }
+  // The part of a plan that counts as "content" for unsaved-change tracking.
+  function planContent(p) {
+    return JSON.stringify({ l: p.layoutId, d: p.date, s: p.service, seats: p.seats, st: p.stations, c: p.cups, com: p.communion, n: p.note });
+  }
+  function isDirty() { return planContent(state.draft) !== state.draft.savedHash; }
+  function markSaved(p) { p.savedHash = planContent(p); }
   function currentLayout() { return layoutById(current().layoutId) || L.GEZINA; }
   // Returns a layout object stored in state (forking the built-in one on first edit).
   function editableLayout() {
@@ -82,38 +86,56 @@
     var p;
     if (base) p = clone(base);
     else {
-      p = { layoutId: layout.id, service: 'Divine Service', seats: layout.id === L.GEZINA.id ? clone(DEFAULT_SEATS) : {},
-        stations: L.defaultStations(layout), cups: clone(layout.cups || { left: 0, right: 0 }),
+      p = { layoutId: layout.id, service: 'Divine Service', seats: {},
+        stations: L.blankStations(layout), cups: clone(layout.cups || { left: 0, right: 0 }),
         communion: layout.id === L.GEZINA.id
           ? { serves: [{ seat: '1', text: 'Serves 2-11' }, { seat: '2', text: 'Serves C & O Cup' }], pairs: [['2', ''], ['3', '4'], ['5', '6'], ['7', '10'], ['8', '11']] }
           : { serves: [], pairs: [] },
         note: DEFAULT_NOTE };
     }
-    p.id = uid(); p.date = todayIso(); p.updated = Date.now();
+    p.id = uid(); p.date = todayIso(); p.updated = Date.now(); p.savedId = null;
+    markSaved(p);
     return p;
   }
   function defaultState() {
-    var plan = newPlan(null, L.GEZINA);
-    return { version: 2, roster: DEFAULT_ROSTER.map(function (r) { return { id: uid(), rank: r[0], name: r[1], color: r[2] }; }), layouts: [], plans: [plan], currentId: plan.id };
+    return { version: 3, roster: DEFAULT_ROSTER.map(function (r) { return { id: uid(), rank: r[0], name: r[1], color: r[2] }; }), layouts: [], plans: [], draft: newPlan(null, L.GEZINA), lastLayoutId: L.GEZINA.id };
   }
   function migrate(s) {
-    if (s.version >= 2) return s;
-    s.version = 2; s.layouts = s.layouts || [];
-    s.roster.forEach(function (r) {
-      if (!r.color) { var d = DEFAULT_ROSTER.filter(function (x) { return x[0] === r.rank && x[1] === r.name; })[0]; r.color = d ? d[2] : '#FFFFFF'; }
-    });
-    s.plans.forEach(function (p) { p.layoutId = p.layoutId || L.GEZINA.id; delete p.congregation; });
+    if (!(s.version >= 2)) {
+      s.layouts = s.layouts || [];
+      s.roster.forEach(function (r) {
+        if (!r.color) { var d = DEFAULT_ROSTER.filter(function (x) { return x[0] === r.rank && x[1] === r.name; })[0]; r.color = d ? d[2] : '#FFFFFF'; }
+      });
+      s.plans.forEach(function (p) { p.layoutId = p.layoutId || L.GEZINA.id; delete p.congregation; });
+    }
+    if (!(s.version >= 3)) {
+      // Earlier versions autosaved one current plan; keep all plans as saved plans and start fresh.
+      var cur = s.plans.filter(function (p) { return p.id === s.currentId; })[0];
+      s.lastLayoutId = cur ? cur.layoutId : L.GEZINA.id;
+      s.plans.forEach(function (p) { p.name = p.name || ''; });
+      s.draft = null; delete s.currentId;
+    }
+    s.version = 3;
     return s;
   }
+  var restored = false;
   function load() {
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) { var s = JSON.parse(raw); if (s && Array.isArray(s.plans) && s.plans.length) return migrate(s); }
-    } catch (e) { /* defaults */ }
-    return defaultState();
+    var s = null;
+    try { var raw = localStorage.getItem(STORAGE_KEY); if (raw) s = JSON.parse(raw); } catch (e) { /* defaults */ }
+    if (!s || !Array.isArray(s.roster)) return defaultState();
+    s = migrate(s);
+    s.plans = s.plans || []; s.layouts = s.layouts || [];
+    var lay = null;
+    if (s.draft && s.draft.savedHash != null && planContent(s.draft) !== s.draft.savedHash) restored = true;
+    else {
+      lay = (s.layouts.concat(L.BUILTIN)).filter(function (l) { return l.id === s.lastLayoutId; })[0] || L.GEZINA;
+      s.draft = newPlan(null, lay);
+    }
+    return s;
   }
   function save() {
-    current().updated = Date.now();
+    current().updated = Date.now(); state.lastLayoutId = current().layoutId;
+    var badge = $('#unsaved'); if (badge) badge.hidden = !isDirty();
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { toast('Could not save in this browser (storage blocked).', true); }
   }
 
@@ -286,12 +308,15 @@
         el('button', { type: 'button', class: 'icon', title: 'Remove from roster', text: '×', onclick: function () { state.roster.splice(i, 1); save(); renderRoster(); renderSelection(); renderSeatingTable(); } })]));
     });
   }
+  function planTitle(p) { var lay = layoutById(p.layoutId); return [P.formatDate(p.date), p.service, lay && lay.name].filter(Boolean).join(' · '); }
   function renderPlans() {
     var sel = $('#plans-select'); sel.innerHTML = '';
+    sel.appendChild(option('', state.plans.length ? '— choose a saved plan —' : '(no saved plans yet)', !current().savedId));
     state.plans.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || (b.updated || 0) - (a.updated || 0); }).forEach(function (p) {
-      var lay = layoutById(p.layoutId);
-      sel.appendChild(option(p.id, [P.formatDate(p.date), p.service, lay && lay.name].filter(Boolean).join(' · '), p.id === state.currentId));
+      sel.appendChild(option(p.id, planTitle(p), p.id === current().savedId));
     });
+    $('#btn-delete-plan').disabled = !current().savedId;
+    $('#unsaved').hidden = !isDirty();
   }
   function renderLayoutTab() {
     var lay = currentLayout();
@@ -352,7 +377,7 @@
   function switchLayout(id) {
     var plan = current(), lay = layoutById(id);
     if (!lay) return;
-    plan.layoutId = id; plan.stations = L.defaultStations(lay); plan.cups = clone(lay.cups || { left: 0, right: 0 });
+    plan.layoutId = id; plan.stations = L.blankStations(lay); plan.cups = clone(lay.cups || { left: 0, right: 0 }); state.lastLayoutId = id;
     ui.selected = null; global.Editor.setActive(false); save(); renderHeader(); renderAll();
   }
   var ZOOMS = [100, 150, 200, 300];
@@ -381,21 +406,39 @@
       state.roster.push({ id: uid(), rank: rank, name: name, color: '#FFFFFF' }); $('#new-name').value = '';
       save(); renderRoster(); renderSelection(); renderSeatingTable();
     });
-    $('#plans-select').addEventListener('change', function (e) { state.currentId = e.target.value; ui.selected = null; global.Editor.setActive(false); save(); renderHeader(); renderAll(); });
-    $('#btn-new-plan').addEventListener('click', function () { var p = newPlan(current()); state.plans.push(p); state.currentId = p.id; ui.selected = null; save(); renderHeader(); renderAll(); toast('New plan created from the current one. Set its date and service.'); });
-    $('#btn-blank-plan').addEventListener('click', function () { var p = newPlan(null, currentLayout()); p.seats = {}; state.plans.push(p); state.currentId = p.id; ui.selected = null; save(); renderHeader(); renderAll(); toast('Blank plan created.'); });
+    $('#plans-select').addEventListener('change', function (e) {
+      var id = e.target.value, saved = state.plans.filter(function (p) { return p.id === id; })[0];
+      if (!saved) { renderPlans(); return; }
+      if (isDirty() && !confirm('You have unsaved changes. Load "' + planTitle(saved) + '" and discard them?')) { renderPlans(); return; }
+      var d = clone(saved); d.savedId = saved.id; markSaved(d); state.draft = d; ui.selected = null; global.Editor.setActive(false);
+      save(); renderHeader(); renderAll(); toast('Loaded ' + planTitle(saved) + '.');
+    });
+    function savePlan(asNew) {
+      var d = current(), copy = clone(d); delete copy.savedHash; delete copy.savedId;
+      var existing = !asNew && d.savedId && state.plans.filter(function (p) { return p.id === d.savedId; })[0];
+      if (existing) { copy.id = existing.id; state.plans[state.plans.indexOf(existing)] = copy; }
+      else { copy.id = uid(); state.plans.push(copy); d.savedId = copy.id; }
+      markSaved(d); save(); renderPlans(); toast('Plan saved: ' + planTitle(copy) + '.');
+    }
+    $('#btn-save-plan').addEventListener('click', function () { savePlan(false); });
+    $('#btn-save-plan-as').addEventListener('click', function () { savePlan(true); });
+    $('#btn-blank-plan').addEventListener('click', function () {
+      if (isDirty() && !confirm('You have unsaved changes. Start a blank plan and discard them?')) return;
+      state.draft = newPlan(null, currentLayout()); ui.selected = null; save(); renderHeader(); renderAll(); toast('Blank plan started.');
+    });
     $('#btn-delete-plan').addEventListener('click', function () {
-      if (state.plans.length < 2) { toast('Keep at least one plan. Create another first.', true); return; }
-      var p = current();
-      if (!confirm('Delete the plan for ' + P.subtitle(p, currentLayout()) + '?')) return;
-      state.plans = state.plans.filter(function (x) { return x.id !== p.id; }); state.currentId = state.plans[0].id; ui.selected = null;
-      save(); renderHeader(); renderAll();
+      var d = current(), saved = state.plans.filter(function (p) { return p.id === d.savedId; })[0];
+      if (!saved || !confirm('Delete the saved plan "' + planTitle(saved) + '"?')) return;
+      state.plans = state.plans.filter(function (p) { return p.id !== saved.id; }); d.savedId = null;
+      save(); renderPlans(); toast('Saved plan deleted. The current plan stays open as unsaved.');
     });
     $('#btn-export').addEventListener('click', function () { downloadJson(state, 'seating-planner-backup.json'); });
     $('#file-import').addEventListener('change', function (e) {
       if (e.target.files[0]) readJson(e.target.files[0], function (s) {
         if (!s || !Array.isArray(s.plans) || !Array.isArray(s.roster)) { toast('That file is not a planner backup.', true); return; }
-        state = migrate(s); save(); ui.selected = null; renderHeader(); renderAll(); toast('Backup imported.');
+        state = migrate(s); state.plans = state.plans || []; state.layouts = state.layouts || [];
+        if (!state.draft) state.draft = newPlan(null, layoutById(state.lastLayoutId) || L.GEZINA);
+        save(); ui.selected = null; renderHeader(); renderAll(); toast('Backup imported.');
       });
       e.target.value = '';
     });
@@ -412,7 +455,7 @@
       if (lay.builtin || !confirm('Delete the layout "' + lay.name + '"? Plans using it will switch to another layout.')) return;
       state.layouts = state.layouts.filter(function (l) { return l.id !== lay.id; });
       var fallback = allLayouts()[0].id;
-      state.plans.forEach(function (p) { if (p.layoutId === lay.id) { p.layoutId = fallback; p.stations = L.defaultStations(layoutById(fallback)); } });
+      state.plans.concat([current()]).forEach(function (p) { if (p.layoutId === lay.id) { p.layoutId = fallback; p.stations = L.blankStations(layoutById(fallback)); } });
       global.Editor.setActive(false); save(); renderHeader(); renderAll();
     });
     $('#btn-layout-export').addEventListener('click', function () { var lay = clone(currentLayout()); delete lay.builtin; downloadJson(lay, 'layout-' + lay.name.replace(/[^A-Za-z0-9]+/g, '_') + '.json'); });
@@ -475,6 +518,7 @@
     global.Editor.init(global.App);
     renderHeader(); renderAll(); bind();
     setZoom(window.innerWidth < 700 ? 1 : 0);
+    if (restored) toast('Restored your unsaved changes.');
   }
 
   global.App = { current: current, currentLayout: currentLayout, editableLayout: editableLayout, save: save, renderPlan: renderPlan, toast: toast, colorOf: colorOf, getState: function () { return state; } };

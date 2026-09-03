@@ -12,7 +12,8 @@ On a phone, open the link and use "Add to Home Screen".
 ## Using it
 
 - **Congregation**: pick the layout at the top. Gezina and Sinoville are built
-  in; other congregations are added in the Layout tab.
+  in; other congregations are added in the Layout tab. Sinoville's sections
+  are Left, Right and Foyer, with serving stations in the foyer too.
 - **Seats**: tap a numbered square on the plan, then tap a minister (or type a
   name). Tap another seat to swap the two. The Seats tab shows the same
   assignments as a table.
@@ -24,9 +25,11 @@ On a phone, open the link and use "Add to Home Screen".
   they serve. The colour follows them to their seat, to the station holding
   their seat number, and to the tables and PDF. Several ministers can share a
   colour. Sections and their colours are defined per layout.
-- **Plans**: every service is a plan. "New from current" copies the current
-  plan so you only change what differs. Plans, roster and layouts are saved in
-  the browser; Export/Import backup moves them between devices.
+- **Plans**: the app opens with empty seats and stations. Use Save (header)
+  or "Save as new plan" (Plans tab) to keep a plan; saved plans load from the
+  dropdown. Unsaved changes are restored on the next visit. Roster and
+  layouts are saved automatically; Export/Import backup moves everything
+  between devices.
 - **Save PDF / Share PDF**: builds the A4 sheet (title, plan, legend, seating
   table, communion table, note). On a phone the Share button opens the share
   sheet so you can send it via WhatsApp; on a desktop the PDF downloads.

@@ -16,7 +16,9 @@
 <body>
 <header class="top">
   <h1>Seating &amp; Communion</h1>
+  <span id="unsaved" class="badge" hidden>Unsaved</span>
   <div class="actions">
+    <button id="btn-save-plan" class="btn ghost" type="button">Save</button>
     <button id="btn-share" class="btn" type="button" hidden>Share PDF</button>
     <button id="btn-pdf" class="btn" type="button">Save PDF</button>
     <button id="btn-print" class="btn ghost" type="button">Print</button>
@@ -91,11 +93,14 @@
     </div>
 
     <div class="card tab" id="tab-plans" hidden>
-      <label class="f">Saved plans <select id="plans-select"></select></label>
+      <p class="muted small">The app opens with empty seats and stations. Save a plan to keep it here and load it later. Unsaved changes are kept until you start a blank plan or load another.</p>
       <div class="row">
-        <button id="btn-new-plan" class="btn small ghost" type="button">New from current</button>
-        <button id="btn-blank-plan" class="btn small ghost" type="button">New blank</button>
-        <button id="btn-delete-plan" class="btn small ghost" type="button">Delete</button>
+        <button id="btn-save-plan-as" class="btn small" type="button">Save as new plan</button>
+        <button id="btn-blank-plan" class="btn small ghost" type="button">Start blank plan</button>
+      </div>
+      <label class="f" style="margin-top:12px">Saved plans <select id="plans-select"></select></label>
+      <div class="row">
+        <button id="btn-delete-plan" class="btn small ghost" type="button">Delete saved plan</button>
       </div>
       <label class="f" style="margin-top:12px">Note on the sheet <textarea id="note" rows="2"></textarea></label>
       <h3 class="sub">Backup</h3>
