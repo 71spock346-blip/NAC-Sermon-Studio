@@ -78,10 +78,37 @@
       '" stroke="' + COLORS.line + '" stroke-width="' + (sw == null ? 4 : sw) + '"' + (extra || '') + '/>';
   }
 
-  function cup(cx, cy) {
-    return '<g><circle cx="' + cx + '" cy="' + cy + '" r="9" fill="#e6e6e6" stroke="#333" stroke-width="2"/>' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="4" fill="none" stroke="#333" stroke-width="1.5"/>' +
-      '<line x1="' + (cx - 9) + '" y1="' + cy + '" x2="' + (cx + 9) + '" y2="' + cy + '" stroke="#333" stroke-width="1.5"/></g>';
+  // Communion cups on the altar, either side of the inner altar box.
+  var DEFAULT_CUPS = { left: 3, right: 2 };
+  var MAX_CUPS = 8;
+
+  function clampCups(n) {
+    n = parseInt(n, 10);
+    if (isNaN(n)) return 0;
+    return Math.max(0, Math.min(MAX_CUPS, n));
+  }
+
+  // Positions for `n` cups starting at `edge` and running in `dir` (-1 left,
+  // +1 right). Up to four cups fit in one row; more wrap onto a second row.
+  var CUPS_PER_ROW = 4, CUP_SPACING = 22;
+  function cupRow(n, edge, dir) {
+    var out = [];
+    if (!n) return out;
+    var rows = Math.ceil(n / CUPS_PER_ROW);
+    var ys = rows === 1 ? [100] : [89, 111];
+    for (var i = 0; i < n; i++) {
+      var row = Math.floor(i / CUPS_PER_ROW), col = i % CUPS_PER_ROW;
+      out.push({ cx: edge + dir * (CUP_SPACING / 2 + col * CUP_SPACING), cy: ys[row], r: 9 });
+    }
+    return out;
+  }
+
+  function cup(cx, cy, r) {
+    r = r || 9;
+    var inner = Math.max(2, r * 0.45), sw = r < 7 ? 1.4 : 2;
+    return '<g><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#e6e6e6" stroke="#333" stroke-width="' + sw + '"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + inner + '" fill="none" stroke="#333" stroke-width="1.2"/>' +
+      '<line x1="' + (cx - r) + '" y1="' + cy + '" x2="' + (cx + r) + '" y2="' + cy + '" stroke="#333" stroke-width="1.2"/></g>';
   }
 
   /**
@@ -127,7 +154,9 @@
     out.push(rect(400, 38, 290, 120, COLORS.altar));
     out.push(rect(500, 62, 95, 58, COLORS.altar, 4));
     out.push(label(547, 91, 'Altar', 26, { fill: '#fff' }));
-    [440, 462, 484, 608, 630].forEach(function (cx) { out.push(cup(cx, 100)); });
+    var cups = plan.cups || DEFAULT_CUPS;
+    cupRow(clampCups(cups.left), 496, -1).forEach(function (c) { out.push(cup(c.cx, c.cy, c.r)); });
+    cupRow(clampCups(cups.right), 599, 1).forEach(function (c) { out.push(cup(c.cx, c.cy, c.r)); });
 
     // --- Fixed position markers (choir leader, organist) -------------------
     out.push(rect(345, 382, 30, 30, COLORS.white, 2.5));
@@ -204,6 +233,9 @@
     ALL_SEAT_IDS: ALL_SEAT_IDS,
     STATIONS: STATIONS,
     STATION_GROUP_LABELS: STATION_GROUP_LABELS,
+    DEFAULT_CUPS: DEFAULT_CUPS,
+    MAX_CUPS: MAX_CUPS,
+    clampCups: clampCups,
     renderPlan: renderPlan,
     esc: esc
   };

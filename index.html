@@ -70,6 +70,21 @@
         <button id="btn-add-pair" class="btn small ghost" type="button">+ Cup pair</button>
         <button id="btn-reset-stations" class="btn small ghost" type="button">Reset stations on plan</button>
       </div>
+      <h3 class="sub">Cups on the altar</h3>
+      <div class="row cups">
+        <span class="stepper" role="group" aria-label="Cups left of the altar">
+          <span class="stepper-label">Left</span>
+          <button type="button" class="btn small ghost" data-cups="left" data-delta="-1" aria-label="Remove a cup on the left">−</button>
+          <output id="cups-left">3</output>
+          <button type="button" class="btn small ghost" data-cups="left" data-delta="1" aria-label="Add a cup on the left">+</button>
+        </span>
+        <span class="stepper" role="group" aria-label="Cups right of the altar">
+          <span class="stepper-label">Right</span>
+          <button type="button" class="btn small ghost" data-cups="right" data-delta="-1" aria-label="Remove a cup on the right">−</button>
+          <output id="cups-right">2</output>
+          <button type="button" class="btn small ghost" data-cups="right" data-delta="1" aria-label="Add a cup on the right">+</button>
+        </span>
+      </div>
     </div>
 
     <div class="card">

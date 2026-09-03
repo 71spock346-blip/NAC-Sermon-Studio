@@ -65,6 +65,7 @@
     var p = base ? clone(base) : {
       congregation: 'Gezina', service: 'Divine Service', seats: clone(DEFAULT_SEATS),
       stations: clone(STATION_DEFAULTS),
+      cups: clone(L.DEFAULT_CUPS),
       communion: {
         serves: [{ seat: '1', text: 'Serves 2-11' }, { seat: '2', text: 'Serves C & O Cup' }],
         pairs: [['2', ''], ['3', '4'], ['5', '6'], ['7', '10'], ['8', '11']]
@@ -248,8 +249,19 @@
     return sel;
   }
 
+  function renderCups() {
+    var cups = current().cups || (current().cups = clone(L.DEFAULT_CUPS));
+    $('#cups-left').value = cups.left;
+    $('#cups-right').value = cups.right;
+    $$('[data-cups]').forEach(function (b) {
+      var side = b.getAttribute('data-cups'), d = parseInt(b.getAttribute('data-delta'), 10);
+      b.disabled = (d < 0 && cups[side] <= 0) || (d > 0 && cups[side] >= L.MAX_CUPS);
+    });
+  }
+
   function renderCommunion() {
     var plan = current(), com = plan.communion;
+    renderCups();
     var sb = $('#serves-rows'); sb.innerHTML = '';
     com.serves.forEach(function (s, i) {
       sb.appendChild(el('tr', {}, [
@@ -352,6 +364,14 @@
 
     $('#btn-add-serves').addEventListener('click', function () { current().communion.serves.push({ seat: '', text: '' }); save(); renderCommunion(); });
     $('#btn-add-pair').addEventListener('click', function () { current().communion.pairs.push(['', '']); save(); renderCommunion(); });
+    $$('[data-cups]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var plan = current(), side = b.getAttribute('data-cups'), d = parseInt(b.getAttribute('data-delta'), 10);
+        plan.cups = plan.cups || clone(L.DEFAULT_CUPS);
+        plan.cups[side] = L.clampCups((plan.cups[side] || 0) + d);
+        save(); renderPlan(); renderCups();
+      });
+    });
     $('#btn-reset-stations').addEventListener('click', function () { current().stations = clone(STATION_DEFAULTS); save(); renderAll(); toast('Stations reset to the usual positions.'); });
 
     $('#roster-form').addEventListener('submit', function (e) {

@@ -12,6 +12,11 @@ main { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr)
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
 .card h2 { font-size: 15px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .card h3 { margin: 0 0 6px; font-size: 17px; }
+.card h3.sub { font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+.stepper { display: inline-flex; align-items: center; gap: 6px; }
+.stepper-label { font-size: 13px; color: var(--muted); min-width: 36px; }
+.stepper output { min-width: 22px; text-align: center; font-weight: 700; }
+.stepper .btn { min-width: 34px; padding: 4px 8px; }
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
 label.f { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
 input[type=text], input[type=date], select, textarea { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); min-width: 0; width: 100%; }

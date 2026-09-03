@@ -20,7 +20,8 @@ it like an app.
 - **Serving stations**: tap a hatched square and choose the seat number of the
   minister who stands there.
 - **Communion table**: edit the "Serves" rows and the "Takes cup / Takes inner"
-  pairs in the Communion card.
+  pairs in the Communion card. The "Cups on the altar" steppers add or remove
+  communion cups on either side of the altar (up to eight a side).
 - **Roster**: add or remove ministers in the Roster card. Renaming someone
   updates their seat.
 - **Plans**: every service is a plan. "New from current" copies the current
@@ -35,7 +36,7 @@ it like an app.
 The floor plan geometry lives in `src/layout.js`. Solid-coloured squares are
 the ministers' seats (the colour shows which section that seat serves);
 hatched squares are the serving stations. The circles on the altar are the
-communion cups.
+communion cups; their number is stored per plan.
 
 ## Files
 
