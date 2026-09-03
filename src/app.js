@@ -298,6 +298,10 @@
     $('#layout-name').disabled = !!lay.builtin;
     $('#btn-layout-delete').disabled = !!lay.builtin || allLayouts().length < 2;
     $('#btn-layout-edit').textContent = global.Editor.active ? 'Finish editing' : 'Edit this layout';
+    var bg = lay.background && lay.background.dataUrl;
+    $('#background-tools').hidden = !global.Editor.active;
+    $('#btn-background-toggle').hidden = !bg; $('#btn-background-remove').hidden = !bg;
+    $('#btn-background-toggle').textContent = (lay.background && lay.background.show === false) ? 'Show picture' : 'Hide picture';
     var sl = $('#sections-list'); sl.innerHTML = '';
     (lay.sections || []).forEach(function (s, i) {
       var name = el('input', { type: 'text', value: s.name, 'aria-label': 'Section name' }), colr = el('input', { type: 'color', value: s.color, 'aria-label': 'Section colour' });
@@ -330,6 +334,19 @@
   function busy(btn, on) { btn.disabled = on; btn.classList.toggle('busy', on); }
   function downloadJson(obj, name) { P.download(new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }), name); }
   function readJson(file, cb) { var r = new FileReader(); r.onload = function () { try { cb(JSON.parse(r.result)); } catch (e) { toast('That file is not valid.', true); } }; r.readAsText(file); }
+  // Reads an image file and returns a data URL, downscaled so it stays small enough for browser storage.
+  function imageToDataUrl(file, cb) {
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var scale = Math.min(1, 1400 / img.width, 1100 / img.height), c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      var ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      cb(c.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); toast('Could not read that picture.', true); };
+    img.src = url;
+  }
   function validLayout(l) { return l && typeof l.name === 'string' && Array.isArray(l.blocks) && Array.isArray(l.seats) && Array.isArray(l.stationGroups) && l.altar && l.altar.inner; }
   function switchLayout(id) {
     var plan = current(), lay = layoutById(id);
@@ -399,12 +416,32 @@
     });
     $('#btn-layout-export').addEventListener('click', function () { var lay = clone(currentLayout()); delete lay.builtin; downloadJson(lay, 'layout-' + lay.name.replace(/[^A-Za-z0-9]+/g, '_') + '.json'); });
     $('#file-layout-import').addEventListener('change', function (e) {
-      if (e.target.files[0]) readJson(e.target.files[0], function (lay) {
+      var file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      if (/^image\//.test(file.type)) {
+        var name = prompt('Name of the congregation for this picture:', file.name.replace(/\.[^.]+$/, ''));
+        if (!name) return;
+        imageToDataUrl(file, function (dataUrl) {
+          var lay = L.blankLayout(name.trim()); lay.id = uid(); lay.background = { dataUrl: dataUrl, opacity: 0.5, show: true };
+          state.layouts.push(lay); switchLayout(lay.id); ui.tab = 'layout'; renderTabs();
+          $('#btn-layout-edit').click();
+          toast('Picture loaded as a tracing background. Drag the altar into place, then add blocks, seats and stations over the picture.');
+        });
+        return;
+      }
+      readJson(file, function (lay) {
         if (!validLayout(lay)) { toast('That file is not a layout.', true); return; }
         lay.id = uid(); lay.builtin = false; state.layouts.push(lay); switchLayout(lay.id); toast('Layout "' + lay.name + '" imported.');
       });
-      e.target.value = '';
     });
+    $('#file-background').addEventListener('change', function (e) {
+      var file = e.target.files[0]; e.target.value = '';
+      if (!file) return;
+      imageToDataUrl(file, function (dataUrl) { editableLayout().background = { dataUrl: dataUrl, opacity: 0.5, show: true }; save(); renderPlan(); renderLayoutTab(); });
+    });
+    $('#btn-background-toggle').addEventListener('click', function () { var b = editableLayout().background; if (b) { b.show = b.show === false; save(); renderPlan(); renderLayoutTab(); } });
+    $('#btn-background-remove').addEventListener('click', function () { delete editableLayout().background; save(); renderPlan(); renderLayoutTab(); });
     $('#btn-layout-edit').addEventListener('click', function () {
       var on = !global.Editor.active;
       if (on) { editableLayout(); ui.selected = null; }

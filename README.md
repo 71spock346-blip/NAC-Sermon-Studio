@@ -39,8 +39,10 @@ The Layout tab manages layouts:
 - **Edit this layout** turns the plan into an editor: drag blocks, seats,
   markers, the altar and station groups; tap one to change its label, size,
   colour, cut corner or direction; add or delete items.
-- **Export layout / Import layout** share a layout as a JSON file between
-  congregations.
+- **Export layout / Import layout or picture** share a layout as a JSON file
+  between congregations. Importing a PNG or JPG of a floor plan starts a new
+  layout with the picture as a faint tracing background (edit mode only, not
+  printed) so you can place blocks, seats and stations over it.
 - **Serving sections and colours** define the colour choices offered in the
   Roster tab and the legend on the PDF.
 

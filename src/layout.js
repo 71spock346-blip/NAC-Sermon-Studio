@@ -36,9 +36,9 @@
     altar: { x: 400, y: 38, w: 290, h: 120, inner: { x: 500, y: 62, w: 95, h: 58 }, label: 'Altar', fill: '#B1510F' },
     markers: [{ id: 'C', x: 345, y: 382 }, { id: 'O', x: 435, y: 605 }],
     seats: [
-      { id: '4', x: 310, y: 8 }, { id: '1', x: 355, y: 8 }, { id: '5', x: 310, y: 52 }, { id: '2', x: 355, y: 52 },
-      { id: '6', x: 310, y: 98 }, { id: '3', x: 355, y: 98 }, { id: '7', x: 705, y: 8 }, { id: '10', x: 750, y: 8 },
-      { id: '8', x: 705, y: 55 }, { id: '11', x: 750, y: 55 }, { id: '9', x: 705, y: 100, quiet: true }, { id: '12', x: 750, y: 100, quiet: true }
+      { id: '4', x: 310, y: 8 }, { id: '3', x: 355, y: 8 }, { id: '5', x: 310, y: 52 }, { id: '2', x: 355, y: 52 },
+      { id: '6', x: 310, y: 98 }, { id: '1', x: 355, y: 98 }, { id: '9', x: 705, y: 8 }, { id: '10', x: 750, y: 8 },
+      { id: '8', x: 705, y: 55 }, { id: '11', x: 750, y: 55 }, { id: '7', x: 705, y: 100 }, { id: '12', x: 750, y: 100 }
     ].concat(['13', '14', '15', '16', '17', '18', '19', '20', '21', '22'].map(function (id, i) {
       return { id: id, x: 340 + i * 40.5, y: 258, w: 40.5, h: 38 };
     })),
@@ -49,6 +49,17 @@
     ],
     cups: { left: 3, right: 2 }
   };
+
+  function blankLayout(name) {
+    return {
+      id: '', name: name, builtin: false,
+      sections: clone(GEZINA.sections), blocks: [],
+      altar: { x: 400, y: 38, w: 290, h: 120, inner: { x: 500, y: 62, w: 95, h: 58 }, label: 'Altar', fill: '#B1510F' },
+      markers: [], seats: [],
+      stationGroups: [{ id: 'front', label: 'Front of altar', cx: 545, cy: 189, dx: 42.5, dy: 0, rot: 0, defaults: ['', '', ''] }],
+      cups: { left: 3, right: 2 }
+    };
+  }
 
   var SEAT_W = 32, SEAT_H = 30, MARKER = 30, STATION = 34, MAX_STATIONS = 6, MAX_CUPS = 8;
 
@@ -144,6 +155,9 @@
     out.push('<defs><pattern id="' + pid + '-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
       '<line x1="0" y1="0" x2="0" y2="6" stroke="' + HATCH + '" stroke-width="2.5"/></pattern></defs>');
     out.push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"' + (edit ? ' data-edit="none:0"' : '') + '/>');
+    if (edit && layout.background && layout.background.dataUrl && layout.background.show !== false) {
+      out.push('<image href="' + layout.background.dataUrl + '" x="0" y="0" width="' + W + '" height="' + H + '" preserveAspectRatio="xMidYMid meet" opacity="' + (layout.background.opacity || 0.5) + '" data-edit="none:0"/>');
+    }
 
     (layout.blocks || []).forEach(function (b) {
       out.push('<g' + ehit('block', b.id) + '><path d="' + blockPath(b) + '" fill="' + (b.fill || '#fff') + '" stroke="' + INK + '" stroke-width="4"' + estroke('block', b.id, 4) + '/>');
@@ -212,6 +226,6 @@
     W: W, H: H, GEZINA: GEZINA, MAX_STATIONS: MAX_STATIONS, MAX_CUPS: MAX_CUPS,
     SEAT_W: SEAT_W, SEAT_H: SEAT_H,
     render: render, esc: esc, clamp: clamp, clone: clone, dark: dark,
-    seatIds: seatIds, defaultStations: defaultStations, stationsFor: stationsFor, newId: newId
+    seatIds: seatIds, defaultStations: defaultStations, stationsFor: stationsFor, newId: newId, blankLayout: blankLayout
   };
 })(window);

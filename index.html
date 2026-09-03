@@ -111,9 +111,14 @@
       </div>
       <div class="row">
         <button id="btn-layout-export" class="btn small ghost" type="button">Export layout</button>
-        <label class="btn small ghost">Import layout <input id="file-layout-import" type="file" accept="application/json" hidden></label>
+        <label class="btn small ghost">Import layout or picture <input id="file-layout-import" type="file" accept="application/json,.json,image/*" hidden></label>
       </div>
-      <p class="muted small">Each congregation has its own layout. Export a layout file to share it with another congregation, or import theirs.</p>
+      <p class="muted small">Each congregation has its own layout. Export a layout file to share it with another congregation, or import theirs. Importing a picture (PNG or JPG) starts a new layout with the picture as a tracing background.</p>
+      <div class="row" id="background-tools" hidden>
+        <label class="btn small ghost">Tracing picture <input id="file-background" type="file" accept="image/*" hidden></label>
+        <button id="btn-background-toggle" class="btn small ghost" type="button" hidden>Hide picture</button>
+        <button id="btn-background-remove" class="btn small ghost" type="button" hidden>Remove picture</button>
+      </div>
       <h3 class="sub">Serving sections and colours</h3>
       <ul id="sections-list" class="sections"></ul>
       <div class="row"><button id="btn-add-section" class="btn small ghost" type="button">+ Section</button></div>
