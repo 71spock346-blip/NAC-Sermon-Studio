@@ -7,7 +7,6 @@
 
   var L = global.Layout;
   var STORAGE_KEY = 'nac-seating-planner:v1';
-  var STATION_DEFAULTS = { front: ['2', '3', '4'], left: ['11', '6', '5'], right: ['7', '8', '10'] };
   var RANKS = ['Ap', 'Bi', 'DE', 'DEv', 'Sh', 'Ev', 'Pr.', 'Dn', 'De'];
 
   var DEFAULT_ROSTER = [
@@ -64,7 +63,7 @@
   function newPlan(base) {
     var p = base ? clone(base) : {
       congregation: 'Gezina', service: 'Divine Service', seats: clone(DEFAULT_SEATS),
-      stations: clone(STATION_DEFAULTS),
+      stations: clone(L.DEFAULT_STATIONS),
       cups: clone(L.DEFAULT_CUPS),
       communion: {
         serves: [{ seat: '1', text: 'Serves 2-11' }, { seat: '2', text: 'Serves C & O Cup' }],
@@ -249,6 +248,15 @@
     return sel;
   }
 
+  function renderStationCounts() {
+    var st = current().stations;
+    Object.keys(L.STATION_GROUPS).forEach(function (g) { $('#stations-' + g).value = (st[g] || []).length; });
+    $$('[data-stations]').forEach(function (b) {
+      var g = b.getAttribute('data-stations'), d = parseInt(b.getAttribute('data-delta'), 10), n = (st[g] || []).length;
+      b.disabled = (d < 0 && n <= 0) || (d > 0 && n >= L.MAX_STATIONS);
+    });
+  }
+
   function renderCups() {
     var cups = current().cups || (current().cups = clone(L.DEFAULT_CUPS));
     $('#cups-left').value = cups.left;
@@ -261,7 +269,7 @@
 
   function renderCommunion() {
     var plan = current(), com = plan.communion;
-    renderCups();
+    renderStationCounts(); renderCups();
     var sb = $('#serves-rows'); sb.innerHTML = '';
     com.serves.forEach(function (s, i) {
       sb.appendChild(el('tr', {}, [
@@ -364,6 +372,18 @@
 
     $('#btn-add-serves').addEventListener('click', function () { current().communion.serves.push({ seat: '', text: '' }); save(); renderCommunion(); });
     $('#btn-add-pair').addEventListener('click', function () { current().communion.pairs.push(['', '']); save(); renderCommunion(); });
+    $$('[data-stations]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var plan = current(), g = b.getAttribute('data-stations'), d = parseInt(b.getAttribute('data-delta'), 10);
+        var arr = plan.stations[g] = plan.stations[g] || [];
+        if (d > 0 && arr.length < L.MAX_STATIONS) arr.push('');
+        else if (d < 0 && arr.length > 0) {
+          arr.pop();
+          if (ui.selected && ui.selected.type === 'station' && ui.selected.id === g + '-' + arr.length) ui.selected = null;
+        }
+        save(); renderPlan(); renderSelection(); renderStationCounts();
+      });
+    });
     $$('[data-cups]').forEach(function (b) {
       b.addEventListener('click', function () {
         var plan = current(), side = b.getAttribute('data-cups'), d = parseInt(b.getAttribute('data-delta'), 10);
@@ -372,7 +392,7 @@
         save(); renderPlan(); renderCups();
       });
     });
-    $('#btn-reset-stations').addEventListener('click', function () { current().stations = clone(STATION_DEFAULTS); save(); renderAll(); toast('Stations reset to the usual positions.'); });
+    $('#btn-reset-stations').addEventListener('click', function () { current().stations = clone(L.DEFAULT_STATIONS); save(); renderAll(); toast('Stations reset to the usual positions.'); });
 
     $('#roster-form').addEventListener('submit', function (e) {
       e.preventDefault();

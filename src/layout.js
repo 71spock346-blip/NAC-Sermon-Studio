@@ -42,19 +42,36 @@
   var FRONT_ROW_IDS = ['13', '14', '15', '16', '17', '18', '19', '20', '21', '22'];
   var FRONT_ROW = { x: 340, y: 258, cellW: 40.5, cellH: 38 };
 
-  // Serving stations. `group` and `index` map to plan.stations[group][index].
-  var STATION_SIZE = 34;
-  var STATIONS = [
-    { group: 'front', index: 0, cx: 502, cy: 189, rot: 0 },
-    { group: 'front', index: 1, cx: 545, cy: 189, rot: 0 },
-    { group: 'front', index: 2, cx: 587, cy: 189, rot: 0 },
-    { group: 'left', index: 0, cx: 205, cy: 68, rot: 45 },
-    { group: 'left', index: 1, cx: 232, cy: 95, rot: 45 },
-    { group: 'left', index: 2, cx: 259, cy: 122, rot: 45 },
-    { group: 'right', index: 0, cx: 825, cy: 122, rot: -45 },
-    { group: 'right', index: 1, cx: 852, cy: 95, rot: -45 },
-    { group: 'right', index: 2, cx: 879, cy: 68, rot: -45 }
-  ];
+  // Serving stations. Each group can hold 0..MAX_STATIONS positions; they are
+  // laid out centred on the group's anchor so the row grows evenly both ways.
+  var STATION_SIZE = 34, MAX_STATIONS = 6;
+  var STATION_GROUPS = {
+    front: { cx: 545, cy: 189, dx: 42.5, dy: 0, rot: 0 },   // in front of the altar
+    left: { cx: 232, cy: 95, dx: 27, dy: 27, rot: 45 },      // along the choir block's diagonal
+    right: { cx: 852, cy: 95, dx: 27, dy: -27, rot: -45 }    // along the members block's diagonal
+  };
+  var DEFAULT_STATIONS = { front: ['2', '3', '4'], left: ['11', '6', '5'], right: ['7', '8', '10'] };
+
+  function clampStations(n) {
+    n = parseInt(n, 10);
+    if (isNaN(n)) return 0;
+    return Math.max(0, Math.min(MAX_STATIONS, n));
+  }
+
+  // Positions of every station for the given plan.
+  function stationsFor(plan) {
+    var st = plan.stations || DEFAULT_STATIONS, out = [];
+    Object.keys(STATION_GROUPS).forEach(function (group) {
+      var g = STATION_GROUPS[group], arr = st[group] || [];
+      var n = clampStations(arr.length);
+      for (var i = 0; i < n; i++) {
+        var k = i - (n - 1) / 2;
+        out.push({ group: group, index: i, cx: g.cx + k * g.dx, cy: g.cy + k * g.dy, rot: g.rot });
+      }
+    });
+    return out;
+  }
+
   var STATION_GROUP_LABELS = { front: 'Front of altar', left: 'Choir side', right: 'Members side' };
 
   var ALL_SEAT_IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].concat(FRONT_ROW_IDS);
@@ -204,7 +221,7 @@
     });
 
     // --- Serving stations --------------------------------------------------
-    STATIONS.forEach(function (st) {
+    stationsFor(plan).forEach(function (st) {
       var arr = stations[st.group] || [];
       var val = arr[st.index];
       var text = (val == null || val === '') ? '' : String(val);
@@ -231,7 +248,11 @@
     MINISTER_SEAT_IDS: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
     FRONT_ROW_IDS: FRONT_ROW_IDS,
     ALL_SEAT_IDS: ALL_SEAT_IDS,
-    STATIONS: STATIONS,
+    STATION_GROUPS: STATION_GROUPS,
+    DEFAULT_STATIONS: DEFAULT_STATIONS,
+    MAX_STATIONS: MAX_STATIONS,
+    clampStations: clampStations,
+    stationsFor: stationsFor,
     STATION_GROUP_LABELS: STATION_GROUP_LABELS,
     DEFAULT_CUPS: DEFAULT_CUPS,
     MAX_CUPS: MAX_CUPS,

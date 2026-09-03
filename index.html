@@ -68,7 +68,28 @@
       </table>
       <div class="row">
         <button id="btn-add-pair" class="btn small ghost" type="button">+ Cup pair</button>
-        <button id="btn-reset-stations" class="btn small ghost" type="button">Reset stations on plan</button>
+        <button id="btn-reset-stations" class="btn small ghost" type="button">Reset stations to usual</button>
+      </div>
+      <h3 class="sub">Serving stations on the plan</h3>
+      <div class="row">
+        <span class="stepper" role="group" aria-label="Stations in front of the altar">
+          <span class="stepper-label">Front</span>
+          <button type="button" class="btn small ghost" data-stations="front" data-delta="-1" aria-label="Remove a station in front of the altar">−</button>
+          <output id="stations-front">3</output>
+          <button type="button" class="btn small ghost" data-stations="front" data-delta="1" aria-label="Add a station in front of the altar">+</button>
+        </span>
+        <span class="stepper" role="group" aria-label="Stations on the choir side">
+          <span class="stepper-label">Left</span>
+          <button type="button" class="btn small ghost" data-stations="left" data-delta="-1" aria-label="Remove a station on the choir side">−</button>
+          <output id="stations-left">3</output>
+          <button type="button" class="btn small ghost" data-stations="left" data-delta="1" aria-label="Add a station on the choir side">+</button>
+        </span>
+        <span class="stepper" role="group" aria-label="Stations on the members side">
+          <span class="stepper-label">Right</span>
+          <button type="button" class="btn small ghost" data-stations="right" data-delta="-1" aria-label="Remove a station on the members side">−</button>
+          <output id="stations-right">3</output>
+          <button type="button" class="btn small ghost" data-stations="right" data-delta="1" aria-label="Add a station on the members side">+</button>
+        </span>
       </div>
       <h3 class="sub">Cups on the altar</h3>
       <div class="row cups">

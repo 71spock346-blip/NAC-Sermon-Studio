@@ -18,7 +18,9 @@ it like an app.
 - **Assign a seat**: tap a numbered square on the plan, then tap a name in the
   roster chips (or type one). Tap another seat to swap the two.
 - **Serving stations**: tap a hatched square and choose the seat number of the
-  minister who stands there.
+  minister who stands there. The "Serving stations on the plan" steppers in
+  the Communion card add or remove stations in front of the altar, on the
+  choir side and on the members side (up to six each).
 - **Communion table**: edit the "Serves" rows and the "Takes cup / Takes inner"
   pairs in the Communion card. The "Cups on the altar" steppers add or remove
   communion cups on either side of the altar (up to eight a side).
