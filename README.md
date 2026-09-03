@@ -1,49 +1,58 @@
 # Seating & Communion Planner
 
-A small web app for planning who sits where and who serves communion at the
-Gezina congregation. It draws the church floor plan, lets you assign ministers
-to seats and serving stations, and produces an A4 PDF that can be shared
-straight to WhatsApp from a phone.
+A small web app for planning who sits where and who serves communion in a
+New Apostolic Church congregation. It draws the church floor plan, lets you
+assign ministers to seats and serving stations, and produces an A4 PDF that
+can be shared straight to WhatsApp from a phone.
+
+Live at https://nac-seating-planner.vercel.app (redeploys on every push to the
+production branch). It is a static site: no build step, no server, no login.
+On a phone, open the link and use "Add to Home Screen".
 
 ## Using it
 
-The app is deployed on Vercel at https://nac-seating-planner.vercel.app and
-redeploys automatically on every push to the production branch. It can also be
-opened directly from `index.html` or hosted on any static web host. No build
-step, no server and no login.
-
-On a phone, open the link in the browser and use "Add to Home Screen" to keep
-it like an app.
-
-- **Assign a seat**: tap a numbered square on the plan, then tap a name in the
-  roster chips (or type one). Tap another seat to swap the two.
+- **Congregation**: pick the layout at the top. Gezina is built in; other
+  congregations are added in the Layout tab.
+- **Seats**: tap a numbered square on the plan, then tap a minister (or type a
+  name). Tap another seat to swap the two. The Seats tab shows the same
+  assignments as a table.
 - **Serving stations**: tap a hatched square and choose the seat number of the
-  minister who stands there. The "Serving stations on the plan" steppers in
-  the Communion card add or remove stations in front of the altar, on the
-  choir side and on the members side (up to six each).
-- **Communion table**: edit the "Serves" rows and the "Takes cup / Takes inner"
-  pairs in the Communion card. The "Cups on the altar" steppers add or remove
-  communion cups on either side of the altar (up to eight a side).
-- **Roster**: add or remove ministers in the Roster card. Renaming someone
-  updates their seat.
+  minister who stands there. Steppers in the Communion tab add or remove
+  stations per group (up to six each) and cups on the altar (up to eight a
+  side).
+- **Colours**: in the Roster tab, give each minister the colour of the section
+  they serve. The colour follows them to their seat, to the station holding
+  their seat number, and to the tables and PDF. Several ministers can share a
+  colour. Sections and their colours are defined per layout.
 - **Plans**: every service is a plan. "New from current" copies the current
-  plan so you only change what differs. Plans are saved in the browser.
-- **Save PDF / Share PDF**: builds the A4 sheet (title, plan, seating table,
-  communion table, note). On a phone the Share button opens the share sheet so
-  you can send it via WhatsApp; on a desktop the PDF downloads.
-- **Export / Import backup**: moves your plans and roster between devices.
+  plan so you only change what differs. Plans, roster and layouts are saved in
+  the browser; Export/Import backup moves them between devices.
+- **Save PDF / Share PDF**: builds the A4 sheet (title, plan, legend, seating
+  table, communion table, note). On a phone the Share button opens the share
+  sheet so you can send it via WhatsApp; on a desktop the PDF downloads.
 
-## Layout
+## Layouts for other congregations
 
-The floor plan geometry lives in `src/layout.js`. Solid-coloured squares are
-the ministers' seats (the colour shows which section that seat serves);
-hatched squares are the serving stations. The circles on the altar are the
-communion cups; their number is stored per plan.
+The Layout tab manages layouts:
+
+- **New layout (copy)** duplicates the current layout under a new name.
+- **Edit this layout** turns the plan into an editor: drag blocks, seats,
+  markers, the altar and station groups; tap one to change its label, size,
+  colour, cut corner or direction; add or delete items.
+- **Export layout / Import layout** share a layout as a JSON file between
+  congregations.
+- **Serving sections and colours** define the colour choices offered in the
+  Roster tab and the legend on the PDF.
+
+The layout format (see `src/layout.js`, `GEZINA`) is plain JSON with blocks,
+an altar, markers, seats, station groups, sections and default cup counts, in
+a 1100 x 800 coordinate space.
 
 ## Files
 
 - `index.html`, `styles.css` – the page
-- `src/layout.js` – floor plan data and SVG renderer
+- `src/layout.js` – layout model, built-in Gezina layout, SVG renderer
+- `src/editor.js` – drag-and-edit layout editor
 - `src/pdf.js` – A4 sheet builder and PDF export (uses the vendored jsPDF)
 - `src/app.js` – state, storage and UI
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)

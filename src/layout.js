@@ -1,263 +1,217 @@
 /*
- * Floor plan of the Gezina church (top view) and the SVG renderer for it.
+ * Layout model and SVG renderer.
  *
- * Coordinates are in a 1100 x 800 viewBox that matches the reference picture.
- * Solid-coloured squares next to the altar are the ministers' seats; hatched
- * squares are the serving stations where ministers stand to serve communion.
+ * A layout describes one congregation's building in a 1100 x 800 viewBox:
+ *   blocks        rooms/seating blocks (rect, optional cut corner, label, fill)
+ *   altar         the altar with an inner box; communion cups sit either side
+ *   markers       fixed labelled squares that are not assignable (C, O)
+ *   seats         assignable minister seats (numbered squares)
+ *   stationGroups rows of hatched serving stations, grown from an anchor
+ *   sections      the serving sections and their colours (used for ministers)
  */
 (function (global) {
   'use strict';
 
-  var COLORS = {
-    yellow: '#FFD966',
-    green: '#A9D18E',
-    blue: '#9DC3E6',
-    white: '#FFFFFF',
-    altar: '#B1510F',
-    hatch: '#D9B23A',
-    line: '#000000',
-    selected: '#1565C0'
+  var W = 1100, H = 800;
+  var INK = '#000', HATCH = '#D9B23A', SELECT = '#1565C0', EDIT = '#D81B60';
+
+  var GEZINA = {
+    id: 'gezina', name: 'Gezina', builtin: true,
+    sections: [
+      { name: 'Centre', color: '#FFD966' },
+      { name: 'Choir side', color: '#A9D18E' },
+      { name: 'Members side', color: '#9DC3E6' }
+    ],
+    blocks: [
+      { id: 'b1', label: 'Choir', x: 10, y: 52, w: 258, h: 273, fill: '#A9D18E', cut: 'tr', cutSize: 158 },
+      { id: 'b2', label: 'Choir\n&\nMembers', x: 10, y: 360, w: 258, h: 290, fill: '#A9D18E' },
+      { id: 'b3', label: 'Mothers Room', x: 10, y: 660, w: 258, h: 135, fill: '#A9D18E', fontSize: 27 },
+      { id: 'b4', label: 'Foyer', x: 268, y: 660, w: 557, h: 135, fill: '#FFFFFF' },
+      { id: 'b5', label: '', x: 825, y: 660, w: 265, h: 135, fill: '#FFFFFF' },
+      { id: 'b6', label: 'Member', x: 820, y: 52, w: 270, h: 273, fill: '#9DC3E6', cut: 'tl', cutSize: 158 },
+      { id: 'b7', label: 'Members', x: 825, y: 360, w: 265, h: 290, fill: '#9DC3E6' },
+      { id: 'b8', label: 'Members', x: 335, y: 250, w: 415, h: 290, fill: '#FFD966' },
+      { id: 'b9', label: 'Organist', x: 420, y: 580, w: 260, h: 70, fill: '#FFD966', fontSize: 28 }
+    ],
+    altar: { x: 400, y: 38, w: 290, h: 120, inner: { x: 500, y: 62, w: 95, h: 58 }, label: 'Altar', fill: '#B1510F' },
+    markers: [{ id: 'C', x: 345, y: 382 }, { id: 'O', x: 435, y: 605 }],
+    seats: [
+      { id: '4', x: 310, y: 8 }, { id: '1', x: 355, y: 8 }, { id: '5', x: 310, y: 52 }, { id: '2', x: 355, y: 52 },
+      { id: '6', x: 310, y: 98 }, { id: '3', x: 355, y: 98 }, { id: '7', x: 705, y: 8 }, { id: '10', x: 750, y: 8 },
+      { id: '8', x: 705, y: 55 }, { id: '11', x: 750, y: 55 }, { id: '9', x: 705, y: 100, quiet: true }, { id: '12', x: 750, y: 100, quiet: true }
+    ].concat(['13', '14', '15', '16', '17', '18', '19', '20', '21', '22'].map(function (id, i) {
+      return { id: id, x: 340 + i * 40.5, y: 258, w: 40.5, h: 38 };
+    })),
+    stationGroups: [
+      { id: 'front', label: 'Front of altar', cx: 545, cy: 189, dx: 42.5, dy: 0, rot: 0, defaults: ['2', '3', '4'] },
+      { id: 'left', label: 'Choir side', cx: 232, cy: 95, dx: 27, dy: 27, rot: 45, defaults: ['11', '6', '5'] },
+      { id: 'right', label: 'Members side', cx: 852, cy: 95, dx: 27, dy: -27, rot: -45, defaults: ['7', '8', '10'] }
+    ],
+    cups: { left: 3, right: 2 }
   };
 
-  // Seat number -> colour group. The colour shows which section the seated
-  // minister serves (yellow = centre, green = choir side, blue = right side).
-  var SEAT_GROUP = {
-    1: 'white', 2: 'yellow', 3: 'yellow', 4: 'yellow',
-    5: 'green', 6: 'green',
-    7: 'blue', 8: 'blue', 9: 'blue', 10: 'blue', 11: 'blue', 12: 'blue'
-  };
+  var SEAT_W = 32, SEAT_H = 30, MARKER = 30, STATION = 34, MAX_STATIONS = 6, MAX_CUPS = 8;
 
-  // Minister seats beside the altar. 9 and 12 are drawn blank unless used.
-  var MINISTER_SEATS = [
-    { id: '4', x: 310, y: 8 }, { id: '1', x: 355, y: 8 },
-    { id: '5', x: 310, y: 52 }, { id: '2', x: 355, y: 52 },
-    { id: '6', x: 310, y: 98 }, { id: '3', x: 355, y: 98 },
-    { id: '7', x: 705, y: 8 }, { id: '10', x: 750, y: 8 },
-    { id: '8', x: 705, y: 55 }, { id: '11', x: 750, y: 55 },
-    { id: '9', x: 705, y: 100, quiet: true }, { id: '12', x: 750, y: 100, quiet: true }
-  ];
-  var SEAT_W = 32, SEAT_H = 30;
-
-  // Front row of the centre block.
-  var FRONT_ROW_IDS = ['13', '14', '15', '16', '17', '18', '19', '20', '21', '22'];
-  var FRONT_ROW = { x: 340, y: 258, cellW: 40.5, cellH: 38 };
-
-  // Serving stations. Each group can hold 0..MAX_STATIONS positions; they are
-  // laid out centred on the group's anchor so the row grows evenly both ways.
-  var STATION_SIZE = 34, MAX_STATIONS = 6;
-  var STATION_GROUPS = {
-    front: { cx: 545, cy: 189, dx: 42.5, dy: 0, rot: 0 },   // in front of the altar
-    left: { cx: 232, cy: 95, dx: 27, dy: 27, rot: 45 },      // along the choir block's diagonal
-    right: { cx: 852, cy: 95, dx: 27, dy: -27, rot: -45 }    // along the members block's diagonal
-  };
-  var DEFAULT_STATIONS = { front: ['2', '3', '4'], left: ['11', '6', '5'], right: ['7', '8', '10'] };
-
-  function clampStations(n) {
-    n = parseInt(n, 10);
-    if (isNaN(n)) return 0;
-    return Math.max(0, Math.min(MAX_STATIONS, n));
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+  function clamp(n, lo, hi) { n = parseInt(n, 10); return isNaN(n) ? lo : Math.max(lo, Math.min(hi, n)); }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
-  // Positions of every station for the given plan.
-  function stationsFor(plan) {
-    var st = plan.stations || DEFAULT_STATIONS, out = [];
-    Object.keys(STATION_GROUPS).forEach(function (group) {
-      var g = STATION_GROUPS[group], arr = st[group] || [];
-      var n = clampStations(arr.length);
+  function seatIds(layout) {
+    return layout.seats.map(function (s) { return s.id; }).sort(function (a, b) {
+      var na = parseInt(a, 10), nb = parseInt(b, 10);
+      if (!isNaN(na) && !isNaN(nb)) return na - nb;
+      if (!isNaN(na)) return -1;
+      if (!isNaN(nb)) return 1;
+      return a.localeCompare(b);
+    });
+  }
+  function defaultStations(layout) {
+    var o = {};
+    layout.stationGroups.forEach(function (g) { o[g.id] = (g.defaults || []).slice(); });
+    return o;
+  }
+  function stationsFor(layout, plan) {
+    var st = plan.stations || {}, out = [];
+    layout.stationGroups.forEach(function (g) {
+      var n = clamp((st[g.id] || []).length, 0, MAX_STATIONS);
       for (var i = 0; i < n; i++) {
         var k = i - (n - 1) / 2;
-        out.push({ group: group, index: i, cx: g.cx + k * g.dx, cy: g.cy + k * g.dy, rot: g.rot });
+        out.push({ group: g.id, index: i, cx: g.cx + k * g.dx, cy: g.cy + k * g.dy, rot: g.rot || 0 });
       }
     });
     return out;
   }
-
-  var STATION_GROUP_LABELS = { front: 'Front of altar', left: 'Choir side', right: 'Members side' };
-
-  var ALL_SEAT_IDS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].concat(FRONT_ROW_IDS);
-
-  function esc(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function label(x, y, text, size, opts) {
-    opts = opts || {};
-    return '<text x="' + x + '" y="' + y + '" font-size="' + size + '"' +
-      ' text-anchor="middle" dominant-baseline="central"' +
-      (opts.bold ? ' font-weight="bold"' : '') +
-      (opts.fill ? ' fill="' + opts.fill + '"' : '') +
-      (opts.extra || '') + '>' + esc(text) + '</text>';
-  }
-
-  function rect(x, y, w, h, fill, sw, extra) {
-    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + fill +
-      '" stroke="' + COLORS.line + '" stroke-width="' + (sw == null ? 4 : sw) + '"' + (extra || '') + '/>';
-  }
-
-  // Communion cups on the altar, either side of the inner altar box.
-  var DEFAULT_CUPS = { left: 3, right: 2 };
-  var MAX_CUPS = 8;
-
-  function clampCups(n) {
-    n = parseInt(n, 10);
-    if (isNaN(n)) return 0;
-    return Math.max(0, Math.min(MAX_CUPS, n));
-  }
-
-  // Positions for `n` cups starting at `edge` and running in `dir` (-1 left,
-  // +1 right). Up to four cups fit in one row; more wrap onto a second row.
-  var CUPS_PER_ROW = 4, CUP_SPACING = 22;
-  function cupRow(n, edge, dir) {
-    var out = [];
-    if (!n) return out;
-    var rows = Math.ceil(n / CUPS_PER_ROW);
-    var ys = rows === 1 ? [100] : [89, 111];
-    for (var i = 0; i < n; i++) {
-      var row = Math.floor(i / CUPS_PER_ROW), col = i % CUPS_PER_ROW;
-      out.push({ cx: edge + dir * (CUP_SPACING / 2 + col * CUP_SPACING), cy: ys[row], r: 9 });
-    }
+  function cupRow(n, edge, dir, cy) {
+    var out = [], rows = Math.ceil(n / 4), ys = rows === 1 ? [cy] : [cy - 11, cy + 11];
+    for (var i = 0; i < n; i++) out.push({ cx: edge + dir * (11 + (i % 4) * 22), cy: ys[Math.floor(i / 4)] });
     return out;
   }
 
-  function cup(cx, cy, r) {
-    r = r || 9;
-    var inner = Math.max(2, r * 0.45), sw = r < 7 ? 1.4 : 2;
-    return '<g><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#e6e6e6" stroke="#333" stroke-width="' + sw + '"/>' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="' + inner + '" fill="none" stroke="#333" stroke-width="1.2"/>' +
-      '<line x1="' + (cx - r) + '" y1="' + cy + '" x2="' + (cx + r) + '" y2="' + cy + '" stroke="#333" stroke-width="1.2"/></g>';
+  function text(x, y, s, size, o) {
+    o = o || {};
+    var lines = String(s == null ? '' : s).split('\n');
+    var attrs = ' font-size="' + size + '" text-anchor="middle" dominant-baseline="central"' +
+      (o.bold ? ' font-weight="bold"' : '') + (o.fill ? ' fill="' + o.fill + '"' : '') + (o.extra || '');
+    if (lines.length === 1) return '<text x="' + x + '" y="' + y + '"' + attrs + '>' + esc(s) + '</text>';
+    var lh = size * 1.15, y0 = y - lh * (lines.length - 1) / 2;
+    return '<text x="' + x + '" y="' + y0 + '"' + attrs + '>' + lines.map(function (l, i) {
+      return '<tspan x="' + x + '"' + (i ? ' dy="' + lh + '"' : '') + '>' + esc(l) + '</tspan>';
+    }).join('') + '</text>';
+  }
+  function rect(x, y, w, h, fill, sw, stroke) {
+    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + fill + '" stroke="' + (stroke || INK) + '" stroke-width="' + sw + '"/>';
+  }
+  function blockPath(b) {
+    var s = Math.min(b.cutSize || 0, b.w, b.h), x = b.x, y = b.y, w = b.w, h = b.h;
+    if (b.cut === 'tr' && s) return 'M' + x + ' ' + y + ' H' + (x + w - s) + ' L' + (x + w) + ' ' + (y + s) + ' V' + (y + h) + ' H' + x + ' Z';
+    if (b.cut === 'tl' && s) return 'M' + (x + s) + ' ' + y + ' H' + (x + w) + ' V' + (y + h) + ' H' + x + ' V' + (y + s) + ' Z';
+    if (b.cut === 'br' && s) return 'M' + x + ' ' + y + ' H' + (x + w) + ' V' + (y + h - s) + ' L' + (x + w - s) + ' ' + (y + h) + ' H' + x + ' Z';
+    if (b.cut === 'bl' && s) return 'M' + x + ' ' + y + ' H' + (x + w) + ' V' + (y + h) + ' H' + (x + s) + ' L' + x + ' ' + (y + h - s) + ' Z';
+    return 'M' + x + ' ' + y + ' h' + w + ' v' + h + ' h' + (-w) + ' Z';
+  }
+  function cup(cx, cy) {
+    return '<g><circle cx="' + cx + '" cy="' + cy + '" r="9" fill="#e6e6e6" stroke="#333" stroke-width="2"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="4" fill="none" stroke="#333" stroke-width="1.2"/>' +
+      '<line x1="' + (cx - 9) + '" y1="' + cy + '" x2="' + (cx + 9) + '" y2="' + cy + '" stroke="#333" stroke-width="1.2"/></g>';
+  }
+  function dark(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return false;
+    var n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    return (r * 299 + g * 587 + b * 114) / 1000 < 110;
   }
 
   /**
-   * Render the plan as an SVG string.
-   * @param {object} plan   plan state: { seats: {id: name}, stations: {front:[], left:[], right:[]} }
-   * @param {object} opts   { interactive: bool, selected: {type:'seat'|'station', id}, idPrefix }
+   * Render a layout (with a plan's assignments) as an SVG string.
+   * opts: interactive, selected {type,id}, idPrefix, colorOf(name) -> hex,
+   *       edit (bool), editSel {type,id}
    */
-  function renderPlan(plan, opts) {
+  function render(layout, plan, opts) {
     opts = opts || {};
-    var interactive = !!opts.interactive;
-    var sel = opts.selected || null;
-    var pid = opts.idPrefix || 'p';
-    var seats = plan.seats || {};
-    var stations = plan.stations || { front: [], left: [], right: [] };
+    plan = plan || {};
+    var it = !!opts.interactive, edit = !!opts.edit, sel = opts.selected, esel = opts.editSel;
+    var pid = opts.idPrefix || 'p', seats = plan.seats || {}, colorOf = opts.colorOf || function () { return null; };
     var out = [];
+    var hit = function (type, id, extra) { return it ? ' class="hit ' + type + '" data-' + type + '="' + esc(id) + '" tabindex="0" role="button"' + (extra || '') : ''; };
+    var ehit = function (type, id) { return edit ? ' class="ed" data-edit="' + type + ':' + esc(id) + '"' : ''; };
+    var isE = function (type, id) { return edit && esel && esel.type === type && esel.id === id; };
+    var estroke = function (type, id, sw) { return isE(type, id) ? ' stroke="' + EDIT + '" stroke-width="' + (sw + 3) + '" stroke-dasharray="8 5"' : ''; };
 
-    out.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 800" width="1100" height="800"' +
+    out.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '"' +
       ' font-family="Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif" fill="#000">');
     out.push('<defs><pattern id="' + pid + '-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
-      '<rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="' + COLORS.hatch + '" stroke-width="2.5"/></pattern></defs>');
-    out.push('<rect x="0" y="0" width="1100" height="800" fill="#FFFFFF"/>');
+      '<line x1="0" y1="0" x2="0" y2="6" stroke="' + HATCH + '" stroke-width="2.5"/></pattern></defs>');
+    out.push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"' + (edit ? ' data-edit="none:0"' : '') + '/>');
 
-    // --- Rooms and blocks -------------------------------------------------
-    out.push('<path d="M10 52 H110 L268 210 V325 H10 Z" fill="' + COLORS.green + '" stroke="#000" stroke-width="4"/>');
-    out.push(label(139, 222, 'Choir', 30));
-    out.push(rect(10, 360, 258, 290, COLORS.green));
-    out.push(label(139, 478, 'Choir', 30) + label(139, 512, '&', 30) + label(139, 546, 'Members', 30));
-    out.push(rect(10, 660, 258, 135, COLORS.green));
-    out.push(label(139, 740, 'Mothers Room', 27));
-    out.push(rect(268, 660, 557, 135, COLORS.white));
-    out.push(label(546, 730, 'Foyer', 30));
-    out.push(rect(825, 660, 265, 135, COLORS.white));
-    out.push('<path d="M975 52 H1090 V325 H820 V210 Z" fill="' + COLORS.blue + '" stroke="#000" stroke-width="4"/>');
-    out.push(label(972, 195, 'Member', 30));
-    out.push(rect(825, 360, 265, 290, COLORS.blue));
-    out.push(label(957, 500, 'Members', 30));
-    out.push(rect(335, 250, 415, 290, COLORS.yellow));
-    out.push(label(546, 420, 'Members', 30));
-    out.push(rect(420, 580, 260, 70, COLORS.yellow));
-    out.push(label(565, 616, 'Organist', 28));
+    (layout.blocks || []).forEach(function (b) {
+      out.push('<g' + ehit('block', b.id) + '><path d="' + blockPath(b) + '" fill="' + (b.fill || '#fff') + '" stroke="' + INK + '" stroke-width="4"' + estroke('block', b.id, 4) + '/>');
+      if (b.label) out.push(text(b.x + b.w / 2 + (b.labelDx || 0), b.y + b.h / 2 + (b.labelDy || 0), b.label, b.fontSize || 30));
+      out.push('</g>');
+    });
 
-    // --- Altar and communion cups ----------------------------------------
-    out.push(rect(400, 38, 290, 120, COLORS.altar));
-    out.push(rect(500, 62, 95, 58, COLORS.altar, 4));
-    out.push(label(547, 91, 'Altar', 26, { fill: '#fff' }));
-    var cups = plan.cups || DEFAULT_CUPS;
-    cupRow(clampCups(cups.left), 496, -1).forEach(function (c) { out.push(cup(c.cx, c.cy, c.r)); });
-    cupRow(clampCups(cups.right), 599, 1).forEach(function (c) { out.push(cup(c.cx, c.cy, c.r)); });
+    var a = layout.altar;
+    if (a) {
+      out.push('<g' + ehit('altar', 'altar') + '>' + '<rect x="' + a.x + '" y="' + a.y + '" width="' + a.w + '" height="' + a.h + '" fill="' + (a.fill || '#B1510F') + '" stroke="' + INK + '" stroke-width="4"' + estroke('altar', 'altar', 4) + '/>');
+      var inn = a.inner;
+      out.push(rect(inn.x, inn.y, inn.w, inn.h, a.fill || '#B1510F', 4));
+      out.push(text(inn.x + inn.w / 2, inn.y + inn.h / 2, a.label || 'Altar', 26, { fill: '#fff' }));
+      var cups = plan.cups || layout.cups || { left: 0, right: 0 }, cy = inn.y + inn.h / 2 + 9;
+      cupRow(clamp(cups.left, 0, MAX_CUPS), inn.x - 4, -1, cy).forEach(function (c) { out.push(cup(c.cx, c.cy)); });
+      cupRow(clamp(cups.right, 0, MAX_CUPS), inn.x + inn.w + 4, 1, cy).forEach(function (c) { out.push(cup(c.cx, c.cy)); });
+      out.push('</g>');
+    }
 
-    // --- Fixed position markers (choir leader, organist) -------------------
-    out.push(rect(345, 382, 30, 30, COLORS.white, 2.5));
-    out.push(label(360, 397, 'C', 20, { bold: true }));
-    out.push(rect(435, 605, 30, 30, COLORS.white, 2.5));
-    out.push(label(450, 620, 'O', 20, { bold: true }));
+    (layout.markers || []).forEach(function (m) {
+      out.push('<g' + ehit('marker', m.id) + '>' + rect(m.x, m.y, MARKER, MARKER, '#fff', 2.5) + text(m.x + MARKER / 2, m.y + MARKER / 2 + 1, m.id, 20, { bold: true }) +
+        (isE('marker', m.id) ? rect(m.x - 3, m.y - 3, MARKER + 6, MARKER + 6, 'none', 3, EDIT) : '') + '</g>');
+    });
 
-    // --- Minister seats ----------------------------------------------------
-    MINISTER_SEATS.forEach(function (s) {
-      var name = seats[s.id] || '';
-      var isSel = sel && sel.type === 'seat' && sel.id === s.id;
-      var fill = COLORS[SEAT_GROUP[s.id]];
-      var showNumber = !s.quiet || name || interactive;
-      var attrs = interactive ? ' class="hit seat" data-seat="' + s.id + '" tabindex="0" role="button"' +
-        ' aria-label="Seat ' + s.id + (name ? ': ' + esc(name) : ' (empty)') + '"' : '';
-      out.push('<g' + attrs + '>');
+    (layout.seats || []).forEach(function (s) {
+      var w = s.w || SEAT_W, h = s.h || SEAT_H, name = seats[s.id] || '', col = name ? (colorOf(name) || '#fff') : '#fff';
+      var isSel = sel && sel.type === 'seat' && sel.id === s.id, show = !s.quiet || name || it;
+      out.push('<g' + hit('seat', s.id, ' aria-label="Seat ' + esc(s.id) + (name ? ': ' + esc(name) : ' (empty)') + '"') + ehit('seat', s.id) + '>');
       if (name) out.push('<title>' + esc('Seat ' + s.id + ': ' + name) + '</title>');
-      out.push(rect(s.x, s.y, SEAT_W, SEAT_H, fill, isSel ? 5 : 2.5, isSel ? ' stroke="' + COLORS.selected + '"' : ''));
-      if (showNumber) {
-        out.push(label(s.x + SEAT_W / 2, s.y + SEAT_H / 2 + 1, s.id, 20,
-          { bold: true, fill: (s.quiet && !name) ? '#7a8ea3' : '#000' }));
-      }
-      if (interactive && name) {
-        out.push('<circle cx="' + (s.x + SEAT_W - 3) + '" cy="' + (s.y + 3) + '" r="5" fill="#2e7d32" stroke="#fff" stroke-width="1.5"/>');
-      }
+      out.push(rect(s.x, s.y, w, h, col, isSel ? 5 : 2.5, isSel ? SELECT : INK));
+      if (show) out.push(text(s.x + w / 2, s.y + h / 2 + 1, s.id, w > 36 ? 19 : 20, { bold: true, fill: dark(col) ? '#fff' : (s.quiet && !name ? '#7a8ea3' : '#000') }));
+      if (isE('seat', s.id)) out.push(rect(s.x - 3, s.y - 3, w + 6, h + 6, 'none', 3, EDIT));
       out.push('</g>');
     });
 
-    // --- Front row 13..22 --------------------------------------------------
-    FRONT_ROW_IDS.forEach(function (id, i) {
-      var x = FRONT_ROW.x + i * FRONT_ROW.cellW;
-      var name = seats[id] || '';
-      var isSel = sel && sel.type === 'seat' && sel.id === id;
-      var attrs = interactive ? ' class="hit seat" data-seat="' + id + '" tabindex="0" role="button"' +
-        ' aria-label="Seat ' + id + (name ? ': ' + esc(name) : ' (empty)') + '"' : '';
-      out.push('<g' + attrs + '>');
-      if (name) out.push('<title>' + esc('Seat ' + id + ': ' + name) + '</title>');
-      out.push(rect(x, FRONT_ROW.y, FRONT_ROW.cellW, FRONT_ROW.cellH, COLORS.white, isSel ? 5 : 2.5,
-        isSel ? ' stroke="' + COLORS.selected + '"' : ''));
-      out.push(label(x + FRONT_ROW.cellW / 2, FRONT_ROW.y + FRONT_ROW.cellH / 2 + 1, id, 19, { bold: true }));
-      if (interactive && name) {
-        out.push('<circle cx="' + (x + FRONT_ROW.cellW - 4) + '" cy="' + (FRONT_ROW.y + 4) + '" r="5" fill="#2e7d32" stroke="#fff" stroke-width="1.5"/>');
-      }
+    var st = plan.stations || {};
+    stationsFor(layout, plan).forEach(function (s) {
+      var val = (st[s.group] || [])[s.index], txt = val == null ? '' : String(val), key = s.group + '-' + s.index;
+      var occupant = txt ? seats[txt] : '', col = occupant ? (colorOf(occupant) || '#fff') : '#fff';
+      var isSel = sel && sel.type === 'station' && sel.id === key, half = STATION / 2;
+      out.push('<g transform="rotate(' + s.rot + ' ' + s.cx + ' ' + s.cy + ')"' + hit('station', key, ' aria-label="Serving station ' + esc(key) + (txt ? ': seat ' + esc(txt) : ' (empty)') + '"') + '>');
+      out.push(rect(s.cx - half, s.cy - half, STATION, STATION, col, 0, 'none'));
+      out.push(rect(s.cx - half, s.cy - half, STATION, STATION, 'url(#' + pid + '-hatch)', isSel ? 5 : 2.5, isSel ? SELECT : INK));
+      if (txt) out.push(text(s.cx, s.cy + 1, txt, 20, { bold: true, fill: dark(col) ? '#fff' : '#000' }));
       out.push('</g>');
     });
-
-    // --- Serving stations --------------------------------------------------
-    stationsFor(plan).forEach(function (st) {
-      var arr = stations[st.group] || [];
-      var val = arr[st.index];
-      var text = (val == null || val === '') ? '' : String(val);
-      var key = st.group + '-' + st.index;
-      var isSel = sel && sel.type === 'station' && sel.id === key;
-      var half = STATION_SIZE / 2;
-      var attrs = interactive ? ' class="hit station" data-station="' + key + '" tabindex="0" role="button"' +
-        ' aria-label="Serving station, ' + STATION_GROUP_LABELS[st.group] + ' ' + (st.index + 1) +
-        (text ? ': seat ' + text : ' (empty)') + '"' : '';
-      out.push('<g transform="rotate(' + st.rot + ' ' + st.cx + ' ' + st.cy + ')"' + attrs + '>');
-      out.push('<rect x="' + (st.cx - half) + '" y="' + (st.cy - half) + '" width="' + STATION_SIZE + '" height="' + STATION_SIZE +
-        '" fill="url(#' + pid + '-hatch)" stroke="' + (isSel ? COLORS.selected : COLORS.line) + '" stroke-width="' + (isSel ? 5 : 2.5) + '"/>');
-      if (text) out.push(label(st.cx, st.cy + 1, text, 20, { bold: true }));
-      out.push('</g>');
-    });
-
+    if (edit) {
+      layout.stationGroups.forEach(function (g) {
+        var r = 26;
+        out.push('<g' + ehit('group', g.id) + '><circle cx="' + g.cx + '" cy="' + g.cy + '" r="' + r + '" fill="rgba(216,27,96,0.12)" stroke="' + EDIT + '" stroke-width="' + (isE('group', g.id) ? 4 : 1.5) + '"' + (isE('group', g.id) ? '' : ' stroke-dasharray="4 3"') + '/>' +
+          text(g.cx, g.cy - r - 10, g.label, 14, { fill: EDIT, bold: true }) + '</g>');
+      });
+    }
     out.push('</svg>');
     return out.join('');
   }
 
+  function newId(prefix, list) {
+    var n = 1, ids = {};
+    (list || []).forEach(function (x) { ids[x.id] = 1; });
+    while (ids[prefix + n]) n++;
+    return prefix + n;
+  }
+
   global.Layout = {
-    COLORS: COLORS,
-    SEAT_GROUP: SEAT_GROUP,
-    MINISTER_SEAT_IDS: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
-    FRONT_ROW_IDS: FRONT_ROW_IDS,
-    ALL_SEAT_IDS: ALL_SEAT_IDS,
-    STATION_GROUPS: STATION_GROUPS,
-    DEFAULT_STATIONS: DEFAULT_STATIONS,
-    MAX_STATIONS: MAX_STATIONS,
-    clampStations: clampStations,
-    stationsFor: stationsFor,
-    STATION_GROUP_LABELS: STATION_GROUP_LABELS,
-    DEFAULT_CUPS: DEFAULT_CUPS,
-    MAX_CUPS: MAX_CUPS,
-    clampCups: clampCups,
-    renderPlan: renderPlan,
-    esc: esc
+    W: W, H: H, GEZINA: GEZINA, MAX_STATIONS: MAX_STATIONS, MAX_CUPS: MAX_CUPS,
+    SEAT_W: SEAT_W, SEAT_H: SEAT_H,
+    render: render, esc: esc, clamp: clamp, clone: clone, dark: dark,
+    seatIds: seatIds, defaultStations: defaultStations, stationsFor: stationsFor, newId: newId
   };
 })(window);

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Seating &amp; Communion Planner</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1565c0">
@@ -11,17 +11,19 @@
 </head>
 <body>
 <header class="top">
-  <h1>Seating &amp; Communion Planner</h1>
-  <button id="btn-share" class="btn" type="button" hidden>Share PDF</button>
-  <button id="btn-pdf" class="btn" type="button">Save PDF</button>
-  <button id="btn-print" class="btn ghost" type="button">Print</button>
+  <h1>Seating &amp; Communion</h1>
+  <div class="actions">
+    <button id="btn-share" class="btn" type="button" hidden>Share PDF</button>
+    <button id="btn-pdf" class="btn" type="button">Save PDF</button>
+    <button id="btn-print" class="btn ghost" type="button">Print</button>
+  </div>
 </header>
 
 <main>
-  <section>
-    <div class="card">
-      <div class="fields">
-        <label class="f">Congregation <input id="congregation" type="text" placeholder="Gezina"></label>
+  <section class="plan-col">
+    <div class="card plan-card">
+      <div class="fields three">
+        <label class="f">Congregation <select id="layout-select"></select></label>
         <label class="f">Date <input id="date" type="date"></label>
         <label class="f">Service <input id="service" type="text" placeholder="e.g. Ap Service"></label>
       </div>
@@ -33,32 +35,31 @@
         </span>
       </div>
       <div class="plan-wrap"><div id="plan" aria-label="Floor plan"></div></div>
-      <div class="legend">
-        <span style="--sw:#FFD966">Serves centre</span>
-        <span style="--sw:#A9D18E">Serves choir side</span>
-        <span style="--sw:#9DC3E6">Serves members side</span>
-        <span class="hatch">Serving station</span>
-      </div>
-    </div>
-    <div class="card" id="selection-card">
-      <h2>Selected</h2>
-      <div id="selection"></div>
+      <div class="legend" id="legend"></div>
     </div>
   </section>
 
-  <aside>
-    <div class="card">
-      <h2>Seating arrangements</h2>
+  <aside class="side-col">
+    <div class="card sheet" id="selection-sheet" hidden><div id="selection"></div></div>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="seats">Seats</button>
+      <button type="button" role="tab" data-tab="communion">Communion</button>
+      <button type="button" role="tab" data-tab="roster">Roster</button>
+      <button type="button" role="tab" data-tab="plans">Plans</button>
+      <button type="button" role="tab" data-tab="layout">Layout</button>
+    </nav>
+
+    <div class="card tab" id="tab-seats">
       <table class="grid" id="seating-table">
         <thead><tr><th>#</th><th>Minister</th><th>#</th><th>Minister</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
 
-    <div class="card">
-      <h2>Communion</h2>
+    <div class="card tab" id="tab-communion" hidden>
       <table class="grid">
-        <thead><tr><th style="width:70px">Seat</th><th>Serves</th><th style="width:30px"></th></tr></thead>
+        <thead><tr><th style="width:90px">Seat</th><th>Serves</th><th style="width:30px"></th></tr></thead>
         <tbody id="serves-rows"></tbody>
       </table>
       <div class="row"><button id="btn-add-serves" class="btn small ghost" type="button">+ Serves row</button></div>
@@ -66,50 +67,16 @@
         <thead><tr><th>Takes cup</th><th>Takes inner</th><th style="width:30px"></th></tr></thead>
         <tbody id="pairs-rows"></tbody>
       </table>
-      <div class="row">
-        <button id="btn-add-pair" class="btn small ghost" type="button">+ Cup pair</button>
-        <button id="btn-reset-stations" class="btn small ghost" type="button">Reset stations to usual</button>
-      </div>
+      <div class="row"><button id="btn-add-pair" class="btn small ghost" type="button">+ Cup pair</button></div>
       <h3 class="sub">Serving stations on the plan</h3>
-      <div class="row">
-        <span class="stepper" role="group" aria-label="Stations in front of the altar">
-          <span class="stepper-label">Front</span>
-          <button type="button" class="btn small ghost" data-stations="front" data-delta="-1" aria-label="Remove a station in front of the altar">−</button>
-          <output id="stations-front">3</output>
-          <button type="button" class="btn small ghost" data-stations="front" data-delta="1" aria-label="Add a station in front of the altar">+</button>
-        </span>
-        <span class="stepper" role="group" aria-label="Stations on the choir side">
-          <span class="stepper-label">Left</span>
-          <button type="button" class="btn small ghost" data-stations="left" data-delta="-1" aria-label="Remove a station on the choir side">−</button>
-          <output id="stations-left">3</output>
-          <button type="button" class="btn small ghost" data-stations="left" data-delta="1" aria-label="Add a station on the choir side">+</button>
-        </span>
-        <span class="stepper" role="group" aria-label="Stations on the members side">
-          <span class="stepper-label">Right</span>
-          <button type="button" class="btn small ghost" data-stations="right" data-delta="-1" aria-label="Remove a station on the members side">−</button>
-          <output id="stations-right">3</output>
-          <button type="button" class="btn small ghost" data-stations="right" data-delta="1" aria-label="Add a station on the members side">+</button>
-        </span>
-      </div>
+      <div class="row" id="station-steppers"></div>
+      <div class="row"><button id="btn-reset-stations" class="btn small ghost" type="button">Reset stations to usual</button></div>
       <h3 class="sub">Cups on the altar</h3>
-      <div class="row cups">
-        <span class="stepper" role="group" aria-label="Cups left of the altar">
-          <span class="stepper-label">Left</span>
-          <button type="button" class="btn small ghost" data-cups="left" data-delta="-1" aria-label="Remove a cup on the left">−</button>
-          <output id="cups-left">3</output>
-          <button type="button" class="btn small ghost" data-cups="left" data-delta="1" aria-label="Add a cup on the left">+</button>
-        </span>
-        <span class="stepper" role="group" aria-label="Cups right of the altar">
-          <span class="stepper-label">Right</span>
-          <button type="button" class="btn small ghost" data-cups="right" data-delta="-1" aria-label="Remove a cup on the right">−</button>
-          <output id="cups-right">2</output>
-          <button type="button" class="btn small ghost" data-cups="right" data-delta="1" aria-label="Add a cup on the right">+</button>
-        </span>
-      </div>
+      <div class="row" id="cup-steppers"></div>
     </div>
 
-    <div class="card">
-      <h2>Roster</h2>
+    <div class="card tab" id="tab-roster" hidden>
+      <p class="muted small">Give each minister the colour of the section they serve. The colour follows them to their seat, serving station and the tables.</p>
       <ul id="roster-list"></ul>
       <form id="roster-form">
         <input id="new-rank" type="text" list="ranks" placeholder="Rank" aria-label="Rank">
@@ -119,24 +86,38 @@
       <datalist id="ranks"></datalist>
     </div>
 
-    <div class="card">
-      <h2>Note on the sheet</h2>
-      <textarea id="note" rows="2"></textarea>
-    </div>
-
-    <div class="card">
-      <h2>Plans</h2>
-      <select id="plans-select" aria-label="Saved plans"></select>
+    <div class="card tab" id="tab-plans" hidden>
+      <label class="f">Saved plans <select id="plans-select"></select></label>
       <div class="row">
         <button id="btn-new-plan" class="btn small ghost" type="button">New from current</button>
         <button id="btn-blank-plan" class="btn small ghost" type="button">New blank</button>
         <button id="btn-delete-plan" class="btn small ghost" type="button">Delete</button>
       </div>
+      <label class="f" style="margin-top:12px">Note on the sheet <textarea id="note" rows="2"></textarea></label>
+      <h3 class="sub">Backup</h3>
       <div class="row">
         <button id="btn-export" class="btn small ghost" type="button">Export backup</button>
         <label class="btn small ghost">Import backup <input id="file-import" type="file" accept="application/json" hidden></label>
       </div>
-      <p class="muted small">Plans and the roster are saved in this browser automatically. Use Export to move them to another device.</p>
+      <p class="muted small">Plans, roster and layouts are saved in this browser automatically. Use Export to move them to another device.</p>
+    </div>
+
+    <div class="card tab" id="tab-layout" hidden>
+      <label class="f">Layout name <input id="layout-name" type="text"></label>
+      <div class="row">
+        <button id="btn-layout-edit" class="btn small" type="button">Edit this layout</button>
+        <button id="btn-layout-new" class="btn small ghost" type="button">New layout (copy)</button>
+        <button id="btn-layout-delete" class="btn small ghost" type="button">Delete</button>
+      </div>
+      <div class="row">
+        <button id="btn-layout-export" class="btn small ghost" type="button">Export layout</button>
+        <label class="btn small ghost">Import layout <input id="file-layout-import" type="file" accept="application/json" hidden></label>
+      </div>
+      <p class="muted small">Each congregation has its own layout. Export a layout file to share it with another congregation, or import theirs.</p>
+      <h3 class="sub">Serving sections and colours</h3>
+      <ul id="sections-list" class="sections"></ul>
+      <div class="row"><button id="btn-add-section" class="btn small ghost" type="button">+ Section</button></div>
+      <div id="editor"></div>
     </div>
   </aside>
 </main>
@@ -147,6 +128,7 @@
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="src/layout.js"></script>
 <script src="src/pdf.js"></script>
+<script src="src/editor.js"></script>
 <script src="src/app.js"></script>
 </body>
 </html>
