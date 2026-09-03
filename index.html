@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seating &amp; Communion Planner</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1565c0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%231565c0%27/%3E%3Crect x=%277%27 y=%277%27 width=%278%27 height=%278%27 fill=%27%23FFD966%27/%3E%3Crect x=%2717%27 y=%277%27 width=%278%27 height=%278%27 fill=%27%23A9D18E%27/%3E%3Crect x=%277%27 y=%2717%27 width=%278%27 height=%278%27 fill=%27%239DC3E6%27/%3E%3Crect x=%2717%27 y=%2717%27 width=%278%27 height=%278%27 fill=%27%23fff%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <h1>Seating &amp; Communion Planner</h1>
+  <button id="btn-share" class="btn" type="button" hidden>Share PDF</button>
+  <button id="btn-pdf" class="btn" type="button">Save PDF</button>
+  <button id="btn-print" class="btn ghost" type="button">Print</button>
+</header>
+
+<main>
+  <section>
+    <div class="card">
+      <div class="fields">
+        <label class="f">Congregation <input id="congregation" type="text" placeholder="Gezina"></label>
+        <label class="f">Date <input id="date" type="date"></label>
+        <label class="f">Service <input id="service" type="text" placeholder="e.g. Ap Service"></label>
+      </div>
+      <div class="plan-tools">
+        <span class="muted small">Tap a seat or station to edit it.</span>
+        <span class="zoom" role="group" aria-label="Zoom">
+          <button id="zoom-out" class="btn small ghost" type="button" aria-label="Zoom out">−</button>
+          <button id="zoom-in" class="btn small ghost" type="button" aria-label="Zoom in">+</button>
+        </span>
+      </div>
+      <div class="plan-wrap"><div id="plan" aria-label="Floor plan"></div></div>
+      <div class="legend">
+        <span style="--sw:#FFD966">Serves centre</span>
+        <span style="--sw:#A9D18E">Serves choir side</span>
+        <span style="--sw:#9DC3E6">Serves members side</span>
+        <span class="hatch">Serving station</span>
+      </div>
+    </div>
+    <div class="card" id="selection-card">
+      <h2>Selected</h2>
+      <div id="selection"></div>
+    </div>
+  </section>
+
+  <aside>
+    <div class="card">
+      <h2>Seating arrangements</h2>
+      <table class="grid" id="seating-table">
+        <thead><tr><th>#</th><th>Minister</th><th>#</th><th>Minister</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Communion</h2>
+      <table class="grid">
+        <thead><tr><th style="width:70px">Seat</th><th>Serves</th><th style="width:30px"></th></tr></thead>
+        <tbody id="serves-rows"></tbody>
+      </table>
+      <div class="row"><button id="btn-add-serves" class="btn small ghost" type="button">+ Serves row</button></div>
+      <table class="grid" style="margin-top:10px">
+        <thead><tr><th>Takes cup</th><th>Takes inner</th><th style="width:30px"></th></tr></thead>
+        <tbody id="pairs-rows"></tbody>
+      </table>
+      <div class="row">
+        <button id="btn-add-pair" class="btn small ghost" type="button">+ Cup pair</button>
+        <button id="btn-reset-stations" class="btn small ghost" type="button">Reset stations on plan</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Roster</h2>
+      <ul id="roster-list"></ul>
+      <form id="roster-form">
+        <input id="new-rank" type="text" list="ranks" placeholder="Rank" aria-label="Rank">
+        <input id="new-name" type="text" placeholder="Surname" aria-label="Name">
+        <button class="btn small" type="submit">Add</button>
+      </form>
+      <datalist id="ranks"></datalist>
+    </div>
+
+    <div class="card">
+      <h2>Note on the sheet</h2>
+      <textarea id="note" rows="2"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>Plans</h2>
+      <select id="plans-select" aria-label="Saved plans"></select>
+      <div class="row">
+        <button id="btn-new-plan" class="btn small ghost" type="button">New from current</button>
+        <button id="btn-blank-plan" class="btn small ghost" type="button">New blank</button>
+        <button id="btn-delete-plan" class="btn small ghost" type="button">Delete</button>
+      </div>
+      <div class="row">
+        <button id="btn-export" class="btn small ghost" type="button">Export backup</button>
+        <label class="btn small ghost">Import backup <input id="file-import" type="file" accept="application/json" hidden></label>
+      </div>
+      <p class="muted small">Plans and the roster are saved in this browser automatically. Use Export to move them to another device.</p>
+    </div>
+  </aside>
+</main>
+
+<div id="print-sheet"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="src/layout.js"></script>
+<script src="src/pdf.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
