@@ -7,8 +7,13 @@ straight to WhatsApp from a phone.
 
 ## Using it
 
-Open `index.html` in a browser (or host the folder on any static web host such
-as GitHub Pages or Vercel). No build step, no server and no login.
+The app is deployed on Vercel at https://nac-seating-planner.vercel.app and
+redeploys automatically on every push to the production branch. It can also be
+opened directly from `index.html` or hosted on any static web host. No build
+step, no server and no login.
+
+On a phone, open the link in the browser and use "Add to Home Screen" to keep
+it like an app.
 
 - **Assign a seat**: tap a numbered square on the plan, then tap a name in the
   roster chips (or type one). Tap another seat to swap the two.
