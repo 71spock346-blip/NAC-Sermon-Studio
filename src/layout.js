@@ -61,6 +61,39 @@
     };
   }
 
+  var SINOVILLE = {
+    id: 'sinoville', name: 'Sinoville', builtin: true,
+    sections: [
+      { name: 'Centre', color: '#FFD966' },
+      { name: 'Left side', color: '#A9D18E' },
+      { name: 'Right side', color: '#9DC3E6' }
+    ],
+    blocks: [
+      { id: 'b1', label: 'CONGREGATION', x: 66, y: 228, w: 416, h: 247, fill: '#FFFFFF', fontSize: 22, labelDy: 15 },
+      { id: 'b2', label: 'Priests', x: 66, y: 228, w: 180, h: 34, fill: '#FFFFFF', fontSize: 18 },
+      { id: 'b3', label: 'CONGREGATION', x: 573, y: 228, w: 408, h: 247, fill: '#FFFFFF', fontSize: 22, labelDy: 35 },
+      { id: 'b4', label: 'Sunday School', x: 573, y: 228, w: 408, h: 34, fill: '#FFFFFF', fontSize: 18 },
+      { id: 'b5', label: 'CHOIR', x: 573, y: 262, w: 188, h: 74, fill: '#FFFFFF', fontSize: 18 },
+      { id: 'b6', label: 'Foyer', x: 78, y: 543, w: 895, h: 240, fill: '#FFFFFF', fontSize: 26 }
+    ],
+    altar: { x: 341, y: 12, w: 371, h: 110, inner: { x: 388, y: 46, w: 278, h: 41 }, label: 'ALTAR', fill: '#B1510F' },
+    markers: [],
+    seats: [
+      { id: '4', x: 69, y: 14, w: 40, h: 35 }, { id: '2', x: 156, y: 14, w: 40, h: 35 }, { id: 'AP', x: 248, y: 14, w: 40, h: 35 },
+      { id: '3', x: 69, y: 85, w: 40, h: 35 }, { id: '1', x: 156, y: 85, w: 40, h: 35 }, { id: 'DA', x: 248, y: 85, w: 40, h: 35 },
+      { id: '6', x: 811, y: 14, w: 40, h: 35 }, { id: '8', x: 901, y: 14, w: 40, h: 35 },
+      { id: '5', x: 811, y: 85, w: 40, h: 35 }, { id: '7', x: 901, y: 85, w: 40, h: 35 }, { id: '9', x: 979, y: 85, w: 40, h: 35 },
+      { id: '10', x: 246, y: 228, w: 47.5, h: 34 }, { id: '11', x: 293.5, y: 228, w: 47.5, h: 34 }, { id: '12', x: 341, y: 228, w: 47.5, h: 34 },
+      { id: '13', x: 388.5, y: 228, w: 47.5, h: 34 }, { id: '14', x: 436, y: 228, w: 47.5, h: 34 }
+    ],
+    stationGroups: [
+      { id: 'left', label: 'Left of altar', cx: 340, cy: 174, dx: 47.2, dy: 0, rot: 0, defaults: ['11', '4', '10', '3', '2', '1'] },
+      { id: 'right', label: 'Right of altar', cx: 715.5, cy: 174, dx: 47.4, dy: 0, rot: 0, defaults: ['5', '6', '7', '8', '9', '12'] }
+    ],
+    cups: { left: 0, right: 0 }
+  };
+  var BUILTIN = [GEZINA, SINOVILLE];
+
   var SEAT_W = 32, SEAT_H = 30, MARKER = 30, STATION = 34, MAX_STATIONS = 6, MAX_CUPS = 8;
 
   function esc(s) {
@@ -223,7 +256,7 @@
   }
 
   global.Layout = {
-    W: W, H: H, GEZINA: GEZINA, MAX_STATIONS: MAX_STATIONS, MAX_CUPS: MAX_CUPS,
+    W: W, H: H, GEZINA: GEZINA, BUILTIN: BUILTIN, MAX_STATIONS: MAX_STATIONS, MAX_CUPS: MAX_CUPS,
     SEAT_W: SEAT_W, SEAT_H: SEAT_H,
     render: render, esc: esc, clamp: clamp, clone: clone, dark: dark,
     seatIds: seatIds, defaultStations: defaultStations, stationsFor: stationsFor, newId: newId, blankLayout: blankLayout

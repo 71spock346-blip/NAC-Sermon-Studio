@@ -50,12 +50,11 @@
   function layoutById(id) {
     var custom = (state.layouts || []).filter(function (l) { return l.id === id; })[0];
     if (custom) return custom;
-    if (id === L.GEZINA.id) return L.GEZINA;
-    return null;
+    return L.BUILTIN.filter(function (l) { return l.id === id; })[0] || null;
   }
   function allLayouts() {
     var list = (state.layouts || []).slice();
-    if (!list.some(function (l) { return l.id === L.GEZINA.id; })) list.unshift(L.GEZINA);
+    L.BUILTIN.forEach(function (b) { if (!list.some(function (l) { return l.id === b.id; })) list.push(b); });
     return list.sort(function (a, b) { return a.name.localeCompare(b.name); });
   }
   function current() {
@@ -85,7 +84,9 @@
     else {
       p = { layoutId: layout.id, service: 'Divine Service', seats: layout.id === L.GEZINA.id ? clone(DEFAULT_SEATS) : {},
         stations: L.defaultStations(layout), cups: clone(layout.cups || { left: 0, right: 0 }),
-        communion: { serves: [{ seat: '1', text: 'Serves 2-11' }, { seat: '2', text: 'Serves C & O Cup' }], pairs: [['2', ''], ['3', '4'], ['5', '6'], ['7', '10'], ['8', '11']] },
+        communion: layout.id === L.GEZINA.id
+          ? { serves: [{ seat: '1', text: 'Serves 2-11' }, { seat: '2', text: 'Serves C & O Cup' }], pairs: [['2', ''], ['3', '4'], ['5', '6'], ['7', '10'], ['8', '11']] }
+          : { serves: [], pairs: [] },
         note: DEFAULT_NOTE };
     }
     p.id = uid(); p.date = todayIso(); p.updated = Date.now();

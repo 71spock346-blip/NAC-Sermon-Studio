@@ -11,8 +11,8 @@ On a phone, open the link and use "Add to Home Screen".
 
 ## Using it
 
-- **Congregation**: pick the layout at the top. Gezina is built in; other
-  congregations are added in the Layout tab.
+- **Congregation**: pick the layout at the top. Gezina and Sinoville are built
+  in; other congregations are added in the Layout tab.
 - **Seats**: tap a numbered square on the plan, then tap a minister (or type a
   name). Tap another seat to swap the two. The Seats tab shows the same
   assignments as a table.
