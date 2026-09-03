@@ -7,7 +7,8 @@ can be shared straight to WhatsApp from a phone.
 
 Live at https://nac-seating-planner.vercel.app (redeploys on every push to the
 production branch). It is a static site: no build step, no server, no login.
-On a phone, open the link and use "Add to Home Screen".
+On a phone, open the link and use "Add to Home Screen". The user manual is at
+https://nac-seating-planner.vercel.app/help.html (also the Help button in the app).
 
 ## Using it
 

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Manual – Seating &amp; Communion Planner</title>
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<style>
+  :root { --ink: #1f2937; --muted: #6b7280; --line: #d1d5db; --accent: #1565c0; --bg: #f3f4f6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.55 "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+  header { background: #fff; border-bottom: 1px solid var(--line); padding: 12px 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; }
+  header img { width: 36px; height: 36px; border-radius: 8px; }
+  header h1 { font-size: 18px; margin: 0; flex: 1; }
+  header a { color: var(--accent); font-weight: 600; text-decoration: none; }
+  main { max-width: 820px; margin: 0 auto; padding: 16px; }
+  nav.toc { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; }
+  nav.toc ol { margin: 6px 0 0; padding-left: 22px; columns: 2; column-gap: 24px; }
+  nav.toc a { color: var(--accent); text-decoration: none; }
+  section { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; }
+  h2 { font-size: 20px; margin: 0 0 8px; }
+  h3 { font-size: 15px; margin: 16px 0 4px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  p, li { margin: 6px 0; }
+  ul, ol { padding-left: 22px; }
+  kbd { font: inherit; font-weight: 600; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 5px; padding: 0 6px; white-space: nowrap; }
+  .tip { border-left: 4px solid var(--accent); background: #eff6ff; padding: 8px 12px; border-radius: 6px; margin: 10px 0; }
+  .sw { display: inline-block; width: 14px; height: 14px; border: 1px solid #000; vertical-align: -2px; margin-right: 4px; }
+  .hatch { background: repeating-linear-gradient(45deg, #fff 0 2px, #D9B23A 2px 4px); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #e5e7eb; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 16px; }
+  @media print { header, nav.toc { display: none; } section { break-inside: avoid; border: none; } }
+</style>
+</head>
+<body>
+<header>
+  <img src="icons/icon.svg" alt="">
+  <h1>Seating &amp; Communion Planner – User Manual</h1>
+  <a href="index.html">Open the app</a>
+</header>
+<main>
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#about">What the app does</a></li>
+    <li><a href="#start">Getting started</a></li>
+    <li><a href="#screen">The screen</a></li>
+    <li><a href="#quick">A service in five steps</a></li>
+    <li><a href="#plan">Working on the plan</a></li>
+    <li><a href="#seats">Seats tab</a></li>
+    <li><a href="#communion">Communion tab</a></li>
+    <li><a href="#roster">Roster tab and colours</a></li>
+    <li><a href="#plans">Plans tab, saving and loading</a></li>
+    <li><a href="#layout">Layout tab and other congregations</a></li>
+    <li><a href="#pdf">PDF, WhatsApp and printing</a></li>
+    <li><a href="#data">Where your data lives</a></li>
+    <li><a href="#trouble">Troubleshooting</a></li>
+  </ol>
+</nav>
+
+<section id="about">
+  <h2>1. What the app does</h2>
+  <p>The Seating &amp; Communion Planner draws the floor plan of your church, lets you decide which minister sits in which seat and who stands where to serve Holy Communion, and produces a one-page A4 PDF of the plan that you can send to the ministers on WhatsApp.</p>
+  <ul>
+    <li>It runs in the web browser on a phone, tablet or computer. Nothing needs to be installed.</li>
+    <li>There is no login. Everything you enter is stored in your own browser on your own device.</li>
+    <li>Gezina and Sinoville are built in. Any other congregation can be added with its own layout.</li>
+  </ul>
+</section>
+
+<section id="start">
+  <h2>2. Getting started</h2>
+  <ol>
+    <li>Open <strong>https://nac-seating-planner.vercel.app</strong> in your browser.</li>
+    <li>On a phone, add it to your home screen so it opens like an app:
+      <ul>
+        <li><strong>iPhone (Safari)</strong>: tap the Share button, then <kbd>Add to Home Screen</kbd>.</li>
+        <li><strong>Android (Chrome)</strong>: tap the three-dot menu, then <kbd>Add to Home screen</kbd> or <kbd>Install app</kbd>.</li>
+      </ul>
+    </li>
+    <li>Choose your congregation from the <kbd>Congregation</kbd> dropdown at the top of the plan.</li>
+    <li>Go to the <kbd>Roster</kbd> tab and enter your ministers (see section 8).</li>
+  </ol>
+</section>
+
+<section id="screen">
+  <h2>3. The screen</h2>
+  <h3>Header</h3>
+  <ul>
+    <li><kbd>Save</kbd> keeps the plan you are working on (section 9). An <strong>Unsaved</strong> badge appears whenever the plan differs from what is saved.</li>
+    <li><kbd>Share PDF</kbd> (phones and tablets) builds the PDF and opens the share sheet so you can send it on WhatsApp.</li>
+    <li><kbd>Save PDF</kbd> downloads the PDF. <kbd>Print</kbd> prints the same sheet.</li>
+    <li><kbd>Help</kbd> opens this manual.</li>
+  </ul>
+  <h3>Plan area</h3>
+  <ul>
+    <li><kbd>Congregation</kbd>, <kbd>Date</kbd> and <kbd>Service</kbd> appear on the PDF heading.</li>
+    <li>The <kbd>−</kbd> and <kbd>+</kbd> buttons zoom the plan. When zoomed in, drag sideways to scroll. Phones open zoomed in so the squares are easy to tap.</li>
+    <li>The legend under the plan shows the colours of the serving sections.</li>
+  </ul>
+  <h3>Tabs</h3>
+  <p>Below the plan (or beside it on a wide screen) are five tabs: <kbd>Seats</kbd>, <kbd>Communion</kbd>, <kbd>Roster</kbd>, <kbd>Plans</kbd> and <kbd>Layout</kbd>. Each is described below.</p>
+  <h3>What the squares mean</h3>
+  <table>
+    <tr><th>On the plan</th><th>Meaning</th></tr>
+    <tr><td>Numbered square with a solid fill</td><td>A minister's seat. The fill is the colour of the minister sitting there. White means empty.</td></tr>
+    <tr><td><span class="sw hatch"></span>Hatched square</td><td>A serving station: where a minister stands to serve communion. The number is the seat number of that minister, and the fill takes that minister's colour.</td></tr>
+    <tr><td>Circles on the altar</td><td>Communion cups.</td></tr>
+    <tr><td>C and O squares</td><td>Fixed positions (for example the choir leader and organist). They are labels only and cannot be assigned.</td></tr>
+    <tr><td>Grey numbers (for example 9 and 12 at Gezina)</td><td>Spare seats. They show on the PDF only when someone is assigned to them.</td></tr>
+  </table>
+</section>
+
+<section id="quick">
+  <h2>4. A service in five steps</h2>
+  <ol>
+    <li>Set the <kbd>Date</kbd> and <kbd>Service</kbd> (for example "Ap Service").</li>
+    <li>Tap each seat on the plan and pick the minister. Tap another seat to swap two ministers.</li>
+    <li>Tap each hatched station and pick the seat number of the minister who serves there.</li>
+    <li>In the <kbd>Communion</kbd> tab, fill in who serves whom and the cup pairs.</li>
+    <li>Tap <kbd>Save</kbd>, then <kbd>Share PDF</kbd> and choose WhatsApp.</li>
+  </ol>
+  <div class="tip">Next week, open the <kbd>Plans</kbd> tab, load last week's plan, change the date and whatever differs, and use <kbd>Save as new plan</kbd>.</div>
+</section>
+
+<section id="plan">
+  <h2>5. Working on the plan</h2>
+  <h3>Assigning a seat</h3>
+  <ul>
+    <li>Tap a seat. A panel opens (at the bottom of the screen on a phone) showing the seat number and who is in it.</li>
+    <li>Tap a minister's name to seat them. Each name shows their colour; a small number after a name means they are already in that seat, and tapping them moves them.</li>
+    <li>To seat someone who is not on the roster, type the name in <kbd>Or type a name…</kbd> and tap <kbd>Assign</kbd>.</li>
+    <li><kbd>Clear seat</kbd> empties the seat. The <kbd>×</kbd> closes the panel.</li>
+  </ul>
+  <h3>Swapping two seats</h3>
+  <p>With one seat selected, tap a second seat. The two ministers change places, including their colours.</p>
+  <h3>Serving stations</h3>
+  <ul>
+    <li>Tap a hatched square. Tap the seat number of the minister who stands there. Each number shows the minister currently in that seat.</li>
+    <li><kbd>Clear station</kbd> leaves it blank.</li>
+    <li>To change how many stations a group has, use the steppers in the <kbd>Communion</kbd> tab (section 7).</li>
+  </ul>
+</section>
+
+<section id="seats">
+  <h2>6. Seats tab</h2>
+  <p>The same assignments as a table, with a dropdown per seat. Choose a name from the dropdown, or <kbd>Other…</kbd> to type one. The row takes the colour of the minister. This is the quickest way to fill many seats on a computer.</p>
+</section>
+
+<section id="communion">
+  <h2>7. Communion tab</h2>
+  <h3>Serves</h3>
+  <p>Rows for general duties, for example seat 1 "Serves 2-11" and seat 2 "Serves C &amp; O Cup". Choose the seat, type the text. <kbd>+ Serves row</kbd> adds a row; <kbd>×</kbd> removes one.</p>
+  <h3>Takes cup / Takes inner</h3>
+  <p>One row per pair: the seat that takes the main cup and the seat that takes the inner cup. <kbd>+ Cup pair</kbd> adds a row.</p>
+  <h3>Serving stations on the plan</h3>
+  <p>One stepper per station group (for example Front of altar, Choir side, Members side, or Left, Right, Foyer). <kbd>+</kbd> adds a blank station, <kbd>−</kbd> removes the last one, up to six per group. <kbd>Reset stations to usual</kbd> puts back the usual positions and seat numbers for the layout.</p>
+  <h3>Cups on the altar</h3>
+  <p>Steppers for the number of communion cups left and right of the altar, up to eight each. They wrap into two rows when there are more than four.</p>
+</section>
+
+<section id="roster">
+  <h2>8. Roster tab and colours</h2>
+  <ul>
+    <li>Each row is a minister: rank, surname, colour and a <kbd>×</kbd> to remove them. Ranks are free text; suggestions such as Ap, De, Pr. and Dn appear as you type.</li>
+    <li>Add a minister with the rank and surname boxes at the bottom and <kbd>Add</kbd>.</li>
+    <li>Renaming a minister updates the seat they are in.</li>
+  </ul>
+  <h3>Colours</h3>
+  <p>The colour means the <strong>section a minister serves</strong>, for example <span class="sw" style="background:#FFD966"></span>Centre, <span class="sw" style="background:#A9D18E"></span>Choir side and <span class="sw" style="background:#9DC3E6"></span>Members side at Gezina, or Left, Right and Foyer at Sinoville. Several ministers can share a colour. Tap a round swatch to set it; the first swatch (white) means no section. The small colour box at the end lets you pick any other colour.</p>
+  <p>The colour follows the minister to their seat, to the station that holds their seat number, to the Seats table and communion dropdowns, and to the PDF. The sections and their colours are defined per congregation in the <kbd>Layout</kbd> tab.</p>
+</section>
+
+<section id="plans">
+  <h2>9. Plans tab, saving and loading</h2>
+  <ul>
+    <li>The app <strong>opens with empty seats and stations</strong>, on the congregation you used last. If you closed it with unsaved changes, that work comes back instead and a message says so.</li>
+    <li><kbd>Save</kbd> in the header keeps the plan you are working on. If it was loaded from a saved plan, that plan is updated; otherwise a new saved plan is created.</li>
+    <li><kbd>Save as new plan</kbd> keeps a copy as a separate saved plan. Use it when you start from last week's plan.</li>
+    <li><kbd>Saved plans</kbd> lists what you have saved by date, service and congregation. Choose one to load it. If you have unsaved changes, the app asks before discarding them.</li>
+    <li><kbd>Start blank plan</kbd> clears the seats and stations for a new service.</li>
+    <li><kbd>Delete saved plan</kbd> removes the saved copy of the plan you have loaded. What is on screen stays open as unsaved.</li>
+    <li><kbd>Note on the sheet</kbd> is the line printed under the tables on the PDF, for example "All Rectors and Priests to be seated in the Sacristy with the Apostle."</li>
+  </ul>
+  <h3>Backup</h3>
+  <p><kbd>Export backup</kbd> downloads one file with your roster, layouts and saved plans. <kbd>Import backup</kbd> loads such a file and replaces what is in the browser. Use this to move to a new phone or to keep a copy somewhere safe.</p>
+</section>
+
+<section id="layout">
+  <h2>10. Layout tab and other congregations</h2>
+  <p>A layout is the drawing of one congregation's building. Choose it with the <kbd>Congregation</kbd> dropdown above the plan. Every plan remembers which layout it belongs to.</p>
+  <h3>Adding a congregation</h3>
+  <ol>
+    <li>Choose the built-in layout that looks most like your building, then tap <kbd>New layout (copy)</kbd> and give it the congregation's name.</li>
+    <li>Tap <kbd>Edit this layout</kbd>. The plan becomes an editor. Drag any block, seat, marker, the altar or a station group (the dashed circle) into place.</li>
+    <li>Tap an item to change it in the form below: label (blocks may have several lines), fill colour, width, height, cut corner, text size, seat number, station direction and the usual seat numbers for a station group.</li>
+    <li>Use <kbd>+ Block</kbd>, <kbd>+ Seat</kbd>, <kbd>+ Marker</kbd> and <kbd>+ Station group</kbd> to add items, and <kbd>Delete</kbd> to remove the selected one.</li>
+    <li>Under <kbd>Serving sections and colours</kbd>, name the sections of your building and choose their colours. These become the colour choices in the Roster tab and the legend on the PDF.</li>
+    <li>Tap <kbd>Finish editing</kbd>.</li>
+  </ol>
+  <h3>Sharing a layout</h3>
+  <p><kbd>Export layout</kbd> downloads the layout as a small file. Another congregation opens the app, goes to the Layout tab and uses <kbd>Import layout</kbd>. <kbd>Delete</kbd> removes a layout you created; the built-in ones cannot be deleted.</p>
+  <div class="tip">If you edit a built-in layout, your edited copy replaces it on your device only. The original is still there for everyone else.</div>
+</section>
+
+<section id="pdf">
+  <h2>11. PDF, WhatsApp and printing</h2>
+  <p>The PDF is one A4 page: the heading with congregation, date and service, the plan with all seats, stations and cups, the section legend, the Seating Arrangements table, the Communion table, and the note.</p>
+  <ul>
+    <li><strong>Phone or tablet</strong>: tap <kbd>Share PDF</kbd>. The share sheet opens; choose WhatsApp, then the group or person. The file is named after the congregation, date and service.</li>
+    <li><strong>Computer</strong>: tap <kbd>Save PDF</kbd>. The file downloads; attach it in WhatsApp Web or e-mail.</li>
+    <li><kbd>Print</kbd> sends the same sheet to the printer.</li>
+  </ul>
+</section>
+
+<section id="data">
+  <h2>12. Where your data lives</h2>
+  <ul>
+    <li>Everything is stored in the browser on the device you are using. Nothing is sent to a server, and nobody else can see your plans.</li>
+    <li>Because of this, a plan made on your phone is not on your computer. Use <kbd>Export backup</kbd> and <kbd>Import backup</kbd> to move data between devices.</li>
+    <li>Clearing the browser's site data, or using a private or incognito window, removes or does not keep the data. Keep an exported backup.</li>
+    <li>Roster, colours and layouts are saved automatically. Plans are kept only when you save them (section 9).</li>
+  </ul>
+</section>
+
+<section id="trouble">
+  <h2>13. Troubleshooting</h2>
+  <table>
+    <tr><th>Problem</th><th>What to do</th></tr>
+    <tr><td>There is no <kbd>Share PDF</kbd> button</td><td>Your browser cannot share files. Use <kbd>Save PDF</kbd> and attach the downloaded file in WhatsApp. On iPhone use Safari; on Android use Chrome.</td></tr>
+    <tr><td>WhatsApp is not offered in the share sheet</td><td>Make sure WhatsApp is installed. Scroll the share sheet sideways or tap "More" to find it.</td></tr>
+    <tr><td>The seats are empty when I open the app</td><td>This is by design. Load a saved plan from the <kbd>Plans</kbd> tab, or start assigning.</td></tr>
+    <tr><td>I lost the plan I was working on</td><td>Unsaved changes are restored automatically. If you loaded another plan or started a blank plan, the previous work is gone unless it was saved. Save often.</td></tr>
+    <tr><td>The squares are too small to tap</td><td>Use the <kbd>+</kbd> zoom button and scroll the plan sideways.</td></tr>
+    <tr><td>A minister's colour is wrong on the plan</td><td>Colours belong to the minister, not the seat. Change it in the <kbd>Roster</kbd> tab.</td></tr>
+    <tr><td>A congregation appears twice in the dropdown</td><td>You created a copy with the same name. Choose the copy and use <kbd>Delete</kbd> in the Layout tab.</td></tr>
+    <tr><td>"Could not save in this browser"</td><td>The browser is blocking site data (often a private window). Open the app in a normal window.</td></tr>
+  </table>
+</section>
+
+</main>
+<footer>Seating &amp; Communion Planner · this manual is also available at <strong>nac-seating-planner.vercel.app/help.html</strong></footer>
+</body>
+</html>
