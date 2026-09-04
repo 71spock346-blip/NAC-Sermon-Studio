@@ -67,6 +67,24 @@
     else this.doc.text(s, x, ty);
     return this;
   };
+  // Text in a narrow cell: one line if it fits, otherwise two smaller ones,
+  // centred on the row. Used for a hymn's note, which is usually "v 2" but is
+  // sometimes a sentence.
+  Pen.prototype.fit = function (s, x, y, w, h, o) {
+    s = String(s == null ? '' : s);
+    if (!s) return this;
+    o = o || {};
+    var size = o.size || 9;
+    this.font(size, o.bold, o.color, o.italic);
+    if (this.doc.getTextWidth(s) <= w) return this.text(s, x, y, h, o);
+    var small = Math.max(5.5, size - 1.5);
+    this.font(small, o.bold, o.color, o.italic);
+    var lines = this.doc.splitTextToSize(s, w).slice(0, 2);
+    var lead = small * PT * 1.2;
+    var top = y + h / 2 - (lines.length * lead) / 2 + small * PT * 0.9;
+    for (var i = 0; i < lines.length; i++) this.doc.text(lines[i], x, top + i * lead);
+    return this;
+  };
   Pen.prototype.wrap = function (s, x, y, width, o) {
     o = o || {};
     var size = o.size || 9;
@@ -154,9 +172,14 @@
    */
   function buildProgram(service) {
     var doc = newDoc('portrait'), p = new Pen(doc);
-    var wA = ch(3.71), wB = ch(4.71), wC = ch(20.86), wD = ch(18), wE = ch(47.86);
-    var total = wA + wB + wC + wD + wE + ch(4.29);
-    var xA = (210 - total) / 2, xB = xA + wA, xC = xB + wB, xD = xC + wC, xE = xD + wD;
+    // The workbook's own columns, with one added: a hymn's note sits beside the
+    // voice that sings it, on the hymn's own line. The five keep the width the
+    // four had, so the sheet is the same width across the page.
+    var wA = ch(3.71), wB = ch(4.71);
+    var band = ch(20.86) + ch(18) + ch(47.86);
+    var wC = 36, wN = 24, wD = 22, wE = band - wC - wN - wD;
+    var total = wA + wB + wC + wN + wD + wE + ch(4.29);
+    var xA = (210 - total) / 2, xB = xA + wA, xC = xB + wB, xN = xC + wC, xD = xN + wN, xE = xD + wD;
     var right = xE + wE, boxW = right - xB;
     var pad = 1.6;
 
@@ -165,10 +188,8 @@
       return (s.rows || []).length || s.label;
     });
     var needed = hLogo + hBand + hGap + hTitle;
-    function rowHeight(r, h) { return r.note ? h * 1.5 : h; }
     sections.forEach(function (s) {
-      needed += hRow + hSpace;
-      (s.rows || []).forEach(function (r) { needed += rowHeight(r, hRow); });
+      needed += hRow + (s.rows || []).length * hRow + hSpace;
     });
     needed += 2 * hRow;
     var avail = 297 - 19 - 12;
@@ -182,9 +203,9 @@
 
     // congregation and date, in one band, meeting at the C/D column boundary
     p.rect(xB, y, boxW, hBand, 0.25);
-    var split = xE;
-    p.text(service.congregation, split - 3, y, hBand, { size: 13, bold: true, align: 'right', color: BLUE, width: xE - xB - 6 });
-    p.text(M.formatDate(service.date), split + 3, y, hBand, { size: 13, bold: true, color: BLUE, width: wE - 6 });
+    var split = xD;
+    p.text(service.congregation, split - 3, y, hBand, { size: 13, bold: true, align: 'right', color: BLUE, width: split - xB - 6 });
+    p.text(M.formatDate(service.date), split + 3, y, hBand, { size: 13, bold: true, color: BLUE, width: right - split - 6 });
     y += hBand + hGap;
 
     p.text('Hymn Program', (xB + right) / 2, y, hTitle, { size: 11, bold: true, align: 'center', color: BLUE });
@@ -195,25 +216,19 @@
       y += hRow;
       var rows = s.rows || [];
       rows.forEach(function (r, i) {
-        var rt = refAndTitle(r.ref), rh = rowHeight(r, hRow);
-        p.rect(xB, y, boxW, rh, 0.25);
-        p.line(xC, y, xC, y + rh, 0.25);
-        p.line(xD, y, xD, y + rh, 0.25);
-        p.line(xE, y, xE, y + rh, 0.25);
+        var rt = refAndTitle(r.ref);
+        p.rect(xB, y, boxW, hRow, 0.25);
+        [xC, xN, xD, xE].forEach(function (x) { p.line(x, y, x, y + hRow, 0.25); });
         if (i) p.line(xB, y, right, y, 0.1);
         // The congregation's own hymns are the bold ones, as the workbook had
         // them: they are what the congregation looks for on the sheet.
         var bold = /congregation/i.test(r.who || '');
         p.text(String(i + 1), xB + wB / 2, y, hRow, { size: fRow, bold: bold, align: 'center' });
         p.text(r.who || '', xC + pad, y, hRow, { size: fRow, bold: bold, width: wC - 2 * pad });
+        p.fit(r.note || '', xN + pad, y, wN - 2 * pad, hRow, { size: fRow - 1, italic: true });
         p.text(rt.ref, xD + pad, y, hRow, { size: fRow, bold: bold, width: wD - 2 * pad });
         p.text(rt.title, xE + pad, y, hRow, { size: fRow, bold: bold, width: wE - 2 * pad });
-        // the note belongs to this hymn, so it sits under its reference rather
-        // than at the foot of the section
-        if (r.note) {
-          p.text(r.note, xD + pad, y + hRow - 0.6, rh - hRow, { size: fRow - 1.5, italic: true, width: wD - 2 * pad });
-        }
-        y += rh;
+        y += hRow;
       });
       y += hSpace;
     });
@@ -222,11 +237,11 @@
     var fy = y;
     p.rect(xB, fy, boxW, 2 * hRow, 0.25);
     p.line(xB, fy + hRow, right, fy + hRow, 0.1);
-    p.line(xD, fy, xD, fy + 2 * hRow, 0.1);
+    p.line(xN, fy, xN, fy + 2 * hRow, 0.1);
     p.text('Choir-conductor:', xB + pad, fy, hRow, { size: 9, bold: true, width: wB + wC - 2 * pad });
-    p.text(service.conductor || '', xD + pad, fy, hRow, { size: 9, width: right - xD - 2 * pad });
+    p.text(service.conductor || '', xN + pad, fy, hRow, { size: 9, width: right - xN - 2 * pad });
     p.text('Organist:', xB + pad, fy + hRow, hRow, { size: 9, bold: true, width: wB + wC - 2 * pad });
-    p.text(service.organist || '', xD + pad, fy + hRow, hRow, { size: 9, width: right - xD - 2 * pad });
+    p.text(service.organist || '', xN + pad, fy + hRow, hRow, { size: 9, width: right - xN - 2 * pad });
 
     doc.setProperties({ title: 'Music Program ' + M.yearOf(service.date) + ' – ' + M.serviceTitle(service) });
     return doc;
