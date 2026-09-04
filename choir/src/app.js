@@ -7,6 +7,7 @@
 
   var H = global.Hymns, M = global.Model, S = global.Sheets;
   var STORAGE_KEY = 'nac-choir-planner:v1';
+  var BUILD = '2026-09-04g';
   var TABS = ['program', 'before', 'prep', 'practices', 'hymns', 'files'];
 
   // ---------------------------------------------------------------- helpers
@@ -795,6 +796,8 @@
       })]));
     });
 
+    $('#build-stamp').textContent = 'Version ' + BUILD;
+
     [['#s-congregation', 'congregation'], ['#s-conductor', 'conductor'],
      ['#s-organist', 'organist']].forEach(function (pair) {
       bindOnce($(pair[0]), function () { return state.settings[pair[1]]; }, function (v) { state.settings[pair[1]] = v; });
@@ -860,18 +863,17 @@
   }
 
   function doDoc(act, kind, extra) {
-    var s = current();
-    try {
-      if (act === 'pdf') toast('Saved ' + S.download(kind, s, extra));
-      else if (act === 'print') { S.print(kind, s, extra); toast('Sending to the printer…'); }
-      else {
-        S.share(kind, s, extra).then(function (r) {
-          if (r === 'downloaded') toast('Sharing is not available here, so the PDF was downloaded.');
-        }).catch(function (e) { toast(e.message || 'The PDF could not be shared.', true); });
-      }
-    } catch (e) {
-      toast(e.message || 'The PDF could not be built.', true);
+    var s = current(), done;
+    if (act === 'pdf') {
+      done = S.download(kind, s, extra).then(function (name) { toast('Saved ' + name); });
+    } else if (act === 'print') {
+      done = S.print(kind, s, extra).then(function () { toast('Sending to the printer…'); });
+    } else {
+      done = S.share(kind, s, extra).then(function (r) {
+        if (r === 'downloaded') toast('Sharing is not available here, so the PDF was downloaded.');
+      });
     }
+    done.catch(function (e) { toast((e && e.message) || 'The PDF could not be built.', true); });
   }
 
   function exportBackup() {
@@ -914,13 +916,15 @@
       if (TABS.indexOf(t) >= 0) ui.tab = t;
     } catch (e) { /* fall back to the first tab */ }
 
-    $('#btn-new-service').addEventListener('click', function () {
+    function newProgramme() {
       var s = M.newService(state.settings);
       state.services.push(s);
       state.currentId = s.id;
+      ui.tab = 'program';
       save(); renderAll();
-      toast('New service started.');
-    });
+      toast('New programme started. The old one is kept in Files.');
+    }
+    $('#btn-new-programme').addEventListener('click', newProgramme);
     $('#btn-add-section').addEventListener('click', function () {
       var s = current(), v = $('#add-section').value, all = M.DEFAULT_SECTIONS.concat(M.EXTRA_SECTIONS);
       var def = v === 'custom' ? { label: 'New section', slot: '', rows: ['Congregation'] } : all[Number(v)];

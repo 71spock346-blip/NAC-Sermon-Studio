@@ -10,13 +10,14 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Choir">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 <header class="top">
   <h1><span class="t-long">Choir Programme Planner</span><span class="t-short">Choir</span></h1>
   <span id="saved-note" class="badge" hidden>Saved</span>
   <div class="actions">
+    <button id="btn-new-programme" class="btn" type="button">New programme</button>
     <a class="btn ghost" href="help.html">Help</a>
   </div>
 </header>
@@ -24,12 +25,7 @@
 <main>
   <section class="card service-bar">
     <div class="fields four">
-      <label class="f">Service
-        <span class="pickrow">
-          <select id="service-select"></select>
-          <button id="btn-new-service" class="btn small ghost" type="button" title="Start a new service">New</button>
-        </span>
-      </label>
+      <label class="f">Service <select id="service-select"></select></label>
       <label class="f">Congregation <input id="f-congregation" type="text" placeholder="e.g. Phumolong"></label>
       <label class="f">Date <input id="f-date" type="date"></label>
       <label class="f">Service starts <input id="f-time" type="time"></label>
@@ -149,6 +145,7 @@
   <div class="card tab" id="tab-files">
     <div class="docbar"><h3>Saved services</h3></div>
     <div id="service-list"></div>
+    <p class="muted small" id="build-stamp"></p>
     <h3 class="sub">Backup</h3>
     <p class="muted small">Everything is kept in this browser only. Export a backup to move it to
       another phone or computer, or to keep a copy.</p>
@@ -186,13 +183,13 @@
 
 <!-- the church emblem for the head of the Music Program, kept off screen so it
      is decoded and ready by the time a PDF is built -->
-<img id="emblem-art" src="icons/emblem-print.png" alt="" hidden>
+<img id="emblem-art" src="icons/emblem-print.png?v=7" alt="" hidden>
 
-<script src="vendor/jspdf.umd.min.js"></script>
-<script src="src/hymns.js"></script>
-<script src="src/library.js"></script>
-<script src="src/model.js"></script>
-<script src="src/pdf.js"></script>
-<script src="src/app.js"></script>
+<script src="vendor/jspdf.umd.min.js?v=7"></script>
+<script src="src/hymns.js?v=7"></script>
+<script src="src/library.js?v=7"></script>
+<script src="src/model.js?v=7"></script>
+<script src="src/pdf.js?v=7"></script>
+<script src="src/app.js?v=7"></script>
 </body>
 </html>

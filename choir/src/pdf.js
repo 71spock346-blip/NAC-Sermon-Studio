@@ -96,61 +96,27 @@
   };
 
   /*
-   * The church emblem at the head of the music programme. The artwork is on the
-   * page as a hidden image; drawEmblem falls back to the shape below only if it
-   * has not loaded, so a programme is never printed without one.
+   * The church emblem at the head of the music programme. It is the artwork on
+   * the page, and nothing else: a programme waits for the image rather than
+   * falling back to something that only resembles it, because a wrong emblem
+   * printed without a word is worse than a moment's wait.
    */
-  function emblemArt() {
-    var img = document.getElementById('emblem-art');
-    return (img && img.complete && img.naturalWidth) ? img : null;
+  var artPromise = null, art = null;
+  function loadArt() {
+    if (artPromise) return artPromise;
+    artPromise = new Promise(function (resolve) {
+      var img = document.getElementById('emblem-art');
+      if (!img) return resolve(null);
+      if (img.complete) return resolve(img.naturalWidth ? img : null);
+      img.addEventListener('load', function () { resolve(img); });
+      img.addEventListener('error', function () { resolve(null); });
+    }).then(function (img) { art = img; return img; });
+    return artPromise;
   }
   function drawEmblem(doc, cx, top, height) {
-    var img = emblemArt();
-    if (img) {
-      var w = height * img.naturalWidth / img.naturalHeight;
-      doc.addImage(img, 'PNG', cx - w / 2, top, w, height);
-      return;
-    }
-    emblem(doc, cx, top, height);
-  }
-  function emblem(doc, cx, top, size) {
-    var s = size, x0 = cx - s / 2, y0 = top, i, a, r;
-    var P = function (ux, uy) { return [x0 + ux * s, y0 + uy * s]; };
-    doc.setDrawColor(91, 155, 213);
-    doc.setFillColor(255, 255, 255);
-
-    // rays fanning out from behind the foot of the cross
-    doc.setLineWidth(s * 0.008);
-    var ox = x0 + 0.5 * s, oy = y0 + 0.60 * s;
-    for (i = 0; i < 6; i++) {
-      a = (-52 + i * 17) * Math.PI / 180;
-      for (var side = -1; side <= 1; side += 2) {
-        var dx = Math.cos(a) * side, dy = Math.sin(a);
-        doc.line(ox + dx * s * 0.10, oy + dy * s * 0.10, ox + dx * s * 0.35, oy + dy * s * 0.35);
-      }
-    }
-
-    // the cross, outlined
-    var a2 = 0.052, b = 0.20, t1 = 0.175, t2 = 0.275, tp = 0.03, bt = 0.77, c = 0.5;
-    var pts = [[c - a2, tp], [c + a2, tp], [c + a2, t1], [c + b, t1], [c + b, t2], [c + a2, t2],
-               [c + a2, bt], [c - a2, bt], [c - a2, t2], [c - b, t2], [c - b, t1], [c - a2, t1]];
-    var start = P(pts[0][0], pts[0][1]), rel = [];
-    for (i = 1; i < pts.length; i++) {
-      rel.push([(pts[i][0] - pts[i - 1][0]) * s, (pts[i][1] - pts[i - 1][1]) * s]);
-    }
-    rel.push([(pts[0][0] - pts[pts.length - 1][0]) * s, (pts[0][1] - pts[pts.length - 1][1]) * s]);
-    doc.setLineWidth(s * 0.014);
-    doc.lines(rel, start[0], start[1], [1, 1], 'FD', true);
-
-    // the water
-    doc.setLineWidth(s * 0.035);
-    doc.setLineCap('round');
-    var bars = [[0.845, 0.40], [0.905, 0.29], [0.955, 0.17]];
-    for (i = 0; i < bars.length; i++) {
-      r = bars[i][1];
-      doc.line(x0 + (0.5 - r) * s, y0 + bars[i][0] * s, x0 + (0.5 + r) * s, y0 + bars[i][0] * s);
-    }
-    doc.setLineCap('butt');
+    if (!art) return;
+    var w = height * art.naturalWidth / art.naturalHeight;
+    doc.addImage(art, 'PNG', cx - w / 2, top, w, height);
   }
 
   function newDoc(orientation) {
@@ -593,19 +559,22 @@
   function create(kind, service, extra) {
     var d = DOCS[kind];
     if (!d) throw new Error('Unknown document: ' + kind);
-    var doc = d.build(service, extra);
-    return { blob: doc.output('blob'), name: d.file(service, extra), doc: doc, title: d.name };
+    return loadArt().then(function () {
+      var doc = d.build(service, extra);
+      return { blob: doc.output('blob'), name: d.file(service, extra), doc: doc, title: d.name };
+    });
   }
   function dataUrl(kind, service, extra) {
-    return DOCS[kind].build(service, extra).output('datauristring');
+    return loadArt().then(function () { return DOCS[kind].build(service, extra).output('datauristring'); });
   }
   function download(kind, service, extra) {
-    var r = create(kind, service, extra);
-    var url = URL.createObjectURL(r.blob), a = document.createElement('a');
-    a.href = url; a.download = r.name; a.rel = 'noopener';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-    return r.name;
+    return create(kind, service, extra).then(function (r) {
+      var url = URL.createObjectURL(r.blob), a = document.createElement('a');
+      a.href = url; a.download = r.name; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+      return r.name;
+    });
   }
   function canShareFiles() {
     try {
@@ -614,24 +583,26 @@
     } catch (e) { return false; }
   }
   function share(kind, service, extra) {
-    var r = create(kind, service, extra);
-    var file = new File([r.blob], r.name, { type: 'application/pdf' });
-    if (canShareFiles() && navigator.canShare({ files: [file] })) {
-      return navigator.share({ files: [file], title: r.title, text: M.serviceTitle(service) })
-        .then(function () { return 'shared'; })
-        .catch(function (e) {
-          if (e && e.name === 'AbortError') return 'cancelled';
-          download(kind, service, extra);
-          return 'downloaded';
-        });
-    }
-    download(kind, service, extra);
-    return Promise.resolve('downloaded');
+    return create(kind, service, extra).then(function (r) {
+      var file = new File([r.blob], r.name, { type: 'application/pdf' });
+      if (canShareFiles() && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file], title: r.title, text: M.serviceTitle(service) })
+          .then(function () { return 'shared'; })
+          .catch(function (e) {
+            if (e && e.name === 'AbortError') return 'cancelled';
+            return download(kind, service, extra).then(function () { return 'downloaded'; });
+          });
+      }
+      return download(kind, service, extra).then(function () { return 'downloaded'; });
+    });
   }
   // Printing goes through the finished PDF rather than the page, so what comes
   // out of the printer is the same sheet that gets shared.
   function print(kind, service, extra) {
-    var r = create(kind, service, extra), url = URL.createObjectURL(r.blob);
+    return create(kind, service, extra).then(function (r) { return printBlob(r); });
+  }
+  function printBlob(r) {
+    var url = URL.createObjectURL(r.blob);
     var frame = document.createElement('iframe');
     frame.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0';
     frame.src = url;
@@ -650,6 +621,6 @@
 
   global.Sheets = {
     DOCS: DOCS, create: create, dataUrl: dataUrl, download: download,
-    share: share, print: print, canShareFiles: canShareFiles, emblem: drawEmblem
+    share: share, print: print, canShareFiles: canShareFiles, loadArt: loadArt
   };
 })(window);
