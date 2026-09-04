@@ -7,7 +7,7 @@
 
   var H = global.Hymns, M = global.Model, S = global.Sheets;
   var STORAGE_KEY = 'nac-choir-planner:v1';
-  var BUILD = '2026-09-04g';
+  var BUILD = '2026-09-04h';
   var TABS = ['program', 'before', 'prep', 'practices', 'hymns', 'files'];
 
   // ---------------------------------------------------------------- helpers

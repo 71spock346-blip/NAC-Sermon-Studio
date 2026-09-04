@@ -191,7 +191,7 @@
         var bold = /congregation/i.test(r.who || '');
         p.text(String(i + 1), xB + wB / 2, y, hRow, { size: fRow, bold: bold, align: 'center' });
         p.text(r.who || '', xC + pad, y, hRow, { size: fRow, bold: bold, width: wC - 2 * pad });
-        p.fit(r.note || '', xN + pad, y, wN - 2 * pad, hRow, { size: fRow - 1, italic: true });
+        p.fit(r.note || '', xN + pad, y, wN - 2 * pad, hRow, { size: fRow - 1, bold: bold });
         p.text(rt.ref, xD + pad, y, hRow, { size: fRow, bold: bold, width: wD - 2 * pad });
         p.text(rt.title, xE + pad, y, hRow, { size: fRow, bold: bold, width: wE - 2 * pad });
         y += hRow;
