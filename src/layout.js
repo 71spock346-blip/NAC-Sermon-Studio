@@ -112,9 +112,8 @@
       { id: 'balcony', label: 'BALCONY', x: 40, y: 600, w: 1020, h: 175, fill: '#FFD966', fontSize: 26, labelDy: 30 }
     ],
     altar: { x: 395, y: 78, w: 320, h: 130, inner: { x: 470, y: 102, w: 170, h: 66 }, label: 'ALTAR', fill: '#B1510F' },
-    markers: [],
+    markers: [{ id: 'C', x: 602, y: 410 }],
     seats: [
-      { id: 'AP', x: 512, y: 14, w: 86, h: 38 },
       { id: '7', x: 48, y: 94, w: 44, h: 36 }, { id: '8', x: 48, y: 134, w: 44, h: 36 }, { id: '9', x: 48, y: 174, w: 44, h: 36 }, { id: '10', x: 48, y: 214, w: 44, h: 36, quiet: true },
       { id: '5', x: 138, y: 94, w: 44, h: 36 }, { id: '6', x: 138, y: 134, w: 44, h: 36 }, { id: '11', x: 138, y: 174, w: 44, h: 36, quiet: true }, { id: '12', x: 138, y: 214, w: 44, h: 36, quiet: true },
       { id: '1', x: 228, y: 94, w: 44, h: 36 }, { id: '3', x: 228, y: 134, w: 44, h: 36 }, { id: '13', x: 228, y: 174, w: 44, h: 36, quiet: true }, { id: '14', x: 228, y: 214, w: 44, h: 36, quiet: true },
