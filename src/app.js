@@ -89,7 +89,7 @@
       p = { layoutId: layout.id, service: 'Divine Service', seats: {},
         stations: L.blankStations(layout), cups: clone(layout.cups || { left: 0, right: 0 }),
         communion: layout.id === L.GEZINA.id
-          ? { serves: [{ seat: '1', text: 'Serves 2-11' }, { seat: '2', text: 'Serves C & O Cup' }], pairs: [['2', ''], ['3', '4'], ['5', '6'], ['7', '10'], ['8', '11']] }
+          ? { serves: [{ seat: '2', text: 'Serves the other ministers' }, { seat: '1', text: 'Serves C & O Cup' }], pairs: [['1', ''], ['3', '6'], ['5', '4'], ['7', '12'], ['8', '11']] }
           : { serves: [], pairs: [] },
         note: DEFAULT_NOTE };
     }

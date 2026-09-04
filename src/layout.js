@@ -36,16 +36,16 @@
     altar: { x: 400, y: 38, w: 290, h: 120, inner: { x: 500, y: 62, w: 95, h: 58 }, label: 'Altar', fill: '#B1510F' },
     markers: [{ id: 'C', x: 345, y: 382 }, { id: 'O', x: 435, y: 605 }],
     seats: [
-      { id: '4', x: 310, y: 8 }, { id: '3', x: 355, y: 8 }, { id: '5', x: 310, y: 52 }, { id: '2', x: 355, y: 52 },
-      { id: '6', x: 310, y: 98 }, { id: '1', x: 355, y: 98 }, { id: '9', x: 705, y: 8 }, { id: '10', x: 750, y: 8 },
-      { id: '8', x: 705, y: 55 }, { id: '11', x: 750, y: 55 }, { id: '7', x: 705, y: 100 }, { id: '12', x: 750, y: 100 }
+      { id: '6', x: 310, y: 8 }, { id: '3', x: 355, y: 8 }, { id: '5', x: 310, y: 52 }, { id: '1', x: 355, y: 52 },
+      { id: '4', x: 310, y: 98 }, { id: '2', x: 355, y: 98 }, { id: '9', x: 705, y: 8 }, { id: '12', x: 750, y: 8 },
+      { id: '8', x: 705, y: 55 }, { id: '11', x: 750, y: 55 }, { id: '7', x: 705, y: 100 }, { id: '10', x: 750, y: 100 }
     ].concat(['13', '14', '15', '16', '17', '18', '19', '20', '21', '22'].map(function (id, i) {
       return { id: id, x: 340 + i * 40.5, y: 258, w: 40.5, h: 38 };
     })),
     stationGroups: [
-      { id: 'front', label: 'Front of altar', cx: 545, cy: 189, dx: 42.5, dy: 0, rot: 0, defaults: ['2', '3', '4'] },
-      { id: 'left', label: 'Choir side', cx: 232, cy: 95, dx: 27, dy: 27, rot: 45, defaults: ['11', '6', '5'] },
-      { id: 'right', label: 'Members side', cx: 852, cy: 95, dx: 27, dy: -27, rot: -45, defaults: ['7', '8', '10'] }
+      { id: 'front', label: 'Front of altar', cx: 545, cy: 189, dx: 42.5, dy: 0, rot: 0, defaults: ['1', '3', '6'] },
+      { id: 'left', label: 'Choir side', cx: 232, cy: 95, dx: 27, dy: 27, rot: 45, defaults: ['11', '4', '5'] },
+      { id: 'right', label: 'Members side', cx: 852, cy: 95, dx: 27, dy: -27, rot: -45, defaults: ['7', '8', '12'] }
     ],
     cups: { left: 3, right: 2 }
   };
@@ -79,16 +79,16 @@
     altar: { x: 341, y: 12, w: 371, h: 110, inner: { x: 388, y: 46, w: 278, h: 41 }, label: 'ALTAR', fill: '#B1510F' },
     markers: [],
     seats: [
-      { id: '4', x: 69, y: 14, w: 40, h: 35 }, { id: '2', x: 156, y: 14, w: 40, h: 35 }, { id: '15', x: 248, y: 14, w: 40, h: 35 },
-      { id: '3', x: 69, y: 85, w: 40, h: 35 }, { id: '1', x: 156, y: 85, w: 40, h: 35 }, { id: '16', x: 248, y: 85, w: 40, h: 35 },
-      { id: '6', x: 811, y: 14, w: 40, h: 35 }, { id: '8', x: 901, y: 14, w: 40, h: 35 },
-      { id: '5', x: 811, y: 85, w: 40, h: 35 }, { id: '7', x: 901, y: 85, w: 40, h: 35 }, { id: '9', x: 979, y: 85, w: 40, h: 35 },
-      { id: '10', x: 246, y: 228, w: 47.5, h: 34 }, { id: '11', x: 293.5, y: 228, w: 47.5, h: 34 }, { id: '12', x: 341, y: 228, w: 47.5, h: 34 },
-      { id: '13', x: 388.5, y: 228, w: 47.5, h: 34 }, { id: '14', x: 436, y: 228, w: 47.5, h: 34 }
+      { id: '6', x: 69, y: 14, w: 40, h: 35 }, { id: '4', x: 156, y: 14, w: 40, h: 35 }, { id: '1', x: 248, y: 14, w: 40, h: 35 },
+      { id: '5', x: 69, y: 85, w: 40, h: 35 }, { id: '3', x: 156, y: 85, w: 40, h: 35 }, { id: '2', x: 248, y: 85, w: 40, h: 35 },
+      { id: '8', x: 811, y: 14, w: 40, h: 35 }, { id: '10', x: 901, y: 14, w: 40, h: 35 },
+      { id: '7', x: 811, y: 85, w: 40, h: 35 }, { id: '9', x: 901, y: 85, w: 40, h: 35 }, { id: '11', x: 979, y: 85, w: 40, h: 35 },
+      { id: '12', x: 246, y: 228, w: 47.5, h: 34 }, { id: '13', x: 293.5, y: 228, w: 47.5, h: 34 }, { id: '14', x: 341, y: 228, w: 47.5, h: 34 },
+      { id: '15', x: 388.5, y: 228, w: 47.5, h: 34 }, { id: '16', x: 436, y: 228, w: 47.5, h: 34 }
     ],
     stationGroups: [
-      { id: 'left', label: 'Left', cx: 340, cy: 174, dx: 47.2, dy: 0, rot: 0, defaults: ['11', '4', '10', '3', '2', '1'] },
-      { id: 'right', label: 'Right', cx: 715.5, cy: 174, dx: 47.4, dy: 0, rot: 0, defaults: ['5', '6', '7', '8', '9', '12'] },
+      { id: 'left', label: 'Left', cx: 340, cy: 174, dx: 47.2, dy: 0, rot: 0, defaults: ['13', '6', '12', '5', '4', '3'] },
+      { id: 'right', label: 'Right', cx: 715.5, cy: 174, dx: 47.4, dy: 0, rot: 0, defaults: ['7', '8', '9', '10', '11', '14'] },
       { id: 'foyer', label: 'Foyer', cx: 525, cy: 600, dx: 47.2, dy: 0, rot: 0, defaults: ['', '', ''] }
     ],
     cups: { left: 0, right: 0 }
@@ -114,14 +114,14 @@
     altar: { x: 395, y: 78, w: 320, h: 130, inner: { x: 470, y: 102, w: 170, h: 66 }, label: 'ALTAR', fill: '#B1510F' },
     markers: [{ id: 'C', x: 602, y: 410 }],
     seats: [
-      { id: '7', x: 48, y: 94, w: 44, h: 36 }, { id: '8', x: 48, y: 134, w: 44, h: 36 }, { id: '9', x: 48, y: 174, w: 44, h: 36 }, { id: '10', x: 48, y: 214, w: 44, h: 36, quiet: true },
-      { id: '5', x: 138, y: 94, w: 44, h: 36 }, { id: '6', x: 138, y: 134, w: 44, h: 36 }, { id: '11', x: 138, y: 174, w: 44, h: 36, quiet: true }, { id: '12', x: 138, y: 214, w: 44, h: 36, quiet: true },
-      { id: '1', x: 228, y: 94, w: 44, h: 36 }, { id: '3', x: 228, y: 134, w: 44, h: 36 }, { id: '13', x: 228, y: 174, w: 44, h: 36, quiet: true }, { id: '14', x: 228, y: 214, w: 44, h: 36, quiet: true },
-      { id: '2', x: 838, y: 94, w: 44, h: 36 }, { id: '4', x: 838, y: 134, w: 44, h: 36 }, { id: '15', x: 838, y: 174, w: 44, h: 36, quiet: true }, { id: '16', x: 838, y: 214, w: 44, h: 36, quiet: true }
+      { id: '12', x: 48, y: 94, w: 44, h: 36 }, { id: '11', x: 48, y: 134, w: 44, h: 36 }, { id: '10', x: 48, y: 174, w: 44, h: 36 }, { id: '9', x: 48, y: 214, w: 44, h: 36 },
+      { id: '8', x: 138, y: 94, w: 44, h: 36 }, { id: '7', x: 138, y: 134, w: 44, h: 36 }, { id: '6', x: 138, y: 174, w: 44, h: 36 }, { id: '5', x: 138, y: 214, w: 44, h: 36 },
+      { id: '4', x: 228, y: 94, w: 44, h: 36 }, { id: '3', x: 228, y: 134, w: 44, h: 36 }, { id: '1', x: 228, y: 174, w: 44, h: 36 }, { id: '2', x: 228, y: 214, w: 44, h: 36 },
+      { id: '16', x: 838, y: 94, w: 44, h: 36 }, { id: '15', x: 838, y: 134, w: 44, h: 36 }, { id: '14', x: 838, y: 174, w: 44, h: 36 }, { id: '13', x: 838, y: 214, w: 44, h: 36 }
     ],
     stationGroups: [
-      { id: 'left', label: 'Left', cx: 275, cy: 296, dx: 47, dy: 0, rot: 0, defaults: ['3', '5', ''] },
-      { id: 'right', label: 'Right', cx: 825, cy: 296, dx: 47, dy: 0, rot: 0, defaults: ['2', '4', ''] },
+      { id: 'left', label: 'Left', cx: 275, cy: 296, dx: 47, dy: 0, rot: 0, defaults: ['3', '8', ''] },
+      { id: 'right', label: 'Right', cx: 825, cy: 296, dx: 47, dy: 0, rot: 0, defaults: ['16', '15', ''] },
       { id: 'balcony', label: 'Balcony', cx: 550, cy: 636, dx: 47, dy: 0, rot: 0, defaults: ['', '', ''] }
     ],
     cups: { left: 2, right: 2 }
