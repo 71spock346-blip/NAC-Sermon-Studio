@@ -78,6 +78,19 @@ covers, so the conductor can see at a glance what is still unrehearsed.
   and `emblem-print.png` are derived from them
 - `vendor/jspdf.umd.min.js` — jsPDF 2.5.2 (MIT)
 
+## On a phone
+
+The tabs become a bar along the bottom, within reach of a thumb; every control is at
+least 44px, fields are 16px so a browser does not zoom when one is focused, and the hymn
+picker rises from the bottom edge as a sheet, which the back button closes rather than
+leaving the app.
+
+`sw.js` keeps the app working without a signal — the shell network-first, so an online
+visit always gets the deployed build and a stale copy can never be mistaken for a bug,
+and the library, artwork and hymn index cache-first, since they change only when their
+name does. The app also asks for persistent storage, so a browser is less likely to clear
+a conductor's services behind their back.
+
 ## Storage
 
 Everything is kept in `localStorage` under `nac-choir-planner:v1`: the services, their
