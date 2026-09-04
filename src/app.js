@@ -69,6 +69,11 @@
   function markSaved(p) { p.savedHash = planContent(p); }
   function currentLayout() { return layoutById(current().layoutId) || L.GEZINA; }
   // Returns a layout object stored in state (forking the built-in one on first edit).
+  // True when the current layout is a stored copy shadowing a built-in one.
+  function isForkedBuiltin() {
+    var lay = currentLayout();
+    return !lay.builtin && L.BUILTIN.some(function (b) { return b.id === lay.id; });
+  }
   function editableLayout() {
     var lay = currentLayout();
     if (lay.builtin) {
@@ -323,6 +328,7 @@
     $('#layout-name').value = lay.name;
     $('#layout-name').disabled = !!lay.builtin;
     $('#btn-layout-delete').disabled = !!lay.builtin || allLayouts().length < 2;
+    $('#btn-layout-restore').hidden = !isForkedBuiltin();
     $('#btn-layout-edit').textContent = global.Editor.active ? 'Finish editing' : 'Edit this layout';
     var bg = lay.background && lay.background.dataUrl;
     $('#background-tools').hidden = !global.Editor.active;
@@ -457,6 +463,13 @@
       var fallback = allLayouts()[0].id;
       state.plans.concat([current()]).forEach(function (p) { if (p.layoutId === lay.id) { p.layoutId = fallback; p.stations = L.blankStations(layoutById(fallback)); } });
       global.Editor.setActive(false); save(); renderHeader(); renderAll();
+    });
+    $('#btn-layout-restore').addEventListener('click', function () {
+      var lay = currentLayout();
+      if (!isForkedBuiltin() || !confirm('Restore the built-in "' + lay.name + '" layout? Your own changes to this layout on this device are discarded.')) return;
+      state.layouts = state.layouts.filter(function (l) { return l.id !== lay.id; });
+      global.Editor.setActive(false); switchLayout(lay.id);
+      toast('Restored the built-in ' + currentLayout().name + ' layout.');
     });
     $('#btn-layout-export').addEventListener('click', function () { var lay = clone(currentLayout()); delete lay.builtin; downloadJson(lay, 'layout-' + lay.name.replace(/[^A-Za-z0-9]+/g, '_') + '.json'); });
     $('#file-layout-import').addEventListener('change', function (e) {
