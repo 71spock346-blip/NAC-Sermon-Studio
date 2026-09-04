@@ -66,6 +66,15 @@
     if (!state.settings.abilities || !state.settings.abilities.length) {
       state.settings.abilities = H.defaultAbilities();
     }
+    if (!state.settings.times || state.settings.times.length !== 7) {
+      // an older store kept one time for every day; it becomes the usual time
+      // for the days that have none
+      var one = state.settings.time;
+      state.settings.times = M.DEFAULT_TIMES.map(function (t, i) {
+        return t || (one && i !== 0 && i !== 3 ? one : t);
+      });
+      delete state.settings.time;
+    }
     state.hymnEdits = state.hymnEdits || {};
     H.setAbilities(state.settings.abilities);
     H.setEdits(state.hymnEdits);
@@ -74,7 +83,10 @@
   function blankState() {
     return {
       v: 1,
-      settings: { congregation: '', conductor: '', organist: '', time: '10:00', abilities: H.defaultAbilities() },
+      settings: {
+        congregation: '', conductor: '', organist: '',
+        times: M.DEFAULT_TIMES.slice(), abilities: H.defaultAbilities()
+      },
       services: [], currentId: null, hymnEdits: {}
     };
   }
@@ -774,8 +786,17 @@
       ]));
     });
 
+    var times = $('#service-times');
+    times.innerHTML = '';
+    M.DAY_NAMES.forEach(function (day, i) {
+      times.appendChild(el('label', { class: 'f' }, [day, el('input', {
+        type: 'time', value: state.settings.times[i] || '',
+        oninput: function (e) { state.settings.times[i] = e.target.value; save(); }
+      })]));
+    });
+
     [['#s-congregation', 'congregation'], ['#s-conductor', 'conductor'],
-     ['#s-organist', 'organist'], ['#s-time', 'time']].forEach(function (pair) {
+     ['#s-organist', 'organist']].forEach(function (pair) {
       bindOnce($(pair[0]), function () { return state.settings[pair[1]]; }, function (v) { state.settings[pair[1]] = v; });
     });
   }
@@ -791,6 +812,19 @@
       bindOnce($(pair[0]), function () { return s[pair[1]]; }, function (v) {
         var was = s[pair[1]];
         s[pair[1]] = v;
+        // a time typed here is the conductor's own and is never overwritten
+        if (pair[1] === 'time') s.timeSet = true;
+        // moving the service to another day brings that day's usual time with
+        // it, unless a time has been set by hand
+        if (pair[1] === 'date' && !s.timeSet) {
+          var usual = M.usualTime(v, state.settings.times);
+          if (usual && usual !== s.time) {
+            var oldTime = s.time;
+            s.time = usual;
+            $('#f-time').value = usual;
+            if (!s.prep.time || s.prep.time === oldTime) s.prep.time = usual;
+          }
+        }
         // the preparation form repeats the date and time, so keep it in step
         // for as long as it has not been given one of its own
         if ((pair[1] === 'date' || pair[1] === 'time') && (!s.prep[pair[1]] || s.prep[pair[1]] === was)) {

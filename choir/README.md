@@ -80,5 +80,10 @@ covers, so the conductor can see at a glance what is still unrehearsed.
 ## Storage
 
 Everything is kept in `localStorage` under `nac-choir-planner:v1`: the services, their
-practices, the defaults for new services and any changes to the index. Export/Import
-backup in the Files tab moves the lot between devices.
+practices, the defaults for new services, the ability ratings and any changes to the
+index. Export/Import backup in the Files tab moves the lot between devices.
+
+A service takes its start time from the day it falls on — 9:00 on a Sunday and 19:30 on a
+Wednesday out of the box, editable per day in the Files tab — and follows the day if the
+date moves, until a time is typed by hand. That time is what the before-service running
+order counts back from.
