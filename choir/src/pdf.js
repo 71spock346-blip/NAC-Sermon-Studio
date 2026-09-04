@@ -21,8 +21,8 @@
 
   // --------------------------------------------------------------- drawing
   function Pen(doc) { this.doc = doc; }
-  Pen.prototype.font = function (size, bold, color) {
-    this.doc.setFont('helvetica', bold ? 'bold' : 'normal');
+  Pen.prototype.font = function (size, bold, color, italic) {
+    this.doc.setFont('helvetica', bold ? (italic ? 'bolditalic' : 'bold') : (italic ? 'italic' : 'normal'));
     this.doc.setFontSize(size);
     var c = color || INK;
     this.doc.setTextColor(c[0], c[1], c[2]);
@@ -50,11 +50,11 @@
     if (!s) return this;
     o = o || {};
     var size = o.size || 10, min = o.min || Math.max(6, size - 2.5);
-    this.font(size, o.bold, o.color);
+    this.font(size, o.bold, o.color, o.italic);
     if (o.width) {
       while (this.doc.getTextWidth(s) > o.width && size > min) {
         size -= 0.25;
-        this.font(size, o.bold, o.color);
+        this.font(size, o.bold, o.color, o.italic);
       }
       if (this.doc.getTextWidth(s) > o.width) {
         while (s.length > 1 && this.doc.getTextWidth(s + '…') > o.width) s = s.slice(0, -1);
@@ -151,8 +151,10 @@
       return (s.rows || []).length || s.label;
     });
     var needed = hLogo + hBand + hGap + hTitle;
+    function rowHeight(r, h) { return r.note ? h * 1.5 : h; }
     sections.forEach(function (s) {
-      needed += hRow + (s.rows || []).length * hRow + hSpace;
+      needed += hRow + hSpace;
+      (s.rows || []).forEach(function (r) { needed += rowHeight(r, hRow); });
     });
     needed += 2 * hRow;
     var avail = 297 - 19 - 12;
@@ -177,23 +179,28 @@
     sections.forEach(function (s) {
       p.text(s.label, xA, y, hRow, { size: 10, bold: true, color: BLUE, width: total });
       y += hRow;
-      var rows = s.rows || [], notes = [];
+      var rows = s.rows || [];
       rows.forEach(function (r, i) {
-        var rt = refAndTitle(r.ref);
-        p.rect(xB, y, boxW, hRow, 0.25);
-        p.line(xC, y, xC, y + hRow, 0.25);
-        p.line(xD, y, xD, y + hRow, 0.25);
-        p.line(xE, y, xE, y + hRow, 0.25);
+        var rt = refAndTitle(r.ref), rh = rowHeight(r, hRow);
+        p.rect(xB, y, boxW, rh, 0.25);
+        p.line(xC, y, xC, y + rh, 0.25);
+        p.line(xD, y, xD, y + rh, 0.25);
+        p.line(xE, y, xE, y + rh, 0.25);
         if (i) p.line(xB, y, right, y, 0.1);
-        var bold = /choir|orchestra|recorder|soloist/i.test(r.who || '');
+        // The congregation's own hymns are the bold ones, as the workbook had
+        // them: they are what the congregation looks for on the sheet.
+        var bold = /congregation/i.test(r.who || '');
         p.text(String(i + 1), xB + wB / 2, y, hRow, { size: fRow, bold: bold, align: 'center' });
         p.text(r.who || '', xC + pad, y, hRow, { size: fRow, bold: bold, width: wC - 2 * pad });
         p.text(rt.ref, xD + pad, y, hRow, { size: fRow, bold: bold, width: wD - 2 * pad });
         p.text(rt.title, xE + pad, y, hRow, { size: fRow, bold: bold, width: wE - 2 * pad });
-        if (r.note) notes.push(r.note);
-        y += hRow;
+        // the note belongs to this hymn, so it sits under its reference rather
+        // than at the foot of the section
+        if (r.note) {
+          p.text(r.note, xD + pad, y + hRow - 0.6, rh - hRow, { size: fRow - 1.5, italic: true, width: wD - 2 * pad });
+        }
+        y += rh;
       });
-      if (notes.length) p.text(notes.join(' · '), xD + pad, y, hSpace, { size: 9, width: right - xD - pad });
       y += hSpace;
     });
 
