@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0.1" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#3f93e4"/><stop offset="1" stop-color="#1157ab"/>
+    </linearGradient>
+    <linearGradient id="robe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8fcff"/><stop offset="1" stop-color="#d3e6fa"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#edf4fd"/>
+    </linearGradient>
+    <g id="singer">
+      <circle cx="0" cy="0" r="32" fill="url(#robe)"/>
+      <path d="M-62 160 L-62 66 C-62 18 62 18 62 66 L62 160 Z" fill="url(#robe)"/>
+      <path d="M-52 78 L0 96 L52 78 L52 122 L0 140 L-52 122 Z" fill="#1668c4"/>
+    </g>
+    <g id="bookhalf">
+      <path d="M56 218 Q42 302 58 384 Q160 414 256 422 L256 200 Q154 204 56 218 Z" fill="#cfe1f7"/>
+      <path d="M66 224 Q54 302 70 378 Q164 406 256 414 L256 208 Q158 212 66 224 Z" fill="#1668c4"/>
+      <path d="M78 232 Q66 302 80 366 Q166 390 251 396 L251 216 Q162 220 78 232 Z" fill="url(#page)"/>
+      <g stroke="#a8cbee" stroke-width="11" stroke-linecap="round" fill="none">
+        <path d="M100 254 Q168 242 230 239"/>
+        <path d="M99 280 Q167 269 230 266"/>
+        <path d="M99 306 Q167 296 230 293"/>
+        <path d="M100 332 Q167 323 230 320"/>
+        <path d="M103 358 Q168 350 230 347"/>
+      </g>
+    </g>
+  </defs>
+
+  <rect x="18" y="18" width="476" height="476" rx="112" fill="url(#bg)"/>
+
+  <use href="#singer" transform="translate(112,132) scale(0.62)"/>
+  <use href="#singer" transform="translate(400,132) scale(0.62)"/>
+  <use href="#singer" transform="translate(180,106) scale(0.74)"/>
+  <use href="#singer" transform="translate(332,106) scale(0.74)"/>
+  <use href="#singer" transform="translate(256,80) scale(0.88)"/>
+
+  <path d="M230 384 L282 384 L282 470 L256 444 L230 470 Z" fill="#f2f8ff"/>
+
+  <use href="#bookhalf"/>
+  <use href="#bookhalf" transform="translate(512,0) scale(-1,1)"/>
+
+  <g transform="translate(213,154) scale(0.45)" fill="none" stroke="#17457f"
+     stroke-width="27" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M50 470 C44 494 96 500 108 470
+             C120 440 112 344 116 248
+             C120 150 130 88 132 40
+             C134 14 110 6 92 26
+             C58 62 30 112 30 166
+             C30 222 72 254 108 288
+             C146 324 178 352 178 396
+             C178 442 140 470 96 470
+             C48 470 12 438 12 394
+             C12 352 44 324 84 324
+             C118 324 140 352 140 384"/>
+  </g>
+</svg>
