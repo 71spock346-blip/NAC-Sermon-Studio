@@ -379,6 +379,40 @@
     img.onerror = function () { URL.revokeObjectURL(url); toast('Could not read that picture.', true); };
     img.src = url;
   }
+  // --- sharing a layout as a link ----------------------------------------
+  // Layouts live only in the browser that made them, so a link is the simplest
+  // way to hand one to another congregation or another device.
+  function b64encode(bytes) {
+    var bin = '';
+    for (var i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function b64decode(str) {
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) str += '=';
+    var bin = atob(str), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function encodeShare(json) {
+    var bytes = new TextEncoder().encode(json);
+    if (!global.CompressionStream) return Promise.resolve('j.' + b64encode(bytes));
+    return new Response(new Blob([bytes]).stream().pipeThrough(new global.CompressionStream('gzip'))).arrayBuffer()
+      .then(function (buf) { return 'g.' + b64encode(new Uint8Array(buf)); })
+      .catch(function () { return 'j.' + b64encode(bytes); });
+  }
+  function decodeShare(code) {
+    var i = code.indexOf('.'), kind = code.slice(0, i), bytes = b64decode(code.slice(i + 1));
+    if (kind !== 'g') return Promise.resolve(new TextDecoder().decode(bytes));
+    return new Response(new Blob([bytes]).stream().pipeThrough(new global.DecompressionStream('gzip'))).text();
+  }
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return true; }).catch(function () { return false; });
+    }
+    return Promise.resolve(false);
+  }
+
   function validLayout(l) { return l && typeof l.name === 'string' && Array.isArray(l.blocks) && Array.isArray(l.seats) && Array.isArray(l.stationGroups) && l.altar && l.altar.inner; }
   function switchLayout(id) {
     var plan = current(), lay = layoutById(id);
@@ -472,6 +506,30 @@
       toast('Restored the built-in ' + currentLayout().name + ' layout.');
     });
     $('#btn-layout-export').addEventListener('click', function () { var lay = clone(currentLayout()); delete lay.builtin; downloadJson(lay, 'layout-' + lay.name.replace(/[^A-Za-z0-9]+/g, '_') + '.json'); });
+    $('#btn-layout-share').addEventListener('click', function () {
+      var lay = currentLayout(), copy = clone(lay);
+      // The tracing picture is only a guide while drawing, and would make the
+      // link far too long, so it is left out.
+      var hadPicture = !!(copy.background && copy.background.dataUrl);
+      delete copy.builtin; delete copy.background; delete copy.id;
+      encodeShare(JSON.stringify(copy)).then(function (code) {
+        var url = location.origin + location.pathname + '#layout=' + code;
+        if (url.length > 30000) { toast('This layout is too big for a link. Use Export layout and send the file instead.', true); return; }
+        var note = hadPicture ? ' The tracing picture is not included.' : '';
+        if (navigator.share) {
+          return navigator.share({ title: lay.name + ' layout', text: 'Seating layout for ' + lay.name, url: url })
+            .then(function () { toast('Layout link shared.' + note); })
+            .catch(function (err) {
+              if (err && err.name === 'AbortError') return;
+              return copyText(url).then(function (okc) { toast(okc ? 'Layout link copied.' + note : 'Could not share the link.', !okc); });
+            });
+        }
+        return copyText(url).then(function (okc) {
+          if (okc) toast('Layout link copied. Paste it into WhatsApp or an e-mail.' + note);
+          else prompt('Copy this layout link and send it to the other congregation:', url);
+        });
+      }).catch(function () { toast('Could not build a link for this layout.', true); });
+    });
     $('#file-layout-import').addEventListener('change', function (e) {
       var file = e.target.files[0];
       e.target.value = '';
@@ -524,6 +582,22 @@
     $('#btn-print').addEventListener('click', function () { $('#print-sheet').innerHTML = P.buildPageSvg(currentLayout(), current(), colorOf); window.print(); });
   }
 
+  // Adds a layout that arrived as a link, then cleans the address bar.
+  function consumeSharedLayout() {
+    var m = /[#&]layout=([^&]+)/.exec(global.location.hash || '');
+    if (!m) return;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
+    Promise.resolve().then(function () { return decodeShare(decodeURIComponent(m[1])); }).then(function (json) {
+      var lay = JSON.parse(json);
+      if (!validLayout(lay)) throw new Error('not a layout');
+      var clash = allLayouts().some(function (l) { return l.name === lay.name; });
+      if (!confirm('Add the "' + lay.name + '" layout to this device?' + (clash ? '\n\nA layout called "' + lay.name + '" is already here, so you will have two.' : ''))) return;
+      lay.id = uid(); lay.builtin = false;
+      state.layouts.push(lay); switchLayout(lay.id);
+      toast('Layout "' + lay.name + '" added.');
+    }).catch(function () { toast('That layout link could not be read.', true); });
+  }
+
   function init() {
     RANKS.forEach(function (r) { $('#ranks').appendChild(option(r, r)); });
     state = load();
@@ -531,6 +605,8 @@
     global.Editor.init(global.App);
     renderHeader(); renderAll(); bind();
     setZoom(window.innerWidth < 700 ? 1 : 0);
+    consumeSharedLayout();
+    global.addEventListener('hashchange', consumeSharedLayout);
     if (restored) toast('Restored your unsaved changes.');
   }
 
