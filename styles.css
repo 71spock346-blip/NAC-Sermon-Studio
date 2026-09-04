@@ -3,6 +3,9 @@
   --accent: #1565c0; --accent-ink: #ffffff; --danger: #b91c1c;
 }
 * { box-sizing: border-box; }
+/* .btn sets a display value, which would otherwise beat the browser's
+   [hidden] rule and leave hidden buttons on screen. */
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body { font: 15px/1.45 "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); }
 header.top { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
@@ -44,9 +47,14 @@ textarea { resize: vertical; }
 .row input[type=text] { flex: 1 1 140px; }
 .muted { color: var(--muted); margin: 0; }
 .small { font-size: 12px; }
-.tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
-.tabs button { flex: 1 1 0; font: inherit; font-size: 14px; font-weight: 600; padding: 9px 4px; border: none; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); cursor: pointer; }
-.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tabs { display: flex; gap: 4px; align-items: flex-end; margin: 0; padding: 0; }
+.tabs button { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: 14px; font-weight: 700; padding: 11px 6px; border: 1px solid var(--line); border-bottom: none; border-radius: 10px 10px 0 0; background: #e9ecf1; color: #4b5563; cursor: pointer; transition: background .12s, color .12s; }
+.tabs button:hover { background: #dde2ea; color: var(--ink); }
+.tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tabs .ico { display: none; }
+.tabs .ico svg { display: block; width: 24px; height: 24px; }
+.card.tab { border-top: 3px solid var(--accent); border-top-left-radius: 0; border-top-right-radius: 0; }
+h1 .t-short { display: none; }
 .sheet { border-color: var(--accent); box-shadow: 0 4px 16px rgba(0,0,0,.12); }
 .sheet-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .sheet-head h3 { flex: 0 0 auto; }
@@ -88,10 +96,31 @@ table.grid select, table.grid input { padding: 5px 6px; }
   header.top .btn { padding: 7px 10px; font-size: 13px; }
   .fields.three { grid-template-columns: 1fr 1fr; }
   .fields.three label:first-child { grid-column: 1 / -1; }
-  .tabs { position: sticky; top: 48px; background: var(--bg); z-index: 4; margin: 0 -8px 8px; padding: 0 8px; }
-  .tabs button { font-size: 13px; padding: 10px 2px; }
-  .sheet { position: fixed; left: 0; right: 0; bottom: 0; margin: 0; border-radius: 14px 14px 0 0; max-height: 55vh; overflow-y: auto; z-index: 20; padding-bottom: calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -6px 24px rgba(0,0,0,.2); }
-  .chip { padding: 8px 13px; }
+  main { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+  h1 .t-long { display: none; }
+  h1 .t-short { display: inline; }
+  header.top .actions { overflow-x: auto; scrollbar-width: none; }
+  header.top .actions::-webkit-scrollbar { display: none; }
+  /* Printing and a second PDF button are desktop conveniences; Share covers both here. */
+  #btn-print { display: none; }
+  #btn-share:not([hidden]) ~ #btn-pdf { display: none; }
+  /* Tabs become a thumb-reachable bottom bar. */
+  .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; gap: 0; background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -2px 12px rgba(0,0,0,.1); padding-bottom: env(safe-area-inset-bottom); }
+  .tabs button { flex-direction: column; gap: 3px; min-height: 58px; padding: 7px 2px 6px; font-size: 11px; font-weight: 600; border: none; border-radius: 0; background: transparent; color: var(--muted); }
+  .tabs button:hover { background: transparent; }
+  .tabs button.active { background: transparent; color: var(--accent); }
+  .tabs .ico { display: block; padding: 2px 12px; border-radius: 999px; line-height: 0; }
+  .tabs button.active .ico { background: #dceafa; }
+  .card.tab { border-top: 1px solid var(--line); border-radius: 8px; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: calc(58px + env(safe-area-inset-bottom)); margin: 0; border-radius: 14px 14px 0 0; max-height: 52vh; overflow-y: auto; z-index: 20; box-shadow: 0 -6px 24px rgba(0,0,0,.2); }
+  .toast { bottom: calc(74px + env(safe-area-inset-bottom)); }
+  /* 16px keeps iOS from zooming in when a field is focused. */
+  input[type=text], input[type=date], input[type=number], select, textarea { font-size: 16px; }
+  .chip { padding: 10px 15px; font-size: 15px; }
+  .btn.small { padding: 9px 13px; }
+  .icon { padding: 6px 10px; font-size: 22px; }
+  .swatch { width: 32px; height: 32px; }
+  table.grid select, table.grid input { padding: 8px 6px; }
 }
 @media print {
   body { background: #fff; }
