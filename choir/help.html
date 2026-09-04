@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>User Manual – Choir Programme Planner</title>
-<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <style>
   :root { --ink: #1f2937; --muted: #6b7280; --line: #d1d5db; --accent: #0070c0; --bg: #f3f4f6; }
   * { box-sizing: border-box; }
@@ -33,7 +33,7 @@
 </head>
 <body>
 <header>
-  <img src="icons/icon.svg" alt="">
+  <img src="icons/icon-192.png" alt="">
   <h1>Choir Programme Planner – User Manual</h1>
   <a href="index.html">Open the app</a>
 </header>
@@ -76,14 +76,18 @@
   <ol>
     <li>Open the app and, on a phone, use <b>Add to Home Screen</b> so it opens like an app.</li>
     <li>In the <b>Files</b> tab, fill in the defaults – your congregation, your name and the
-      organist – so every new service starts with them.</li>
-    <li>At the top of the screen, set the congregation, the date and the time the service
-      begins. The date appears on the programme; the time is what the before-service
-      running order counts back from.</li>
+      organist – so every new service starts with them, and set the time a service usually
+      starts on each day. It comes set to 9:00 on a Sunday and 19:30 on a Wednesday.</li>
+    <li>At the top of the screen, set the congregation and the date. The time fills itself
+      in from the day the date falls on, and follows it if you move the service to another
+      day – until you type a time yourself, after which it is left alone. The date appears
+      on the programme; the time is what the before-service running order counts back
+      from.</li>
     <li>Work through the tabs and save or print the sheets you need.</li>
   </ol>
-  <div class="tip">Everything saves itself as you type. <b>New</b> beside the service
-    dropdown starts a fresh service; the old ones stay in the <b>Files</b> tab.</div>
+  <div class="tip">Everything saves itself as you type. <b>New programme</b> at the top of
+    the screen starts a fresh one from your defaults – every hymn, time and note cleared –
+    and the one you were on is kept in the <b>Files</b> tab, so nothing is lost.</div>
 </section>
 
 <section id="lookup">
@@ -182,6 +186,23 @@
     accompaniment, add a comment, and tag the points of the service and the seasons it
     suits. <b>Use this hymn in the programme</b> drops it into the first section of the
     current programme.</p>
+  <h3>Your own ratings</h3>
+  <p>Easy, Practice, Tricky, Difficult, New and Unknown were how one choir at Phumolong
+    read its hymns. Your choir is not that choir, so the <b>Ratings</b> button at the top
+    of this tab opens the list and lets you make it yours:</p>
+  <ul>
+    <li><b>Rename</b> a rating and every hymn carrying it is re-labelled at once – the
+      1&nbsp;317 entries keep their rating, it simply reads differently.</li>
+    <li><b>Minutes</b> is what a piece with that rating is given when it goes into a
+      practice. Set it to what your choir actually needs.</li>
+    <li><b>Colour</b> is the colour of its badge through the whole app.</li>
+    <li><b>Add a rating</b> for a category of your own, and <b>×</b> removes one. The
+      count beside each says how many hymns use it; hymns still carrying a removed
+      rating show its letter until you re-rate them.</li>
+    <li><b>Back to the workbook’s ratings</b> restores the original six.</li>
+  </ul>
+  <div class="tip">Ratings travel in the backup file, so a conductor can hand their whole
+    way of working to the next one.</div>
   <div class="tip">Your changes are kept separately from the index that came with the app,
     so <b>Back to the workbook</b> always restores the original line.</div>
   <h3>What the tags mean</h3>
@@ -214,13 +235,20 @@
 
 <section id="files">
   <h2>10. Services and backups</h2>
+  <p>The <b>Version</b> line at the foot of this tab says which build of the app you are
+    running. If something you were told is fixed still looks wrong, check it: an old copy
+    may have been kept by the browser, and a reload will replace it.</p>
   <p>Every service you plan is kept. The dropdown at the top switches between them, and
     the <b>Files</b> tab can open, duplicate or delete one. <b>Duplicate</b> is the quickest
     way to plan next Sunday: copy the last one and change the hymns.</p>
+  <p><b>Defaults for new services</b> fills in the congregation, conductor and organist on
+    every service you start. <b>When a service starts</b> holds the usual time for each day
+    of the week – 9:00 on a Sunday and 19:30 on a Wednesday to begin with. Change them to
+    your own, and leave a day blank if your congregation holds no service on it.</p>
   <p>Everything lives in this browser only. <b>Export backup</b> writes one file with every
-    service, every practice and your own changes to the index; <b>Import backup</b> reads it
-    back on another phone or computer. Clearing the browser's site data erases the lot, so
-    keep a backup.</p>
+    service, every practice, your ratings, your service times and your own changes to the
+    index; <b>Import backup</b> reads it back on another phone or computer. Clearing the
+    browser's site data erases the lot, so keep a backup.</p>
 </section>
 
 <footer>Choir Programme Planner – New Apostolic Church</footer>

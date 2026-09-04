@@ -38,7 +38,11 @@ unchanged: 422 from the hymn book, 580 English (`E 1`–`E 580`) and 315 Afrikaa
 (`A 1`–`A 315`). Each record keeps the sheet's own columns:
 
 - **Ability** — Easy, Practice, Tricky, Difficult, New, Unknown. The practice planner
-  turns this into a suggested rehearsal time (5, 10, 15, 20, 20, 15 minutes).
+  turns this into a suggested rehearsal time (5, 10, 15, 20, 20, 15 minutes). These six
+  were one choir's reading of its own hymns, so they are only the starting point: the
+  Ratings button in the Hymns tab renames, recolours, retimes, adds and removes them.
+  A hymn record stores the one-letter code, which never changes, so renaming a rating
+  re-labels every hymn carrying it without touching the index.
 - **Organ** — whether the hymn has organ accompaniment.
 - **Comment** — *Alto Solo*, *Full Choir*, *New Words*, *Christmas* and the rest.
 - **Service points** — the Bs, At, Cu, COM, As and Departed columns, read as before
@@ -70,11 +74,17 @@ covers, so the conductor can see at a glance what is still unrehearsed.
   form and practices
 - `src/pdf.js` — the four printed sheets
 - `src/app.js` — state, storage and the user interface
-- `icons/icon.svg` — the app icon; the PNGs are rendered from it
+- `icons/app-icon.png`, `icons/nac-emblem.png` — the artwork as supplied; the icon set
+  and `emblem-print.png` are derived from them
 - `vendor/jspdf.umd.min.js` — jsPDF 2.5.2 (MIT)
 
 ## Storage
 
 Everything is kept in `localStorage` under `nac-choir-planner:v1`: the services, their
-practices, the defaults for new services and any changes to the index. Export/Import
-backup in the Files tab moves the lot between devices.
+practices, the defaults for new services, the ability ratings and any changes to the
+index. Export/Import backup in the Files tab moves the lot between devices.
+
+A service takes its start time from the day it falls on — 9:00 on a Sunday and 19:30 on a
+Wednesday out of the box, editable per day in the Files tab — and follows the day if the
+date moves, until a time is typed by hand. That time is what the before-service running
+order counts back from.

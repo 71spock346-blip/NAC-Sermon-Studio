@@ -21,8 +21,8 @@
 
   // --------------------------------------------------------------- drawing
   function Pen(doc) { this.doc = doc; }
-  Pen.prototype.font = function (size, bold, color) {
-    this.doc.setFont('helvetica', bold ? 'bold' : 'normal');
+  Pen.prototype.font = function (size, bold, color, italic) {
+    this.doc.setFont('helvetica', bold ? (italic ? 'bolditalic' : 'bold') : (italic ? 'italic' : 'normal'));
     this.doc.setFontSize(size);
     var c = color || INK;
     this.doc.setTextColor(c[0], c[1], c[2]);
@@ -50,11 +50,11 @@
     if (!s) return this;
     o = o || {};
     var size = o.size || 10, min = o.min || Math.max(6, size - 2.5);
-    this.font(size, o.bold, o.color);
+    this.font(size, o.bold, o.color, o.italic);
     if (o.width) {
       while (this.doc.getTextWidth(s) > o.width && size > min) {
         size -= 0.25;
-        this.font(size, o.bold, o.color);
+        this.font(size, o.bold, o.color, o.italic);
       }
       if (this.doc.getTextWidth(s) > o.width) {
         while (s.length > 1 && this.doc.getTextWidth(s + '…') > o.width) s = s.slice(0, -1);
@@ -65,6 +65,24 @@
     if (o.align === 'center') this.doc.text(s, x, ty, { align: 'center' });
     else if (o.align === 'right') this.doc.text(s, x, ty, { align: 'right' });
     else this.doc.text(s, x, ty);
+    return this;
+  };
+  // Text in a narrow cell: one line if it fits, otherwise two smaller ones,
+  // centred on the row. Used for a hymn's note, which is usually "v 2" but is
+  // sometimes a sentence.
+  Pen.prototype.fit = function (s, x, y, w, h, o) {
+    s = String(s == null ? '' : s);
+    if (!s) return this;
+    o = o || {};
+    var size = o.size || 9;
+    this.font(size, o.bold, o.color, o.italic);
+    if (this.doc.getTextWidth(s) <= w) return this.text(s, x, y, h, o);
+    var small = Math.max(5.5, size - 1.5);
+    this.font(small, o.bold, o.color, o.italic);
+    var lines = this.doc.splitTextToSize(s, w).slice(0, 2);
+    var lead = small * PT * 1.2;
+    var top = y + h / 2 - (lines.length * lead) / 2 + small * PT * 0.9;
+    for (var i = 0; i < lines.length; i++) this.doc.text(lines[i], x, top + i * lead);
     return this;
   };
   Pen.prototype.wrap = function (s, x, y, width, o) {
@@ -78,47 +96,27 @@
   };
 
   /*
-   * The church emblem at the head of the music programme: the cross standing in
-   * the water, with the rays behind it.
+   * The church emblem at the head of the music programme. It is the artwork on
+   * the page, and nothing else: a programme waits for the image rather than
+   * falling back to something that only resembles it, because a wrong emblem
+   * printed without a word is worse than a moment's wait.
    */
-  function emblem(doc, cx, top, size) {
-    var s = size, x0 = cx - s / 2, y0 = top, i, a, r;
-    var P = function (ux, uy) { return [x0 + ux * s, y0 + uy * s]; };
-    doc.setDrawColor(91, 155, 213);
-    doc.setFillColor(255, 255, 255);
-
-    // rays fanning out from behind the foot of the cross
-    doc.setLineWidth(s * 0.008);
-    var ox = x0 + 0.5 * s, oy = y0 + 0.60 * s;
-    for (i = 0; i < 6; i++) {
-      a = (-52 + i * 17) * Math.PI / 180;
-      for (var side = -1; side <= 1; side += 2) {
-        var dx = Math.cos(a) * side, dy = Math.sin(a);
-        doc.line(ox + dx * s * 0.10, oy + dy * s * 0.10, ox + dx * s * 0.35, oy + dy * s * 0.35);
-      }
-    }
-
-    // the cross, outlined
-    var a2 = 0.052, b = 0.20, t1 = 0.175, t2 = 0.275, tp = 0.03, bt = 0.77, c = 0.5;
-    var pts = [[c - a2, tp], [c + a2, tp], [c + a2, t1], [c + b, t1], [c + b, t2], [c + a2, t2],
-               [c + a2, bt], [c - a2, bt], [c - a2, t2], [c - b, t2], [c - b, t1], [c - a2, t1]];
-    var start = P(pts[0][0], pts[0][1]), rel = [];
-    for (i = 1; i < pts.length; i++) {
-      rel.push([(pts[i][0] - pts[i - 1][0]) * s, (pts[i][1] - pts[i - 1][1]) * s]);
-    }
-    rel.push([(pts[0][0] - pts[pts.length - 1][0]) * s, (pts[0][1] - pts[pts.length - 1][1]) * s]);
-    doc.setLineWidth(s * 0.014);
-    doc.lines(rel, start[0], start[1], [1, 1], 'FD', true);
-
-    // the water
-    doc.setLineWidth(s * 0.035);
-    doc.setLineCap('round');
-    var bars = [[0.845, 0.40], [0.905, 0.29], [0.955, 0.17]];
-    for (i = 0; i < bars.length; i++) {
-      r = bars[i][1];
-      doc.line(x0 + (0.5 - r) * s, y0 + bars[i][0] * s, x0 + (0.5 + r) * s, y0 + bars[i][0] * s);
-    }
-    doc.setLineCap('butt');
+  var artPromise = null, art = null;
+  function loadArt() {
+    if (artPromise) return artPromise;
+    artPromise = new Promise(function (resolve) {
+      var img = document.getElementById('emblem-art');
+      if (!img) return resolve(null);
+      if (img.complete) return resolve(img.naturalWidth ? img : null);
+      img.addEventListener('load', function () { resolve(img); });
+      img.addEventListener('error', function () { resolve(null); });
+    }).then(function (img) { art = img; return img; });
+    return artPromise;
+  }
+  function drawEmblem(doc, cx, top, height) {
+    if (!art) return;
+    var w = height * art.naturalWidth / art.naturalHeight;
+    doc.addImage(art, 'PNG', cx - w / 2, top, w, height);
   }
 
   function newDoc(orientation) {
@@ -140,9 +138,14 @@
    */
   function buildProgram(service) {
     var doc = newDoc('portrait'), p = new Pen(doc);
-    var wA = ch(3.71), wB = ch(4.71), wC = ch(20.86), wD = ch(18), wE = ch(47.86);
-    var total = wA + wB + wC + wD + wE + ch(4.29);
-    var xA = (210 - total) / 2, xB = xA + wA, xC = xB + wB, xD = xC + wC, xE = xD + wD;
+    // The workbook's own columns, with one added: a hymn's note sits beside the
+    // voice that sings it, on the hymn's own line. The five keep the width the
+    // four had, so the sheet is the same width across the page.
+    var wA = ch(3.71), wB = ch(4.71);
+    var band = ch(20.86) + ch(18) + ch(47.86);
+    var wC = 36, wN = 24, wD = 22, wE = band - wC - wN - wD;
+    var total = wA + wB + wC + wN + wD + wE + ch(4.29);
+    var xA = (210 - total) / 2, xB = xA + wA, xC = xB + wB, xN = xC + wC, xD = xN + wN, xE = xD + wD;
     var right = xE + wE, boxW = right - xB;
     var pad = 1.6;
 
@@ -161,14 +164,14 @@
     var fRow = Math.min(10, 10 * Math.max(0.8, k));
 
     var y = 12;
-    emblem(doc, (xB + right) / 2, y, Math.min(hLogo, 42));
+    drawEmblem(doc, (xB + right) / 2, y, Math.min(hLogo, 42));
     y += hLogo;
 
     // congregation and date, in one band, meeting at the C/D column boundary
     p.rect(xB, y, boxW, hBand, 0.25);
-    var split = xE;
-    p.text(service.congregation, split - 3, y, hBand, { size: 13, bold: true, align: 'right', color: BLUE, width: xE - xB - 6 });
-    p.text(M.formatDate(service.date), split + 3, y, hBand, { size: 13, bold: true, color: BLUE, width: wE - 6 });
+    var split = xD;
+    p.text(service.congregation, split - 3, y, hBand, { size: 13, bold: true, align: 'right', color: BLUE, width: split - xB - 6 });
+    p.text(M.formatDate(service.date), split + 3, y, hBand, { size: 13, bold: true, color: BLUE, width: right - split - 6 });
     y += hBand + hGap;
 
     p.text('Hymn Program', (xB + right) / 2, y, hTitle, { size: 11, bold: true, align: 'center', color: BLUE });
@@ -177,23 +180,22 @@
     sections.forEach(function (s) {
       p.text(s.label, xA, y, hRow, { size: 10, bold: true, color: BLUE, width: total });
       y += hRow;
-      var rows = s.rows || [], notes = [];
+      var rows = s.rows || [];
       rows.forEach(function (r, i) {
         var rt = refAndTitle(r.ref);
         p.rect(xB, y, boxW, hRow, 0.25);
-        p.line(xC, y, xC, y + hRow, 0.25);
-        p.line(xD, y, xD, y + hRow, 0.25);
-        p.line(xE, y, xE, y + hRow, 0.25);
+        [xC, xN, xD, xE].forEach(function (x) { p.line(x, y, x, y + hRow, 0.25); });
         if (i) p.line(xB, y, right, y, 0.1);
-        var bold = /choir|orchestra|recorder|soloist/i.test(r.who || '');
+        // The congregation's own hymns are the bold ones, as the workbook had
+        // them: they are what the congregation looks for on the sheet.
+        var bold = /congregation/i.test(r.who || '');
         p.text(String(i + 1), xB + wB / 2, y, hRow, { size: fRow, bold: bold, align: 'center' });
         p.text(r.who || '', xC + pad, y, hRow, { size: fRow, bold: bold, width: wC - 2 * pad });
+        p.fit(r.note || '', xN + pad, y, wN - 2 * pad, hRow, { size: fRow - 1, italic: true });
         p.text(rt.ref, xD + pad, y, hRow, { size: fRow, bold: bold, width: wD - 2 * pad });
         p.text(rt.title, xE + pad, y, hRow, { size: fRow, bold: bold, width: wE - 2 * pad });
-        if (r.note) notes.push(r.note);
         y += hRow;
       });
-      if (notes.length) p.text(notes.join(' · '), xD + pad, y, hSpace, { size: 9, width: right - xD - pad });
       y += hSpace;
     });
 
@@ -201,11 +203,11 @@
     var fy = y;
     p.rect(xB, fy, boxW, 2 * hRow, 0.25);
     p.line(xB, fy + hRow, right, fy + hRow, 0.1);
-    p.line(xD, fy, xD, fy + 2 * hRow, 0.1);
+    p.line(xN, fy, xN, fy + 2 * hRow, 0.1);
     p.text('Choir-conductor:', xB + pad, fy, hRow, { size: 9, bold: true, width: wB + wC - 2 * pad });
-    p.text(service.conductor || '', xD + pad, fy, hRow, { size: 9, width: right - xD - 2 * pad });
+    p.text(service.conductor || '', xN + pad, fy, hRow, { size: 9, width: right - xN - 2 * pad });
     p.text('Organist:', xB + pad, fy + hRow, hRow, { size: 9, bold: true, width: wB + wC - 2 * pad });
-    p.text(service.organist || '', xD + pad, fy + hRow, hRow, { size: 9, width: right - xD - 2 * pad });
+    p.text(service.organist || '', xN + pad, fy + hRow, hRow, { size: 9, width: right - xN - 2 * pad });
 
     doc.setProperties({ title: 'Music Program ' + M.yearOf(service.date) + ' – ' + M.serviceTitle(service) });
     return doc;
@@ -557,19 +559,22 @@
   function create(kind, service, extra) {
     var d = DOCS[kind];
     if (!d) throw new Error('Unknown document: ' + kind);
-    var doc = d.build(service, extra);
-    return { blob: doc.output('blob'), name: d.file(service, extra), doc: doc, title: d.name };
+    return loadArt().then(function () {
+      var doc = d.build(service, extra);
+      return { blob: doc.output('blob'), name: d.file(service, extra), doc: doc, title: d.name };
+    });
   }
   function dataUrl(kind, service, extra) {
-    return DOCS[kind].build(service, extra).output('datauristring');
+    return loadArt().then(function () { return DOCS[kind].build(service, extra).output('datauristring'); });
   }
   function download(kind, service, extra) {
-    var r = create(kind, service, extra);
-    var url = URL.createObjectURL(r.blob), a = document.createElement('a');
-    a.href = url; a.download = r.name; a.rel = 'noopener';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-    return r.name;
+    return create(kind, service, extra).then(function (r) {
+      var url = URL.createObjectURL(r.blob), a = document.createElement('a');
+      a.href = url; a.download = r.name; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+      return r.name;
+    });
   }
   function canShareFiles() {
     try {
@@ -578,24 +583,26 @@
     } catch (e) { return false; }
   }
   function share(kind, service, extra) {
-    var r = create(kind, service, extra);
-    var file = new File([r.blob], r.name, { type: 'application/pdf' });
-    if (canShareFiles() && navigator.canShare({ files: [file] })) {
-      return navigator.share({ files: [file], title: r.title, text: M.serviceTitle(service) })
-        .then(function () { return 'shared'; })
-        .catch(function (e) {
-          if (e && e.name === 'AbortError') return 'cancelled';
-          download(kind, service, extra);
-          return 'downloaded';
-        });
-    }
-    download(kind, service, extra);
-    return Promise.resolve('downloaded');
+    return create(kind, service, extra).then(function (r) {
+      var file = new File([r.blob], r.name, { type: 'application/pdf' });
+      if (canShareFiles() && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file], title: r.title, text: M.serviceTitle(service) })
+          .then(function () { return 'shared'; })
+          .catch(function (e) {
+            if (e && e.name === 'AbortError') return 'cancelled';
+            return download(kind, service, extra).then(function () { return 'downloaded'; });
+          });
+      }
+      return download(kind, service, extra).then(function () { return 'downloaded'; });
+    });
   }
   // Printing goes through the finished PDF rather than the page, so what comes
   // out of the printer is the same sheet that gets shared.
   function print(kind, service, extra) {
-    var r = create(kind, service, extra), url = URL.createObjectURL(r.blob);
+    return create(kind, service, extra).then(function (r) { return printBlob(r); });
+  }
+  function printBlob(r) {
+    var url = URL.createObjectURL(r.blob);
     var frame = document.createElement('iframe');
     frame.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0';
     frame.src = url;
@@ -614,6 +621,6 @@
 
   global.Sheets = {
     DOCS: DOCS, create: create, dataUrl: dataUrl, download: download,
-    share: share, print: print, canShareFiles: canShareFiles, emblem: emblem
+    share: share, print: print, canShareFiles: canShareFiles, loadArt: loadArt
   };
 })(window);

@@ -6,18 +6,18 @@
 <title>Choir Programme Planner</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0070c0">
-<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Choir">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 <header class="top">
   <h1><span class="t-long">Choir Programme Planner</span><span class="t-short">Choir</span></h1>
   <span id="saved-note" class="badge" hidden>Saved</span>
   <div class="actions">
+    <button id="btn-new-programme" class="btn" type="button">New programme</button>
     <a class="btn ghost" href="help.html">Help</a>
   </div>
 </header>
@@ -25,12 +25,7 @@
 <main>
   <section class="card service-bar">
     <div class="fields four">
-      <label class="f">Service
-        <span class="pickrow">
-          <select id="service-select"></select>
-          <button id="btn-new-service" class="btn small ghost" type="button" title="Start a new service">New</button>
-        </span>
-      </label>
+      <label class="f">Service <select id="service-select"></select></label>
       <label class="f">Congregation <input id="f-congregation" type="text" placeholder="e.g. Phumolong"></label>
       <label class="f">Date <input id="f-date" type="date"></label>
       <label class="f">Service starts <input id="f-time" type="time"></label>
@@ -134,7 +129,9 @@
       <h3>Hymn index</h3>
       <div class="spacer"></div>
       <span class="muted small" id="hymn-count"></span>
+      <button id="btn-abilities" class="btn small ghost" type="button">Ratings</button>
     </div>
+    <div id="ability-editor" class="editor" hidden></div>
     <div class="row search">
       <input id="hymn-q" type="search" placeholder="Number or words from the title">
       <select id="hymn-book"></select>
@@ -148,6 +145,7 @@
   <div class="card tab" id="tab-files">
     <div class="docbar"><h3>Saved services</h3></div>
     <div id="service-list"></div>
+    <p class="muted small" id="build-stamp"></p>
     <h3 class="sub">Backup</h3>
     <p class="muted small">Everything is kept in this browser only. Export a backup to move it to
       another phone or computer, or to keep a copy.</p>
@@ -161,8 +159,12 @@
       <label class="f">Congregation <input id="s-congregation" type="text"></label>
       <label class="f">Choir conductor <input id="s-conductor" type="text"></label>
       <label class="f">Organist <input id="s-organist" type="text"></label>
-      <label class="f">Service starts <input id="s-time" type="time"></label>
     </div>
+    <h3 class="sub">When a service starts</h3>
+    <p class="muted small">The usual time on each day. A service takes the time of the day it
+      falls on, and follows it if you move the date — until you set a time yourself. Leave a
+      day blank if there is no service on it.</p>
+    <div class="fields days" id="service-times"></div>
   </div>
 </main>
 
@@ -179,11 +181,15 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script src="vendor/jspdf.umd.min.js"></script>
-<script src="src/hymns.js"></script>
-<script src="src/library.js"></script>
-<script src="src/model.js"></script>
-<script src="src/pdf.js"></script>
-<script src="src/app.js"></script>
+<!-- the church emblem for the head of the Music Program, kept off screen so it
+     is decoded and ready by the time a PDF is built -->
+<img id="emblem-art" src="icons/emblem-print.png?v=7" alt="" hidden>
+
+<script src="vendor/jspdf.umd.min.js?v=7"></script>
+<script src="src/hymns.js?v=7"></script>
+<script src="src/library.js?v=7"></script>
+<script src="src/model.js?v=7"></script>
+<script src="src/pdf.js?v=7"></script>
+<script src="src/app.js?v=7"></script>
 </body>
 </html>

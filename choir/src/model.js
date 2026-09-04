@@ -48,12 +48,28 @@
 
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  // When a service normally starts, by the day it falls on: the Sunday and
+  // midweek services a congregation holds week in, week out. A blank day has
+  // no usual time, so the app leaves that service's time alone.
+  var DEFAULT_TIMES = ['09:00', '', '', '19:30', '', '', ''];
+  var FALLBACK_TIME = '09:00';
   // The date band of the Music Program sheet is formatted "ddd dd mmm".
   function formatDate(iso, withYear) {
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
     if (!m) return iso || '';
     var d = new Date(+m[1], +m[2] - 1, +m[3]);
     return DAYS[d.getDay()] + ' ' + m[3] + ' ' + MONTHS[+m[2] - 1] + (withYear ? ' ' + m[1] : '');
+  }
+  function weekdayOf(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    return m ? new Date(+m[1], +m[2] - 1, +m[3]).getDay() : -1;
+  }
+  // The time a service on this date usually starts, or '' if that day has none.
+  function usualTime(iso, times) {
+    var d = weekdayOf(iso);
+    if (d < 0) return '';
+    return ((times || DEFAULT_TIMES)[d]) || '';
   }
   function yearOf(iso) { var m = /^(\d{4})/.exec(iso || ''); return m ? m[1] : String(new Date().getFullYear()); }
   // The date a given number of days before another, for practices leading up
@@ -98,12 +114,16 @@
   function newService(defaults) {
     defaults = defaults || {};
     var date = defaults.date || todayIso();
+    var time = usualTime(date, defaults.times) || defaults.time || FALLBACK_TIME;
     return {
       id: uid(),
       name: '',
       congregation: defaults.congregation || '',
       date: date,
-      time: defaults.time || '10:00',
+      time: time,
+      // false until the conductor types a time of their own, so that moving
+      // the service to another day can still bring that day's usual time
+      timeSet: false,
       occasion: '',
       venue: '',
       conductor: defaults.conductor || '',
@@ -119,7 +139,7 @@
         checklist: CHECKLIST.slice()
       },
       prep: {
-        event: '', date: date, venue: '', time: defaults.time || '10:00',
+        event: '', date: date, venue: '', time: time,
         coordinator: '', contact: '', invited: '',
         crew: blankCrew(CREW_ROLES),
         practices: {
@@ -199,7 +219,9 @@
   global.Model = {
     DEFAULT_SECTIONS: DEFAULT_SECTIONS, EXTRA_SECTIONS: EXTRA_SECTIONS, PERFORMERS: PERFORMERS,
     CREW_ROLES: CREW_ROLES, BS_CREW_ROLES: BS_CREW_ROLES, PREP_SLOTS: PREP_SLOTS, CHECKLIST: CHECKLIST,
+    DAY_NAMES: DAY_NAMES, DAYS: DAYS, DEFAULT_TIMES: DEFAULT_TIMES, FALLBACK_TIME: FALLBACK_TIME,
     uid: uid, clone: clone, todayIso: todayIso, formatDate: formatDate, yearOf: yearOf, beforeDate: beforeDate,
+    weekdayOf: weekdayOf, usualTime: usualTime,
     toMinutes: toMinutes, fromMinutes: fromMinutes,
     newService: newService, newSection: newSection, newRow: newRow, newBeforeItem: newBeforeItem,
     newPractice: newPractice, newPracticeItem: newPracticeItem,

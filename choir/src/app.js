@@ -7,6 +7,7 @@
 
   var H = global.Hymns, M = global.Model, S = global.Sheets;
   var STORAGE_KEY = 'nac-choir-planner:v1';
+  var BUILD = '2026-09-04g';
   var TABS = ['program', 'before', 'prep', 'practices', 'hymns', 'files'];
 
   // ---------------------------------------------------------------- helpers
@@ -59,8 +60,36 @@
   // ------------------------------------------------------------------ state
   var state, ui = { tab: 'program', picker: null, hymnOpen: null };
 
+  // Everything the hymn library reads out of the saved state: the conductor's
+  // edits to the index and their own set of ability ratings.
+  function adopt() {
+    state.settings = state.settings || {};
+    if (!state.settings.abilities || !state.settings.abilities.length) {
+      state.settings.abilities = H.defaultAbilities();
+    }
+    if (!state.settings.times || state.settings.times.length !== 7) {
+      // an older store kept one time for every day; it becomes the usual time
+      // for the days that have none
+      var one = state.settings.time;
+      state.settings.times = M.DEFAULT_TIMES.map(function (t, i) {
+        return t || (one && i !== 0 && i !== 3 ? one : t);
+      });
+      delete state.settings.time;
+    }
+    state.hymnEdits = state.hymnEdits || {};
+    H.setAbilities(state.settings.abilities);
+    H.setEdits(state.hymnEdits);
+  }
+
   function blankState() {
-    return { v: 1, settings: { congregation: '', conductor: '', organist: '', time: '10:00' }, services: [], currentId: null, hymnEdits: {} };
+    return {
+      v: 1,
+      settings: {
+        congregation: '', conductor: '', organist: '',
+        times: M.DEFAULT_TIMES.slice(), abilities: H.defaultAbilities()
+      },
+      services: [], currentId: null, hymnEdits: {}
+    };
   }
   function load() {
     try {
@@ -112,9 +141,7 @@
       var h = H.get(input.value);
       titleEl.textContent = h ? h.title : (input.value.trim() ? 'not in the index' : '');
       titleEl.className = 'hymn-title' + (h ? '' : (input.value.trim() ? ' warn' : ''));
-      if (h && h.ability) {
-        titleEl.appendChild(el('span', { class: 'pill a-' + h.ability, text: H.abilityName(h.ability) }));
-      }
+      if (h && h.ability) titleEl.appendChild(abilityPill(h.ability));
       if (h && h.comment) titleEl.appendChild(el('span', { class: 'pill note', text: h.comment }));
     }
     input.addEventListener('input', function () { set(input.value); refresh(); save(); });
@@ -193,9 +220,19 @@
       box.appendChild(el('p', { class: 'muted small', text: list.length + ' matches; the first 200 are shown.' }));
     }
   }
+  function abilityPill(code) {
+    var a = H.ability(code);
+    return el('span', {
+      class: 'pill ability' + (a.missing ? ' missing' : ''),
+      'data-code': a.code,
+      style: 'border-color:' + a.color + ';color:' + a.color,
+      title: a.missing ? 'A rating that is no longer in the list' : a.minutes + ' minutes of practice',
+      text: a.name
+    });
+  }
   function hymnPills(h) {
     var wrap = el('span', { class: 'pills' });
-    if (h.ability) wrap.appendChild(el('span', { class: 'pill a-' + h.ability, text: H.abilityName(h.ability) }));
+    if (h.ability) wrap.appendChild(abilityPill(h.ability));
     Object.keys(h.slots || {}).forEach(function (k) {
       wrap.appendChild(el('span', { class: 'pill slot', text: H.slotShort(k) + (h.slots[k] === '?' ? '?' : '') }));
     });
@@ -448,8 +485,7 @@
           }),
           el('span', { class: 'r-ref', text: H.normRef(it.ref) }),
           el('span', { class: 'grow', text: (h && h.title) || 'not in the index' }),
-          el('span', { class: 'ability' }, [h && h.ability
-            ? el('span', { class: 'pill a-' + h.ability, text: H.abilityName(h.ability) }) : null]),
+          el('span', { class: 'ability' }, [h && h.ability ? abilityPill(h.ability) : null]),
           el('input', {
             class: 'mins', type: 'number', min: '0', max: '120', value: it.minutes,
             oninput: function (e) { it.minutes = Number(e.target.value) || 0; save(); refreshTotal(); }
@@ -512,13 +548,21 @@
   }
 
   // --------------------------------------------------------- hymn index
-  function renderHymnFilters() {
+  function renderHymnFilters(force) {
     var book = $('#hymn-book'), ab = $('#hymn-ability'), slot = $('#hymn-slot'), season = $('#hymn-season');
+    if (force) {
+      // the ratings have changed, so the filter has to be built again
+      var keep = ab.value;
+      ab.innerHTML = '';
+      ab.appendChild(option('', 'Any ability'));
+      H.abilities().forEach(function (a) { ab.appendChild(option(a.code, a.name, a.code === keep)); });
+      return;
+    }
     if (book.options.length) return;
     book.appendChild(option('', 'Every book'));
     H.BOOKS.forEach(function (b) { book.appendChild(option(b.code, b.name)); });
     ab.appendChild(option('', 'Any ability'));
-    H.ABILITIES.forEach(function (a) { ab.appendChild(option(a.code, a.name)); });
+    H.abilities().forEach(function (a) { ab.appendChild(option(a.code, a.name)); });
     slot.appendChild(option('', 'Any point of the service'));
     H.SLOTS.forEach(function (s) { slot.appendChild(option(s.code, s.name)); });
     season.appendChild(option('', 'Any season'));
@@ -526,8 +570,92 @@
     [book, ab, slot, season].forEach(function (s) { s.onchange = renderHymns; });
     $('#hymn-q').oninput = renderHymns;
   }
+  /*
+   * The ratings themselves. The workbook's Easy / Practice / Tricky / Difficult
+   * / New / Unknown were how one choir at Phumolong read its hymns; another
+   * choir renames them, retimes them or keeps a different set entirely. The
+   * one-letter code behind each rating never changes, so renaming one re-labels
+   * every hymn that carries it without touching the index.
+   */
+  function renderAbilityEditor() {
+    var box = $('#ability-editor');
+    box.innerHTML = '';
+    if (box.hidden) return;
+    var counts = H.abilityCounts();
+
+    box.appendChild(el('p', { class: 'muted small' }, [
+      'How this choir rates a hymn, and how many minutes of practice each rating suggests. ',
+      'Renaming a rating re-labels every hymn that carries it.'
+    ]));
+
+    H.abilities().forEach(function (a, i) {
+      var used = counts[a.code] || 0;
+      box.appendChild(el('div', { class: 'prow' }, [
+        el('input', {
+          type: 'color', value: a.color, title: 'Colour',
+          oninput: function (e) { a.color = e.target.value; saveAbilities(false); }
+        }),
+        el('input', {
+          type: 'text', class: 'grow', value: a.name, placeholder: 'name of the rating',
+          oninput: function (e) { a.name = e.target.value; saveAbilities(false); }
+        }),
+        el('input', {
+          class: 'mins', type: 'number', min: '0', max: '120', value: a.minutes,
+          title: 'Minutes of practice this rating suggests',
+          oninput: function (e) { a.minutes = Number(e.target.value) || 0; saveAbilities(false); }
+        }),
+        el('span', { class: 'unit', text: 'min' }),
+        el('span', { class: 'muted small count', text: used + ' hymn' + (used === 1 ? '' : 's') }),
+        iconBtn('×', 'Remove this rating', function () {
+          if (used && !confirm(used + ' hymn' + (used === 1 ? ' is' : 's are') + ' rated "' + a.name +
+              '". Removing the rating leaves them showing "' + a.code +
+              '" until you re-rate them. Remove it?')) return;
+          state.settings.abilities.splice(i, 1);
+          saveAbilities(true);
+        }, 'del')
+      ]));
+    });
+
+    box.appendChild(el('div', { class: 'row' }, [
+      el('button', {
+        class: 'btn small ghost', type: 'button', text: 'Add a rating',
+        onclick: function () {
+          state.settings.abilities.push({ code: H.freeAbilityCode(), name: '', minutes: 10, color: '#6b7280' });
+          saveAbilities(true);
+        }
+      }),
+      el('button', {
+        class: 'btn small ghost', type: 'button', text: 'Back to the workbook’s ratings',
+        onclick: function () {
+          if (!confirm('Put Easy, Practice, Tricky, Difficult, New and Unknown back as they were?')) return;
+          state.settings.abilities = H.defaultAbilities();
+          saveAbilities(true);
+        }
+      })
+    ]));
+  }
+  function saveAbilities(redraw) {
+    H.setAbilities(state.settings.abilities);
+    save();
+    renderHymnFilters(true);
+    if (redraw) renderHymns();
+    else refreshAbilityLabels();
+  }
+  // Renaming or recolouring touches only the labels, so the row being typed in
+  // is left alone.
+  function refreshAbilityLabels() {
+    $$('#hymn-results .pill.ability').forEach(function (pill) {
+      var a = H.ability(pill.dataset.code);
+      if (!a) return;
+      pill.textContent = a.name;
+      pill.style.borderColor = a.color;
+      pill.style.color = a.color;
+    });
+  }
+
   function renderHymns() {
     renderHymnFilters();
+    renderAbilityEditor();
     var list = H.search($('#hymn-q').value, {
       book: $('#hymn-book').value, ability: $('#hymn-ability').value,
       slot: $('#hymn-slot').value, season: $('#hymn-season').value
@@ -597,7 +725,7 @@
     return el('div', { class: 'editor' }, [
       rounds.length ? el('p', { class: 'muted small', text: 'Marked in the workbook’s practice columns: ' + rounds.join(', ') + '.' }) : null,
       el('div', { class: 'row' }, [
-        el('label', { class: 'f inline' }, ['Ability', select(H.ABILITIES.map(function (a) { return { value: a.code, text: a.name }; }), h.ability,
+        el('label', { class: 'f inline' }, ['Ability', select(H.abilities().map(function (a) { return { value: a.code, text: a.name }; }), h.ability,
           function (v) { edit().ability = v; apply(); }, { blank: 'not rated' })]),
         el('label', { class: 'f inline' }, ['Organ', select([{ value: 'Y', text: 'Yes' }, { value: 'N', text: 'No' }], h.organ,
           function (v) { edit().organ = v; apply(); }, { blank: '—' })])
@@ -659,8 +787,19 @@
       ]));
     });
 
+    var times = $('#service-times');
+    times.innerHTML = '';
+    M.DAY_NAMES.forEach(function (day, i) {
+      times.appendChild(el('label', { class: 'f' }, [day, el('input', {
+        type: 'time', value: state.settings.times[i] || '',
+        oninput: function (e) { state.settings.times[i] = e.target.value; save(); }
+      })]));
+    });
+
+    $('#build-stamp').textContent = 'Version ' + BUILD;
+
     [['#s-congregation', 'congregation'], ['#s-conductor', 'conductor'],
-     ['#s-organist', 'organist'], ['#s-time', 'time']].forEach(function (pair) {
+     ['#s-organist', 'organist']].forEach(function (pair) {
       bindOnce($(pair[0]), function () { return state.settings[pair[1]]; }, function (v) { state.settings[pair[1]] = v; });
     });
   }
@@ -676,6 +815,19 @@
       bindOnce($(pair[0]), function () { return s[pair[1]]; }, function (v) {
         var was = s[pair[1]];
         s[pair[1]] = v;
+        // a time typed here is the conductor's own and is never overwritten
+        if (pair[1] === 'time') s.timeSet = true;
+        // moving the service to another day brings that day's usual time with
+        // it, unless a time has been set by hand
+        if (pair[1] === 'date' && !s.timeSet) {
+          var usual = M.usualTime(v, state.settings.times);
+          if (usual && usual !== s.time) {
+            var oldTime = s.time;
+            s.time = usual;
+            $('#f-time').value = usual;
+            if (!s.prep.time || s.prep.time === oldTime) s.prep.time = usual;
+          }
+        }
         // the preparation form repeats the date and time, so keep it in step
         // for as long as it has not been given one of its own
         if ((pair[1] === 'date' || pair[1] === 'time') && (!s.prep[pair[1]] || s.prep[pair[1]] === was)) {
@@ -711,18 +863,17 @@
   }
 
   function doDoc(act, kind, extra) {
-    var s = current();
-    try {
-      if (act === 'pdf') toast('Saved ' + S.download(kind, s, extra));
-      else if (act === 'print') { S.print(kind, s, extra); toast('Sending to the printer…'); }
-      else {
-        S.share(kind, s, extra).then(function (r) {
-          if (r === 'downloaded') toast('Sharing is not available here, so the PDF was downloaded.');
-        }).catch(function (e) { toast(e.message || 'The PDF could not be shared.', true); });
-      }
-    } catch (e) {
-      toast(e.message || 'The PDF could not be built.', true);
+    var s = current(), done;
+    if (act === 'pdf') {
+      done = S.download(kind, s, extra).then(function (name) { toast('Saved ' + name); });
+    } else if (act === 'print') {
+      done = S.print(kind, s, extra).then(function () { toast('Sending to the printer…'); });
+    } else {
+      done = S.share(kind, s, extra).then(function (r) {
+        if (r === 'downloaded') toast('Sharing is not available here, so the PDF was downloaded.');
+      });
     }
+    done.catch(function (e) { toast((e && e.message) || 'The PDF could not be built.', true); });
   }
 
   function exportBackup() {
@@ -741,8 +892,7 @@
         var s = JSON.parse(reader.result);
         if (!s || !s.services) throw new Error('That file is not a planner backup.');
         state = s;
-        state.hymnEdits = state.hymnEdits || {};
-        H.setEdits(state.hymnEdits);
+        adopt();
         save(true);
         renderAll();
         toast('Backup loaded: ' + state.services.length + ' service' + (state.services.length === 1 ? '' : 's') + '.');
@@ -755,8 +905,7 @@
 
   function init() {
     state = load();
-    state.hymnEdits = state.hymnEdits || {};
-    H.setEdits(state.hymnEdits);
+    adopt();
     if (!state.services.length) state.services.push(M.newService(state.settings));
 
     $$('.tabs button').forEach(function (b) {
@@ -767,13 +916,15 @@
       if (TABS.indexOf(t) >= 0) ui.tab = t;
     } catch (e) { /* fall back to the first tab */ }
 
-    $('#btn-new-service').addEventListener('click', function () {
+    function newProgramme() {
       var s = M.newService(state.settings);
       state.services.push(s);
       state.currentId = s.id;
+      ui.tab = 'program';
       save(); renderAll();
-      toast('New service started.');
-    });
+      toast('New programme started. The old one is kept in Files.');
+    }
+    $('#btn-new-programme').addEventListener('click', newProgramme);
     $('#btn-add-section').addEventListener('click', function () {
       var s = current(), v = $('#add-section').value, all = M.DEFAULT_SECTIONS.concat(M.EXTRA_SECTIONS);
       var def = v === 'custom' ? { label: 'New section', slot: '', rows: ['Congregation'] } : all[Number(v)];
@@ -800,6 +951,12 @@
       var s = current();
       s.practices.push(M.newPractice({ date: M.beforeDate(s.date, 7), start: '19:00', venue: s.venue }));
       save(); renderPractices();
+    });
+    $('#btn-abilities').addEventListener('click', function () {
+      var box = $('#ability-editor');
+      box.hidden = !box.hidden;
+      $('#btn-abilities').classList.toggle('on', !box.hidden);
+      renderAbilityEditor();
     });
     $('#btn-export').addEventListener('click', exportBackup);
     $('#btn-import').addEventListener('click', function () { $('#import-file').click(); });
