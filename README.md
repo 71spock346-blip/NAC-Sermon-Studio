@@ -1,3 +1,14 @@
+# NAC Sermon Studio
+
+Two small web apps for a New Apostolic Church congregation, deployed from one static
+site:
+
+- **Seating & Communion Planner** (this page, at the root) — who sits where and who
+  serves communion, described below.
+- **[Choir Programme Planner](choir/)** (`choir/`) — the choir conductor's hymn index,
+  service programme, before-service running order, festive service preparation form and
+  practice sheets. See [`choir/README.md`](choir/README.md).
+
 # Seating & Communion Planner
 
 A small web app for planning who sits where and who serves communion in a

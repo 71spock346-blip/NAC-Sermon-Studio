@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Choir Programme Planner</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0070c0">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Choir">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <h1><span class="t-long">Choir Programme Planner</span><span class="t-short">Choir</span></h1>
+  <span id="saved-note" class="badge" hidden>Saved</span>
+  <div class="actions">
+    <a class="btn ghost" href="help.html">Help</a>
+  </div>
+</header>
+
+<main>
+  <section class="card service-bar">
+    <div class="fields four">
+      <label class="f">Service
+        <span class="pickrow">
+          <select id="service-select"></select>
+          <button id="btn-new-service" class="btn small ghost" type="button" title="Start a new service">New</button>
+        </span>
+      </label>
+      <label class="f">Congregation <input id="f-congregation" type="text" placeholder="e.g. Phumolong"></label>
+      <label class="f">Date <input id="f-date" type="date"></label>
+      <label class="f">Service starts <input id="f-time" type="time"></label>
+      <label class="f">Occasion <input id="f-occasion" type="text" placeholder="e.g. District Apostle service"></label>
+      <label class="f">Choir conductor <input id="f-conductor" type="text"></label>
+      <label class="f">Organist <input id="f-organist" type="text"></label>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="program">Programme</button>
+    <button type="button" role="tab" data-tab="before">Before service</button>
+    <button type="button" role="tab" data-tab="prep">Preparation</button>
+    <button type="button" role="tab" data-tab="practices">Practices</button>
+    <button type="button" role="tab" data-tab="hymns">Hymns</button>
+    <button type="button" role="tab" data-tab="files">Files</button>
+  </nav>
+
+  <div class="card tab" id="tab-program">
+    <div class="docbar" data-doc="program">
+      <h3>Music Program</h3>
+      <div class="spacer"></div>
+      <button class="btn small" type="button" data-act="pdf">Save PDF</button>
+      <button class="btn small ghost" type="button" data-act="share" hidden>Share</button>
+      <button class="btn small ghost" type="button" data-act="print">Print</button>
+    </div>
+    <p class="muted small">The hymn programme for the divine service. Type a number such as <b>104</b>,
+      <b>E 104</b> or <b>A 12</b>, or tap <b>Find</b> to search the hymn index by title.</p>
+    <div id="program-sections"></div>
+    <div class="row">
+      <select id="add-section"></select>
+      <button id="btn-add-section" class="btn small ghost" type="button">Add section</button>
+    </div>
+  </div>
+
+  <div class="card tab" id="tab-before">
+    <div class="docbar" data-doc="before">
+      <h3>Before service</h3>
+      <div class="spacer"></div>
+      <button class="btn small" type="button" data-act="pdf">Save PDF</button>
+      <button class="btn small ghost" type="button" data-act="share" hidden>Share</button>
+      <button class="btn small ghost" type="button" data-act="print">Print</button>
+    </div>
+    <label class="f">Heading <input id="bs-title" type="text" placeholder="DA service at … – … 20…"></label>
+    <p class="muted small" id="bs-summary"></p>
+    <div id="before-items"></div>
+    <div class="row">
+      <button id="btn-add-before" class="btn small ghost" type="button">Add item</button>
+      <label class="f inline">Closing silence (min) <input id="bs-silence" type="number" min="0" max="30" step="1"></label>
+    </div>
+    <h3 class="sub">After service (exit)</h3>
+    <div id="before-exit"></div>
+    <div class="row"><button id="btn-add-exit" class="btn small ghost" type="button">Add exit item</button></div>
+    <h3 class="sub">On duty</h3>
+    <div id="before-crew" class="crew"></div>
+    <h3 class="sub">Checklist</h3>
+    <div id="before-checklist"></div>
+    <div class="row"><button id="btn-add-check" class="btn small ghost" type="button">Add line</button></div>
+  </div>
+
+  <div class="card tab" id="tab-prep">
+    <div class="docbar" data-doc="prep">
+      <h3>Festive Divine Service Preparation</h3>
+      <div class="spacer"></div>
+      <button class="btn small" type="button" data-act="pdf">Save PDF</button>
+      <button class="btn small ghost" type="button" data-act="share" hidden>Share</button>
+      <button class="btn small ghost" type="button" data-act="print">Print</button>
+    </div>
+    <div class="fields three">
+      <label class="f">Event <input id="p-event" type="text"></label>
+      <label class="f">Date <input id="p-date" type="date"></label>
+      <label class="f">Venue <input id="p-venue" type="text"></label>
+      <label class="f">Time <input id="p-time" type="time"></label>
+      <label class="f">Project coordinator <input id="p-coordinator" type="text"></label>
+      <label class="f">Contact no. <input id="p-contact" type="text"></label>
+      <label class="f">Invited <input id="p-invited" type="text"></label>
+    </div>
+    <h3 class="sub">Main and back-up</h3>
+    <div id="prep-crew" class="crew"></div>
+    <h3 class="sub">Practices</h3>
+    <div id="prep-practices"></div>
+    <h3 class="sub">Choir programme</h3>
+    <div id="prep-choir"></div>
+    <div class="row"><button id="btn-add-prep-choir" class="btn small ghost" type="button">Add line</button></div>
+    <div id="prep-lists"></div>
+  </div>
+
+  <div class="card tab" id="tab-practices">
+    <div class="docbar">
+      <h3>Choir practices</h3>
+      <div class="spacer"></div>
+      <button id="btn-add-practice" class="btn small" type="button">New practice</button>
+    </div>
+    <p class="muted small">Plan a practice from the pieces the service needs. Minutes start from the
+      ability rating in the hymn index and can be changed.</p>
+    <div id="practice-list"></div>
+  </div>
+
+  <div class="card tab" id="tab-hymns">
+    <div class="docbar">
+      <h3>Hymn index</h3>
+      <div class="spacer"></div>
+      <span class="muted small" id="hymn-count"></span>
+    </div>
+    <div class="row search">
+      <input id="hymn-q" type="search" placeholder="Number or words from the title">
+      <select id="hymn-book"></select>
+      <select id="hymn-ability"></select>
+      <select id="hymn-slot"></select>
+      <select id="hymn-season"></select>
+    </div>
+    <div id="hymn-results" class="results"></div>
+  </div>
+
+  <div class="card tab" id="tab-files">
+    <div class="docbar"><h3>Saved services</h3></div>
+    <div id="service-list"></div>
+    <h3 class="sub">Backup</h3>
+    <p class="muted small">Everything is kept in this browser only. Export a backup to move it to
+      another phone or computer, or to keep a copy.</p>
+    <div class="row">
+      <button id="btn-export" class="btn small ghost" type="button">Export backup</button>
+      <button id="btn-import" class="btn small ghost" type="button">Import backup</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+    </div>
+    <h3 class="sub">Defaults for new services</h3>
+    <div class="fields three">
+      <label class="f">Congregation <input id="s-congregation" type="text"></label>
+      <label class="f">Choir conductor <input id="s-conductor" type="text"></label>
+      <label class="f">Organist <input id="s-organist" type="text"></label>
+      <label class="f">Service starts <input id="s-time" type="time"></label>
+    </div>
+  </div>
+</main>
+
+<div id="picker" class="overlay" hidden>
+  <div class="picker-card" role="dialog" aria-modal="true" aria-label="Find a hymn">
+    <div class="picker-head">
+      <input id="picker-q" type="search" placeholder="Number or words from the title" autocomplete="off">
+      <button id="picker-close" class="btn small ghost" type="button">Close</button>
+    </div>
+    <div class="row chips" id="picker-chips"></div>
+    <div id="picker-results" class="results"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="../vendor/jspdf.umd.min.js"></script>
+<script src="src/hymns.js"></script>
+<script src="src/library.js"></script>
+<script src="src/model.js"></script>
+<script src="src/pdf.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
