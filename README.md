@@ -1,3 +1,18 @@
+# NAC Sermon Studio
+
+Two small web apps for a New Apostolic Church congregation, deployed from one static
+site:
+
+- **Seating & Communion Planner** — who sits where and who serves communion, described
+  below. Built from the repository root, live at https://nac-seating-planner.vercel.app.
+- **[Choir Programme Planner](choir/)** — the choir conductor's hymn index, service
+  programme, before-service running order, festive service preparation form and practice
+  sheets. Built from `choir/`, live at https://nac-choir-planner.vercel.app. See
+  [`choir/README.md`](choir/README.md).
+
+Each app is its own Vercel project on this one repository, so a push to the production
+branch redeploys both.
+
 # Seating & Communion Planner
 
 A small web app for planning who sits where and who serves communion in a

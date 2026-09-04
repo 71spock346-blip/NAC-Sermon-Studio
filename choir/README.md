@@ -1,0 +1,103 @@
+# Choir Programme Planner
+
+The conductor's *Choir Programme* workbook as a web app: the same hymn index and the
+same printed sheets, on a phone instead of in Excel.
+
+Live at https://nac-choir-planner.vercel.app (the `nac-choir-planner` Vercel project,
+which builds `choir/` as its root directory and redeploys on every push to the production
+branch).
+
+It is a static site — no build step, no server, no login. It lives in `choir/` of this
+repository and is self-contained, so it deploys on its own, independently of the seating
+planner at the repository root. On a phone, open the link and use "Add to Home Screen".
+The user manual is at https://nac-choir-planner.vercel.app/help.html (also the Help
+button in the app).
+
+## What it produces
+
+| Sheet | From the workbook tab | Paper |
+| --- | --- | --- |
+| Music Program | `Music Program 2022` | A4 portrait |
+| Before service | `Before service` | A4 landscape |
+| Festive Divine Service Preparation | `Preparation` | A4 landscape |
+| Choir practice sheet | *new* | A4 portrait |
+
+Each is drawn straight into a PDF with jsPDF, in millimetres, following the layout of the
+sheet it comes from: the emblem, the congregation and date band, the blue section
+headings and the boxed hymn rows of the Music Program are the sheet's own geometry, taken
+from its column widths (an Excel column of *w* characters is 7*w* + 5 pixels).
+
+Every sheet can be saved as a PDF, shared (the share sheet on a phone, so a programme can
+go to the choir on WhatsApp) or printed. Printing goes through the finished PDF rather
+than the page, so what comes out of the printer is the sheet that would have been shared.
+
+## The hymn index
+
+`src/hymns.js` carries all 1&nbsp;317 entries of the workbook's `Hymn Index` sheet
+unchanged: 422 from the hymn book, 580 English (`E 1`–`E 580`) and 315 Afrikaans
+(`A 1`–`A 315`). Each record keeps the sheet's own columns:
+
+- **Ability** — Easy, Practice, Tricky, Difficult, New, Unknown. The practice planner
+  turns this into a suggested rehearsal time (5, 10, 15, 20, 20, 15 minutes). These six
+  were one choir's reading of its own hymns, so they are only the starting point: the
+  Ratings button in the Hymns tab renames, recolours, retimes, adds and removes them.
+  A hymn record stores the one-letter code, which never changes, so renaming a rating
+  re-labels every hymn carrying it without touching the index.
+- **Organ** — whether the hymn has organ accompaniment.
+- **Comment** — *Alto Solo*, *Full Choir*, *New Words*, *Christmas* and the rest.
+- **Service points** — the Bs, At, Cu, COM, As and Departed columns, read as before
+  service, after the text word, call-up, Holy Communion, after service and for the
+  departed. The sheet's `???` is kept as a tentative tag.
+- **Seasons** — the Christmas, Easter and Thanksgiving columns.
+- **Practice rounds** — the sheet's First/Second/Third columns, kept as they were.
+
+A hymn is named the way the sheet names it: `104`, `E 104`, `A 12`. Typing `e104` or
+`104` finds the same hymn.
+
+Edits made in the Hymns tab are stored apart from this file, so "Back to the workbook"
+always restores the original line.
+
+## Planning practices
+
+The workbook stopped at the programme. The Practices tab reads the choir, orchestra,
+recorder and soloist lines out of the programme, offers the ones a practice does not yet
+cover, and gives each the minutes its ability rating suggests. The practice sheet prints
+with the whole service programme underneath it and a tick against everything the practice
+covers, so the conductor can see at a glance what is still unrehearsed.
+
+## Files
+
+- `index.html`, `styles.css`, `help.html` — the page and the manual
+- `src/hymns.js` — the hymn index, generated from the workbook
+- `src/library.js` — reference parsing, search and the conductor's edits
+- `src/model.js` — the service document: programme, before-service timing, preparation
+  form and practices
+- `src/pdf.js` — the four printed sheets
+- `src/app.js` — state, storage and the user interface
+- `icons/app-icon.png`, `icons/nac-emblem.png` — the artwork as supplied; the icon set
+  and `emblem-print.png` are derived from them
+- `vendor/jspdf.umd.min.js` — jsPDF 2.5.2 (MIT)
+
+## On a phone
+
+The tabs become a bar along the bottom, within reach of a thumb; every control is at
+least 44px, fields are 16px so a browser does not zoom when one is focused, and the hymn
+picker rises from the bottom edge as a sheet, which the back button closes rather than
+leaving the app.
+
+`sw.js` keeps the app working without a signal — the shell network-first, so an online
+visit always gets the deployed build and a stale copy can never be mistaken for a bug,
+and the library, artwork and hymn index cache-first, since they change only when their
+name does. The app also asks for persistent storage, so a browser is less likely to clear
+a conductor's services behind their back.
+
+## Storage
+
+Everything is kept in `localStorage` under `nac-choir-planner:v1`: the services, their
+practices, the defaults for new services, the ability ratings and any changes to the
+index. Export/Import backup in the Files tab moves the lot between devices.
+
+A service takes its start time from the day it falls on — 9:00 on a Sunday and 19:30 on a
+Wednesday out of the box, editable per day in the Files tab — and follows the day if the
+date moves, until a time is typed by hand. That time is what the before-service running
+order counts back from.
