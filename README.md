@@ -18,10 +18,10 @@ https://nac-seating-planner.vercel.app/help.html (also the Help button in the ap
   Hercules.
 - **Seat numbering**: every layout follows one standard. Seat 2 is the
   presiding minister (Apostle, District Apostle or Chief Apostle), on the bench
-  left of the altar in the position closest to the congregation, with seat 1
-  beside them. Along a bench the numbers count from the congregation end
-  towards the altar, and the benches fill from the one nearest the altar
-  outwards.
+  left of the altar, second from the congregation end, with seat 1 beside them
+  closest to the congregation. Along a bench the numbers count up from the
+  congregation end towards the altar, and the benches fill from the one nearest
+  the altar outwards.
 - **Seats**: tap a numbered square on the plan, then tap a minister (or type a
   name). Tap another seat to swap the two. The Seats tab shows the same
   assignments as a table.
