@@ -54,6 +54,8 @@ The Layout tab manages layouts:
   between congregations. Importing a PNG or JPG of a floor plan starts a new
   layout with the picture as a faint tracing background (edit mode only, not
   printed) so you can place blocks, seats and stations over it.
+- **Restore built-in version** appears when a stored copy is shadowing a
+  built-in layout, and puts the current built-in one back.
 - **Serving sections and colours** define the colour choices offered in the
   Roster tab and the legend on the PDF.
 
