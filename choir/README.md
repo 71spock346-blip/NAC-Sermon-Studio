@@ -74,7 +74,8 @@ covers, so the conductor can see at a glance what is still unrehearsed.
   form and practices
 - `src/pdf.js` — the four printed sheets
 - `src/app.js` — state, storage and the user interface
-- `icons/icon.svg` — the app icon; the PNGs are rendered from it
+- `icons/app-icon.png`, `icons/nac-emblem.png` — the artwork as supplied; the icon set
+  and `emblem-print.png` are derived from them
 - `vendor/jspdf.umd.min.js` — jsPDF 2.5.2 (MIT)
 
 ## Storage

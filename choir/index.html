@@ -6,9 +6,8 @@
 <title>Choir Programme Planner</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0070c0">
-<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Choir">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="styles.css">
@@ -184,6 +183,10 @@
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- the church emblem for the head of the Music Program, kept off screen so it
+     is decoded and ready by the time a PDF is built -->
+<img id="emblem-art" src="icons/emblem-print.png" alt="" hidden>
 
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="src/hymns.js"></script>

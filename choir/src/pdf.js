@@ -78,9 +78,23 @@
   };
 
   /*
-   * The church emblem at the head of the music programme: the cross standing in
-   * the water, with the rays behind it.
+   * The church emblem at the head of the music programme. The artwork is on the
+   * page as a hidden image; drawEmblem falls back to the shape below only if it
+   * has not loaded, so a programme is never printed without one.
    */
+  function emblemArt() {
+    var img = document.getElementById('emblem-art');
+    return (img && img.complete && img.naturalWidth) ? img : null;
+  }
+  function drawEmblem(doc, cx, top, height) {
+    var img = emblemArt();
+    if (img) {
+      var w = height * img.naturalWidth / img.naturalHeight;
+      doc.addImage(img, 'PNG', cx - w / 2, top, w, height);
+      return;
+    }
+    emblem(doc, cx, top, height);
+  }
   function emblem(doc, cx, top, size) {
     var s = size, x0 = cx - s / 2, y0 = top, i, a, r;
     var P = function (ux, uy) { return [x0 + ux * s, y0 + uy * s]; };
@@ -163,7 +177,7 @@
     var fRow = Math.min(10, 10 * Math.max(0.8, k));
 
     var y = 12;
-    emblem(doc, (xB + right) / 2, y, Math.min(hLogo, 42));
+    drawEmblem(doc, (xB + right) / 2, y, Math.min(hLogo, 42));
     y += hLogo;
 
     // congregation and date, in one band, meeting at the C/D column boundary
@@ -621,6 +635,6 @@
 
   global.Sheets = {
     DOCS: DOCS, create: create, dataUrl: dataUrl, download: download,
-    share: share, print: print, canShareFiles: canShareFiles, emblem: emblem
+    share: share, print: print, canShareFiles: canShareFiles, emblem: drawEmblem
   };
 })(window);
