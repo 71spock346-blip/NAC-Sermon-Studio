@@ -3,9 +3,11 @@
 The conductor's *Choir Programme* workbook as a web app: the same hymn index and the
 same printed sheets, on a phone instead of in Excel.
 
-It is a static site — no build step, no server, no login — living in `choir/` of this
-repository, so it deploys alongside the seating planner. On a phone, open it and use
-"Add to Home Screen". The user manual is at `help.html` (the Help button in the app).
+It is a static site — no build step, no server, no login. It lives in `choir/` of this
+repository and is self-contained, so Vercel can serve it as its own site with `choir` as
+the project's root directory, independently of the seating planner at the repository
+root. On a phone, open it and use "Add to Home Screen". The user manual is at `help.html`
+(the Help button in the app).
 
 ## What it produces
 
@@ -64,7 +66,8 @@ covers, so the conductor can see at a glance what is still unrehearsed.
   form and practices
 - `src/pdf.js` — the four printed sheets
 - `src/app.js` — state, storage and the user interface
-- `../vendor/jspdf.umd.min.js` — jsPDF 2.5.2 (MIT), shared with the seating planner
+- `icons/icon.svg` — the app icon; the PNGs are rendered from it
+- `vendor/jspdf.umd.min.js` — jsPDF 2.5.2 (MIT)
 
 ## Storage
 
