@@ -101,6 +101,10 @@
       { name: 'Balcony', color: '#FFD966' }
     ],
     blocks: [
+      { id: 'benchA', label: '', x: 40, y: 86, w: 60, h: 172, fill: '#DCE3EC' },
+      { id: 'benchB', label: '', x: 130, y: 86, w: 60, h: 172, fill: '#DCE3EC' },
+      { id: 'benchC', label: '', x: 220, y: 86, w: 60, h: 172, fill: '#DCE3EC' },
+      { id: 'benchD', label: '', x: 830, y: 86, w: 60, h: 172, fill: '#DCE3EC' },
       { id: 'piano', label: 'PIANO', x: 905, y: 112, w: 150, h: 88, fill: '#FFFFFF', fontSize: 24 },
       { id: 'organ', label: 'ORGAN', x: 905, y: 216, w: 150, h: 46, fill: '#FFFFFF', fontSize: 22 },
       { id: 'left', label: 'LEFT SECTION', x: 40, y: 330, w: 470, h: 190, fill: '#A9D18E', fontSize: 26 },
@@ -111,10 +115,10 @@
     markers: [],
     seats: [
       { id: 'AP', x: 512, y: 14, w: 86, h: 38 },
-      { id: '7', x: 40, y: 96, w: 44, h: 36 }, { id: '8', x: 40, y: 140, w: 44, h: 36 }, { id: '9', x: 40, y: 184, w: 44, h: 36 },
-      { id: '5', x: 130, y: 96, w: 44, h: 36 }, { id: '6', x: 130, y: 184, w: 44, h: 36 },
-      { id: '1', x: 220, y: 96, w: 44, h: 36 }, { id: '3', x: 220, y: 184, w: 44, h: 36 },
-      { id: '2', x: 830, y: 96, w: 44, h: 36 }, { id: '4', x: 830, y: 184, w: 44, h: 36 }
+      { id: '7', x: 48, y: 94, w: 44, h: 36 }, { id: '8', x: 48, y: 134, w: 44, h: 36 }, { id: '9', x: 48, y: 174, w: 44, h: 36 }, { id: '10', x: 48, y: 214, w: 44, h: 36, quiet: true },
+      { id: '5', x: 138, y: 94, w: 44, h: 36 }, { id: '6', x: 138, y: 134, w: 44, h: 36 }, { id: '11', x: 138, y: 174, w: 44, h: 36, quiet: true }, { id: '12', x: 138, y: 214, w: 44, h: 36, quiet: true },
+      { id: '1', x: 228, y: 94, w: 44, h: 36 }, { id: '3', x: 228, y: 134, w: 44, h: 36 }, { id: '13', x: 228, y: 174, w: 44, h: 36, quiet: true }, { id: '14', x: 228, y: 214, w: 44, h: 36, quiet: true },
+      { id: '2', x: 838, y: 94, w: 44, h: 36 }, { id: '4', x: 838, y: 134, w: 44, h: 36 }, { id: '15', x: 838, y: 174, w: 44, h: 36, quiet: true }, { id: '16', x: 838, y: 214, w: 44, h: 36, quiet: true }
     ],
     stationGroups: [
       { id: 'left', label: 'Left', cx: 275, cy: 296, dx: 47, dy: 0, rot: 0, defaults: ['3', '5', ''] },
