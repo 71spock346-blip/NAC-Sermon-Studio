@@ -12,9 +12,10 @@ https://nac-seating-planner.vercel.app/help.html (also the Help button in the ap
 
 ## Using it
 
-- **Congregation**: pick the layout at the top. Gezina and Sinoville are built
-  in; other congregations are added in the Layout tab. Sinoville's sections
-  are Left, Right and Foyer, with serving stations in the foyer too.
+- **Congregation**: pick the layout at the top. Gezina, Sinoville and Hercules
+  are built in; other congregations are added in the Layout tab. Each layout
+  defines its own serving sections, for example Left, Right and Balcony at
+  Hercules.
 - **Seats**: tap a numbered square on the plan, then tap a minister (or type a
   name). Tap another seat to swap the two. The Seats tab shows the same
   assignments as a table.

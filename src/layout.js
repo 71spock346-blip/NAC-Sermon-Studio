@@ -93,7 +93,38 @@
     ],
     cups: { left: 0, right: 0 }
   };
-  var BUILTIN = [GEZINA, SINOVILLE];
+  var HERCULES = {
+    id: 'hercules', name: 'Hercules', builtin: true,
+    sections: [
+      { name: 'Left', color: '#A9D18E' },
+      { name: 'Right', color: '#9DC3E6' },
+      { name: 'Balcony', color: '#FFD966' }
+    ],
+    blocks: [
+      { id: 'piano', label: 'PIANO', x: 905, y: 112, w: 150, h: 88, fill: '#FFFFFF', fontSize: 24 },
+      { id: 'organ', label: 'ORGAN', x: 905, y: 216, w: 150, h: 46, fill: '#FFFFFF', fontSize: 22 },
+      { id: 'left', label: 'LEFT SECTION', x: 40, y: 330, w: 470, h: 190, fill: '#A9D18E', fontSize: 26 },
+      { id: 'right', label: 'RIGHT SECTION', x: 590, y: 330, w: 470, h: 190, fill: '#9DC3E6', fontSize: 26 },
+      { id: 'balcony', label: 'BALCONY', x: 40, y: 600, w: 1020, h: 175, fill: '#FFD966', fontSize: 26, labelDy: 30 }
+    ],
+    altar: { x: 395, y: 78, w: 320, h: 130, inner: { x: 470, y: 102, w: 170, h: 66 }, label: 'ALTAR', fill: '#B1510F' },
+    markers: [],
+    seats: [
+      { id: 'AP', x: 512, y: 14, w: 86, h: 38 },
+      { id: '7', x: 40, y: 96, w: 44, h: 36 }, { id: '8', x: 40, y: 140, w: 44, h: 36 }, { id: '9', x: 40, y: 184, w: 44, h: 36 },
+      { id: '5', x: 130, y: 96, w: 44, h: 36 }, { id: '6', x: 130, y: 184, w: 44, h: 36 },
+      { id: '1', x: 220, y: 96, w: 44, h: 36 }, { id: '3', x: 220, y: 184, w: 44, h: 36 },
+      { id: '2', x: 830, y: 96, w: 44, h: 36 }, { id: '4', x: 830, y: 184, w: 44, h: 36 }
+    ],
+    stationGroups: [
+      { id: 'left', label: 'Left', cx: 275, cy: 296, dx: 47, dy: 0, rot: 0, defaults: ['3', '5', ''] },
+      { id: 'right', label: 'Right', cx: 825, cy: 296, dx: 47, dy: 0, rot: 0, defaults: ['2', '4', ''] },
+      { id: 'balcony', label: 'Balcony', cx: 550, cy: 636, dx: 47, dy: 0, rot: 0, defaults: ['', '', ''] }
+    ],
+    cups: { left: 2, right: 2 }
+  };
+
+  var BUILTIN = [GEZINA, SINOVILLE, HERCULES];
 
   var SEAT_W = 32, SEAT_H = 30, MARKER = 30, STATION = 34, MAX_STATIONS = 6, MAX_CUPS = 8;
 
