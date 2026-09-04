@@ -7,7 +7,7 @@
 
   var H = global.Hymns, M = global.Model, S = global.Sheets;
   var STORAGE_KEY = 'nac-choir-planner:v1';
-  var BUILD = '2026-09-04h';
+  var BUILD = '2026-09-04i';
   var TABS = ['program', 'before', 'prep', 'practices', 'hymns', 'files'];
 
   // ---------------------------------------------------------------- helpers
@@ -169,12 +169,24 @@
     ui.picker = { slot: slot || '', book: '', onPick: onPick };
     $('#picker').hidden = false;
     $('#picker-q').value = '';
+    // a history entry, so the back button on a phone closes the picker rather
+    // than leaving the app
+    try {
+      history.pushState({ choirPicker: true }, '');
+      ui.pickerHistory = true;
+    } catch (e) { ui.pickerHistory = false; }
     renderPicker();
     setTimeout(function () { $('#picker-q').focus(); }, 30);
   }
-  function closePicker() {
+  function closePicker(fromBack) {
+    if (!ui.picker) return;
     ui.picker = null;
     $('#picker').hidden = true;
+    if (ui.pickerHistory && !fromBack) {
+      ui.pickerHistory = false;
+      try { history.back(); } catch (e) { /* nothing to go back to */ }
+    }
+    ui.pickerHistory = false;
   }
   function renderPicker() {
     if (!ui.picker) return;
@@ -796,7 +808,7 @@
       })]));
     });
 
-    $('#build-stamp').textContent = 'Version ' + BUILD;
+    $('#build-stamp').textContent = 'Version ' + BUILD + (ui.offlineReady ? ' · works offline' : '');
 
     [['#s-congregation', 'congregation'], ['#s-conductor', 'conductor'],
      ['#s-organist', 'organist']].forEach(function (pair) {
@@ -973,13 +985,34 @@
       });
     });
 
-    $('#picker-close').addEventListener('click', closePicker);
+    $('#picker-close').addEventListener('click', function () { closePicker(); });
     $('#picker').addEventListener('click', function (e) { if (e.target.id === 'picker') closePicker(); });
     $('#picker-q').addEventListener('input', renderPicker);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ui.picker) closePicker(); });
+    window.addEventListener('popstate', function () { if (ui.picker) closePicker(true); });
     window.addEventListener('beforeunload', function () { save(true); });
 
     renderAll();
+    registerWorker();
+  }
+
+  /*
+   * The app has to open in a church hall with no signal, and every hymn it
+   * needs is already on the device.
+   */
+  function registerWorker() {
+    if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+    navigator.serviceWorker.register('sw.js').then(function () {
+      ui.offlineReady = true;
+      var stamp = $('#build-stamp');
+      if (stamp && stamp.textContent) stamp.textContent += ' · works offline';
+    }).catch(function () { /* the app still runs, it just needs the network */ });
+    // Ask the browser not to clear the services and practices behind our back.
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persisted().then(function (already) {
+        if (!already) navigator.storage.persist();
+      }).catch(function () { /* not supported here */ });
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
