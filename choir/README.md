@@ -3,11 +3,15 @@
 The conductor's *Choir Programme* workbook as a web app: the same hymn index and the
 same printed sheets, on a phone instead of in Excel.
 
+Live at https://nac-choir-planner.vercel.app (the `nac-choir-planner` Vercel project,
+which builds `choir/` as its root directory and redeploys on every push to the production
+branch).
+
 It is a static site — no build step, no server, no login. It lives in `choir/` of this
-repository and is self-contained, so Vercel can serve it as its own site with `choir` as
-the project's root directory, independently of the seating planner at the repository
-root. On a phone, open it and use "Add to Home Screen". The user manual is at `help.html`
-(the Help button in the app).
+repository and is self-contained, so it deploys on its own, independently of the seating
+planner at the repository root. On a phone, open the link and use "Add to Home Screen".
+The user manual is at https://nac-choir-planner.vercel.app/help.html (also the Help
+button in the app).
 
 ## What it produces
 
