@@ -106,11 +106,14 @@ textarea { resize: vertical; }
 .pill.season { border-color: #cdbfe8; color: #5b3fa0; }
 .pill.organ { border-color: #cbd5e1; }
 .pill.note { border-color: #f0d9a8; color: #8a5a00; }
-.pill.a-E { border-color: #a7d8a7; color: #1f6b1f; }
-.pill.a-P { border-color: #ffd98a; color: #8a5a00; }
-.pill.a-T { border-color: #ffb38a; color: #9a3d00; }
-.pill.a-D, .pill.a-N { border-color: #f0a3a3; color: #a11a1a; }
-.pill.a-U { border-color: var(--line); }
+/* an ability pill takes its colour from the rating itself, which the
+   conductor sets in the Hymns tab */
+.pill.ability.missing { font-style: italic; }
+.btn.on { background: var(--accent); color: var(--accent-ink); }
+#ability-editor { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+#ability-editor input[type=color] { flex: 0 0 auto; width: 42px; height: 30px; padding: 0 2px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+#ability-editor .count { flex: 0 0 78px; text-align: right; }
+@media (max-width: 640px) { #ability-editor .count { flex: 0 0 auto; } }
 
 .chips { gap: 5px; }
 .chip { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); cursor: pointer; }

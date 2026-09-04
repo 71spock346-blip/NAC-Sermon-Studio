@@ -5,14 +5,22 @@
 (function (global) {
   'use strict';
 
-  var ABILITIES = [
-    { code: 'E', name: 'Easy', minutes: 5 },
-    { code: 'P', name: 'Practice', minutes: 10 },
-    { code: 'T', name: 'Tricky', minutes: 15 },
-    { code: 'D', name: 'Difficult', minutes: 20 },
-    { code: 'N', name: 'New', minutes: 20 },
-    { code: 'U', name: 'Unknown', minutes: 15 }
+  /*
+   * How this choir rates a hymn. These six are the ones the Phumolong workbook
+   * used; every conductor can rename them, retime them or keep their own set,
+   * so they are only the starting point. The one-letter code is what a hymn
+   * record stores, so it stays put while the name changes around it.
+   */
+  var DEFAULT_ABILITIES = [
+    { code: 'E', name: 'Easy', minutes: 5, color: '#1f6b1f' },
+    { code: 'P', name: 'Practice', minutes: 10, color: '#8a5a00' },
+    { code: 'T', name: 'Tricky', minutes: 15, color: '#9a3d00' },
+    { code: 'D', name: 'Difficult', minutes: 20, color: '#a11a1a' },
+    { code: 'N', name: 'New', minutes: 20, color: '#5b3fa0' },
+    { code: 'U', name: 'Unknown', minutes: 15, color: '#6b7280' }
   ];
+  var CODE_POOL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  var abilityList = DEFAULT_ABILITIES.map(function (a) { return a; });
   // The service points the sheet tags hymns with, in service order.
   var SLOTS = [
     { code: 'bs', short: 'Bs', name: 'Before service' },
@@ -37,8 +45,30 @@
     for (var i = 0; i < list.length; i++) if (list[i].code === code) return list[i];
     return null;
   }
-  function abilityName(code) { var a = byCode(ABILITIES, code); return a ? a.name : ''; }
-  function abilityMinutes(code) { var a = byCode(ABILITIES, code); return a ? a.minutes : 10; }
+  function abilities() { return abilityList; }
+  function setAbilities(list) {
+    abilityList = (list && list.length) ? list : DEFAULT_ABILITIES.map(function (a) { return a; });
+  }
+  function defaultAbilities() {
+    return DEFAULT_ABILITIES.map(function (a) {
+      return { code: a.code, name: a.name, minutes: a.minutes, color: a.color };
+    });
+  }
+  // A rating a hymn still carries after its entry has been deleted is reported
+  // under its own code rather than vanishing.
+  function ability(code) {
+    if (!code) return null;
+    return byCode(abilityList, code) || { code: code, name: code, minutes: 10, color: '#6b7280', missing: true };
+  }
+  function abilityName(code) { var a = ability(code); return a ? a.name : ''; }
+  function abilityMinutes(code) { var a = ability(code); return a ? a.minutes : 10; }
+  function abilityColor(code) { var a = ability(code); return a ? a.color : '#6b7280'; }
+  function freeAbilityCode() {
+    for (var i = 0; i < CODE_POOL.length; i++) {
+      if (!byCode(abilityList, CODE_POOL.charAt(i))) return CODE_POOL.charAt(i);
+    }
+    return 'z' + abilityList.length;
+  }
   function slotName(code) { var s = byCode(SLOTS, code); return s ? s.name : code; }
   function slotShort(code) { var s = byCode(SLOTS, code); return s ? s.short : code; }
   function bookName(code) { var b = byCode(BOOKS, code); return b ? b.name : code; }
@@ -171,6 +201,15 @@
     return out.map(function (r) { return r.h; });
   }
 
+  // How many hymns carry each rating, the conductor's own edits included.
+  function abilityCounts() {
+    var counts = {};
+    all().forEach(function (h) {
+      if (h.ability) counts[h.ability] = (counts[h.ability] || 0) + 1;
+    });
+    return counts;
+  }
+
   function label(ref) {
     var r = normRef(ref);
     if (!r) return '';
@@ -179,7 +218,10 @@
   }
 
   global.Hymns = {
-    ABILITIES: ABILITIES, SLOTS: SLOTS, SEASONS: SEASONS, BOOKS: BOOKS,
+    SLOTS: SLOTS, SEASONS: SEASONS, BOOKS: BOOKS,
+    abilities: abilities, setAbilities: setAbilities, defaultAbilities: defaultAbilities,
+    ability: ability, abilityColor: abilityColor, freeAbilityCode: freeAbilityCode,
+    abilityCounts: abilityCounts,
     all: all, get: get, title: title, search: search, label: label,
     normRef: normRef, bookOf: bookOf, refNumber: refNumber,
     abilityName: abilityName, abilityMinutes: abilityMinutes,

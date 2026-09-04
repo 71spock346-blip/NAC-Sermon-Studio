@@ -38,7 +38,11 @@ unchanged: 422 from the hymn book, 580 English (`E 1`–`E 580`) and 315 Afrikaa
 (`A 1`–`A 315`). Each record keeps the sheet's own columns:
 
 - **Ability** — Easy, Practice, Tricky, Difficult, New, Unknown. The practice planner
-  turns this into a suggested rehearsal time (5, 10, 15, 20, 20, 15 minutes).
+  turns this into a suggested rehearsal time (5, 10, 15, 20, 20, 15 minutes). These six
+  were one choir's reading of its own hymns, so they are only the starting point: the
+  Ratings button in the Hymns tab renames, recolours, retimes, adds and removes them.
+  A hymn record stores the one-letter code, which never changes, so renaming a rating
+  re-labels every hymn carrying it without touching the index.
 - **Organ** — whether the hymn has organ accompaniment.
 - **Comment** — *Alto Solo*, *Full Choir*, *New Words*, *Christmas* and the rest.
 - **Service points** — the Bs, At, Cu, COM, As and Departed columns, read as before
