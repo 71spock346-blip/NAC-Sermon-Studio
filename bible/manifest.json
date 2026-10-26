@@ -1,0 +1,14 @@
+{
+  "name": "NAC Study Bible",
+  "short_name": "Study Bible",
+  "description": "Scripture, your own notes, the Catechism's references and a guided service preparation.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1157ab",
+  "theme_color": "#1157ab",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

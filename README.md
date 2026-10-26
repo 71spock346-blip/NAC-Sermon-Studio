@@ -1,6 +1,6 @@
 # NAC Sermon Studio
 
-Two small web apps for a New Apostolic Church congregation, deployed from one static
+Three small web apps for a New Apostolic Church congregation, deployed from one static
 site:
 
 - **Seating & Communion Planner** — who sits where and who serves communion, described
@@ -9,9 +9,14 @@ site:
   programme, before-service running order, festive service preparation form and practice
   sheets. Built from `choir/`, live at https://nac-choir-planner.vercel.app. See
   [`choir/README.md`](choir/README.md).
+- **[NAC Study Bible](bible/)** — a minister's personal study bible: Scripture in
+  several translations, notes on verses, where the Catechism refers to each verse, and
+  a guided divine service preparation with printable sermon notes and a cue card. Built
+  from `bible/`, live at https://nac-study-bible.vercel.app. See
+  [`bible/README.md`](bible/README.md).
 
 Each app is its own Vercel project on this one repository, so a push to the production
-branch redeploys both.
+branch redeploys all of them.
 
 # Seating & Communion Planner
 
