@@ -3,7 +3,7 @@
  * name and congregation, book-name language, backup, offline texts, and the
  * copyright notices the bundled texts and API.Bible ask for.
  */
-import { el, clear, toast, confirmBox, download, today } from './ui.js';
+import { el, clear, toast, confirmBox, download, today, sheet } from './ui.js';
 import { state, saveSetting, exportAll, importAll, clearCache, wipeAll } from './store.js';
 import * as Bible from './bible.js';
 import { BOOKS } from './books.js';
@@ -45,10 +45,12 @@ export function render(container) {
     howTo: [
       ['Register at ', el('a', { href: 'https://platform.youversion.com', target: '_blank', rel: 'noopener', text: 'platform.youversion.com' }), ' (free, non-commercial) and create an app; its page shows the app key.'],
       ['Paste the key below, choose the languages to look in, and tap "Check key".'],
-      ['Tick the Bibles to show in the reader. The Afrikaans Bibles are carried by YouVersion.'],
+      ['Tick the Bibles to show in the reader.'],
+      ['YouVersion only sends the text of Bibles licensed to your app. The others are marked "licence needed": tap Licence next to one to see which agreement covers it, accept it on platform.youversion.com, then check the key again.'],
     ],
     languages: true,
-    fetchList: langs => Bible.yvListBibles(langs),
+    fetchList: langs => Bible.yvCatalogue(langs),
+    licenceInfo: licenceSheet,
     note: 'Chapters from YouVersion are kept for 7 days so they open offline.',
   });
 
@@ -146,6 +148,26 @@ export function render(container) {
   );
 }
 
+/** What YouVersion says about the licence of a Bible the key may not read yet. */
+async function licenceSheet(b) {
+  const s = sheet(`Licence for ${b.abbreviation}`);
+  s.body.append(el('p', { class: 'muted small', text: 'Asking YouVersion…' }));
+  let lic = null, problem = '';
+  try { lic = await Bible.yvLicence(b.id); } catch (e) { problem = e.message; }
+  clear(s.body);
+  s.body.append(
+    el('p', { text: `${b.name} (${b.abbreviation}) is on YouVersion, but its text is not licensed to your app yet.` }),
+    lic ? el('p', {}, ['It is covered by the licence ', el('b', { text: lic.name }), ...(lic.uri ? [' (', el('a', { href: lic.uri, target: '_blank', rel: 'noopener', text: 'open the licence' }), ')'] : []), '.']) : null,
+    problem ? el('p', { class: 'muted small', text: `YouVersion gave no licence details (${problem}).` }) : null,
+    el('p', { class: 'small' }, [
+      'Sign in at ', el('a', { href: 'https://platform.youversion.com', target: '_blank', rel: 'noopener', text: 'platform.youversion.com' }),
+      ', open your app and accept the licence for this Bible. If it is not offered there, the publisher has not opened it to the Platform yet: ask at ',
+      el('a', { href: 'https://platform.youversion.com/support', target: '_blank', rel: 'noopener', text: 'platform.youversion.com/support' }),
+      '. Afterwards tap "Check key and list Bibles" again.',
+    ]),
+  );
+}
+
 /** One licensed service: key box, catalogue check, and the tick list of Bibles to show. */
 function providerSection(container, o) {
   const S = state.settings;
@@ -168,7 +190,7 @@ function providerSection(container, o) {
     const q = filter.value.trim().toLowerCase();
     const chosen = new Set((S[o.listName] || []).map(b => String(b.id)));
     const items = catalogue.filter(b => !q || (b.name + ' ' + b.abbreviation + ' ' + b.language + ' ' + (b.description || '')).toLowerCase().includes(q));
-    items.sort((a, b) => (chosen.has(String(b.id)) - chosen.has(String(a.id))) || (a.language + a.name).localeCompare(b.language + b.name));
+    items.sort((a, b) => (chosen.has(String(b.id)) - chosen.has(String(a.id))) || ((b.licensed !== false) - (a.licensed !== false)) || (a.language + a.name).localeCompare(b.language + b.name));
     if (!items.length) bibleList.append(el('p', { class: 'muted small', text: catalogue.length ? 'No Bible matches that filter.' : 'This key lists no Bibles yet.' }));
     for (const b of items.slice(0, 80)) {
       const cb = el('input', { type: 'checkbox', checked: chosen.has(String(b.id)) });
@@ -179,7 +201,13 @@ function providerSection(container, o) {
         showChosen();
         toast(cb.checked ? `${b.abbreviation} added to the reader.` : `${b.abbreviation} removed from the reader.`);
       });
-      bibleList.append(el('label', { class: 'check' }, [cb, el('b', { text: b.abbreviation }), el('span', { class: 'grow', text: b.name }), el('span', { class: 'muted small', text: b.language })]));
+      const unlicensed = b.licensed === false;
+      bibleList.append(el('label', { class: 'check' }, [
+        cb, el('b', { text: b.abbreviation }), el('span', { class: 'grow', text: b.name }),
+        unlicensed ? el('span', { class: 'pill warn', text: 'licence needed' }) : null,
+        unlicensed && o.licenceInfo ? el('button', { class: 'btn small ghost', type: 'button', text: 'Licence', onclick: ev => { ev.preventDefault(); ev.stopPropagation(); o.licenceInfo(b); } }) : null,
+        el('span', { class: 'muted small', text: b.language }),
+      ]));
     }
     if (items.length > 80) bibleList.append(el('p', { class: 'muted small', text: `Showing 80 of ${items.length}. Type to narrow the list.` }));
   }
@@ -193,13 +221,17 @@ function providerSection(container, o) {
       catalogue = await o.fetchList(langs.length ? langs : ['af', 'en']);
       filter.hidden = false;
       showCatalogue();
-      toast(catalogue.length ? `The key works: ${catalogue.length} Bibles available. Tick the ones to show in the reader.` : 'The key works, but no Bibles were listed for those languages.');
+      const ready = catalogue.filter(b => b.licensed !== false).length, need = catalogue.length - ready;
+      toast(!catalogue.length ? `The key works, but ${o.title} lists no Bibles for those languages.`
+        : !ready ? `The key works, but none of the ${need} Bibles listed is licensed to your app yet. Tap Licence next to one to see how to get it.`
+        : need ? `The key works: ${ready} ready to read, and ${need} more need a licence for your app (marked in the list).`
+        : `The key works: ${ready} Bibles available. Tick the ones to show in the reader.`);
     } catch (e) { toast(e.message, true); }
     checkBtn.disabled = false;
   } });
   showChosen();
 
-  container.append(
+  container.append(...[
     el('h3', { class: 'sub', text: o.title }),
     el('details', { class: 'small' }, [
       el('summary', { text: `How to get a ${o.title} key` }),
@@ -209,5 +241,5 @@ function providerSection(container, o) {
     langInput ? el('label', { class: 'f' }, ['Languages to list (codes such as af, en, de)', langInput]) : null,
     chosenNow, filter, bibleList,
     el('p', { class: 'muted small', text: o.note }),
-  );
+  ].filter(Boolean));
 }
