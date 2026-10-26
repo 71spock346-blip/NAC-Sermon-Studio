@@ -217,12 +217,15 @@ function besideOpen() { return !!(besideWin && !besideWin.closed); }
 function besideBar(ext) {
   const button = el('button', { class: 'btn small primary', type: 'button' });
   const note = el('span', { class: 'muted small' });
-  const refresh = () => {
+  const refresh = (blocked) => {
     const open = besideOpen();
     button.textContent = open ? 'Show the window ↗' : 'Open beside ↗';
-    note.textContent = open ? 'open in its own window, following this chapter' : 'opens in its own window and follows this chapter';
+    const wide = matchMedia('(min-width: 900px)').matches;
+    note.textContent = blocked ? 'The browser blocked the window. Allow pop-ups for this site (the icon at the right end of the address bar), then tap again.'
+      : open ? 'open in its own window and following this chapter.' + (wide ? ' If it slips behind this window, tap "Show the window", or drag it to the right edge of the screen so Windows keeps both in view.' : '')
+      : 'opens in its own window and follows this chapter';
   };
-  button.addEventListener('click', () => { openBeside(ext); refresh(); });
+  button.addEventListener('click', () => { const shown = openBeside(ext); refresh(!shown); });
   refresh();
   return el('div', { class: 'beside-bar row' }, [
     el('b', { text: `${ext.label} on BibleSA` }),
@@ -233,18 +236,19 @@ function besideBar(ext) {
   ]);
 }
 
-/** Opens BibleSA at this chapter in a window beside the app (needs a tap), or brings the open one to the front. */
+/** Opens BibleSA at this chapter in a window beside the app (needs a tap), or brings the open one to the front.
+ *  Returns false when the browser blocked the window. */
 function openBeside(ext) {
   const url = Bible.bibleSaUrl(ext, current.book, current.chapter);
   if (besideOpen()) {
-    try { if (besideUrl !== url) besideWin.location.href = url; besideUrl = url; besideWin.focus(); return; } catch (e) { /* lost it: open afresh */ }
+    try { if (besideUrl !== url) besideWin.location.href = url; besideUrl = url; besideWin.focus(); return true; } catch (e) { /* lost it: open afresh */ }
   }
   const sw = screen.availWidth || 1280, sh = screen.availHeight || 800;
   const w = Math.min(640, Math.max(360, Math.round(sw * 0.4)));
   const h = Math.max(480, sh - 90);
   besideWin = window.open(url, 'biblesa', `popup=yes,width=${w},height=${h},left=${Math.max(0, sw - w - 8)},top=40`);
-  besideUrl = url;
-  if (!besideWin) toast('The browser blocked the window. Allow pop-ups for this site, then tap again.');
+  besideUrl = besideWin ? url : '';
+  return !!besideWin;
 }
 
 /** Keeps the open BibleSA window on the chapter being read, without a tap. */
