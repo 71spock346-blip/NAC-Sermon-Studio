@@ -54,6 +54,7 @@ export function uid() {
 export const DEFAULT_SETTINGS = {
   translation: 'kjv',
   compare: '',
+  beside: '',             // BibleSA version shown next to the text ('AFR83'), or ''
   bookLang: 'en',
   fontSize: 'm',
   apiKey: '',
