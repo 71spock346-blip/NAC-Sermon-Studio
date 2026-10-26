@@ -15,6 +15,9 @@ import * as Notes from './notes.js';
 import * as Prepare from './prepare.js';
 
 let current = { book: 'PSA', chapter: 23, verse: null };
+
+// The page widens while a BibleSA pane sits beside the text; other tabs keep the normal width.
+window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#read')) document.body.classList.remove('wide'); });
 let selected = new Set();
 let scrollToVerse = null;  // the verse named in the address, scrolled to once
 let verses = [];           // the primary text of the open chapter
@@ -45,6 +48,8 @@ async function draw() {
   const lang = state.settings.bookLang;
   const srcId = Bible.source(state.settings.translation) ? state.settings.translation : 'kjv';
   const cmpId = state.settings.compare && Bible.source(state.settings.compare) && state.settings.compare !== srcId ? state.settings.compare : '';
+  const besideExt = Bible.EXTERNAL.find(x => x.sa && x.sa === state.settings.beside) || null;
+  document.body.classList.toggle('wide', !!besideExt);
 
   // ---- navigation bar
   const bookSel = el('select', { id: 'r-book', 'aria-label': 'Book' });
@@ -78,6 +83,9 @@ async function draw() {
   }
   srcSel.addEventListener('change', async () => { await saveSetting('translation', srcSel.value); if (state.settings.compare === srcSel.value) await saveSetting('compare', ''); draw(); });
   cmpSel.addEventListener('change', async () => { await saveSetting('compare', cmpSel.value); draw(); });
+  const besideSel = el('select', { id: 'r-beside', 'aria-label': 'Show beside the text' }, el('option', { value: '', text: 'Beside: none' }));
+  for (const x of Bible.EXTERNAL.filter(x => x.sa)) besideSel.append(el('option', { value: x.sa, text: `${x.label} (BibleSA)`, selected: !!besideExt && besideExt.sa === x.sa }));
+  besideSel.addEventListener('change', async () => { await saveSetting('beside', besideSel.value); draw(); });
 
   const sizeDown = el('button', { class: 'btn small ghost', type: 'button', text: 'A−', 'aria-label': 'Smaller text', onclick: () => resize(-1) });
   const sizeUp = el('button', { class: 'btn small ghost', type: 'button', text: 'A+', 'aria-label': 'Larger text', onclick: () => resize(1) });
@@ -90,12 +98,12 @@ async function draw() {
         el('button', { class: 'btn small ghost', type: 'button', text: '›', 'aria-label': 'Next chapter', onclick: () => step(1, counts) }),
         gotoForm,
       ]),
-      el('div', { class: 'row src' }, [srcSel, cmpSel, el('div', { class: 'spacer' }), sizeDown, sizeUp]),
+      el('div', { class: 'row src' }, [srcSel, cmpSel, besideSel, el('div', { class: 'spacer' }), sizeDown, sizeUp]),
     ]));
 
   // ---- the text
   const article = el('article', { class: 'scripture size-' + (state.settings.fontSize || 'm') });
-  container.append(article);
+  container.append(el('div', { class: 'readgrid' + (besideExt ? ' beside' : '') }, [article, besideExt ? besidePane(besideExt) : null]));
   const heading = formatRef({ book: current.book, chapter: current.chapter }, lang);
   article.append(el('h2', { text: heading }));
   const status = el('p', { class: 'muted small', text: 'Loading…' });
@@ -194,6 +202,21 @@ async function draw() {
     scrollToVerse = null;
     if (target) setTimeout(() => target.scrollIntoView({ block: 'center' }), 30);
   }
+}
+
+/** The chapter on BibleSA (the Bible Society's own site), shown beside the text. */
+function besidePane(ext) {
+  const url = Bible.bibleSaUrl(ext, current.book, current.chapter);
+  return el('aside', { class: 'beside-pane' }, [
+    el('div', { class: 'row line head' }, [
+      el('b', { text: `${ext.label} on BibleSA` }),
+      el('div', { class: 'spacer' }),
+      el('a', { class: 'btn small ghost open-window', href: url, target: 'biblesa', rel: 'noopener', text: 'Open in a window ↗' }),
+      el('button', { class: 'btn small ghost close', type: 'button', 'aria-label': 'Close', text: '✕', onclick: async () => { await saveSetting('beside', ''); draw(); } }),
+    ]),
+    el('iframe', { src: url, title: `${ext.label} on BibleSA`, loading: 'lazy', referrerpolicy: 'strict-origin-when-cross-origin' }),
+    el('p', { class: 'muted small', text: 'BibleSA\'s own page, shown inside this one. If it stays empty, BibleSA does not allow that: use "Open in a window".' }),
+  ]);
 }
 
 function go(book, chapter) {
