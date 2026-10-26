@@ -208,7 +208,7 @@ export async function yvListBibles(languages, { allAvailable = false } = {}) {
   const out = new Map();
   for (const lang of languages) {
     let token = '';
-    for (let page = 0; page < 10; page++) {
+    for (let page = 0; page < 100; page++) {   // the whole catalogue is a few thousand Bibles at most
       const q = `language_ranges[]=${encodeURIComponent(lang)}&page_size=99` + (allAvailable ? '&all_available=true' : '') + (token ? `&page_token=${encodeURIComponent(token)}` : '');
       let res;
       try {
