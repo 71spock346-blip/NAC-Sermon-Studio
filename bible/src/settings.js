@@ -231,7 +231,7 @@ function providerSection(container, o) {
   } });
   showChosen();
 
-  container.append(
+  container.append(...[
     el('h3', { class: 'sub', text: o.title }),
     el('details', { class: 'small' }, [
       el('summary', { text: `How to get a ${o.title} key` }),
@@ -241,5 +241,5 @@ function providerSection(container, o) {
     langInput ? el('label', { class: 'f' }, ['Languages to list (codes such as af, en, de)', langInput]) : null,
     chosenNow, filter, bibleList,
     el('p', { class: 'muted small', text: o.note }),
-  );
+  ].filter(Boolean));
 }
