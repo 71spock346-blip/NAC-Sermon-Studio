@@ -7,14 +7,16 @@
  * offline.
  *
  * The NKJV and the Afrikaans Bibles are copyrighted and cannot be shipped.
- * They are read live from API.Bible with the person's own key, which is kept
- * in Settings on the device and never in this repository. Chapters from the
- * API are cached for 30 days (the limit its terms allow) so a chapter read on
- * Sunday morning is still there in the pulpit.
+ * They are read live, with the person's own keys, from two licensed services:
+ * API.Bible and the YouVersion Platform. The keys are kept in Settings on the
+ * device and never in this repository. Fetched chapters are cached (30 days
+ * for API.Bible, the limit its terms allow; 7 days for YouVersion) so a
+ * chapter read on Sunday morning is still there in the pulpit.
  */
 import { state, cacheGet, cachePut } from './store.js';
 
 const API = 'https://api.scripture.api.bible/v1';
+const YV = 'https://api.youversion.com/v1';
 
 export const BUILT_IN = {
   kjv: { id: 'kjv', short: 'KJV', name: 'King James Version with Apocrypha', lang: 'en', builtin: true },
@@ -46,7 +48,10 @@ async function fetchJson(url) {
 export function sources() {
   const list = Object.values(BUILT_IN);
   for (const b of state.settings.apiBibles || []) {
-    list.push({ id: 'api:' + b.id, short: b.abbreviation || b.name, name: b.name, lang: b.language || '', builtin: false, apiId: b.id });
+    list.push({ id: 'api:' + b.id, short: b.abbreviation || b.name, name: b.name, lang: b.language || '', builtin: false, apiId: b.id, provider: 'api' });
+  }
+  for (const b of state.settings.yvBibles || []) {
+    list.push({ id: 'yv:' + b.id, short: b.abbreviation || b.name, name: b.name, lang: b.language || '', builtin: false, yvId: b.id, provider: 'yv' });
   }
   return list;
 }
@@ -66,6 +71,7 @@ export async function copyrightOf(sourceId) {
   const s = source(sourceId);
   if (!s) return '';
   if (s.builtin) return (await fetchJson(`data/${s.id}/index.json`)).copyright;
+  if (s.provider === 'yv') return `${s.name}. Scripture text from the YouVersion Platform, © its publisher.`;
   return `${s.name}. Scripture text provided by API.Bible.`;
 }
 
@@ -84,6 +90,7 @@ export async function getChapter(sourceId, book, chapter) {
     if (!verses.length) return { verses: [], missing: true };
     return { verses, title: data.titles ? data.titles[String(chapter)] : undefined };
   }
+  if (s.provider === 'yv') return yvChapter(s.yvId, book, chapter);
   return apiChapter(s.apiId, book, chapter);
 }
 
@@ -151,6 +158,91 @@ async function apiChapter(bibleId, book, chapter) {
     reference: res.data.reference,
     fums: res.meta && res.meta.fumsNoScript ? res.meta.fumsNoScript : '',
   };
+  cachePut(cacheKey, out).catch(() => {});
+  return out;
+}
+
+/* ---------------------------------------------------------------- YouVersion Platform */
+
+function yvHeaders() {
+  const key = (state.settings.yvKey || '').trim();
+  if (!key) throw new Error('Add your YouVersion app key in Settings to read this translation.');
+  return { 'X-YVP-App-Key': key, 'Accept': 'application/json' };
+}
+
+async function yvGet(path) {
+  let r;
+  try {
+    r = await fetch(YV + path, { headers: yvHeaders() });
+  } catch (e) {
+    throw new Error('No connection to YouVersion. Check your network, or read the bundled KJV.');
+  }
+  if (r.status === 401 || r.status === 403) throw new Error('YouVersion did not accept the app key. Check it in Settings.');
+  if (r.status === 404) return null;
+  if (r.status === 429) throw new Error('YouVersion limit reached for now. Cached chapters still work.');
+  if (!r.ok) throw new Error(`YouVersion error ${r.status}`);
+  return r.json();
+}
+
+/**
+ * The Bibles the app key may read, one language at a time (the Platform only
+ * answers for the first language that has Bibles): [{id, abbreviation, name, language}].
+ */
+export async function yvListBibles(languages) {
+  const out = new Map();
+  for (const lang of languages) {
+    let token = '';
+    for (let page = 0; page < 10; page++) {
+      const q = `language_ranges[]=${encodeURIComponent(lang)}&page_size=99` + (token ? `&page_token=${encodeURIComponent(token)}` : '');
+      const res = await yvGet(`/bibles?${q}`);
+      if (!res) break;
+      for (const b of res.data || []) {
+        out.set(b.id, { id: b.id, abbreviation: b.abbreviation || b.local_abbreviation || String(b.id), name: b.local_title || b.title || b.abbreviation, language: b.language_tag || lang });
+      }
+      token = res.next_page_token || '';
+      if (!token) break;
+    }
+  }
+  return [...out.values()].sort((a, b) => (a.language + a.name).localeCompare(b.language + b.name));
+}
+
+/**
+ * Split the Platform's chapter HTML into verses. YouVersion marks each verse
+ * with class "verse vN" (a verse split over paragraphs appears more than once)
+ * and its number in a "label" span; headings and notes are dropped.
+ */
+export function parseYvHtml(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const byN = new Map();
+  for (const node of doc.querySelectorAll('.verse')) {
+    const cls = node.getAttribute('class') || '';
+    const m = cls.match(/\bv(\d+)\b/);
+    const usfm = node.getAttribute('data-usfm') || '';
+    const n = m ? parseInt(m[1], 10) : parseInt((usfm.split('.')[2] || ''), 10);
+    if (!n) continue;
+    const copy = node.cloneNode(true);
+    for (const x of copy.querySelectorAll('.label, .note, .heading, .footnote, sup')) x.remove();
+    const text = copy.textContent.replace(/\s+/g, ' ').trim();
+    if (!text) continue;
+    byN.set(n, byN.has(n) ? byN.get(n) + ' ' + text : text);
+  }
+  return [...byN.entries()].sort((a, b) => a[0] - b[0]).map(([n, text]) => ({ n, text }));
+}
+
+async function yvChapter(bibleId, book, chapter) {
+  const cacheKey = `yv:${bibleId}:${book}.${chapter}`;
+  const hit = await cacheGet(cacheKey, 7);
+  if (hit) return hit;
+  const res = await yvGet(`/bibles/${bibleId}/passages/${book}.${chapter}?format=html&include_headings=false&include_notes=false`);
+  if (!res) return { verses: [], missing: true };
+  let verses = parseYvHtml(res.content || '');
+  if (!verses.length) {
+    // no verse markup: show the chapter as one block rather than nothing
+    const plain = new DOMParser().parseFromString(res.content || '', 'text/html').body.textContent.replace(/\s+/g, ' ').trim();
+    if (!plain) return { verses: [], missing: true };
+    verses = [{ n: 1, text: plain }];
+  }
+  const out = { verses, copyright: '', reference: res.reference, fums: '' };
   cachePut(cacheKey, out).catch(() => {});
   return out;
 }

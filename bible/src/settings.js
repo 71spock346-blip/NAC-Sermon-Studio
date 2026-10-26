@@ -14,79 +14,48 @@ export function render(container) {
   clear(container);
   const S = state.settings;
 
-  // ---- translations and the key
-  const keyInput = el('input', { type: 'password', value: S.apiKey || '', placeholder: 'Paste your API.Bible key', autocomplete: 'off', spellcheck: 'false' });
-  const showBtn = el('button', { class: 'btn small ghost', type: 'button', text: 'Show', onclick: () => { keyInput.type = keyInput.type === 'password' ? 'text' : 'password'; showBtn.textContent = keyInput.type === 'password' ? 'Show' : 'Hide'; } });
-  keyInput.addEventListener('change', async () => { await saveSetting('apiKey', keyInput.value.trim()); toast(keyInput.value.trim() ? 'Key saved on this device.' : 'Key removed.'); });
-  const bibleList = el('div', { class: 'list biblelist' });
-  const filter = el('input', { type: 'search', placeholder: 'Filter: Afrikaans, NKJV, English…', hidden: true });
-  let catalogue = null;
-
-  function showCatalogue() {
-    clear(bibleList);
-    if (!catalogue) return;
-    const q = filter.value.trim().toLowerCase();
-    const chosen = new Set((S.apiBibles || []).map(b => b.id));
-    const items = catalogue.filter(b => !q || (b.name + ' ' + b.abbreviation + ' ' + b.language + ' ' + b.description).toLowerCase().includes(q));
-    items.sort((a, b) => (chosen.has(b.id) - chosen.has(a.id)) || (a.language + a.name).localeCompare(b.language + b.name));
-    if (!items.length) bibleList.append(el('p', { class: 'muted small', text: 'No Bible matches that filter.' }));
-    for (const b of items.slice(0, 80)) {
-      const cb = el('input', { type: 'checkbox', checked: chosen.has(b.id) });
-      cb.addEventListener('change', async () => {
-        const list = (S.apiBibles || []).filter(x => x.id !== b.id);
-        if (cb.checked) list.push({ id: b.id, abbreviation: b.abbreviation, name: b.name, language: b.language });
-        await saveSetting('apiBibles', list);
-        toast(cb.checked ? `${b.abbreviation} added to the reader.` : `${b.abbreviation} removed from the reader.`);
-      });
-      bibleList.append(el('label', { class: 'check' }, [cb, el('b', { text: b.abbreviation }), el('span', { class: 'grow', text: b.name }), el('span', { class: 'muted small', text: b.language })]));
-    }
-    if (items.length > 80) bibleList.append(el('p', { class: 'muted small', text: `Showing 80 of ${items.length}. Type to narrow the list.` }));
-  }
-  filter.addEventListener('input', showCatalogue);
-  const checkBtn = el('button', { class: 'btn small', type: 'button', text: 'Check key and list Bibles', onclick: async () => {
-    await saveSetting('apiKey', keyInput.value.trim());
-    if (!S.apiKey) { toast('Paste the key first.', true); return; }
-    checkBtn.disabled = true;
-    try {
-      catalogue = await Bible.listBibles();
-      filter.hidden = false;
-      showCatalogue();
-      toast(`The key works: ${catalogue.length} Bibles available. Tick the ones to show in the reader.`);
-    } catch (e) { toast(e.message, true); }
-    checkBtn.disabled = false;
-  } });
-
-  const chosenNow = el('p', { class: 'small' });
-  function showChosen() {
-    chosenNow.textContent = (S.apiBibles || []).length ? 'In the reader: ' + S.apiBibles.map(b => b.abbreviation).join(', ') : 'No API Bibles chosen yet. The reader has the KJV and the WEB built in.';
-  }
-  showChosen();
-  bibleList.addEventListener('change', showChosen);
-
+  // ---- translations: the two licensed services, each with its own key
   container.append(
     el('div', { class: 'docbar' }, [el('h3', { text: 'Translations' })]),
     el('p', { class: 'small' }, [
       'The King James Version (with the Apocrypha) and the World English Bible are built in and work offline. ',
-      'The NKJV and the Afrikaans Bibles are copyrighted, so they are read live from ',
-      el('a', { href: 'https://scripture.api.bible', target: '_blank', rel: 'noopener', text: 'API.Bible' }),
-      ' with your own free key. The key stays on this device: it is not in any backup and not shared.',
-    ]),
-    el('details', { class: 'small' }, [
-      el('summary', { text: 'How to get a key' }),
-      el('ol', {}, [
-        el('li', {}, ['Open ', el('a', { href: 'https://scripture.api.bible/signup', target: '_blank', rel: 'noopener', text: 'scripture.api.bible/signup' }), ' and create a free account (non-commercial use).']),
-        el('li', { text: 'Create an application in the dashboard. Every application has a key.' }),
-        el('li', { text: 'Copy the key, paste it below and tap "Check key". Then tick the Bibles to show in the reader.' }),
-        el('li', { text: 'Which Bibles a key may read depends on the licences API.Bible has granted it. If a translation is not listed, request it in your API.Bible dashboard.' }),
-      ]),
-    ]),
-    el('label', { class: 'f' }, ['API.Bible key', el('div', { class: 'row line' }, [keyInput, showBtn, checkBtn])]),
-    chosenNow, filter, bibleList,
-    el('div', { class: 'row' }, [
-      el('button', { class: 'btn small ghost', type: 'button', text: 'Clear cached chapters', onclick: async () => { await clearCache(); toast('Cached chapters cleared.'); } }),
-      el('span', { class: 'muted small', text: 'Chapters from API.Bible are kept for 30 days so they open offline.' }),
+      'The NKJV and the Afrikaans Bibles are copyrighted, so they are read live from a licensed service with your own free key: ',
+      el('a', { href: 'https://scripture.api.bible', target: '_blank', rel: 'noopener', text: 'API.Bible' }), ' or the ',
+      el('a', { href: 'https://platform.youversion.com', target: '_blank', rel: 'noopener', text: 'YouVersion Platform' }),
+      '. A key stays on this device: it is not in any backup and not shared.',
     ]),
   );
+
+  providerSection(container, {
+    title: 'API.Bible',
+    keyName: 'apiKey', listName: 'apiBibles', placeholder: 'Paste your API.Bible key',
+    howTo: [
+      ['Open ', el('a', { href: 'https://scripture.api.bible/signup', target: '_blank', rel: 'noopener', text: 'scripture.api.bible/signup' }), ' and create a free account (non-commercial use).'],
+      ['Create an application in the dashboard; its page shows the key.'],
+      ['Paste the key below and tap "Check key". Then tick the Bibles to show in the reader.'],
+      ['Which Bibles a key may read depends on the licences API.Bible has granted it.'],
+    ],
+    fetchList: () => Bible.listBibles(),
+    note: 'Chapters from API.Bible are kept for 30 days so they open offline.',
+  });
+
+  providerSection(container, {
+    title: 'YouVersion Platform',
+    keyName: 'yvKey', listName: 'yvBibles', placeholder: 'Paste your YouVersion app key',
+    howTo: [
+      ['Register at ', el('a', { href: 'https://platform.youversion.com', target: '_blank', rel: 'noopener', text: 'platform.youversion.com' }), ' (free, non-commercial) and create an app; its page shows the app key.'],
+      ['Paste the key below, choose the languages to look in, and tap "Check key".'],
+      ['Tick the Bibles to show in the reader. The Afrikaans Bibles are carried by YouVersion.'],
+    ],
+    languages: true,
+    fetchList: langs => Bible.yvListBibles(langs),
+    note: 'Chapters from YouVersion are kept for 7 days so they open offline.',
+  });
+
+  container.append(el('div', { class: 'row' }, [
+    el('button', { class: 'btn small ghost', type: 'button', text: 'Clear cached chapters', onclick: async () => { await clearCache(); toast('Cached chapters cleared.'); } }),
+    el('span', { class: 'muted small', text: 'Removes the chapters fetched from both services; they are fetched again when opened.' }),
+  ]));
 
   // ---- about you
   const nameInput = el('input', { type: 'text', value: S.name || '', placeholder: 'Your name, for the footer of the sermon notes' });
@@ -162,7 +131,7 @@ export function render(container) {
     el('ul', { class: 'small muted' }, [
       el('li', { text: 'King James Version (1769 text) with the Apocrypha: public domain. Text from the SWORD KJVA module via scrollmapper/bible_databases.' }),
       el('li', { text: 'World English Bible with the Deuterocanon: public domain, ebible.org. "World English Bible" is a trademark of eBible.org.' }),
-      el('li', { text: 'Scripture read through API.Bible is the copyright of its publishers and is shown under their terms; see the notice under each chapter.' }),
+      el('li', { text: 'Scripture read through API.Bible or the YouVersion Platform is the copyright of its publishers and is shown under their terms; see the notice under each chapter.' }),
       el('li', { text: 'Catechism of the New Apostolic Church: only the section numbers, titles and Bible references are indexed here. The text is read at nak.org.' }),
     ]),
     el('div', { class: 'row' }, [
@@ -174,5 +143,71 @@ export function render(container) {
         }
       } }),
     ]),
+  );
+}
+
+/** One licensed service: key box, catalogue check, and the tick list of Bibles to show. */
+function providerSection(container, o) {
+  const S = state.settings;
+  const keyInput = el('input', { type: 'password', value: S[o.keyName] || '', placeholder: o.placeholder, autocomplete: 'off', spellcheck: 'false' });
+  const showBtn = el('button', { class: 'btn small ghost', type: 'button', text: 'Show', onclick: () => { keyInput.type = keyInput.type === 'password' ? 'text' : 'password'; showBtn.textContent = keyInput.type === 'password' ? 'Show' : 'Hide'; } });
+  keyInput.addEventListener('change', async () => { await saveSetting(o.keyName, keyInput.value.trim()); toast(keyInput.value.trim() ? 'Key saved on this device.' : 'Key removed.'); });
+  const langInput = o.languages ? el('input', { type: 'text', value: 'af, en', placeholder: 'Languages, e.g. af, en', 'aria-label': 'Languages' }) : null;
+  const filter = el('input', { type: 'search', placeholder: 'Filter: Afrikaans, NKJV, English…', hidden: true });
+  const bibleList = el('div', { class: 'list biblelist' });
+  const chosenNow = el('p', { class: 'small' });
+  let catalogue = null;
+
+  function showChosen() {
+    const chosen = S[o.listName] || [];
+    chosenNow.textContent = chosen.length ? `In the reader from ${o.title}: ${chosen.map(b => b.abbreviation).join(', ')}` : `No ${o.title} Bibles chosen yet.`;
+  }
+  function showCatalogue() {
+    clear(bibleList);
+    if (!catalogue) return;
+    const q = filter.value.trim().toLowerCase();
+    const chosen = new Set((S[o.listName] || []).map(b => String(b.id)));
+    const items = catalogue.filter(b => !q || (b.name + ' ' + b.abbreviation + ' ' + b.language + ' ' + (b.description || '')).toLowerCase().includes(q));
+    items.sort((a, b) => (chosen.has(String(b.id)) - chosen.has(String(a.id))) || (a.language + a.name).localeCompare(b.language + b.name));
+    if (!items.length) bibleList.append(el('p', { class: 'muted small', text: catalogue.length ? 'No Bible matches that filter.' : 'This key lists no Bibles yet.' }));
+    for (const b of items.slice(0, 80)) {
+      const cb = el('input', { type: 'checkbox', checked: chosen.has(String(b.id)) });
+      cb.addEventListener('change', async () => {
+        const list = (S[o.listName] || []).filter(x => String(x.id) !== String(b.id));
+        if (cb.checked) list.push({ id: b.id, abbreviation: b.abbreviation, name: b.name, language: b.language });
+        await saveSetting(o.listName, list);
+        showChosen();
+        toast(cb.checked ? `${b.abbreviation} added to the reader.` : `${b.abbreviation} removed from the reader.`);
+      });
+      bibleList.append(el('label', { class: 'check' }, [cb, el('b', { text: b.abbreviation }), el('span', { class: 'grow', text: b.name }), el('span', { class: 'muted small', text: b.language })]));
+    }
+    if (items.length > 80) bibleList.append(el('p', { class: 'muted small', text: `Showing 80 of ${items.length}. Type to narrow the list.` }));
+  }
+  filter.addEventListener('input', showCatalogue);
+  const checkBtn = el('button', { class: 'btn small', type: 'button', text: 'Check key and list Bibles', onclick: async () => {
+    await saveSetting(o.keyName, keyInput.value.trim());
+    if (!S[o.keyName]) { toast('Paste the key first.', true); return; }
+    checkBtn.disabled = true;
+    try {
+      const langs = langInput ? langInput.value.split(/[,\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean) : [];
+      catalogue = await o.fetchList(langs.length ? langs : ['af', 'en']);
+      filter.hidden = false;
+      showCatalogue();
+      toast(catalogue.length ? `The key works: ${catalogue.length} Bibles available. Tick the ones to show in the reader.` : 'The key works, but no Bibles were listed for those languages.');
+    } catch (e) { toast(e.message, true); }
+    checkBtn.disabled = false;
+  } });
+  showChosen();
+
+  container.append(
+    el('h3', { class: 'sub', text: o.title }),
+    el('details', { class: 'small' }, [
+      el('summary', { text: `How to get a ${o.title} key` }),
+      el('ol', {}, o.howTo.map(parts => el('li', {}, parts))),
+    ]),
+    el('label', { class: 'f' }, [`${o.title} key`, el('div', { class: 'row line' }, [keyInput, showBtn, checkBtn])]),
+    langInput ? el('label', { class: 'f' }, ['Languages to list (codes such as af, en, de)', langInput]) : null,
+    chosenNow, filter, bibleList,
+    el('p', { class: 'muted small', text: o.note }),
   );
 }

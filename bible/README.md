@@ -17,12 +17,13 @@ On a phone, open the link and use "Add to Home Screen". The user manual is
   Deuterocanon (`data/web/`). One file per book, `{"chapters": [[verse, ...], ...]}`,
   plus an `index.json` with chapter counts and the copyright line.
 - **Licensed translations.** The NKJV and the Afrikaans Bibles are copyrighted and
-  are not in the repository. `src/bible.js` reads them from
-  [API.Bible](https://scripture.api.bible) with the person's own key, which lives in
-  the app's Settings on the device and is never exported. Chapters are cached in
-  IndexedDB for 30 days, as API.Bible's terms allow, with the FUMS beacon and the
-  attribution they require. Without a key the reader links to the same chapter on
-  YouVersion and BibleGateway.
+  are not in the repository. `src/bible.js` reads them live from two services with
+  the person's own keys, which live in the app's Settings on the device and are
+  never exported: [API.Bible](https://scripture.api.bible) (chapter text with verse
+  markers; cached 30 days as its terms allow, with the FUMS beacon and attribution
+  they require) and the [YouVersion Platform](https://platform.youversion.com)
+  (chapter HTML parsed into verses by `parseYvHtml`; cached 7 days). Without a key
+  the reader links to the same chapter on YouVersion and BibleGateway.
 - **Catechism.** `data/catechism.json` is an index only: section numbers, titles,
   the id of each section's page at nak.org, and the Bible verses each section quotes.
   The text is read on nak.org.

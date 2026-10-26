@@ -58,6 +58,8 @@ export const DEFAULT_SETTINGS = {
   fontSize: 'm',
   apiKey: '',
   apiBibles: [],          // [{id, abbreviation, name, language}] chosen from the key's catalogue
+  yvKey: '',              // YouVersion Platform app key, same rules as apiKey
+  yvBibles: [],           // [{id, abbreviation, name, language}] chosen from that catalogue
   name: '',
   congregation: '',
   lastRef: 'PSA.23',
@@ -118,10 +120,10 @@ export async function deleteSermon(id) {
 /* ---- chapter cache for texts fetched from API.Bible (kept 30 days, as its terms ask) ---- */
 const CACHE_DAYS = 30;
 
-export async function cacheGet(key) {
+export async function cacheGet(key, days) {
   const row = await db.get('cache', key);
   if (!row) return null;
-  if (Date.now() - row.at > CACHE_DAYS * 86400000) return null;
+  if (Date.now() - row.at > (days || CACHE_DAYS) * 86400000) return null;
   return row.data;
 }
 
@@ -141,7 +143,7 @@ export async function exportAll() {
     exportedAt: new Date().toISOString(),
     notes: state.notes,
     sermons: state.sermons,
-    settings: Object.fromEntries(Object.entries(state.settings).filter(([k]) => k !== 'apiKey')),
+    settings: Object.fromEntries(Object.entries(state.settings).filter(([k]) => k !== 'apiKey' && k !== 'yvKey')),
   };
 }
 
@@ -166,7 +168,7 @@ export async function importAll(data) {
     }
   }
   for (const [k, v] of Object.entries(data.settings || {})) {
-    if (k === 'apiKey') continue;
+    if (k === 'apiKey' || k === 'yvKey') continue;
     if (!(k in DEFAULT_SETTINGS)) continue;
     await saveSetting(k, v);
   }
