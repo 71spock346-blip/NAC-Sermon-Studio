@@ -78,17 +78,9 @@ details summary { cursor: pointer; color: var(--accent); }
 .readbar .goto input { flex: 1 1 auto; }
 .readbar .src select { width: auto; flex: 0 1 180px; }
 
-.readgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
-.beside-pane { border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: #fff; min-width: 0; overflow: hidden; }
-.beside-pane .head { margin-bottom: 6px; flex-wrap: wrap; }
-.beside-pane .head b { white-space: nowrap; }
-.beside-pane iframe { display: block; width: 100%; height: 62vh; border: 0; border-radius: 6px; background: #fafafa; }
-@media (min-width: 900px) {
-  .readgrid.beside { grid-template-columns: minmax(0, 1fr) minmax(340px, 46%); }
-  .readgrid.beside .beside-pane { position: sticky; top: 140px; z-index: 1; }
-  .readgrid.beside .beside-pane iframe { height: calc(100vh - 230px); }
-  body.wide main { max-width: 1400px; }
-}
+.beside-bar { gap: 8px; flex-wrap: wrap; margin: 4px 0 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.beside-bar b { white-space: nowrap; }
+@media (min-width: 1200px) { body.beside main { margin-left: 24px; } }   /* leaves the right of the screen for the BibleSA window */
 .scripture { font-family: var(--serif); line-height: 1.6; padding: 4px 2px 10px; }
 .scripture h2 { font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 20px; margin: 6px 0 10px; color: var(--accent); }
 .scripture .ptitle { font-style: italic; color: var(--muted); margin: -4px 0 10px; }
@@ -224,8 +216,8 @@ label.f .row.line { width: 100%; }
   .readbar .nav #r-chapter { flex: 0 1 84px; }
   .readbar .goto { flex: 1 1 100%; }
   .readbar .src { flex-wrap: wrap; }
-  .readbar .src select { flex: 1 1 0; min-width: 0; }
-  .readbar .src #r-beside { flex: 1 1 calc(100% - 120px); }   /* its own row, next to A−/A+ */
+  .readbar .src select { flex: 1 1 40%; min-width: 0; }         /* translation and Compare share a line */
+  .readbar .src #r-beside { flex: 1 1 calc(100% - 120px); }   /* Beside on its own line, next to A−/A+ */
   .readbar .src .spacer { display: none; }
   .readbar .src .btn.small { padding: 9px 10px; }
   .scripture .chapnav { margin-top: 14px; }
