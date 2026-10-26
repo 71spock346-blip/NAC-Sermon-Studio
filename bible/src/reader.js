@@ -171,7 +171,12 @@ async function draw() {
   for (const x of Bible.EXTERNAL) {
     links.append(el('a', { href: Bible.youVersionUrl(x, current.book, current.chapter), target: '_blank', rel: 'noopener', text: x.label }), ' ');
   }
-  links.append(el('a', { href: Bible.bibleGatewayUrl(heading, 'NKJV'), target: '_blank', rel: 'noopener', text: 'BibleGateway' }));
+  links.append('on YouVersion · ');
+  for (const x of Bible.EXTERNAL.filter(x => x.sa)) {
+    links.append(el('a', { href: Bible.bibleSaUrl(x, current.book, current.chapter), target: '_blank', rel: 'noopener', text: x.label }), ' ');
+  }
+  links.append('on BibleSA · ');
+  links.append(el('a', { href: Bible.bibleGatewayUrl(heading, 'NKJV'), target: '_blank', rel: 'noopener', text: 'NKJV on BibleGateway' }));
   foot.append(links);
   container.append(foot);
 
