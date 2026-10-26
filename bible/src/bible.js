@@ -23,13 +23,14 @@ export const BUILT_IN = {
   web: { id: 'web', short: 'WEB', name: 'World English Bible with Deuterocanon', lang: 'en', builtin: true },
 };
 
-/* Where to read the licensed Bibles when there is no key: YouVersion and
-   BibleGateway deep links, opened in the browser. */
+/* Where to read the licensed Bibles when there is no key: YouVersion, BibleSA
+   (the Bible Society of South Africa's own site) and BibleGateway deep links,
+   opened in the browser. */
 export const EXTERNAL = [
   { id: 'nkjv', label: 'NKJV', name: 'New King James Version', you: { v: 114, abbr: 'NKJV' }, gateway: 'NKJV' },
-  { id: 'afr83', label: 'AFR83', name: 'Afrikaans 1983-vertaling', you: { v: 6, abbr: 'AFR83' } },
-  { id: 'afr20', label: 'AFR20', name: 'Die Bybel 2020-vertaling', you: { v: 3499, abbr: 'AFR20' } },
-  { id: 'afr53', label: 'AFR53', name: 'Afrikaans 1933/1953-vertaling', you: { v: 5, abbr: 'AFR53' } },
+  { id: 'afr83', label: 'AFR83', name: 'Afrikaans 1983-vertaling', you: { v: 6, abbr: 'AFR83' }, sa: 'AFR83' },
+  { id: 'afr20', label: 'AFR20', name: 'Die Bybel 2020-vertaling', you: { v: 3499, abbr: 'AFR20' }, sa: 'AFR20' },
+  { id: 'afr53', label: 'AFR53', name: 'Afrikaans 1933/1953-vertaling', you: { v: 5, abbr: 'AFR53' }, sa: 'AFR53' },
 ];
 
 const memory = new Map();   // url -> parsed JSON, so a chapter is fetched once per visit
@@ -299,6 +300,11 @@ async function yvChapter(bibleId, book, chapter) {
 export function youVersionUrl(ext, book, chapter, verse) {
   const v = verse ? `.${verse}` : '';
   return `https://www.bible.com/bible/${ext.you.v}/${book}.${chapter}${v}.${ext.you.abbr}`;
+}
+
+/** https://www.biblesa.co.za/bible/AFR83/PSA.23 */
+export function bibleSaUrl(ext, book, chapter) {
+  return `https://www.biblesa.co.za/bible/${ext.sa}/${book}.${chapter}`;
 }
 
 export function bibleGatewayUrl(refText, version) {
