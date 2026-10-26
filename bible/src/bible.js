@@ -44,6 +44,13 @@ async function fetchJson(url) {
   try { return await p; } catch (e) { memory.delete(url); throw e; }
 }
 
+/** The body as JSON. An empty body (204 No Content, some 404s) gives null instead of a parse error. */
+async function readJson(r) {
+  const text = await r.text();
+  if (!text.trim()) return null;
+  try { return JSON.parse(text); } catch (e) { throw new Error('The service sent an answer the app could not read.'); }
+}
+
 /** Every source the person can read from: the bundled two plus the API Bibles they ticked. */
 export function sources() {
   const list = Object.values(BUILT_IN);
@@ -110,10 +117,10 @@ async function apiGet(path) {
     throw new Error('No connection to API.Bible. Check your network, or read the bundled KJV.');
   }
   if (r.status === 401 || r.status === 403) throw new Error('API.Bible did not accept the key. Check it in Settings.');
-  if (r.status === 404) return null;
+  if (r.status === 204 || r.status === 404) return null;
   if (r.status === 429) throw new Error('API.Bible limit reached for this month. Cached chapters still work.');
   if (!r.ok) throw new Error(`API.Bible error ${r.status}`);
-  return r.json();
+  return readJson(r);
 }
 
 /** The Bibles this key may read: [{id, abbreviation, name, language}]. */
@@ -177,33 +184,72 @@ async function yvGet(path) {
   } catch (e) {
     throw new Error('No connection to YouVersion. Check your network, or read the bundled KJV.');
   }
-  if (r.status === 401 || r.status === 403) throw new Error('YouVersion did not accept the app key. Check it in Settings.');
-  if (r.status === 404) return null;
+  // 204 means nothing matches (a language with no Bibles for this key); it is not an error.
+  if (r.status === 204 || r.status === 404) return null;
+  if (r.status === 401) throw new Error('YouVersion did not accept the app key. Check it in Settings.');
+  if (r.status === 403) throw new Error('This Bible is not licensed to your YouVersion app yet. Request it for your app at platform.youversion.com, then try again.');
+  if (r.status === 412) throw new Error('YouVersion says this app was archived or removed. Create a new app at platform.youversion.com and paste its key in Settings.');
   if (r.status === 429) throw new Error('YouVersion limit reached for now. Cached chapters still work.');
-  if (!r.ok) throw new Error(`YouVersion error ${r.status}`);
-  return r.json();
+  if (!r.ok) {
+    const body = await readJson(r).catch(() => null);
+    throw new Error(`YouVersion error ${r.status}` + (body && body.message ? `: ${body.message}` : ''));
+  }
+  return readJson(r);
 }
 
 /**
  * The Bibles the app key may read, one language at a time (the Platform only
  * answers for the first language that has Bibles): [{id, abbreviation, name, language}].
+ * With allAvailable, everything YouVersion carries in that language, licensed or not.
  */
-export async function yvListBibles(languages) {
+let yvFields = '&fields[]=id&fields[]=abbreviation&fields[]=localized_abbreviation&fields[]=title&fields[]=localized_title&fields[]=language_tag';
+
+export async function yvListBibles(languages, { allAvailable = false } = {}) {
   const out = new Map();
   for (const lang of languages) {
     let token = '';
     for (let page = 0; page < 10; page++) {
-      const q = `language_ranges[]=${encodeURIComponent(lang)}&page_size=99` + (token ? `&page_token=${encodeURIComponent(token)}` : '');
-      const res = await yvGet(`/bibles?${q}`);
-      if (!res) break;
+      const q = `language_ranges[]=${encodeURIComponent(lang)}&page_size=99` + (allAvailable ? '&all_available=true' : '') + (token ? `&page_token=${encodeURIComponent(token)}` : '');
+      let res;
+      try {
+        res = await yvGet(`/bibles?${q}${yvFields}`);
+      } catch (e) {
+        // the slim field list was refused: ask for whole Bible records instead
+        if (!yvFields || !/error 4(00|22)/.test(e.message)) throw e;
+        yvFields = '';
+        res = await yvGet(`/bibles?${q}`);
+      }
+      if (!res) break;   // 204: no Bibles in this language for this key
       for (const b of res.data || []) {
-        out.set(b.id, { id: b.id, abbreviation: b.abbreviation || b.local_abbreviation || String(b.id), name: b.local_title || b.title || b.abbreviation, language: b.language_tag || lang });
+        out.set(b.id, { id: b.id, abbreviation: b.abbreviation || b.localized_abbreviation || String(b.id), name: b.localized_title || b.title || b.abbreviation, language: b.language_tag || lang });
       }
       token = res.next_page_token || '';
       if (!token) break;
     }
   }
   return [...out.values()].sort((a, b) => (a.language + a.name).localeCompare(b.language + b.name));
+}
+
+/**
+ * Everything YouVersion carries in those languages, each marked `licensed`:
+ * whether this app key may read its text. Only the passage endpoint checks the
+ * licence, so the licensed list is compared with the whole catalogue here.
+ */
+export async function yvCatalogue(languages) {
+  const licensed = await yvListBibles(languages);
+  const ids = new Set(licensed.map(b => String(b.id)));
+  let all = [];
+  try { all = await yvListBibles(languages, { allAvailable: true }); } catch (e) { all = []; }
+  const out = new Map(all.map(b => [String(b.id), { ...b, licensed: ids.has(String(b.id)) }]));
+  for (const b of licensed) if (!out.has(String(b.id))) out.set(String(b.id), { ...b, licensed: true });
+  return [...out.values()].sort((a, b) => (b.licensed - a.licensed) || (a.language + a.name).localeCompare(b.language + b.name));
+}
+
+/** The licence YouVersion applies to a Bible: {id, name, uri} or null. */
+export async function yvLicence(bibleId) {
+  const res = await yvGet(`/licenses?bible_id=${encodeURIComponent(bibleId)}`);
+  const lic = res && Array.isArray(res.data) ? res.data[0] : null;
+  return lic ? { id: lic.id, name: lic.name || `Licence ${lic.id}`, uri: lic.uri || '' } : null;
 }
 
 /**

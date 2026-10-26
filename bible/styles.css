@@ -130,6 +130,7 @@ footer.copyright .elsewhere a { margin-right: 6px; }
 .pill { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); white-space: nowrap; text-decoration: none; }
 .pill.link { font-size: 13px; padding: 5px 10px; color: var(--accent); border-color: #b9d4ef; }
 .pill.link:hover { background: var(--soft); }
+.pill.warn { color: #92400e; border-color: #fcd34d; background: #fffbeb; }
 .pill.kind.thought { border-color: #b9d4ef; color: #1d5c8f; }
 .pill.kind.experience { border-color: #fcd34d; color: #92400e; }
 .pill.kind.doctrine { border-color: #ddd6fe; color: #5b21b6; }
