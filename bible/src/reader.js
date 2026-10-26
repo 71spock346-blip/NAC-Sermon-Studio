@@ -16,8 +16,13 @@ import * as Prepare from './prepare.js';
 
 let current = { book: 'PSA', chapter: 23, verse: null };
 
-// The page widens while a BibleSA pane sits beside the text; other tabs keep the normal width.
-window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#read')) document.body.classList.remove('wide'); });
+// "Beside" opens BibleSA in its own window next to the app. BibleSA refuses to be
+// shown inside another site, so the window is the only way to keep it in view;
+// this page opened it, so it may move it to each new chapter without a tap.
+let besideWin = null;      // the BibleSA window, while it is open
+let besideUrl = '';        // the address it was last sent to
+// The text moves to the left while Beside is on, leaving room for that window; other tabs keep the normal layout.
+window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#read')) document.body.classList.remove('beside'); });
 let selected = new Set();
 let scrollToVerse = null;  // the verse named in the address, scrolled to once
 let verses = [];           // the primary text of the open chapter
@@ -49,7 +54,7 @@ async function draw() {
   const srcId = Bible.source(state.settings.translation) ? state.settings.translation : 'kjv';
   const cmpId = state.settings.compare && Bible.source(state.settings.compare) && state.settings.compare !== srcId ? state.settings.compare : '';
   const besideExt = Bible.EXTERNAL.find(x => x.sa && x.sa === state.settings.beside) || null;
-  document.body.classList.toggle('wide', !!besideExt);
+  document.body.classList.toggle('beside', !!besideExt);
 
   // ---- navigation bar
   const bookSel = el('select', { id: 'r-book', 'aria-label': 'Book' });
@@ -103,7 +108,8 @@ async function draw() {
 
   // ---- the text
   const article = el('article', { class: 'scripture size-' + (state.settings.fontSize || 'm') });
-  container.append(el('div', { class: 'readgrid' + (besideExt ? ' beside' : '') }, [article, besideExt ? besidePane(besideExt) : null]));
+  if (besideExt) { container.append(besideBar(besideExt)); followBeside(besideExt); }
+  container.append(article);
   const heading = formatRef({ book: current.book, chapter: current.chapter }, lang);
   article.append(el('h2', { text: heading }));
   const status = el('p', { class: 'muted small', text: 'Loading…' });
@@ -204,19 +210,55 @@ async function draw() {
   }
 }
 
-/** The chapter on BibleSA (the Bible Society's own site), shown beside the text. */
-function besidePane(ext) {
-  const url = Bible.bibleSaUrl(ext, current.book, current.chapter);
-  return el('aside', { class: 'beside-pane' }, [
-    el('div', { class: 'row line head' }, [
-      el('b', { text: `${ext.label} on BibleSA` }),
-      el('div', { class: 'spacer' }),
-      el('a', { class: 'btn small ghost open-window', href: url, target: 'biblesa', rel: 'noopener', text: 'Open in a window ↗' }),
-      el('button', { class: 'btn small ghost close', type: 'button', 'aria-label': 'Close', text: '✕', onclick: async () => { await saveSetting('beside', ''); draw(); } }),
-    ]),
-    el('iframe', { src: url, title: `${ext.label} on BibleSA`, loading: 'lazy', referrerpolicy: 'strict-origin-when-cross-origin' }),
-    el('p', { class: 'muted small', text: 'BibleSA\'s own page, shown inside this one. If it stays empty, BibleSA does not allow that: use "Open in a window".' }),
+/** Whether the BibleSA window this page opened is still open. */
+function besideOpen() { return !!(besideWin && !besideWin.closed); }
+
+/** The strip under the reader bar that opens the BibleSA window and says what it does. */
+function besideBar(ext) {
+  const button = el('button', { class: 'btn small primary', type: 'button' });
+  const note = el('span', { class: 'muted small' });
+  const refresh = () => {
+    const open = besideOpen();
+    button.textContent = open ? 'Show the window ↗' : 'Open beside ↗';
+    note.textContent = open ? 'open in its own window, following this chapter' : 'opens in its own window and follows this chapter';
+  };
+  button.addEventListener('click', () => { openBeside(ext); refresh(); });
+  refresh();
+  return el('div', { class: 'beside-bar row' }, [
+    el('b', { text: `${ext.label} on BibleSA` }),
+    note,
+    el('div', { class: 'spacer' }),
+    button,
+    el('button', { class: 'btn small ghost', type: 'button', 'aria-label': 'Close Beside', text: '✕', onclick: async () => { closeBeside(); await saveSetting('beside', ''); draw(); } }),
   ]);
+}
+
+/** Opens BibleSA at this chapter in a window beside the app (needs a tap), or brings the open one to the front. */
+function openBeside(ext) {
+  const url = Bible.bibleSaUrl(ext, current.book, current.chapter);
+  if (besideOpen()) {
+    try { if (besideUrl !== url) besideWin.location.href = url; besideUrl = url; besideWin.focus(); return; } catch (e) { /* lost it: open afresh */ }
+  }
+  const sw = screen.availWidth || 1280, sh = screen.availHeight || 800;
+  const w = Math.min(640, Math.max(360, Math.round(sw * 0.4)));
+  const h = Math.max(480, sh - 90);
+  besideWin = window.open(url, 'biblesa', `popup=yes,width=${w},height=${h},left=${Math.max(0, sw - w - 8)},top=40`);
+  besideUrl = url;
+  if (!besideWin) toast('The browser blocked the window. Allow pop-ups for this site, then tap again.');
+}
+
+/** Keeps the open BibleSA window on the chapter being read, without a tap. */
+function followBeside(ext) {
+  if (!besideOpen()) return;
+  const url = Bible.bibleSaUrl(ext, current.book, current.chapter);
+  if (url === besideUrl) return;
+  try { besideWin.location.href = url; besideUrl = url; } catch (e) { /* the window moved on; leave it */ }
+}
+
+/** Closes the BibleSA window this page opened, if it is still open. */
+function closeBeside() {
+  if (besideOpen()) { try { besideWin.close(); } catch (e) { /* already gone */ } }
+  besideWin = null; besideUrl = '';
 }
 
 function go(book, chapter) {
