@@ -13,6 +13,7 @@ import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
 import * as Notes from './notes.js';
 import * as Prepare from './prepare.js';
+import { unpastedCard, pasteSheet } from './paste.js';
 
 let current = { book: 'PSA', chapter: 23, verse: null };
 
@@ -137,10 +138,17 @@ async function draw() {
     ]));
     return;
   }
+  if (primary.unpasted) {
+    article.append(unpastedCard(Bible.source(srcId), current.book, current.chapter, () => draw(), [
+      el('button', { class: 'btn small ghost', type: 'button', text: 'Read the KJV instead', onclick: async () => { await saveSetting('translation', 'kjv'); draw(); } }),
+    ]));
+    return;
+  }
   verses = primary.verses;
   if (primary.title) article.append(el('p', { class: 'ptitle', text: primary.title }));
   if (compare && compare.error) article.append(el('p', { class: 'error small', text: `${Bible.source(cmpId).short}: ${compare.error}` }));
   if (compare && compare.missing) article.append(el('p', { class: 'muted small', text: `${Bible.source(cmpId).short} does not contain this book.` }));
+  if (compare && compare.unpasted) article.append(unpastedCard(Bible.source(cmpId), current.book, current.chapter, () => draw()));
 
   await Cat.load().catch(() => {});
   const catMap = Cat.chapterMap(current.book, current.chapter);
@@ -177,9 +185,15 @@ async function draw() {
   const foot = el('footer', { class: 'copyright small muted' });
   foot.append(el('p', { text: `${Bible.source(srcId).short}: ${primary.copyright || await Bible.copyrightOf(srcId)}` }));
   if (compare && !compare.error) foot.append(el('p', { text: `${Bible.source(cmpId).short}: ${compare.copyright || await Bible.copyrightOf(cmpId)}` }));
-  if (!Bible.source(srcId).builtin || (cmpId && !Bible.source(cmpId).builtin)) {
+  if (Bible.source(srcId).provider === 'api' || (cmpId && Bible.source(cmpId).provider === 'api')) {
     foot.append(el('p', {}, ['Scripture text provided by ', el('a', { href: 'https://scripture.api.bible', target: '_blank', rel: 'noopener', text: 'API.Bible' }), '.']));
     for (const f of [primary.fums, compare && compare.fums]) if (f) foot.append(el('span', { class: 'fums', html: f }));
+  }
+  for (const [id, ch] of [[srcId, primary], [cmpId, compare]]) {
+    const s = id && Bible.source(id);
+    if (s && s.provider === 'mine' && ch && !ch.unpasted) {
+      foot.append(el('p', {}, [el('button', { class: 'btn small ghost', type: 'button', text: `Edit the pasted ${s.ext.label} text`, onclick: () => pasteSheet(s, current.book, current.chapter, () => draw()) })]));
+    }
   }
   const links = el('p', { class: 'elsewhere' }, 'Read this chapter in: ');
   for (const x of Bible.EXTERNAL) {

@@ -13,7 +13,7 @@
  * for API.Bible, the limit its terms allow; 7 days for YouVersion) so a
  * chapter read on Sunday morning is still there in the pulpit.
  */
-import { state, cacheGet, cachePut } from './store.js';
+import { state, cacheGet, cachePut, getText, textCount } from './store.js';
 
 const API = 'https://api.scripture.api.bible/v1';
 const YV = 'https://api.youversion.com/v1';
@@ -27,10 +27,10 @@ export const BUILT_IN = {
    (the Bible Society of South Africa's own site) and BibleGateway deep links,
    opened in the browser. */
 export const EXTERNAL = [
-  { id: 'nkjv', label: 'NKJV', name: 'New King James Version', you: { v: 114, abbr: 'NKJV' }, gateway: 'NKJV' },
-  { id: 'afr83', label: 'AFR83', name: 'Afrikaans 1983-vertaling', you: { v: 6, abbr: 'AFR83' }, sa: 'AFR83' },
-  { id: 'afr20', label: 'AFR20', name: 'Die Bybel 2020-vertaling', you: { v: 3499, abbr: 'AFR20' }, sa: 'AFR20' },
-  { id: 'afr53', label: 'AFR53', name: 'Afrikaans 1933/1953-vertaling', you: { v: 5, abbr: 'AFR53' }, sa: 'AFR53' },
+  { id: 'nkjv', label: 'NKJV', name: 'New King James Version', holder: 'Thomas Nelson', lang: 'en', you: { v: 114, abbr: 'NKJV' }, gateway: 'NKJV' },
+  { id: 'afr83', label: 'AFR83', name: 'Afrikaans 1983-vertaling', holder: 'Bybelgenootskap van Suid-Afrika', lang: 'af', you: { v: 6, abbr: 'AFR83' }, sa: 'AFR83' },
+  { id: 'afr20', label: 'AFR20', name: 'Die Bybel 2020-vertaling', holder: 'Bybelgenootskap van Suid-Afrika', lang: 'af', you: { v: 3499, abbr: 'AFR20' }, sa: 'AFR20' },
+  { id: 'afr53', label: 'AFR53', name: 'Afrikaans 1933/1953-vertaling', holder: 'Bybelgenootskap van Suid-Afrika', lang: 'af', you: { v: 5, abbr: 'AFR53' }, sa: 'AFR53' },
 ];
 
 const memory = new Map();   // url -> parsed JSON, so a chapter is fetched once per visit
@@ -52,9 +52,14 @@ async function readJson(r) {
   try { return JSON.parse(text); } catch (e) { throw new Error('The service sent an answer the app could not read.'); }
 }
 
-/** Every source the person can read from: the bundled two plus the API Bibles they ticked. */
+/** Every source the person can read from: the bundled two, the API Bibles they ticked, and the versions they paste in themselves. */
 export function sources() {
   const list = Object.values(BUILT_IN);
+  for (const x of EXTERNAL) {
+    if ((state.settings.myTexts || []).includes(x.id) || textCount(x.id)) {
+      list.push({ id: 'mine:' + x.id, short: x.label + ' (pasted)', name: `${x.name}, pasted in by you`, lang: x.lang, builtin: false, provider: 'mine', ext: x });
+    }
+  }
   for (const b of state.settings.apiBibles || []) {
     list.push({ id: 'api:' + b.id, short: b.abbreviation || b.name, name: b.name, lang: b.language || '', builtin: false, apiId: b.id, provider: 'api' });
   }
@@ -79,14 +84,20 @@ export async function copyrightOf(sourceId) {
   const s = source(sourceId);
   if (!s) return '';
   if (s.builtin) return (await fetchJson(`data/${s.id}/index.json`)).copyright;
+  if (s.provider === 'mine') return pastedCopyright(s.ext);
   if (s.provider === 'yv') return `${s.name}. Scripture text from the YouVersion Platform, © its publisher.`;
   return `${s.name}. Scripture text provided by API.Bible.`;
 }
 
+function pastedCopyright(ext) {
+  return `${ext.name} © ${ext.holder}. Text you pasted in yourself, kept on this device only.`;
+}
+
 /**
- * One chapter: {verses: [{n, text}], title, copyright, fums, missing}.
+ * One chapter: {verses: [{n, text}], title, copyright, fums, missing, unpasted}.
  * `missing` is set when the Bible does not contain the book (an Apocrypha
- * book in a Protestant Bible, for instance) instead of throwing.
+ * book in a Protestant Bible, for instance) instead of throwing; `unpasted`
+ * when the person has not pasted that chapter of their own text in yet.
  */
 export async function getChapter(sourceId, book, chapter) {
   const s = source(sourceId);
@@ -97,6 +108,11 @@ export async function getChapter(sourceId, book, chapter) {
     const verses = (data.chapters[chapter - 1] || []).map((text, i) => ({ n: i + 1, text }));
     if (!verses.length) return { verses: [], missing: true };
     return { verses, title: data.titles ? data.titles[String(chapter)] : undefined };
+  }
+  if (s.provider === 'mine') {
+    const t = await getText(s.ext.id, book, chapter);
+    if (!t) return { verses: [], unpasted: true };
+    return { verses: t.verses, title: t.title || undefined, copyright: pastedCopyright(s.ext) };
   }
   if (s.provider === 'yv') return yvChapter(s.yvId, book, chapter);
   return apiChapter(s.apiId, book, chapter);

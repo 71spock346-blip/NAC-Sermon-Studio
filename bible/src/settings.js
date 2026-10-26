@@ -4,7 +4,7 @@
  * copyright notices the bundled texts and API.Bible ask for.
  */
 import { el, clear, toast, confirmBox, download, today, sheet } from './ui.js';
-import { state, saveSetting, exportAll, importAll, clearCache, wipeAll } from './store.js';
+import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts } from './store.js';
 import * as Bible from './bible.js';
 import { BOOKS } from './books.js';
 
@@ -59,6 +59,8 @@ export function render(container) {
     el('span', { class: 'muted small', text: 'Removes the chapters fetched from both services; they are fetched again when opened.' }),
   ]));
 
+  myTextsSection(container);
+
   // ---- about you
   const nameInput = el('input', { type: 'text', value: S.name || '', placeholder: 'Your name, for the footer of the sermon notes' });
   nameInput.addEventListener('change', () => saveSetting('name', nameInput.value.trim()));
@@ -90,7 +92,7 @@ export function render(container) {
   });
   container.append(
     el('div', { class: 'docbar' }, [el('h3', { text: 'Backup' })]),
-    el('p', { class: 'small', text: `Everything you write stays in this browser on this device: ${state.notes.length} note${state.notes.length === 1 ? '' : 's'} and ${state.sermons.length} preparation${state.sermons.length === 1 ? '' : 's'} right now. Save a backup file regularly and keep it in your Google Drive. Load it on another device to carry your notes across; newer copies win and nothing is deleted.` }),
+    el('p', { class: 'small', text: `Everything you write stays in this browser on this device: ${state.notes.length} note${state.notes.length === 1 ? '' : 's'} and ${state.sermons.length} preparation${state.sermons.length === 1 ? '' : 's'} right now. Save a backup file regularly and keep it in your Google Drive. Load it on another device to carry your notes across; newer copies win and nothing is deleted. Pasted Bible text is not in this file: it has its own save file under Translations.` }),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small', type: 'button', text: 'Save backup file', onclick: async () => {
         const data = await exportAll();
@@ -134,6 +136,7 @@ export function render(container) {
       el('li', { text: 'King James Version (1769 text) with the Apocrypha: public domain. Text from the SWORD KJVA module via scrollmapper/bible_databases.' }),
       el('li', { text: 'World English Bible with the Deuterocanon: public domain, ebible.org. "World English Bible" is a trademark of eBible.org.' }),
       el('li', { text: 'Scripture read through API.Bible or the YouVersion Platform is the copyright of its publishers and is shown under their terms; see the notice under each chapter.' }),
+      el('li', { text: 'Text you paste in yourself stays on this device for your own study and remains the copyright of its publisher.' }),
       el('li', { text: 'Catechism of the New Apostolic Church: only the section numbers, titles and Bible references are indexed here. The text is read at nak.org.' }),
     ]),
     el('div', { class: 'row' }, [
@@ -144,6 +147,50 @@ export function render(container) {
           render(container);
         }
       } }),
+    ]),
+  );
+}
+
+/** Versions the person pastes in chapter by chapter, with their own save file. */
+function myTextsSection(container) {
+  const S = state.settings;
+  const rows = Bible.EXTERNAL.map(x => {
+    const cb = el('input', { type: 'checkbox', checked: (S.myTexts || []).includes(x.id) });
+    cb.addEventListener('change', async () => {
+      const list = Bible.EXTERNAL.filter(y => (y.id === x.id ? cb.checked : (S.myTexts || []).includes(y.id))).map(y => y.id);
+      await saveSetting('myTexts', list);
+      toast(cb.checked ? `${x.label} (pasted) is now in the reader's translation list.` : `${x.label} (pasted) removed from the list${textCount(x.id) ? '; its chapters are kept' : ''}.`);
+    });
+    const n = textCount(x.id);
+    return el('label', { class: 'check' }, [cb, el('b', { text: x.label }), el('span', { class: 'grow', text: x.name }), el('span', { class: 'muted small', text: n ? `${n} chapter${n === 1 ? '' : 's'} pasted` : 'nothing pasted yet' })]);
+  });
+  const fileInput = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
+  fileInput.addEventListener('change', async () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    try {
+      const n = await importTexts(JSON.parse(await f.text()));
+      toast(`${n} chapter${n === 1 ? '' : 's'} loaded.`);
+      render(container);
+    } catch (e) { toast(e.message || 'That file could not be read.', true); }
+    fileInput.value = '';
+  });
+  container.append(
+    el('h3', { class: 'sub', text: 'My pasted text' }),
+    el('p', { class: 'small', text: 'For a text you may use yourself: tick its version here, choose it in the reader (marked "pasted"), and paste each chapter in when you open it, copied from the page where you read it. The text stays in this browser on this device. It is not part of the normal backup; save it with its own file here to carry it to another device.' }),
+    el('div', { class: 'list' }, rows),
+    el('div', { class: 'row' }, [
+      el('button', { class: 'btn small ghost', type: 'button', text: 'Save pasted text to a file', onclick: async () => {
+        const data = await exportTexts();
+        if (!data.texts.length) { toast('Nothing has been pasted yet.', true); return; }
+        download(new Blob([JSON.stringify(data)], { type: 'application/json' }), `study-bible-pasted-text-${today()}.json`);
+        toast(`Saved: ${data.texts.length} chapter${data.texts.length === 1 ? '' : 's'}.`);
+      } }),
+      el('button', { class: 'btn small ghost', type: 'button', text: 'Load a pasted-text file', onclick: () => fileInput.click() }),
+      el('button', { class: 'btn small ghost danger', type: 'button', text: 'Remove all pasted text', onclick: async () => {
+        if (await confirmBox('Remove every pasted chapter from this device? Save them to a file first if you want them back.', 'Remove', true)) { await wipeTexts(); toast('Pasted text removed.'); render(container); }
+      } }),
+      fileInput,
     ]),
   );
 }
