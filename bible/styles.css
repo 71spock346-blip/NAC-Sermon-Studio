@@ -78,6 +78,8 @@ details summary { cursor: pointer; color: var(--accent); }
 .readbar .goto input { flex: 1 1 auto; }
 .readbar .src select { width: auto; flex: 0 1 180px; }
 
+.paste-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 6px 0 12px; background: #fff; font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.45; }
+.paste-card p { margin: 0 0 6px; }
 .beside-bar { gap: 8px; flex-wrap: wrap; margin: 4px 0 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
 .beside-bar b { white-space: nowrap; }
 @media (min-width: 1200px) { body.beside main { margin-left: 24px; } }   /* leaves the right of the screen for the BibleSA window */

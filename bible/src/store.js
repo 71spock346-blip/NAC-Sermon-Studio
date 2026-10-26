@@ -6,8 +6,8 @@
  * arrays as the truth. Export/Import moves the lot between devices.
  */
 const DB_NAME = 'nac-study-bible';
-const DB_VERSION = 1;
-const STORES = ['notes', 'sermons', 'settings', 'cache'];
+const DB_VERSION = 2;
+const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts'];
 
 let dbPromise = null;
 
@@ -21,6 +21,7 @@ function openDb() {
       if (!db.objectStoreNames.contains('sermons')) db.createObjectStore('sermons', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
       if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'key' });
+      if (!db.objectStoreNames.contains('texts')) db.createObjectStore('texts', { keyPath: 'key' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -42,6 +43,7 @@ function tx(store, mode, fn) {
 export const db = {
   all: store => tx(store, 'readonly', s => s.getAll()),
   get: (store, key) => tx(store, 'readonly', s => s.get(key)),
+  keys: store => tx(store, 'readonly', s => s.getAllKeys()),
   put: (store, value) => tx(store, 'readwrite', s => s.put(value)),
   del: (store, key) => tx(store, 'readwrite', s => s.delete(key)),
   clear: store => tx(store, 'readwrite', s => s.clear()),
@@ -61,6 +63,7 @@ export const DEFAULT_SETTINGS = {
   apiBibles: [],          // [{id, abbreviation, name, language}] chosen from the key's catalogue
   yvKey: '',              // YouVersion Platform app key, same rules as apiKey
   yvBibles: [],           // [{id, abbreviation, name, language}] chosen from that catalogue
+  myTexts: [],            // versions the person pastes in chapter by chapter ('afr83'), shown as "(pasted)"
   name: '',
   congregation: '',
   lastRef: 'PSA.23',
@@ -71,10 +74,17 @@ export const state = {
   notes: [],
   sermons: [],
   settings: { ...DEFAULT_SETTINGS },
+  texts: {},              // version -> Set of 'BOOK.chapter' pasted in (the text itself stays in the database)
 };
 
 export async function load() {
-  const [notes, sermons, settings] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings')]);
+  const [notes, sermons, settings, textKeys] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts')]);
+  state.texts = {};
+  for (const k of textKeys) {
+    const [version, ref] = String(k).split(':');
+    if (!state.texts[version]) state.texts[version] = new Set();
+    state.texts[version].add(ref);
+  }
   state.notes = notes.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
   state.sermons = sermons.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   state.settings = { ...DEFAULT_SETTINGS };
@@ -136,7 +146,60 @@ export async function clearCache() {
   await db.clear('cache');
 }
 
-/* ---- backup ---- */
+/* ---- text the person pasted in, chapter by chapter ----
+   It is theirs to use on this device only, so it lives in its own store, is
+   not part of the normal backup, and moves between devices with its own file. */
+export function textKey(version, book, chapter) { return `${version}:${book}.${chapter}`; }
+
+export function hasText(version, book, chapter) {
+  return !!(state.texts[version] && state.texts[version].has(`${book}.${chapter}`));
+}
+
+export function textCount(version) {
+  return state.texts[version] ? state.texts[version].size : 0;
+}
+
+export async function getText(version, book, chapter) {
+  return hasText(version, book, chapter) ? db.get('texts', textKey(version, book, chapter)) : null;
+}
+
+export async function saveText(version, book, chapter, verses, title) {
+  const row = { key: textKey(version, book, chapter), version, book, chapter, verses, title: title || '', at: new Date().toISOString() };
+  await db.put('texts', row);
+  if (!state.texts[version]) state.texts[version] = new Set();
+  state.texts[version].add(`${book}.${chapter}`);
+  return row;
+}
+
+export async function deleteText(version, book, chapter) {
+  await db.del('texts', textKey(version, book, chapter));
+  if (state.texts[version]) state.texts[version].delete(`${book}.${chapter}`);
+}
+
+export async function exportTexts() {
+  return { app: 'nac-study-bible-texts', version: 1, exportedAt: new Date().toISOString(), texts: await db.all('texts') };
+}
+
+/** Loads a pasted-text file: newer chapters win, nothing is deleted. Returns the number of chapters taken. */
+export async function importTexts(data) {
+  if (!data || data.app !== 'nac-study-bible-texts' || !Array.isArray(data.texts)) throw new Error('Not a pasted-text file from this app');
+  let n = 0;
+  for (const t of data.texts) {
+    if (!t || !t.version || !t.book || !t.chapter || !Array.isArray(t.verses)) continue;
+    const mine = await getText(t.version, t.book, t.chapter);
+    if (mine && (mine.at || '') >= (t.at || '')) continue;
+    await saveText(t.version, t.book, t.chapter, t.verses, t.title);
+    n++;
+  }
+  return n;
+}
+
+export async function wipeTexts() {
+  await db.clear('texts');
+  state.texts = {};
+}
+
+/* ---- backup (pasted text is not in it: see exportTexts) ---- */
 export async function exportAll() {
   return {
     app: 'nac-study-bible',
@@ -183,4 +246,5 @@ export async function wipeAll() {
   state.notes = [];
   state.sermons = [];
   state.settings = { ...DEFAULT_SETTINGS };
+  state.texts = {};
 }
