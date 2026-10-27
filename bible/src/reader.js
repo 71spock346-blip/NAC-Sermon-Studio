@@ -151,6 +151,7 @@ async function draw() {
   if (compare && compare.unpasted) article.append(unpastedCard(Bible.source(cmpId), current.book, current.chapter, () => draw()));
 
   await Cat.load().catch(() => {});
+  Cat.loadText().catch(() => {});
   const catMap = Cat.chapterMap(current.book, current.chapter);
   const noteList = Notes.notesFor(current.book, current.chapter);
   const cmpBy = new Map((compare && compare.verses || []).map(v => [v.n, v.text]));
@@ -348,12 +349,19 @@ function clearSelection() {
 function showCatechism(verseN, sections, label) {
   const lang = state.settings.bookLang;
   const s = sheet(`Catechism on ${label || formatRef({ book: current.book, chapter: current.chapter, verse: verseN }, lang)}`);
-  s.body.append(el('p', { class: 'muted small', text: 'These sections of the Catechism refer to this verse. Open one to see its other references, or read it at nak.org.' }));
+  const hasText = Cat.textReady();
+  s.body.append(el('p', { class: 'muted small', text: hasText
+    ? 'These sections of the Catechism refer to this verse. Open one to read it and see its other references.'
+    : 'These sections of the Catechism refer to this verse. Open one to see its other references, or read it at nak.org.' }));
   const list = el('div', { class: 'list' });
   for (const sec of sections) {
+    const summary = hasText ? Cat.summaryOf(sec.n) : [];
     list.append(el('div', { class: 'item cat' }, [
-      el('a', { class: 'grow', href: `#catechism/${encodeURIComponent(sec.n)}`, onclick: () => s.close() }, [el('span', { class: 'num', text: sec.n }), ' ', sec.title]),
-      el('a', { class: 'btn small ghost', href: Cat.url(sec), target: '_blank', rel: 'noopener', text: 'nak.org ↗' }),
+      el('a', { class: 'grow', href: `#catechism/${encodeURIComponent(sec.n)}`, onclick: () => s.close() }, [
+        el('span', { class: 'num', text: sec.n }), ' ', sec.title,
+        summary.length ? el('span', { class: 'snippet muted small', text: summary[0] }) : null,
+      ]),
+      hasText ? null : el('a', { class: 'btn small ghost', href: Cat.url(sec), target: '_blank', rel: 'noopener', text: 'nak.org ↗' }),
     ]));
   }
   s.body.append(list);

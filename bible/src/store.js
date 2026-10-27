@@ -6,8 +6,8 @@
  * arrays as the truth. Export/Import moves the lot between devices.
  */
 const DB_NAME = 'nac-study-bible';
-const DB_VERSION = 2;
-const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts'];
+const DB_VERSION = 3;
+const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism'];
 
 let dbPromise = null;
 
@@ -22,6 +22,7 @@ function openDb() {
       if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
       if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'key' });
       if (!db.objectStoreNames.contains('texts')) db.createObjectStore('texts', { keyPath: 'key' });
+      if (!db.objectStoreNames.contains('catechism')) db.createObjectStore('catechism', { keyPath: 'key' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -75,10 +76,12 @@ export const state = {
   sermons: [],
   settings: { ...DEFAULT_SETTINGS },
   texts: {},              // version -> Set of 'BOOK.chapter' pasted in (the text itself stays in the database)
+  catechism: null,        // {edition, sections, builtAt, loadedAt} when the Catechism text is loaded on this device
 };
 
 export async function load() {
-  const [notes, sermons, settings, textKeys] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts')]);
+  const [notes, sermons, settings, textKeys, catMeta] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta')]);
+  state.catechism = catMeta ? catMeta.value : null;
   state.texts = {};
   for (const k of textKeys) {
     const [version, ref] = String(k).split(':');
@@ -199,7 +202,32 @@ export async function wipeTexts() {
   state.texts = {};
 }
 
-/* ---- backup (pasted text is not in it: see exportTexts) ---- */
+/* ---- the text of the Catechism, loaded from the file the build script makes ----
+   The Church's text is for the person's own study, so it lives on the device
+   only: its own store, not in the backup. 'meta' is read at start (is it
+   there, which edition); 'text' holds the sections and is read when needed. */
+export async function saveCatechismText(data) {
+  if (!data || data.app !== 'nac-study-bible-catechism' || !Array.isArray(data.sections) || !data.sections.length) throw new Error('Not a Catechism text file from this app');
+  const sections = data.sections.filter(x => x && x.n && Array.isArray(x.blocks));
+  if (!sections.length) throw new Error('The file holds no Catechism sections');
+  const meta = { edition: data.edition || 'Catechism of the New Apostolic Church', copyright: data.copyright || '', builtAt: data.builtAt || '', sections: sections.length, loadedAt: new Date().toISOString() };
+  await db.put('catechism', { key: 'text', value: sections });
+  await db.put('catechism', { key: 'meta', value: meta });
+  state.catechism = meta;
+  return meta;
+}
+
+export async function getCatechismText() {
+  const row = await db.get('catechism', 'text');
+  return row ? row.value : null;
+}
+
+export async function deleteCatechismText() {
+  await db.clear('catechism');
+  state.catechism = null;
+}
+
+/* ---- backup (pasted text and the Catechism text are not in it: see exportTexts) ---- */
 export async function exportAll() {
   return {
     app: 'nac-study-bible',
@@ -247,4 +275,5 @@ export async function wipeAll() {
   state.sermons = [];
   state.settings = { ...DEFAULT_SETTINGS };
   state.texts = {};
+  state.catechism = null;
 }
