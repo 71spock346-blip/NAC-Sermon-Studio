@@ -5,8 +5,12 @@
  * written a note on it. Tapping verses selects them; the bar that appears
  * offers a note, the Catechism sections, a service preparation, a copy, and
  * the licensed translations on YouVersion or BibleGateway.
+ *
+ * The bar above the text keeps to the essentials: book, chapter, Go to, the
+ * translation and "Aa", which opens the reading choices (text size, theme,
+ * Compare, Beside) in a sheet so the text starts high on a phone.
  */
-import { el, $, clear, toast, sheet, copyText } from './ui.js';
+import { el, $, clear, toast, sheet, copyText, seg, THEMES, SIZES, applyTheme } from './ui.js';
 import { BOOKS, BY_ID, GROUPS, GROUPS_AF, bookName, parseRef, formatRef } from './books.js';
 import { state, saveSetting } from './store.js';
 import * as Bible from './bible.js';
@@ -27,7 +31,19 @@ window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#re
 let selected = new Set();
 let scrollToVerse = null;  // the verse named in the address, scrolled to once
 let verses = [];           // the primary text of the open chapter
+let counts = {};           // chapters per book of the open translation, for ‹ › and the arrow keys
 let container = null;
+
+// On a PC the left and right arrow keys turn the chapter, as in a book.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if (!location.hash.startsWith('#read') || !container || $('.overlay')) return;
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+  e.preventDefault();
+  step(e.key === 'ArrowRight' ? 1 : -1);
+});
 
 export function render(root, route) {
   container = root;
@@ -53,11 +69,12 @@ async function draw() {
   clear(container);
   const lang = state.settings.bookLang;
   const srcId = Bible.source(state.settings.translation) ? state.settings.translation : 'kjv';
+  const src = Bible.source(srcId);
   const cmpId = state.settings.compare && Bible.source(state.settings.compare) && state.settings.compare !== srcId ? state.settings.compare : '';
   const besideExt = Bible.EXTERNAL.find(x => x.sa && x.sa === state.settings.beside) || null;
   document.body.classList.toggle('beside', !!besideExt);
 
-  // ---- navigation bar
+  // ---- the bar: book and chapter, then Go to, the translation and Aa
   const bookSel = el('select', { id: 'r-book', 'aria-label': 'Book' });
   for (const g of ['ot', 'ap', 'nt']) {
     const grp = el('optgroup', { label: (lang === 'af' ? GROUPS_AF : GROUPS)[g] });
@@ -65,21 +82,23 @@ async function draw() {
     bookSel.append(grp);
   }
   const chapSel = el('select', { id: 'r-chapter', 'aria-label': 'Chapter' });
-  const counts = await Bible.bookIndex(srcId);
+  counts = await Bible.bookIndex(srcId);
   const nChapters = counts[current.book] || 1;
   if (current.chapter > nChapters) current.chapter = nChapters;
   for (let i = 1; i <= nChapters; i++) chapSel.append(el('option', { value: i, text: i, selected: i === current.chapter }));
   bookSel.addEventListener('change', () => go(bookSel.value, 1));
   chapSel.addEventListener('change', () => go(current.book, parseInt(chapSel.value, 10)));
 
-  const gotoInput = el('input', { type: 'search', placeholder: lang === 'af' ? 'Gaan na: Ps 130:7, Lukas 8:16' : 'Go to: Ps 130:7, John 3:16, 1 Kor 13', 'aria-label': 'Go to a reference', enterkeyhint: 'go' });
+  const narrow = matchMedia('(max-width: 759.98px)').matches;
+  const gotoInput = el('input', { type: 'search', placeholder: lang === 'af' ? (narrow ? 'Gaan na Ps 130:7…' : 'Gaan na: Ps 130:7, Lukas 8:16…') : (narrow ? 'Go to Ps 130:7…' : 'Go to: Ps 130:7, John 3:16…'), 'aria-label': 'Go to a reference', enterkeyhint: 'go', autocomplete: 'off', spellcheck: 'false' });
   const gotoForm = el('form', { class: 'goto', onsubmit: e => {
     e.preventDefault();
     const ref = parseRef(gotoInput.value);
     if (!ref) { toast('That reference was not understood. Try "Psalm 130:7".', true); return; }
     gotoInput.value = '';
+    gotoInput.blur();
     location.hash = `#read/${ref.book}/${ref.chapter}${ref.verse ? '/' + ref.verse : ''}`;
-  } }, [gotoInput, el('button', { class: 'btn small', type: 'submit', text: 'Go' })]);
+  } }, [gotoInput, el('button', { class: 'btn small ghost', type: 'submit', text: 'Go' })]);
 
   const srcSel = el('select', { id: 'r-src', 'aria-label': 'Translation' });
   const cmpSel = el('select', { id: 'r-cmp', 'aria-label': 'Compare with' }, el('option', { value: '', text: 'Compare: none' }));
@@ -89,30 +108,31 @@ async function draw() {
   }
   srcSel.addEventListener('change', async () => { await saveSetting('translation', srcSel.value); if (state.settings.compare === srcSel.value) await saveSetting('compare', ''); draw(); });
   cmpSel.addEventListener('change', async () => { await saveSetting('compare', cmpSel.value); draw(); });
-  const besideSel = el('select', { id: 'r-beside', 'aria-label': 'Show beside the text' }, el('option', { value: '', text: 'Beside: none' }));
-  for (const x of Bible.EXTERNAL.filter(x => x.sa)) besideSel.append(el('option', { value: x.sa, text: `${x.label} (BibleSA)`, selected: !!besideExt && besideExt.sa === x.sa }));
-  besideSel.addEventListener('change', async () => { await saveSetting('beside', besideSel.value); draw(); });
-
-  const sizeDown = el('button', { class: 'btn small ghost', type: 'button', text: 'A−', 'aria-label': 'Smaller text', onclick: () => resize(-1) });
-  const sizeUp = el('button', { class: 'btn small ghost', type: 'button', text: 'A+', 'aria-label': 'Larger text', onclick: () => resize(1) });
+  const viewBtn = el('button', { id: 'r-view', class: 'btn small ghost', type: 'button', 'aria-label': 'Reading choices: text size, theme, compare and beside', title: 'Text size, theme, Compare, Beside', onclick: () => viewSheet(srcId) }, [
+    'Aa', el('span', { html: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' }),
+  ]);
 
   container.append(
     el('div', { class: 'readbar' }, [
       el('div', { class: 'row nav' }, [
-        el('button', { class: 'btn small ghost', type: 'button', text: '‹', 'aria-label': 'Previous chapter', onclick: () => step(-1, counts) }),
+        el('button', { class: 'btn small ghost', type: 'button', text: '‹', 'aria-label': 'Previous chapter', onclick: () => step(-1) }),
         bookSel, chapSel,
-        el('button', { class: 'btn small ghost', type: 'button', text: '›', 'aria-label': 'Next chapter', onclick: () => step(1, counts) }),
-        gotoForm,
+        el('button', { class: 'btn small ghost', type: 'button', text: '›', 'aria-label': 'Next chapter', onclick: () => step(1) }),
       ]),
-      el('div', { class: 'row src' }, [srcSel, cmpSel, besideSel, el('div', { class: 'spacer' }), sizeDown, sizeUp]),
+      el('div', { class: 'row tools' }, [gotoForm, srcSel, cmpSel, viewBtn]),
     ]));
 
   // ---- the text
-  const article = el('article', { class: 'scripture size-' + (state.settings.fontSize || 'm') });
+  const page = el('div', { class: 'page reader' });
+  const article = el('article', { class: 'scripture size-' + (state.settings.fontSize || 'm'), lang: src && src.lang ? String(src.lang).slice(0, 2) : 'en' });
   if (besideExt) { container.append(besideBar(besideExt)); followBeside(besideExt); }
-  container.append(article);
+  container.append(page);
+  page.append(article);
   const heading = formatRef({ book: current.book, chapter: current.chapter }, lang);
-  article.append(el('h2', { text: heading }));
+  article.append(el('header', { class: 'chap-head' }, [
+    el('h2', { text: heading }),
+    el('p', { class: 'caption', text: src ? (src.name || src.short) + (cmpId ? ` · compared with ${Bible.source(cmpId).short}` : '') : '' }),
+  ]));
   const status = el('p', { class: 'muted small', text: 'Loading…' });
   article.append(status);
 
@@ -160,26 +180,31 @@ async function draw() {
     const marks = el('span', { class: 'marks' });
     const cats = catMap.get(v.n);
     if (cats && cats.length) {
-      marks.append(el('button', { class: 'mark c', type: 'button', title: `${cats.length} Catechism section${cats.length === 1 ? '' : 's'}`, text: 'C' + (cats.length > 1 ? cats.length : ''), onclick: e => { e.stopPropagation(); showCatechism(v.n, cats); } }));
+      marks.append(el('button', { class: 'mark c', type: 'button', 'aria-label': `${cats.length} Catechism section${cats.length === 1 ? '' : 's'} on verse ${v.n}`, title: `${cats.length} Catechism section${cats.length === 1 ? '' : 's'}`, text: 'C' + (cats.length > 1 ? cats.length : ''), onclick: e => { e.stopPropagation(); showCatechism(v.n, cats); } }));
     }
     const vnotes = noteList.filter(n => !n.verse || (v.n >= n.verse && v.n <= (n.verseEnd || n.verse)));
     if (vnotes.length) {
-      marks.append(el('button', { class: 'mark n', type: 'button', title: `${vnotes.length} note${vnotes.length === 1 ? '' : 's'}`, text: '✎', onclick: e => { e.stopPropagation(); showNotes(v.n, vnotes); } }));
+      marks.append(el('button', { class: 'mark n', type: 'button', 'aria-label': `${vnotes.length} note${vnotes.length === 1 ? '' : 's'} on verse ${v.n}`, title: `${vnotes.length} note${vnotes.length === 1 ? '' : 's'}`, text: '✎', onclick: e => { e.stopPropagation(); showNotes(v.n, vnotes); } }));
     }
-    const row = el('div', { class: 'verse' + (selected.has(v.n) ? ' sel' : ''), dataset: { v: v.n }, onclick: () => toggle(v.n) }, [
+    const on = selected.has(v.n);
+    const row = el('div', {
+      class: 'verse' + (on ? ' sel' : ''), dataset: { v: v.n }, role: 'button', tabindex: '0', 'aria-pressed': on ? 'true' : 'false',
+      onclick: () => toggle(v.n),
+      onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(v.n); } },
+    }, [
       el('sup', { class: 'vn', text: v.n }),
       el('span', { class: 'txt', text: v.text }),
       marks,
     ]);
     if (compare && cmpBy.has(v.n)) {
-      row.append(el('span', { class: 'txt cmp', text: cmpBy.get(v.n) }));
+      row.append(el('span', { class: 'txt cmp', lang: String(Bible.source(cmpId).lang || 'en').slice(0, 2), text: cmpBy.get(v.n) }));
     }
     article.append(row);
   }
-  article.append(el('div', { class: 'row chapnav' }, [
-    el('button', { class: 'btn small ghost', type: 'button', text: '‹ Previous chapter', onclick: () => step(-1, counts) }),
-    el('div', { class: 'spacer' }),
-    el('button', { class: 'btn small ghost', type: 'button', text: 'Next chapter ›', onclick: () => step(1, counts) }),
+  const prev = neighbour(-1), next = neighbour(1);
+  article.append(el('nav', { class: 'row chapnav', 'aria-label': 'Chapters' }, [
+    el('button', { class: 'btn ghost' + (prev ? '' : ' hollow'), type: 'button', text: prev ? '‹ ' + formatRef(prev, lang) : '', disabled: !prev, onclick: () => step(-1) }),
+    el('button', { class: 'btn ghost' + (next ? '' : ' hollow'), type: 'button', text: next ? formatRef(next, lang) + ' ›' : '', disabled: !next, onclick: () => step(1) }),
   ]));
 
   // ---- copyright, FUMS and read-elsewhere links
@@ -196,25 +221,25 @@ async function draw() {
       foot.append(el('p', {}, [el('button', { class: 'btn small ghost', type: 'button', text: `Edit the pasted ${s.ext.label} text`, onclick: () => pasteSheet(s, current.book, current.chapter, () => draw()) })]));
     }
   }
-  const links = el('p', { class: 'elsewhere' }, 'Read this chapter in: ');
+  const links = el('p', { class: 'elsewhere' }, el('span', { class: 'site', text: 'Read this chapter on YouVersion:' }));
   for (const x of Bible.EXTERNAL) {
-    links.append(el('a', { href: Bible.youVersionUrl(x, current.book, current.chapter), target: '_blank', rel: 'noopener', text: x.label }), ' ');
+    links.append(el('a', { href: Bible.youVersionUrl(x, current.book, current.chapter), target: '_blank', rel: 'noopener', text: x.label }));
   }
-  links.append('on YouVersion · ');
+  links.append(el('span', { class: 'site', text: '· on BibleSA:' }));
   for (const x of Bible.EXTERNAL.filter(x => x.sa)) {
-    links.append(el('a', { href: Bible.bibleSaUrl(x, current.book, current.chapter), target: '_blank', rel: 'noopener', text: x.label }), ' ');
+    links.append(el('a', { href: Bible.bibleSaUrl(x, current.book, current.chapter), target: '_blank', rel: 'noopener', text: x.label }));
   }
-  links.append('on BibleSA · ');
-  links.append(el('a', { href: Bible.bibleGatewayUrl(heading, 'NKJV'), target: '_blank', rel: 'noopener', text: 'NKJV on BibleGateway' }));
+  links.append(el('span', { class: 'site', text: '· on BibleGateway:' }));
+  links.append(el('a', { href: Bible.bibleGatewayUrl(heading, 'NKJV'), target: '_blank', rel: 'noopener', text: 'NKJV' }));
   foot.append(links);
-  container.append(foot);
+  page.append(foot);
 
   // ---- notes on this chapter
   const notesBox = el('section', { class: 'chapter-notes' });
   notesBox.append(el('h3', { class: 'sub', text: noteList.length ? `Your notes on this chapter (${noteList.length})` : 'Your notes on this chapter' }));
   if (!noteList.length) notesBox.append(el('p', { class: 'muted small', text: 'Tap a verse, then "Note", to write a thought, an experience or a sermon idea on it.' }));
   for (const n of noteList) notesBox.append(Notes.card(n, () => draw()));
-  container.append(notesBox);
+  page.append(notesBox);
 
   container.append(el('div', { class: 'vactions', id: 'vactions', hidden: true }));
   updateActions();
@@ -225,12 +250,40 @@ async function draw() {
   }
 }
 
+/** The reading choices behind "Aa": text size, theme, Compare and Beside. */
+function viewSheet(srcId) {
+  const s = sheet('Reading choices');
+  const sizeSeg = seg(SIZES, state.settings.fontSize || 'm', async v => {
+    await saveSetting('fontSize', v);
+    const art = $('.scripture', container);
+    if (art) art.className = 'scripture size-' + v;
+  }, { block: true, label: 'Text size' });
+  const themeSeg = seg(THEMES, state.settings.theme || 'system', async v => { await saveSetting('theme', v); applyTheme(v); }, { block: true, label: 'Theme' });
+
+  const cmpId = state.settings.compare && Bible.source(state.settings.compare) && state.settings.compare !== srcId ? state.settings.compare : '';
+  const cmpSel = el('select', { 'aria-label': 'Compare with' }, el('option', { value: '', text: 'None' }));
+  for (const x of Bible.sources()) if (x.id !== srcId) cmpSel.append(el('option', { value: x.id, text: x.short + ' – ' + x.name, selected: x.id === cmpId }));
+  cmpSel.addEventListener('change', async () => { await saveSetting('compare', cmpSel.value); draw(); });
+
+  const besideSel = el('select', { 'aria-label': 'Show beside the text' }, el('option', { value: '', text: 'None' }));
+  for (const x of Bible.EXTERNAL.filter(x => x.sa)) besideSel.append(el('option', { value: x.sa, text: `${x.label} – ${x.name} (BibleSA)`, selected: state.settings.beside === x.sa }));
+  besideSel.addEventListener('change', async () => { await saveSetting('beside', besideSel.value); draw(); });
+
+  s.body.append(
+    el('label', { class: 'f' }, ['Text size', sizeSeg, el('span', { class: 'hint muted small', text: '"Pulpit" is meant for reading while standing.' })]),
+    el('label', { class: 'f' }, ['Look', themeSeg, el('span', { class: 'hint muted small', text: '"System" follows the setting of this phone or PC.' })]),
+    el('label', { class: 'f' }, ['Compare with a second translation', cmpSel, el('span', { class: 'hint muted small', text: 'Shown under each verse.' })]),
+    el('label', { class: 'f' }, ['Beside: the Afrikaans Bible on BibleSA', besideSel, el('span', { class: 'hint muted small', text: 'Opens in its own window next to the app and follows the chapter.' })]),
+    el('div', { class: 'row end' }, [el('button', { class: 'btn', type: 'button', text: 'Done', onclick: () => s.close() })]),
+  );
+}
+
 /** Whether the BibleSA window this page opened is still open. */
 function besideOpen() { return !!(besideWin && !besideWin.closed); }
 
 /** The strip under the reader bar that opens the BibleSA window and says what it does. */
 function besideBar(ext) {
-  const button = el('button', { class: 'btn small primary', type: 'button' });
+  const button = el('button', { class: 'btn small', type: 'button' });
   const note = el('span', { class: 'muted small' });
   const refresh = (blocked) => {
     const open = besideOpen();
@@ -284,31 +337,29 @@ function go(book, chapter) {
   location.hash = `#read/${book}/${chapter}`;
 }
 
-function step(dir, counts) {
+/** The chapter before or after the open one, across book boundaries, or null at the ends of the Bible. */
+function neighbour(dir) {
   let { book, chapter } = current;
   const n = counts[book] || 1;
   chapter += dir;
   if (chapter < 1 || chapter > n) {
     const i = BOOKS.findIndex(b => b.id === book) + dir;
-    if (i < 0 || i >= BOOKS.length) return;
+    if (i < 0 || i >= BOOKS.length) return null;
     book = BOOKS[i].id;
     chapter = dir > 0 ? 1 : (counts[book] || 1);
   }
-  go(book, chapter);
+  return { book, chapter };
 }
 
-async function resize(dir) {
-  const sizes = ['s', 'm', 'l', 'xl'];
-  const i = Math.min(sizes.length - 1, Math.max(0, sizes.indexOf(state.settings.fontSize || 'm') + dir));
-  await saveSetting('fontSize', sizes[i]);
-  const art = $('.scripture', container);
-  if (art) art.className = 'scripture size-' + sizes[i];
+function step(dir) {
+  const to = neighbour(dir);
+  if (to) go(to.book, to.chapter);
 }
 
 function toggle(n) {
   if (selected.has(n)) selected.delete(n); else selected.add(n);
   const row = container.querySelector(`.verse[data-v="${n}"]`);
-  if (row) row.classList.toggle('sel', selected.has(n));
+  if (row) { row.classList.toggle('sel', selected.has(n)); row.setAttribute('aria-pressed', selected.has(n) ? 'true' : 'false'); }
   updateActions();
 }
 
@@ -342,7 +393,7 @@ function updateActions() {
 
 function clearSelection() {
   selected.clear();
-  for (const r of container.querySelectorAll('.verse.sel')) r.classList.remove('sel');
+  for (const r of container.querySelectorAll('.verse.sel')) { r.classList.remove('sel'); r.setAttribute('aria-pressed', 'false'); }
   updateActions();
 }
 
