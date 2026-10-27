@@ -8,6 +8,7 @@
  */
 import { formatRef } from './books.js';
 import { state } from './store.js';
+import * as Cat from './catechism.js';
 
 const BLUE = [17, 87, 171];
 const INK = [31, 41, 55];
@@ -132,8 +133,7 @@ export function sermonPdf(s) {
   }
   if ((s.catechism || []).length) {
     w.heading('Catechism');
-    for (const c of s.catechism) w.para(`${c.n}  ${c.title}`, { indent: 3, after: 0.5 });
-    w.space(2);
+    catechismNotes(w, s);
   }
   if (s.crossRefs) { w.heading('Cross references'); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); }
   if (s.intro) { w.heading('Introduction'); w.para(s.intro); }
@@ -153,6 +153,47 @@ export function sermonPdf(s) {
   const who = [state.settings.name, 'NAC Study Bible'].filter(Boolean).join('  ·  ');
   w.footer(who);
   return { blob: doc.output('blob'), name: fileName(s, '-sermon'), title: title };
+}
+
+/** Superscript digits are not in the PDF's fonts: write them as [1]. */
+function plainSup(text) {
+  return String(text).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, m => '[' + [...m].map(c => '⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c)).join('') + ']');
+}
+
+/**
+ * The chosen Catechism sections: number and title, and under each, as the
+ * preparation asks, the section's text, its summary, or nothing more. The
+ * text is there only when the person has loaded it on this device.
+ */
+function catechismNotes(w, s) {
+  const how = s.catechismText || 'full';
+  let quoted = false;
+  for (const c of s.catechism) {
+    const sec = Cat.section(c.n) || c;
+    w.para(`${sec.n}  ${sec.title}`, { style: 'bold', size: 10.5, after: 0.5 });
+    if (how === 'ref' || !Cat.textReady() || !Cat.textOf(sec.n)) { w.space(1); continue; }
+    const summary = Cat.summaryOf(sec.n);
+    if (how === 'summary') {
+      const lines = summary.length ? summary : Cat.plainLines(sec.n).filter(l => l.kind === 'p').slice(0, 1).map(l => l.text);
+      for (const p of lines) w.para(plainSup(p), { indent: 3, size: 10, after: 1 });
+      quoted = quoted || lines.length > 0;
+      w.space(1.5);
+      continue;
+    }
+    for (const line of Cat.plainLines(sec.n)) {
+      if (line.kind === 'h') w.para(line.text, { indent: 3, style: 'bold', size: 10, after: 0.5 });
+      else if (line.kind === 'li' && !line.single) w.para('– ' + plainSup(line.text), { indent: 6, size: 10, after: 0.5 });
+      else if (line.kind === 'cell') w.para(`${line.label}: ${plainSup(line.text).replace(/\n/g, ' ')}`, { indent: 6, size: 10, after: 0.5 });
+      else if (line.kind === 'v') for (const v of line.text.split('\n')) w.para(v, { indent: 6, size: 10, after: 0 });
+      else w.para(plainSup(line.text), { indent: line.kind === 'li' ? 6 : 3, size: 10, after: 1 });
+      quoted = true;
+    }
+    for (const p of summary) w.para('In short: ' + plainSup(p), { indent: 3, size: 10, style: 'italic', after: 1 });
+    for (const nt of Cat.notesOf(sec.n)) w.para(`[${nt.n}] ${nt.t}`, { indent: 3, size: 8.5, color: MUTED, after: 0.5 });
+    w.space(2);
+  }
+  if (quoted) w.para(Cat.credit(), { size: 8, color: MUTED, after: 1 });
+  w.space(1);
 }
 
 export function cueCardPdf(s) {

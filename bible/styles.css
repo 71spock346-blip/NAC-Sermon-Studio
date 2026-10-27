@@ -166,6 +166,36 @@ footer.copyright .elsewhere a { margin-right: 6px; }
 .points .point textarea { margin-top: 6px; }
 .catbox { border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; background: #fff; }
 .catbox > span { display: block; padding: 6px 0; }
+.catbox .cat-item { border-top: 1px solid #eef0f3; }
+.catbox .cat-item:first-child { border-top: none; }
+.catbox .cat-item label.check { border-top: none; }
+.catbox .cat-read { margin: 0 0 10px 26px; padding: 2px 12px; border-left: 3px solid var(--mark-c-bg); }
+.cat-row { margin: 6px 0 0; }
+.row.line.cat-row select { flex: 0 1 auto; width: auto; }
+.cat-note { margin-top: 4px; }
+
+/* the text of a Catechism section */
+.cat-text { font-size: 15px; line-height: 1.55; max-width: 72ch; }
+.cat-text p { margin: 0 0 10px; }
+.cat-text h4 { margin: 14px 0 4px; font-size: 15px; }
+.cat-text ul { margin: 0 0 10px; padding-left: 22px; }
+.cat-text li { margin: 0 0 4px; }
+.cat-text .cat-def { margin-left: 18px; }
+.cat-text .cat-verse { margin-left: 18px; font-family: var(--serif); }
+.cat-text sup { font-size: 10px; }
+.cat-sum { background: var(--mark-c-bg); border-radius: 8px; padding: 8px 12px; margin: 0 0 14px; font-size: 14px; }
+.cat-sum b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--mark-c); margin-bottom: 4px; }
+.cat-sum p { margin: 0 0 6px; }
+.cat-sum p:last-child { margin-bottom: 0; }
+.cat-notes { border-top: 1px solid #eef0f3; margin-top: 10px; padding-top: 6px; }
+.cat-notes p { margin: 0 0 4px; }
+.cat-credit { margin-top: 10px; }
+.cat-table-wrap { overflow-x: auto; margin: 0 0 12px; }
+.cat-table { border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+.cat-table th, .cat-table td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; text-align: left; }
+.cat-table thead th { background: var(--soft); font-size: 12.5px; }
+.cat-table tbody th { white-space: nowrap; font-size: 12.5px; color: var(--muted); }
+.item .snippet { display: block; font-weight: 400; margin-top: 2px; }
 .status-sel { width: auto; }
 label.f .row.line { width: 100%; }
 

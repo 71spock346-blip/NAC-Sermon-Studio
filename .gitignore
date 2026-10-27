@@ -1,0 +1,3 @@
+# The Catechism's text, built with bible/tools/build_catechism.py --text, is loaded
+# onto the person's device and never committed (see bible/README.md).
+catechism-text.json

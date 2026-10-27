@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Help – NAC Study Bible</title>
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=1">
+<link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body class="help">
 <header class="top">
@@ -48,15 +48,25 @@ Everything you write stays on your own device. There is no account and no server
 </ul>
 
 <h2>Catechism</h2>
-<p>The Catechism tab is an index of the Catechism's chapters and sections. Open a section to see the Bible verses
-it quotes, and tap "Read at nak.org" for the text itself on the Church's website. The text is not copied into the app.</p>
+<p>The Catechism tab lists the Catechism's chapters and sections. Open a section to see the Bible verses it quotes.
+The text of the sections is the Church's copyright, so it is not part of the public app: load it once on each device
+under Settings → Catechism, from the file <i>catechism-text.json</i> that is made from the Catechism PDF
+(<code>python3 bible/tools/build_catechism.py catechism.txt catechism-toc.txt --text catechism-text.json</code>, where
+<i>catechism.txt</i> is the PDF as text from <code>pdftotext -layout</code>). It stays in this browser on this device
+and is not in the backup file.</p>
+<p>With the text loaded you can read every section in the Catechism tab, with the book's own summary at the top and
+"see 4.2" links between sections; search the whole Catechism by word; tap the <b>C</b> on a verse to see the summary
+of each section that quotes it; and open a section under a service preparation with "Read". Without it, each section
+links to the same text at nak.org.</p>
 
 <h2>Preparing a divine service</h2>
 <ol>
   <li>Select the text word in the reader and choose <b>Prepare a service</b>, or tap "New preparation" in the Prepare tab.</li>
   <li>Fill in the date, congregation and occasion. The text can be fetched from a translation or typed in.</li>
   <li>Write the message and core thought from the Divine Service Guide in your own words, then your understanding of
-    the text: context, key words, the Catechism sections that quote it, cross references.</li>
+    the text: context, key words, the Catechism sections that quote it, cross references. Tick the Catechism sections
+    to keep and choose what the sermon notes should carry for them: the full text of each section, the Catechism's own
+    summary, or the number and title only.</li>
   <li>Build the sermon: introduction, main points, application for the congregation, conclusion, illustrations.</li>
   <li>Save or print the <b>sermon notes</b> (everything, A4) or the <b>cue card</b> (one A5 page in large type).
     On a phone, "Share" sends the PDF to WhatsApp or e-mail.</li>
@@ -91,7 +101,8 @@ like an app.</p>
   <li>King James Version (1769 text) with the Apocrypha: public domain.</li>
   <li>World English Bible with the Deuterocanon: public domain, ebible.org.</li>
   <li>Translations read through API.Bible remain the copyright of their publishers and are shown under API.Bible's terms.</li>
-  <li>Catechism of the New Apostolic Church: only section numbers, titles and Bible references are indexed here.</li>
+  <li>Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only section
+    numbers, titles and Bible references; the text is loaded by you onto your own device for personal study.</li>
 </ul>
 </div>
 </main>

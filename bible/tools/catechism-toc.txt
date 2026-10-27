@@ -441,6 +441,15 @@ Introduction | Functions | ae74c7cc-8a93-4b15-ab56-64690af3501c
 12.4.5.1 | Caring for the terminally ill and dying | b6eae521-8cd4-426f-806e-bc156e001386
 12.4.5.2 | Support for the bereaved | 48d03f6b-e7c6-4fd6-b3fb-40b72911ed61
 12.4.5.3 | Coping with grief | e5d56548-54c2-49ef-b2df-c3180c409776
+12.5 | Church holy days | 
+12.5.1 | Christmas | 
+12.5.2 | Palm Sunday | 
+12.5.3 | Good Friday | 
+12.5.4 | Easter | 
+12.5.5 | Ascension Day | 
+12.5.6 | Pentecost | 
+12.5.7 | Thanksgiving Day | 
+12.5.8 | Structure of divine services on religious holy days | 
 13 | New Apostolic Christians and their life of faith | 8c5c37ad-b4f7-44be-ab2d-bb6853bb7e1c
 13.1 | Prayer | 99275e16-5448-4207-9b31-e05a46790a85
 13.1.1 | Prayers in the Old Testament | d640241b-a0a6-4de2-8852-d7c102a11bd1

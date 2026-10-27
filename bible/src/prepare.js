@@ -34,6 +34,7 @@ export async function newFromText(ref, text, translationShort) {
     text: text || '',
     theme: '', core: '', guide: '', context: '', keywords: '',
     catechism: sectionsForRef(ref).slice(0, 12).map(c => ({ n: c.n, title: c.title })),
+    catechismText: 'full',
     crossRefs: '', intro: '', points: [{ heading: '', body: '' }, { heading: '', body: '' }, { heading: '', body: '' }],
     application: '', illustrations: '', conclusion: '', reflection: '', status: 'draft',
   };
@@ -99,7 +100,7 @@ async function newBlank() {
   const s = {
     date: nextSunday(), congregation: state.settings.congregation || '', occasion: OCCASIONS[0], title: '',
     ref: null, refText: '', translation: Bible.source(state.settings.translation)?.short || 'KJV', translationId: state.settings.translation, text: '',
-    theme: '', core: '', guide: '', context: '', keywords: '', catechism: [], crossRefs: '', intro: '',
+    theme: '', core: '', guide: '', context: '', keywords: '', catechism: [], catechismText: 'full', crossRefs: '', intro: '',
     points: [{ heading: '', body: '' }, { heading: '', body: '' }, { heading: '', body: '' }],
     application: '', illustrations: '', conclusion: '', reflection: '', status: 'draft',
   };
@@ -221,37 +222,66 @@ function renderEditor(container, s) {
 
   // ---- 3. understand
   container.append(step(3, 'Understand the text',
-    'Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text.'));
+    'Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'));
+  const catChoice = el('select', { class: 'small' }, [
+    el('option', { value: 'full', text: 'Full text of each section' }),
+    el('option', { value: 'summary', text: 'The Catechism\'s own summary' }),
+    el('option', { value: 'ref', text: 'Number and title only' }),
+  ]);
+  catChoice.value = s.catechismText || 'full';
+  catChoice.addEventListener('change', () => { s.catechismText = catChoice.value; touch(); });
+  const catNote = el('p', { class: 'muted small cat-note' });
   container.append(
     field('Context', 'context', { rows: 4, placeholder: 'The setting of the text: the people, the situation, the surrounding chapters' }),
     field('Key words and their meaning', 'keywords', { rows: 3, placeholder: 'One word per line, with what it means here' }),
     el('label', { class: 'f' }, ['Catechism references', catBox]),
+    el('div', { class: 'row line cat-row' }, [el('span', { class: 'small', text: 'In the sermon notes:' }), catChoice]),
+    catNote,
     field('Cross references', 'crossRefs', { rows: 3, placeholder: 'Other passages that shed light, one per line: "Romans 8:28 – all things work together"' }),
   );
+
+  function catRow(sec, checked, onChange, extraRef) {
+    const cb = el('input', { type: 'checkbox', checked });
+    cb.addEventListener('change', () => onChange(cb.checked));
+    const row = el('label', { class: 'check' }, [cb, el('span', { class: 'num', text: sec.n }), el('span', { class: 'grow', text: sec.title })]);
+    const wrap = el('div', { class: 'cat-item' }, row);
+    if (Cat.textReady() && Cat.textOf(sec.n)) {
+      const body = el('div', { class: 'cat-read', hidden: true });
+      const btn = el('button', { class: 'btn small ghost', type: 'button', text: 'Read', 'aria-expanded': 'false', onclick: e => {
+        e.preventDefault();
+        if (body.hidden) { if (!body.firstChild) body.append(Cat.renderText(sec.n, { noCredit: true })); body.hidden = false; btn.textContent = 'Hide'; btn.setAttribute('aria-expanded', 'true'); }
+        else { body.hidden = true; btn.textContent = 'Read'; btn.setAttribute('aria-expanded', 'false'); }
+      } });
+      row.append(btn);
+      wrap.append(body);
+    } else {
+      row.append(el('a', { class: 'small', href: Cat.url(extraRef || sec), target: '_blank', rel: 'noopener', text: 'nak.org ↗' }));
+    }
+    return wrap;
+  }
 
   function renderCatechism() {
     clear(catBox);
     if (!Cat.ready()) { Cat.load().then(renderCatechism); catBox.append(el('span', { class: 'muted small', text: 'Loading…' })); return; }
+    if (Cat.hasText() && !Cat.textReady()) { Cat.loadText().then(renderCatechism); }
     const secs = sectionsForRef(s.ref);
-    if (!s.ref) { catBox.append(el('span', { class: 'muted small', text: 'Give a reference above to see the Catechism sections that refer to it.' })); return; }
-    if (!secs.length) { catBox.append(el('span', { class: 'muted small', text: 'The Catechism does not quote these verses directly. Search the Catechism tab by subject instead.' })); }
+    if (!s.ref) { catBox.append(el('span', { class: 'muted small', text: 'Give a reference above to see the Catechism sections that refer to it.' })); }
+    else if (!secs.length) { catBox.append(el('span', { class: 'muted small', text: 'The Catechism does not quote these verses directly. Search the Catechism tab by subject instead.' })); }
     const chosen = new Set((s.catechism || []).map(c => c.n));
     for (const sec of secs) {
-      const cb = el('input', { type: 'checkbox', checked: chosen.has(sec.n) });
-      cb.addEventListener('change', () => {
+      catBox.append(catRow(sec, chosen.has(sec.n), on => {
         s.catechism = (s.catechism || []).filter(c => c.n !== sec.n);
-        if (cb.checked) s.catechism.push({ n: sec.n, title: sec.title });
+        if (on) s.catechism.push({ n: sec.n, title: sec.title });
         touch();
-      });
-      catBox.append(el('label', { class: 'check' }, [cb, el('span', { class: 'num', text: sec.n }), el('span', { class: 'grow', text: sec.title }),
-        el('a', { class: 'small', href: Cat.url(sec), target: '_blank', rel: 'noopener', text: 'nak.org ↗' })]));
+      }));
     }
     // keep any section chosen earlier that is no longer in the list (the reference changed)
     for (const c of (s.catechism || [])) if (!secs.find(x => x.n === c.n)) {
-      const cb = el('input', { type: 'checkbox', checked: true });
-      cb.addEventListener('change', () => { s.catechism = s.catechism.filter(x => x.n !== c.n); touch(); renderCatechism(); });
-      catBox.append(el('label', { class: 'check' }, [cb, el('span', { class: 'num', text: c.n }), el('span', { class: 'grow', text: c.title })]));
+      catBox.append(catRow(c, true, () => { s.catechism = s.catechism.filter(x => x.n !== c.n); touch(); renderCatechism(); }, Cat.section(c.n)));
     }
+    catNote.textContent = Cat.hasText()
+      ? 'Ticked sections go into the sermon notes as chosen above.'
+      : 'The text of the Catechism is not loaded on this device, so the notes list the ticked sections by number and title. Load it under Settings → Catechism to read the sections here and print them.';
   }
   renderCatechism();
 
@@ -300,8 +330,9 @@ function renderEditor(container, s) {
 
   // ---- output
   container.append(step('✓', 'Print or save', 'The sermon notes carry everything above. The cue card is one page in large type for the pulpit.'));
-  function run(make, how) {
+  async function run(make, how) {
     try {
+      await Cat.loadText().catch(() => false);
       const r = make(s);
       if (how === 'print') { Pdf.print(r); toast('Sending to the printer…'); }
       else if (how === 'share') Pdf.share(r).then(res => { if (res === 'downloaded') toast('Sharing is not available here, so the PDF was downloaded.'); });

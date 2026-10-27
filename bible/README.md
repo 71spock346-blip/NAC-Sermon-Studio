@@ -24,9 +24,14 @@ On a phone, open the link and use "Add to Home Screen". The user manual is
   they require) and the [YouVersion Platform](https://platform.youversion.com)
   (chapter HTML parsed into verses by `parseYvHtml`; cached 7 days). Without a key
   the reader links to the same chapter on YouVersion and BibleGateway.
-- **Catechism.** `data/catechism.json` is an index only: section numbers, titles,
-  the id of each section's page at nak.org, and the Bible verses each section quotes.
-  The text is read on nak.org.
+- **Catechism.** `data/catechism.json` is an index: section numbers, titles, the id of
+  each section's page at nak.org, and the Bible verses each section quotes. The text
+  of the sections is the Church's copyright and is not in the repository or on the
+  site: `tools/build_catechism.py --text` writes it to `catechism-text.json`, which the
+  person loads under Settings → Catechism into IndexedDB on their own device. With it
+  loaded, `src/catechism.js` shows the sections (with the book's own summaries,
+  footnotes and the table of the Ten Commandments), searches them by word, and
+  `src/pdf.js` prints the sections chosen for a service into the sermon notes.
 - **Storage.** Notes, preparations and settings live in IndexedDB on the device
   (`src/store.js`). Settings → Backup exports and merges a JSON file.
 - **Offline.** `sw.js` serves the shell network-first and the texts, library and
@@ -63,7 +68,11 @@ python3 build_bible.py kjv /path/to/KJVA.json
 python3 build_bible.py web /path/to/eng-web.usfx.xml
 # Catechism index: the text of the English Catechism PDF (pdftotext -layout)
 # plus the table of contents with nak.org ids
+pdftotext -layout /path/to/Catechism-of-the-NAC--ENGLISH.pdf /path/to/catechism.txt
 python3 build_catechism.py /path/to/catechism.txt catechism-toc.txt
+# ... and, with --text, the sections' text as the file to load in the app
+# (keep it out of the repository: it is the Church's text, for the person's own device)
+python3 build_catechism.py /path/to/catechism.txt catechism-toc.txt --text /path/to/catechism-text.json
 ```
 
 ## Releasing a change
@@ -79,6 +88,7 @@ project for this app has its root directory set to `bible`.
 - World English Bible with Deuterocanon: public domain, ebible.org. "World English
   Bible" is a trademark of eBible.org.
 - Catechism of the New Apostolic Church: © New Apostolic Church International.
-  Only section numbers, titles and Bible references are indexed; the text is not
-  copied.
+  Only section numbers, titles and Bible references are in the repository; the text
+  file built with `--text` is loaded by the person onto their own device and is not
+  published.
 - jsPDF: MIT (`vendor/jspdf.LICENSE`).

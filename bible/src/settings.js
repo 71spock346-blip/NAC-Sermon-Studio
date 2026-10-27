@@ -3,9 +3,10 @@
  * name and congregation, book-name language, backup, offline texts, and the
  * copyright notices the bundled texts and API.Bible ask for.
  */
-import { el, clear, toast, confirmBox, download, today, sheet } from './ui.js';
-import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts } from './store.js';
+import { el, clear, toast, confirmBox, download, today, sheet, fmtDate } from './ui.js';
+import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts, saveCatechismText, deleteCatechismText } from './store.js';
 import * as Bible from './bible.js';
+import * as Cat from './catechism.js';
 import { BOOKS } from './books.js';
 
 export const VERSION = '0.1.0';
@@ -60,6 +61,7 @@ export function render(container) {
   ]));
 
   myTextsSection(container);
+  catechismSection(container);
 
   // ---- about you
   const nameInput = el('input', { type: 'text', value: S.name || '', placeholder: 'Your name, for the footer of the sermon notes' });
@@ -121,7 +123,7 @@ export function render(container) {
   } });
   container.append(
     el('div', { class: 'docbar' }, [el('h3', { text: 'Offline' })]),
-    el('p', { class: 'small', text: 'The app keeps every chapter you open. To have the whole KJV, WEB and Catechism index ready without a connection (about 10 MB), download them once here. Add the app to your home screen to open it like any other app.' }),
+    el('p', { class: 'small', text: 'The app keeps every chapter you open. To have the whole KJV, WEB and Catechism index ready without a connection (about 10 MB), download them once here. The Catechism text, once loaded, is already on the device. Add the app to your home screen to open it like any other app.' }),
     el('div', { class: 'row' }, [dlBtn, progress]),
   );
 
@@ -137,7 +139,7 @@ export function render(container) {
       el('li', { text: 'World English Bible with the Deuterocanon: public domain, ebible.org. "World English Bible" is a trademark of eBible.org.' }),
       el('li', { text: 'Scripture read through API.Bible or the YouVersion Platform is the copyright of its publishers and is shown under their terms; see the notice under each chapter.' }),
       el('li', { text: 'Text you paste in yourself stays on this device for your own study and remains the copyright of its publisher.' }),
-      el('li', { text: 'Catechism of the New Apostolic Church: only the section numbers, titles and Bible references are indexed here. The text is read at nak.org.' }),
+      el('li', { text: 'Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only the section numbers, titles and Bible references; the text itself is loaded by you onto this device for your own study, or read at nak.org.' }),
     ]),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small ghost danger', type: 'button', text: 'Erase everything on this device', onclick: async () => {
@@ -190,6 +192,42 @@ function myTextsSection(container) {
       el('button', { class: 'btn small ghost danger', type: 'button', text: 'Remove all pasted text', onclick: async () => {
         if (await confirmBox('Remove every pasted chapter from this device? Save them to a file first if you want them back.', 'Remove', true)) { await wipeTexts(); toast('Pasted text removed.'); render(container); }
       } }),
+      fileInput,
+    ]),
+  );
+}
+
+/** The text of the Catechism: loaded from its file onto this device, shown and printed from here. */
+function catechismSection(container) {
+  const meta = state.catechism;
+  const fileInput = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
+  fileInput.addEventListener('change', async () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    try {
+      const m = await saveCatechismText(JSON.parse(await f.text()));
+      Cat.forgetText();
+      toast(`Catechism loaded: ${m.sections} sections.`);
+      render(container);
+    } catch (e) { toast(e.message || 'That file could not be read.', true); }
+    fileInput.value = '';
+  });
+  container.append(
+    el('div', { class: 'docbar' }, [el('h3', { text: 'Catechism' })]),
+    el('p', { class: 'small', text: 'The index of the Catechism (section numbers, titles and the Bible verses each section quotes) is built in. The text of the sections is the Church\'s copyright, so it is not part of the public app: load it here from its file, and it stays in this browser on this device. You can then read every section in the Catechism tab and under a service preparation, search the Catechism by word, and print the sections you tick into your sermon notes. The file is made from the Catechism PDF with tools/build_catechism.py (see the help page); load it once on each device you use.' }),
+    el('p', { class: 'small' }, meta
+      ? [el('b', { text: 'Loaded on this device: ' }), `${meta.sections} sections, ${meta.edition}${meta.builtAt ? ', file built ' + meta.builtAt : ''}, loaded ${fmtDate(meta.loadedAt)}.`]
+      : [el('b', { text: 'Not loaded on this device. ' }), 'Until it is, the app links each section to nak.org and the sermon notes list the chosen sections by number and title.']),
+    el('div', { class: 'row' }, [
+      el('button', { class: 'btn small', type: 'button', text: meta ? 'Load a newer Catechism file' : 'Load the Catechism text file', onclick: () => fileInput.click() }),
+      meta ? el('button', { class: 'btn small ghost danger', type: 'button', text: 'Remove the Catechism text', onclick: async () => {
+        if (await confirmBox('Remove the text of the Catechism from this device? The index stays, and you can load the file again later.', 'Remove', true)) {
+          await deleteCatechismText();
+          Cat.forgetText();
+          toast('Catechism text removed.');
+          render(container);
+        }
+      } }) : null,
       fileInput,
     ]),
   );

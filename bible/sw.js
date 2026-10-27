@@ -9,14 +9,14 @@
  * device. Requests to API.Bible are not touched here: bible.js keeps those
  * chapters in IndexedDB for 30 days.
  */
-var VERSION = 'bible-2026-10-26i';
+var VERSION = 'bible-2026-10-27';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=1',
-  'src/app.js?v=1',
+  'styles.css?v=9',
+  'src/app.js?v=9',
   'src/ui.js',
   'src/books.js',
   'src/store.js',
