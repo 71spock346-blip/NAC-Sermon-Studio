@@ -10,6 +10,17 @@ server, no login. It is built from the `bible/` folder as its own Vercel project
 On a phone, open the link and use "Add to Home Screen". The user manual is
 `help.html` (the Help button in the app).
 
+## How it looks
+
+`styles.css` is the whole look: warm paper tones (a plain white and a dark theme swap
+the same tokens; Settings → Appearance, or the reader's "Aa" button, choose between
+them and the choice is mirrored in localStorage so the page paints in the right
+colours before the database is open), Literata as the reading typeface for Scripture
+and the Catechism (vendored under `vendor/fonts/`, SIL Open Font License), the system
+sans for everything else. Under 760px the tabs are a bar under the thumb and the text
+runs full width; from 760px they are a side menu and each screen is a page on the paper.
+The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
+
 ## How it works
 
 - **Texts.** Two public-domain translations are bundled as JSON in `data/`: the King
@@ -42,6 +53,7 @@ On a phone, open the link and use "Add to Home Screen". The user manual is
 ## Files
 
 - `index.html`, `styles.css`, `help.html`, `manifest.json`, `sw.js` – the page
+- `icons/` – the emblem (SVG and the PNG sizes a phone's home screen wants)
 - `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#notes`,
   `#prepare/<id>`, `#catechism/3.4.1`, `#settings`)
 - `src/books.js` – the 80 books, English and Afrikaans names, reference parsing
@@ -50,8 +62,9 @@ On a phone, open the link and use "Add to Home Screen". The user manual is
 - `src/catechism.js` – Catechism index and tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
 - `src/pdf.js` – printed outputs
-- `src/ui.js` – small DOM helpers (elements, sheets, toasts)
+- `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)
+- `vendor/fonts/` – Literata (SIL OFL 1.1), Latin and Latin-extended subsets
 - `tools/` – the scripts that generate `data/` (see below)
 
 ## Rebuilding the data
@@ -92,3 +105,4 @@ project for this app has its root directory set to `bible`.
   file built with `--text` is loaded by the person onto their own device and is not
   published.
 - jsPDF: MIT (`vendor/jspdf.LICENSE`).
+- Literata: © The Literata Project Authors, SIL Open Font License 1.1 (`vendor/fonts/OFL.txt`).

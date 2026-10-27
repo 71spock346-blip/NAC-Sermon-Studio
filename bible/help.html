@@ -4,16 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Help – NAC Study Bible</title>
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f1ea">
+<link rel="icon" type="image/svg+xml" href="icons/emblem.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="stylesheet" href="styles.css?v=9">
+<script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body class="help">
 <header class="top">
-  <h1>Help</h1>
+  <h1><span class="mark" aria-hidden="true"><svg viewBox="0 0 160 160"><rect width="160" height="160" rx="30" fill="currentColor"/><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M76 8H84V27H108V35H84V127H76V35H52V27H76Z" fill="currentColor" stroke-width="3"/><path d="M74.4 99.6L64.8 54.6M85.6 99.6L95.2 54.6M66.5 102.6L45 65.4M93.5 102.6L115 65.4M59.9 106.5L33.3 80.8M100.1 106.5L126.7 80.8M56.6 112.5L29.8 97M103.4 112.5L130.2 97M33 119H55M105 119H127" stroke-width="3.2"/><path d="M38 131H54M60 131Q80 136 100 131M106 131H122M45 139H60M66 139Q80 143 97 139M102 139H117M57 147Q80 152 102 147" stroke-width="4.5"/></g></svg></span>Help</h1>
   <div class="actions"><a class="btn small" href="index.html">Back to the app</a></div>
 </header>
 <main>
-<div class="card">
+<div class="page">
 <p>The Study Bible is a personal tool for reading Scripture, keeping your own thoughts on it, seeing where the
 Catechism of the New Apostolic Church refers to a verse, and preparing a divine service from a text word.
 Everything you write stays on your own device. There is no account and no server.</p>
@@ -21,23 +25,31 @@ Everything you write stays on your own device. There is no account and no server
 <h2>Reading</h2>
 <ul>
   <li><b>Find a passage:</b> choose the book and chapter at the top, or type a reference such as
-    <i>Ps 130:7</i>, <i>Lukas 8:16</i> or <i>1 Kor 13</i> in the "Go to" box. English and Afrikaans book names both work.</li>
+    <i>Ps 130:7</i>, <i>Lukas 8:16</i> or <i>1 Kor 13</i> in the "Go to" box. English and Afrikaans book names both work.
+    The ‹ and › buttons turn the chapter; on a PC the left and right arrow keys do the same.</li>
   <li><b>Translations:</b> the King James Version (with the Apocrypha) and the World English Bible are built in and
-    work offline. Choose "Compare" to show a second translation under each verse. Choose "Beside" to open the same
-    chapter from BibleSA, the Bible Society of South Africa's free site with the Afrikaans Bibles, in its own window
-    next to the app; while that window stays open it follows you from chapter to chapter. (BibleSA does not allow
-    its pages to be shown inside another site, so a window is the closest the app can come.)</li>
+    work offline. Choose the translation next to the Go to box.</li>
+  <li><b>The Aa button</b> holds the reading choices: the text size (the largest, "Pulpit", is meant for reading
+    while standing), the look of the app (System, Paper, White or Dark), "Compare", which shows a second translation
+    under each verse, and "Beside", which opens the same chapter from BibleSA, the Bible Society of South Africa's
+    free site with the Afrikaans Bibles, in its own window next to the app; while that window stays open it follows
+    you from chapter to chapter. (BibleSA does not allow its pages to be shown inside another site, so a window is
+    the closest the app can come.)</li>
   <li><b>Your own text:</b> for a Bible text you may use yourself, tick its version under Settings → Translations →
     "My pasted text", choose it in the reader (marked "pasted") and paste each chapter in from the page where you read
     it, verse numbers included. It stays in this browser only and has its own save file in Settings.</li>
   <li><b>NKJV and Afrikaans:</b> these are copyrighted and cannot be built in. Add your own free key for
     API.Bible or the YouVersion Platform in Settings to read them inside the app (see below), or use the links
-    under each chapter to open the same chapter on YouVersion, on BibleSA (the Bible Society of South Africa's
-    free site, which carries the Afrikaans Bibles) or on BibleGateway.</li>
-  <li><b>Text size:</b> the A− and A+ buttons. The largest size is meant for reading at the pulpit.</li>
+    under each chapter to open the same chapter on YouVersion, on BibleSA or on BibleGateway.</li>
   <li><b>Marks:</b> a purple <b>C</b> means the Catechism refers to that verse; tap it to see which sections.
     A pen means you have a note on that verse.</li>
 </ul>
+
+<h2>Appearance</h2>
+<p>Under Settings → Appearance (and under the Aa button in the reader) you choose the look: <b>System</b> follows the
+dark or light setting of your phone or PC, <b>Paper</b> is the warm default, <b>White</b> is plain, and <b>Dark</b> is
+for reading at night. The same place sets the text size and whether book names are shown in English or Afrikaans.
+Each device keeps its own choice.</p>
 
 <h2>Notes</h2>
 <ul>
@@ -103,6 +115,7 @@ like an app.</p>
   <li>Translations read through API.Bible remain the copyright of their publishers and are shown under API.Bible's terms.</li>
   <li>Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only section
     numbers, titles and Bible references; the text is loaded by you onto your own device for personal study.</li>
+  <li>Reading typeface: Literata, © The Literata Project Authors, under the SIL Open Font License 1.1.</li>
 </ul>
 </div>
 </main>

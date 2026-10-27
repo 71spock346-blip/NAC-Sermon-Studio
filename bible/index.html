@@ -5,41 +5,57 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NAC Study Bible</title>
 <meta name="description" content="A personal study bible for preparing divine services: Scripture, your own notes, the Catechism's references and a guided sermon preparation.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f1ea">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1157ab">
+<link rel="icon" type="image/svg+xml" href="icons/emblem.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Study Bible">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="styles.css?v=9">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- The chosen theme is applied before the page paints, so there is no flash of the wrong colours. -->
+<script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preload" href="vendor/fonts/literata-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
-<header class="top">
-  <h1><span class="t-long">NAC Study Bible</span><span class="t-short">Study Bible</span></h1>
-  <div class="actions">
-    <a class="btn ghost small" href="help.html">Help</a>
-  </div>
-</header>
+<a class="skip" href="#content">Skip to content</a>
+<div class="shell">
+  <header class="top">
+    <h1><span class="mark" aria-hidden="true"><svg viewBox="0 0 160 160"><rect width="160" height="160" rx="30" fill="currentColor"/><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M76 8H84V27H108V35H84V127H76V35H52V27H76Z" fill="currentColor" stroke-width="3"/><path d="M74.4 99.6L64.8 54.6M85.6 99.6L95.2 54.6M66.5 102.6L45 65.4M93.5 102.6L115 65.4M59.9 106.5L33.3 80.8M100.1 106.5L126.7 80.8M56.6 112.5L29.8 97M103.4 112.5L130.2 97M33 119H55M105 119H127" stroke-width="3.2"/><path d="M38 131H54M60 131Q80 136 100 131M106 131H122M45 139H60M66 139Q80 143 97 139M102 139H117M57 147Q80 152 102 147" stroke-width="4.5"/></g></svg></span><span class="t-long">NAC Study Bible</span><span class="t-short">Study Bible</span></h1>
+    <div class="actions">
+      <a class="btn ghost small" href="help.html">Help</a>
+    </div>
+  </header>
 
-<main>
-  <nav class="tabs" role="tablist" aria-label="Sections">
-    <button type="button" role="tab" data-tab="read"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5c3-1 6-1 9 .5v14c-3-1.5-6-1.5-9-.5z"/><path d="M21 5.5c-3-1-6-1-9 .5v14c3-1.5 6-1.5 9-.5z"/></svg></span><span class="lbl">Read</span></button>
-    <button type="button" role="tab" data-tab="notes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span><span class="lbl">Notes</span></button>
-    <button type="button" role="tab" data-tab="prepare"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/></svg></span><span class="lbl">Prepare</span></button>
-    <button type="button" role="tab" data-tab="catechism"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M12 6v8M8.5 9.5h7"/></svg></span><span class="lbl">Catechism</span></button>
-    <button type="button" role="tab" data-tab="settings"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span><span class="lbl">Settings</span></button>
+  <nav class="side" aria-label="Sections">
+    <a class="brand" href="#read"><span class="mark" aria-hidden="true"><svg viewBox="0 0 160 160"><rect width="160" height="160" rx="30" fill="currentColor"/><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M76 8H84V27H108V35H84V127H76V35H52V27H76Z" fill="currentColor" stroke-width="3"/><path d="M74.4 99.6L64.8 54.6M85.6 99.6L95.2 54.6M66.5 102.6L45 65.4M93.5 102.6L115 65.4M59.9 106.5L33.3 80.8M100.1 106.5L126.7 80.8M56.6 112.5L29.8 97M103.4 112.5L130.2 97M33 119H55M105 119H127" stroke-width="3.2"/><path d="M38 131H54M60 131Q80 136 100 131M106 131H122M45 139H60M66 139Q80 143 97 139M102 139H117M57 147Q80 152 102 147" stroke-width="4.5"/></g></svg></span><span>NAC Study Bible</span></a>
+    <div class="tabs" role="tablist" aria-orientation="vertical">
+      <button type="button" role="tab" id="tab-btn-read" aria-controls="tab-read" data-tab="read"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5c3-1 6-1 9 .5v14c-3-1.5-6-1.5-9-.5z"/><path d="M21 5.5c-3-1-6-1-9 .5v14c3-1.5 6-1.5 9-.5z"/></svg></span><span class="lbl">Read</span></button>
+      <button type="button" role="tab" id="tab-btn-notes" aria-controls="tab-notes" data-tab="notes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span><span class="lbl">Notes</span></button>
+      <button type="button" role="tab" id="tab-btn-prepare" aria-controls="tab-prepare" data-tab="prepare"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/></svg></span><span class="lbl">Prepare</span></button>
+      <button type="button" role="tab" id="tab-btn-catechism" aria-controls="tab-catechism" data-tab="catechism"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M12 6v8M8.5 9.5h7"/></svg></span><span class="lbl">Catechism</span></button>
+      <button type="button" role="tab" id="tab-btn-settings" aria-controls="tab-settings" data-tab="settings"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span><span class="lbl">Settings</span></button>
+    </div>
+    <div class="nav-foot">
+      <a href="help.html">Help and manual</a>
+      <span id="nav-version"></span>
+    </div>
   </nav>
 
-  <div class="card tab" id="tab-read" hidden></div>
-  <div class="card tab" id="tab-notes" hidden></div>
-  <div class="card tab" id="tab-prepare" hidden></div>
-  <div class="card tab" id="tab-catechism" hidden></div>
-  <div class="card tab" id="tab-settings" hidden></div>
-</main>
+  <main id="content" tabindex="-1">
+    <section class="tab" id="tab-read" role="tabpanel" aria-labelledby="tab-btn-read" hidden></section>
+    <section class="tab" id="tab-notes" role="tabpanel" aria-labelledby="tab-btn-notes" hidden></section>
+    <section class="tab" id="tab-prepare" role="tabpanel" aria-labelledby="tab-btn-prepare" hidden></section>
+    <section class="tab" id="tab-catechism" role="tabpanel" aria-labelledby="tab-btn-catechism" hidden></section>
+    <section class="tab" id="tab-settings" role="tabpanel" aria-labelledby="tab-btn-settings" hidden></section>
+  </main>
+</div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="vendor/jspdf.umd.min.js?v=9" defer></script>
-<script type="module" src="src/app.js?v=9"></script>
+<script type="module" src="src/app.js?v=10"></script>
 </body>
 </html>

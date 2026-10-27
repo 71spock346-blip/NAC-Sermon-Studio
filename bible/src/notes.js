@@ -3,7 +3,7 @@
  * and questions, each tied to a verse or a few verses. The reader marks the
  * verses that carry notes; this tab lists and searches them.
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate } from './ui.js';
+import { el, clear, toast, sheet, confirmBox, fmtDate, isTouch } from './ui.js';
 import { parseRef, formatRef, BY_ID } from './books.js';
 import { state, saveNote, deleteNote } from './store.js';
 
@@ -39,14 +39,17 @@ export function refLabel(n) {
 export function card(n, onChange) {
   const ref = refOf(n);
   const href = `#read/${n.book}/${n.chapter}${n.verse ? '/' + n.verse : ''}`;
-  return el('div', { class: 'note' }, [
-    el('div', { class: 'note-head' }, [
-      el('a', { class: 'ref', href, text: refLabel(n) }),
-      el('span', { class: 'pill kind ' + n.kind, text: KIND_LABEL[n.kind] || n.kind }),
-      ...(n.tags || []).map(t => el('span', { class: 'pill', text: '#' + t })),
-      el('div', { class: 'spacer' }),
-      el('span', { class: 'muted small', text: fmtDate(n.updated) }),
-      el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => editNote(n, onChange) }),
+  return el('article', { class: 'note' }, [
+    el('div', { class: 'note-top' }, [
+      el('div', { class: 'note-head' }, [
+        el('a', { class: 'ref', href, text: refLabel(n) }),
+        el('span', { class: 'pill kind ' + n.kind, text: KIND_LABEL[n.kind] || n.kind }),
+        ...(n.tags || []).map(t => el('span', { class: 'pill', text: '#' + t })),
+      ]),
+      el('div', { class: 'note-meta' }, [
+        el('span', { class: 'muted small', text: fmtDate(n.updated) }),
+        el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', 'aria-label': `Edit the note on ${refLabel(n)}`, onclick: () => editNote(n, onChange) }),
+      ]),
     ]),
     n.title ? el('div', { class: 'note-title', text: n.title }) : null,
     el('div', { class: 'note-body', text: n.body }),
@@ -110,7 +113,7 @@ export function editNote(note, onSaved) {
     el('label', { class: 'f' }, ['Tags', tagsInput]),
     row,
   );
-  setTimeout(() => (n.book ? body : refInput).focus(), 50);
+  if (!isTouch()) setTimeout(() => (n.book ? body : refInput).focus(), 50);
   return s;
 }
 
@@ -123,7 +126,7 @@ export function render(container, route) {
     const n = state.notes.find(x => x.id === route[1]);
     if (n) { editNote(n, () => { location.hash = '#notes'; }); }
   }
-  const search = el('input', { type: 'search', placeholder: 'Search notes: a word, a tag, or a reference such as "Ps 23"' });
+  const search = el('input', { type: 'search', placeholder: 'Search notes: a word, a tag, or a reference such as "Ps 23"…', 'aria-label': 'Search notes', autocomplete: 'off' });
   const list = el('div', { class: 'notes' });
   const chips = el('div', { class: 'row chips' });
   function chip(v, label) {
@@ -150,7 +153,7 @@ export function render(container, route) {
   search.addEventListener('input', show);
   container.append(
     el('div', { class: 'docbar' }, [
-      el('h3', { text: `Notes (${state.notes.length})` }),
+      el('h2', { text: `Notes (${state.notes.length})` }),
       el('div', { class: 'spacer' }),
       el('button', { class: 'btn small', type: 'button', text: 'New note', onclick: () => editNote({ kind: 'thought', tags: [] }, show) }),
     ]),

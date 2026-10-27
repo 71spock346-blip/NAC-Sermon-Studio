@@ -262,7 +262,7 @@ export function render(container, route) {
 }
 
 function renderIndex(container, q) {
-  const input = el('input', { type: 'search', placeholder: text ? 'Search the Catechism by number, title or words in the text, e.g. "baptism", 8.1 or "forgive"' : 'Search the Catechism by number or title, e.g. "baptism" or 8.1', value: q });
+  const input = el('input', { type: 'search', 'aria-label': 'Search the Catechism', autocomplete: 'off', placeholder: text ? 'Search by number, title or a word in the text: "baptism", 8.1, "forgive"…' : 'Search by number or title: "baptism" or 8.1…', value: q });
   const results = el('div', { class: 'list' });
   function show() {
     clear(results);
@@ -283,7 +283,7 @@ function renderIndex(container, q) {
   }
   input.addEventListener('input', show);
   container.append(
-    el('div', { class: 'docbar' }, [el('h3', { text: 'Catechism of the New Apostolic Church' })]),
+    el('div', { class: 'docbar' }, [el('h2', { text: 'Catechism of the New Apostolic Church' })]),
     text
       ? el('p', { class: 'muted small', text: 'Open a chapter to read its sections, see which Bible verses each one quotes, and search the whole text by word. The reader marks every verse the Catechism refers to with a "C".' })
       : el('p', { class: 'muted small' }, ['The chapters below are an index. Open a section to see which Bible verses it quotes and to read the section itself at nak.org. To read the sections here and print them in your sermon notes, load the Catechism text under ', el('a', { href: '#settings', text: 'Settings' }), '.']),
@@ -302,14 +302,16 @@ function renderSection(container, s) {
       parentN && data.byN[parentN] ? [' › ', el('a', { href: `#catechism/${encodeURIComponent(parentN)}`, text: parentN })] : null,
     ].flat()),
     el('div', { class: 'docbar' }, [
-      el('h3', { text: (s.n === 'Intro' || s.n === 'Appendix' ? '' : s.n + '  ') + s.title }),
+      el('h2', { text: (s.n === 'Intro' || s.n === 'Appendix' ? '' : s.n + '  ') + s.title }),
       el('div', { class: 'spacer' }),
       el('a', { class: 'btn small ghost', href: url(s), target: '_blank', rel: 'noopener', text: 'nak.org ↗' }),
     ]),
   );
   if (t && (t.blocks.length || (t.summary || []).length)) {
-    container.append(renderText(s.n, { noCredit: true }));
-    container.append(el('p', { class: 'muted small', text: `Printed edition page ${s.page || '–'}. ${credit()}` }));
+    container.append(el('div', { class: 'page' }, [
+      renderText(s.n, { noCredit: true }),
+      el('p', { class: 'muted small', text: `Printed edition page ${s.page || '–'}. ${credit()}` }),
+    ]));
   } else if (text) {
     container.append(el('p', { class: 'muted small', text: `This heading has no text of its own; its sections below carry it. Printed edition page ${s.page || '–'}.` }));
   } else {

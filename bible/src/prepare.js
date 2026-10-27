@@ -66,7 +66,7 @@ export function render(container, route) {
 
 /* ---------------------------------------------------------------- the list */
 function renderList(container) {
-  const search = el('input', { type: 'search', placeholder: 'Search by text, congregation or theme' });
+  const search = el('input', { type: 'search', placeholder: 'Search by text, congregation or theme…', 'aria-label': 'Search preparations', autocomplete: 'off' });
   const list = el('div', { class: 'list' });
   function show() {
     clear(list);
@@ -87,7 +87,7 @@ function renderList(container) {
   search.addEventListener('input', show);
   container.append(
     el('div', { class: 'docbar' }, [
-      el('h3', { text: `Service preparations (${state.sermons.length})` }),
+      el('h2', { text: `Service preparations (${state.sermons.length})` }),
       el('div', { class: 'spacer' }),
       el('button', { class: 'btn small', type: 'button', text: 'New preparation', onclick: () => newBlank() }),
     ]),
@@ -132,16 +132,20 @@ function renderEditor(container, s) {
   }
 
   // ---- header
-  const statusSel = el('select', { class: 'status-sel' }, STATUS.map(([v, l]) => el('option', { value: v, text: l, selected: (s.status || 'draft') === v })));
+  const statusSel = el('select', { class: 'status-sel', 'aria-label': 'Status of this preparation' }, STATUS.map(([v, l]) => el('option', { value: v, text: l, selected: (s.status || 'draft') === v })));
   statusSel.addEventListener('change', () => { s.status = statusSel.value; touch(); });
   container.append(
     el('div', { class: 'crumbs' }, [el('a', { href: '#prepare', text: '‹ All preparations' })]),
-    el('div', { class: 'docbar' }, [
-      el('h3', { text: s.ref ? formatRef(s.ref, lang) : 'Service preparation' }),
+    el('div', { class: 'prep-head' }, [el('div', { class: 'docbar' }, [
+      el('h2', { text: s.ref ? formatRef(s.ref, lang) : 'Service preparation' }),
       savedBadge,
       el('div', { class: 'spacer' }),
       statusSel,
-    ]));
+    ])]));
+  // the form itself sits on a page under the pinned heading
+  const page = el('div', { class: 'page' });
+  container.append(page);
+  container = page;
 
   // ---- service details
   const occSel = el('select', {}, [...OCCASIONS, ...(OCCASIONS.includes(s.occasion) || !s.occasion ? [] : [s.occasion])].map(o => el('option', { value: o, text: o, selected: o === s.occasion })));
@@ -149,8 +153,8 @@ function renderEditor(container, s) {
   container.append(el('div', { class: 'fields three' }, [
     field('Date', 'date', { type: 'date' }),
     field('Congregation', 'congregation', { placeholder: 'e.g. Phumolong' }),
-    el('label', { class: 'f' }, ['Occasion', occSel]),
-    field('Sermon title (optional)', 'title', { placeholder: 'A heading for your notes' }),
+    el('label', { class: 'f wide' }, ['Occasion', occSel]),
+    field('Sermon title (optional)', 'title', { cls: 'wide', placeholder: 'A heading for your notes' }),
   ]));
 
   // ---- 1. text word
@@ -339,7 +343,7 @@ function renderEditor(container, s) {
       else { Pdf.download(r); toast('Saved ' + r.name); }
     } catch (e) { toast(e.message || 'The PDF could not be built.', true); }
   }
-  const out = el('div', { class: 'row' }, [
+  const out = el('div', { class: 'outputs' }, [
     el('button', { class: 'btn small', type: 'button', text: 'Sermon notes PDF', onclick: () => run(Pdf.sermonPdf, 'download') }),
     el('button', { class: 'btn small', type: 'button', text: 'Cue card PDF', onclick: () => run(Pdf.cueCardPdf, 'download') }),
     el('button', { class: 'btn small ghost', type: 'button', text: 'Print notes', onclick: () => run(Pdf.sermonPdf, 'print') }),

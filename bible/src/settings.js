@@ -3,7 +3,7 @@
  * name and congregation, book-name language, backup, offline texts, and the
  * copyright notices the bundled texts and API.Bible ask for.
  */
-import { el, clear, toast, confirmBox, download, today, sheet, fmtDate } from './ui.js';
+import { el, clear, toast, confirmBox, download, today, sheet, fmtDate, seg, THEMES, SIZES, applyTheme } from './ui.js';
 import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts, saveCatechismText, deleteCatechismText } from './store.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
@@ -11,13 +11,47 @@ import { BOOKS } from './books.js';
 
 export const VERSION = '0.1.0';
 
+let root = null;   // the Settings tab, so a section can redraw the whole tab after a change
+
+/** One card of settings with its heading. */
+function section(title, children) {
+  return el('section', { class: 'sec' }, [el('div', { class: 'docbar' }, [el('h2', { text: title })]), ...children]);
+}
+
 export function render(container) {
+  root = container;
   clear(container);
   const S = state.settings;
 
+  // ---- about you
+  const nameInput = el('input', { type: 'text', value: S.name || '', placeholder: 'Your name', autocomplete: 'name' });
+  nameInput.addEventListener('change', () => saveSetting('name', nameInput.value.trim()));
+  const congInput = el('input', { type: 'text', value: S.congregation || '', placeholder: 'Your usual congregation' });
+  congInput.addEventListener('change', () => saveSetting('congregation', congInput.value.trim()));
+  container.append(section('You', [
+    el('p', { class: 'small', text: 'Your name goes in the footer of the sermon notes, and the congregation is filled in for each new preparation.' }),
+    el('div', { class: 'fields two' }, [
+      el('label', { class: 'f' }, ['Name', nameInput]),
+      el('label', { class: 'f' }, ['Congregation', congInput]),
+    ]),
+  ]));
+
+  // ---- appearance
+  const themeSeg = seg(THEMES, S.theme || 'system', async v => { await saveSetting('theme', v); applyTheme(v); }, { block: true, label: 'Look' });
+  const sizeSeg = seg(SIZES, S.fontSize || 'm', v => saveSetting('fontSize', v), { block: true, label: 'Text size in the reader' });
+  const langSel = el('select', {}, [el('option', { value: 'en', text: 'English (Psalm, John, 1 Corinthians)', selected: S.bookLang !== 'af' }), el('option', { value: 'af', text: 'Afrikaans (Psalms, Johannes, 1 Korintiërs)', selected: S.bookLang === 'af' })]);
+  langSel.addEventListener('change', async () => { await saveSetting('bookLang', langSel.value); toast('Book names changed.'); });
+  container.append(section('Appearance', [
+    el('p', { class: 'small', text: 'How the app looks on this device. The "Aa" button in the reader changes the same things while you read.' }),
+    el('div', { class: 'theme-row' }, [
+      el('label', { class: 'f' }, ['Look', themeSeg, el('span', { class: 'hint muted small', text: '"System" follows the setting of this phone or PC. "Paper" is the warm default.' })]),
+      el('label', { class: 'f' }, ['Text size in the reader', sizeSeg, el('span', { class: 'hint muted small', text: '"Pulpit" is for reading while standing.' })]),
+    ]),
+    el('label', { class: 'f' }, ['Book names', langSel]),
+  ]));
+
   // ---- translations: the two licensed services, each with its own key
-  container.append(
-    el('div', { class: 'docbar' }, [el('h3', { text: 'Translations' })]),
+  const trans = section('Translations', [
     el('p', { class: 'small' }, [
       'The King James Version (with the Apocrypha) and the World English Bible are built in and work offline. ',
       'The NKJV and the Afrikaans Bibles are copyrighted, so they are read live from a licensed service with your own free key: ',
@@ -25,9 +59,10 @@ export function render(container) {
       el('a', { href: 'https://platform.youversion.com', target: '_blank', rel: 'noopener', text: 'YouVersion Platform' }),
       '. A key stays on this device: it is not in any backup and not shared.',
     ]),
-  );
+  ]);
+  container.append(trans);
 
-  providerSection(container, {
+  providerSection(trans, {
     title: 'API.Bible',
     keyName: 'apiKey', listName: 'apiBibles', placeholder: 'Paste your API.Bible key',
     howTo: [
@@ -40,7 +75,7 @@ export function render(container) {
     note: 'Chapters from API.Bible are kept for 30 days so they open offline.',
   });
 
-  providerSection(container, {
+  providerSection(trans, {
     title: 'YouVersion Platform',
     keyName: 'yvKey', listName: 'yvBibles', placeholder: 'Paste your YouVersion app key',
     howTo: [
@@ -55,29 +90,13 @@ export function render(container) {
     note: 'Chapters from YouVersion are kept for 7 days so they open offline.',
   });
 
-  container.append(el('div', { class: 'row' }, [
+  trans.append(el('div', { class: 'row' }, [
     el('button', { class: 'btn small ghost', type: 'button', text: 'Clear cached chapters', onclick: async () => { await clearCache(); toast('Cached chapters cleared.'); } }),
     el('span', { class: 'muted small', text: 'Removes the chapters fetched from both services; they are fetched again when opened.' }),
   ]));
 
-  myTextsSection(container);
+  myTextsSection(trans);
   catechismSection(container);
-
-  // ---- about you
-  const nameInput = el('input', { type: 'text', value: S.name || '', placeholder: 'Your name, for the footer of the sermon notes' });
-  nameInput.addEventListener('change', () => saveSetting('name', nameInput.value.trim()));
-  const congInput = el('input', { type: 'text', value: S.congregation || '', placeholder: 'Your usual congregation' });
-  congInput.addEventListener('change', () => saveSetting('congregation', congInput.value.trim()));
-  const langSel = el('select', {}, [el('option', { value: 'en', text: 'English (Psalm, John, 1 Corinthians)', selected: S.bookLang !== 'af' }), el('option', { value: 'af', text: 'Afrikaans (Psalms, Johannes, 1 Korintiërs)', selected: S.bookLang === 'af' })]);
-  langSel.addEventListener('change', async () => { await saveSetting('bookLang', langSel.value); toast('Book names changed.'); });
-  container.append(
-    el('div', { class: 'docbar' }, [el('h3', { text: 'You' })]),
-    el('div', { class: 'fields three' }, [
-      el('label', { class: 'f' }, ['Name', nameInput]),
-      el('label', { class: 'f' }, ['Congregation', congInput]),
-      el('label', { class: 'f' }, ['Book names', langSel]),
-    ]),
-  );
 
   // ---- backup
   const fileInput = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
@@ -88,12 +107,11 @@ export function render(container) {
       const data = JSON.parse(await f.text());
       const r = await importAll(data);
       toast(`Backup loaded: ${r.notes} note${r.notes === 1 ? '' : 's'} and ${r.sermons} preparation${r.sermons === 1 ? '' : 's'} added or updated.`);
-      render(container);
+      render(root);
     } catch (e) { toast(e.message || 'That file could not be read.', true); }
     fileInput.value = '';
   });
-  container.append(
-    el('div', { class: 'docbar' }, [el('h3', { text: 'Backup' })]),
+  container.append(section('Backup', [
     el('p', { class: 'small', text: `Everything you write stays in this browser on this device: ${state.notes.length} note${state.notes.length === 1 ? '' : 's'} and ${state.sermons.length} preparation${state.sermons.length === 1 ? '' : 's'} right now. Save a backup file regularly and keep it in your Google Drive. Load it on another device to carry your notes across; newer copies win and nothing is deleted. Pasted Bible text is not in this file: it has its own save file under Translations.` }),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small', type: 'button', text: 'Save backup file', onclick: async () => {
@@ -104,10 +122,10 @@ export function render(container) {
       el('button', { class: 'btn small ghost', type: 'button', text: 'Load backup file', onclick: () => fileInput.click() }),
       fileInput,
     ]),
-  );
+  ]));
 
   // ---- offline
-  const progress = el('span', { class: 'muted small' });
+  const progress = el('span', { class: 'muted small', role: 'status' });
   const dlBtn = el('button', { class: 'btn small ghost', type: 'button', text: 'Download all texts for offline', onclick: async () => {
     dlBtn.disabled = true;
     const files = ['data/catechism.json'];
@@ -121,15 +139,13 @@ export function render(container) {
     progress.textContent = failed ? `${files.length - failed} of ${files.length} saved; try again when online.` : 'All texts are saved on this device.';
     dlBtn.disabled = false;
   } });
-  container.append(
-    el('div', { class: 'docbar' }, [el('h3', { text: 'Offline' })]),
+  container.append(section('Offline', [
     el('p', { class: 'small', text: 'The app keeps every chapter you open. To have the whole KJV, WEB and Catechism index ready without a connection (about 10 MB), download them once here. The Catechism text, once loaded, is already on the device. Add the app to your home screen to open it like any other app.' }),
     el('div', { class: 'row' }, [dlBtn, progress]),
-  );
+  ]));
 
   // ---- about
-  container.append(
-    el('div', { class: 'docbar' }, [el('h3', { text: 'About' })]),
+  container.append(section('About', [
     el('p', { class: 'small' }, [
       `NAC Study Bible ${VERSION}. A personal study tool for preparing divine services. `,
       el('a', { href: 'help.html', text: 'Read the help page' }), '.',
@@ -140,17 +156,18 @@ export function render(container) {
       el('li', { text: 'Scripture read through API.Bible or the YouVersion Platform is the copyright of its publishers and is shown under their terms; see the notice under each chapter.' }),
       el('li', { text: 'Text you paste in yourself stays on this device for your own study and remains the copyright of its publisher.' }),
       el('li', { text: 'Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only the section numbers, titles and Bible references; the text itself is loaded by you onto this device for your own study, or read at nak.org.' }),
+      el('li', { text: 'Reading typeface: Literata, © The Literata Project Authors, SIL Open Font License 1.1.' }),
     ]),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small ghost danger', type: 'button', text: 'Erase everything on this device', onclick: async () => {
         if (await confirmBox('Erase all notes, preparations, settings and cached chapters from this device? Save a backup first. This cannot be undone.', 'Erase everything', true)) {
           await wipeAll();
           toast('Everything was erased.');
-          render(container);
+          render(root);
         }
       } }),
     ]),
-  );
+  ]));
 }
 
 /** Versions the person pastes in chapter by chapter, with their own save file. */
@@ -173,7 +190,7 @@ function myTextsSection(container) {
     try {
       const n = await importTexts(JSON.parse(await f.text()));
       toast(`${n} chapter${n === 1 ? '' : 's'} loaded.`);
-      render(container);
+      render(root);
     } catch (e) { toast(e.message || 'That file could not be read.', true); }
     fileInput.value = '';
   });
@@ -190,7 +207,7 @@ function myTextsSection(container) {
       } }),
       el('button', { class: 'btn small ghost', type: 'button', text: 'Load a pasted-text file', onclick: () => fileInput.click() }),
       el('button', { class: 'btn small ghost danger', type: 'button', text: 'Remove all pasted text', onclick: async () => {
-        if (await confirmBox('Remove every pasted chapter from this device? Save them to a file first if you want them back.', 'Remove', true)) { await wipeTexts(); toast('Pasted text removed.'); render(container); }
+        if (await confirmBox('Remove every pasted chapter from this device? Save them to a file first if you want them back.', 'Remove', true)) { await wipeTexts(); toast('Pasted text removed.'); render(root); }
       } }),
       fileInput,
     ]),
@@ -208,12 +225,11 @@ function catechismSection(container) {
       const m = await saveCatechismText(JSON.parse(await f.text()));
       Cat.forgetText();
       toast(`Catechism loaded: ${m.sections} sections.`);
-      render(container);
+      render(root);
     } catch (e) { toast(e.message || 'That file could not be read.', true); }
     fileInput.value = '';
   });
-  container.append(
-    el('div', { class: 'docbar' }, [el('h3', { text: 'Catechism' })]),
+  container.append(section('Catechism', [
     el('p', { class: 'small', text: 'The index of the Catechism (section numbers, titles and the Bible verses each section quotes) is built in. The text of the sections is the Church\'s copyright, so it is not part of the public app: load it here from its file, and it stays in this browser on this device. You can then read every section in the Catechism tab and under a service preparation, search the Catechism by word, and print the sections you tick into your sermon notes. The file is made from the Catechism PDF with tools/build_catechism.py (see the help page); load it once on each device you use.' }),
     el('p', { class: 'small' }, meta
       ? [el('b', { text: 'Loaded on this device: ' }), `${meta.sections} sections, ${meta.edition}${meta.builtAt ? ', file built ' + meta.builtAt : ''}, loaded ${fmtDate(meta.loadedAt)}.`]
@@ -225,12 +241,12 @@ function catechismSection(container) {
           await deleteCatechismText();
           Cat.forgetText();
           toast('Catechism text removed.');
-          render(container);
+          render(root);
         }
       } }) : null,
       fileInput,
     ]),
-  );
+  ]));
 }
 
 /** What YouVersion says about the licence of a Bible the key may not read yet. */
@@ -319,7 +335,7 @@ function providerSection(container, o) {
   container.append(...[
     el('h3', { class: 'sub', text: o.title }),
     el('details', { class: 'small' }, [
-      el('summary', { text: `How to get a ${o.title} key` }),
+      el('summary', { text: `How to get a key for ${o.title}` }),
       el('ol', {}, o.howTo.map(parts => el('li', {}, parts))),
     ]),
     el('label', { class: 'f' }, [`${o.title} key`, el('div', { class: 'row line' }, [keyInput, showBtn, checkBtn])]),
