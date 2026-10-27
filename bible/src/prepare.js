@@ -7,7 +7,7 @@
  * and a reflection afterwards. Everything saves as it is typed. Two printed
  * outputs come from it: the full sermon notes and a one-page cue card.
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday } from './ui.js';
+import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox } from './ui.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveSermon, deleteSermon } from './store.js';
 import * as Bible from './bible.js';
@@ -119,10 +119,13 @@ function renderEditor(container, s) {
   }, 500);
   const touch = () => { save(); };
 
+  // every box grows with its text (see autosize in ui.js); `line` is a one-line box that wraps rather than scrolls sideways
   function field(label, key, opts = {}) {
     const input = opts.rows
       ? el('textarea', { rows: opts.rows, placeholder: opts.placeholder || '' })
-      : el('input', { type: opts.type || 'text', placeholder: opts.placeholder || '' });
+      : opts.line
+        ? lineBox({ placeholder: opts.placeholder || '' })
+        : el('input', { type: opts.type || 'text', placeholder: opts.placeholder || '' });
     input.value = s[key] || '';
     input.addEventListener('input', () => { s[key] = input.value; touch(); });
     return el('label', { class: 'f' + (opts.cls ? ' ' + opts.cls : '') }, [label, input, opts.hint ? el('span', { class: 'hint muted small', text: opts.hint }) : null]);
@@ -154,7 +157,7 @@ function renderEditor(container, s) {
     field('Date', 'date', { type: 'date' }),
     field('Congregation', 'congregation', { placeholder: 'e.g. Phumolong' }),
     el('label', { class: 'f wide' }, ['Occasion', occSel]),
-    field('Sermon title (optional)', 'title', { cls: 'wide', placeholder: 'A heading for your notes' }),
+    field('Sermon title (optional)', 'title', { cls: 'full', line: true, placeholder: 'A heading for your notes' }),
   ]));
 
   // ---- 1. text word
@@ -200,6 +203,7 @@ function renderEditor(container, s) {
       s.text = Bible.joinVerses(ch.verses, from, to);
       s.translation = Bible.source(transSel.value).short;
       textArea.value = s.text;
+      fit(textArea);
       touch();
       toast('Text fetched.');
     } catch (e) { toast(e.message, true); }
@@ -219,7 +223,7 @@ function renderEditor(container, s) {
   container.append(step(2, 'The message from the Divine Service Guide',
     'Write the message and core thought of the Guide in your own words first. The Guide gives the direction; the sermon is how it reaches this congregation.'));
   container.append(
-    field('Message of the service', 'theme', { placeholder: 'The theme in one sentence' }),
+    field('Message of the service', 'theme', { line: true, placeholder: 'The theme in one sentence' }),
     field('Core thought', 'core', { rows: 2, placeholder: 'The one thing the congregation should take home' }),
     field('Notes from the Guide', 'guide', { rows: 5, placeholder: 'Key thoughts from the Guide, in your own words. Which sentences struck you? What should be kept?' }),
   );
@@ -298,7 +302,7 @@ function renderEditor(container, s) {
     clear(pointsBox);
     s.points = s.points && s.points.length ? s.points : [{ heading: '', body: '' }];
     s.points.forEach((p, i) => {
-      const head = el('input', { type: 'text', value: p.heading || '', placeholder: `Main point ${i + 1}` });
+      const head = lineBox({ value: p.heading || '', placeholder: `Main point ${i + 1}` });
       head.addEventListener('input', () => { p.heading = head.value; touch(); });
       const body = el('textarea', { rows: 4, placeholder: 'What the text says, what it means, what it asks of us' });
       body.value = p.body || '';
@@ -328,6 +332,7 @@ function renderEditor(container, s) {
       const line = `${Notes.refLabel(note)}${note.title ? ' – ' + note.title : ''}: ${note.body}`;
       s.illustrations = (s.illustrations ? s.illustrations.trim() + '\n\n' : '') + line;
       illusArea.value = s.illustrations;
+      fit(illusArea);
       touch();
     }) }),
   ]));

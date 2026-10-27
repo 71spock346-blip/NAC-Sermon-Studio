@@ -3,7 +3,7 @@
  * and questions, each tied to a verse or a few verses. The reader marks the
  * verses that carry notes; this tab lists and searches them.
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate, isTouch } from './ui.js';
+import { el, clear, toast, sheet, confirmBox, fmtDate, isTouch, lineBox } from './ui.js';
 import { parseRef, formatRef, BY_ID } from './books.js';
 import { state, saveNote, deleteNote } from './store.js';
 
@@ -74,10 +74,10 @@ export function editNote(note, onSaved) {
   checkRef();
 
   const kindSel = el('select', {}, KINDS.map(([v, label]) => el('option', { value: v, text: label, selected: v === n.kind })));
-  const titleInput = el('input', { type: 'text', value: n.title || '', placeholder: 'A short title (optional)' });
+  const titleInput = lineBox({ value: n.title || '', placeholder: 'A short title (optional)' });
   const body = el('textarea', { rows: 8, placeholder: 'What struck you? What happened? How does it connect to the Church\'s teaching?' });
   body.value = n.body || '';
-  const tagsInput = el('input', { type: 'text', value: (n.tags || []).join(', '), placeholder: 'grace, prayer, youth (optional, comma separated)' });
+  const tagsInput = lineBox({ value: (n.tags || []).join(', '), placeholder: 'grace, prayer, youth (optional, comma separated)' });
 
   const saveBtn = el('button', { class: 'btn', type: 'button', text: 'Save', onclick: async () => {
     const r = checkRef();
