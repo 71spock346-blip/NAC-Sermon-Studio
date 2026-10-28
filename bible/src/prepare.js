@@ -11,8 +11,10 @@
  * (guides.js) fills the text word, message and notes of a service in one tap
  * and keeps the article at hand under step 2. "Suggest answers" under step 3
  * asks Claude (ai.js) for the context of the text, key words, Catechism
- * sections, cross references and sermon thoughts; each comes with a "Use"
- * button, so nothing lands in the notes that the person did not choose.
+ * sections, cross references and sermon thoughts; "Suggest the sermon" under
+ * step 4 asks for the build itself: introduction, main points, application,
+ * conclusion and illustrations. Each suggestion comes with a "Use" button, so
+ * nothing lands in the notes that the person did not choose.
  */
 import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox, busy } from './ui.js';
 import { parseRef, formatRef } from './books.js';
@@ -380,11 +382,17 @@ function renderEditor(root, s) {
       b.fail(e.message || 'Claude could not answer.');
     }
   }
-  function item(title, body, onUse, extra) {
+  function item(title, body, onUse, extra, why) {
     return el('div', { class: 'ai-item' }, [
-      el('div', { class: 'ai-text' }, [title ? el('b', { text: title }) : null, title && body ? ' ' : null, body || null]),
+      el('div', { class: 'ai-text' }, [title ? el('b', { text: title }) : null, title && body ? ' ' : null, body || null, why ? el('div', { class: 'ai-why muted small', text: why }) : null]),
       el('div', { class: 'ai-actions' }, [extra || null, onUse ? el('button', { class: 'btn small ghost', type: 'button', text: 'Use', onclick: onUse }) : null]),
     ]);
+  }
+  /** A suggested main point goes into the next empty point, or a new one. */
+  function usePoint(p) {
+    const slot = s.points.find(x => !x.heading && !x.body) || (s.points.push({ heading: '', body: '' }), s.points[s.points.length - 1]);
+    slot.heading = p.heading; slot.body = p.body;
+    touch(); renderPoints();
   }
   function group(title, items, onUseAll, hint) {
     if (!items.length) return null;
@@ -428,12 +436,7 @@ function renderEditor(root, s) {
       x.ref ? el('a', { class: 'btn small ghost', href: `#read/${x.ref.book}/${x.ref.chapter}${x.ref.verse ? '/' + x.ref.verse : ''}`, text: 'Read' }) : null)),
       () => { add('crossRefs', a.crossRefs.map(xrLine).join('\n'), '\n'); toast('All cross references added.'); }));
     panel.append(group('Sermon thoughts', [
-      ...(a.points || []).map(p => item(p.heading, p.body, () => {
-        const slot = s.points.find(x => !x.heading && !x.body) || (s.points.push({ heading: '', body: '' }), s.points[s.points.length - 1]);
-        slot.heading = p.heading; slot.body = p.body;
-        touch(); renderPoints();
-        toast('Added as a main point.');
-      })),
+      ...(a.points || []).map(p => item(p.heading, p.body, () => { usePoint(p); toast('Added as a main point.'); })),
       a.application ? item('Application', a.application, () => { add('application', a.application); toast('Added to Application.'); }) : null,
     ].filter(Boolean), null, 'Each goes into the next empty main point under step 4.'));
     aiBox.append(panel);
@@ -443,6 +446,56 @@ function renderEditor(root, s) {
   // ---- 4. build
   container.append(step(4, 'Build the sermon',
     'An introduction that opens the door, two or three main points that each stand on the text, and a conclusion that leads to the altar. Plain words, short sentences.'));
+  const buildBox = el('div', { class: 'ai-box build-box' });
+  container.append(buildBox);
+  async function askBuild() {
+    if (!AI.ready()) { Guides.noKey(); return; }
+    if (!s.ref && !(s.text || '').trim()) { toast('Give the text word first: a reference or the text itself.', true); return; }
+    const ctrl = new AbortController();
+    const b = busy('Asking Claude', () => ctrl.abort());
+    b.say('Claude is building the sermon from the text, the message, your notes and the Catechism sections. This takes about a minute.');
+    try {
+      const link = Guides.findService(s);
+      const out = await AI.outline(s, {
+        service: link ? link.service : null, guideTitle: link ? link.guide.title : '',
+        signal: ctrl.signal, onProgress: n => b.say(`Writing the outline… ${Math.round(n / 100) / 10}k letters so far.`),
+      });
+      s.build = out;
+      await saveSermon(s);
+      b.done();
+      renderBuild();
+      toast('The outline is ready. Tap "Use" on the parts to keep.');
+    } catch (e) {
+      if (e && e.name === 'AbortError') { b.done(); return; }
+      b.fail(e.message || 'Claude could not answer.');
+    }
+  }
+  function renderBuild() {
+    clear(buildBox);
+    const a = s.build;
+    const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askBuild }, [sparkle(), a ? 'Suggest again' : 'Suggest the sermon']);
+    buildBox.append(el('div', { class: 'row ai-head' }, [btn, el('span', { class: 'muted small grow', text: a
+      ? `Suggested ${fmtDate(a.at)} by ${AI.modelLabel(a.model)}${a.cost ? ', ' + AI.fmtCost(a.cost) : ''}. A starting point: the sermon is yours.`
+      : 'Claude proposes how to build this sermon from the text, the message and your notes: an introduction, the main points, the application, the conclusion and illustrations, each with a line on why it works. You choose what to keep.' })]));
+    if (!a) return;
+    const panel = el('details', { class: 'ai-panel', open: true });
+    panel.append(el('summary', { text: 'The outline' }));
+    if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
+    if (a.intro && a.intro.text) {
+      panel.append(group('Introduction', [item('', a.intro.text, () => { add('intro', a.intro.text); toast('Added to Introduction.'); }, null, a.intro.why)]));
+    }
+    panel.append(group('Main points', (a.points || []).map((p, i) => item(`${i + 1}. ${p.heading}`, p.body, () => { usePoint(p); toast('Added as a main point.'); }, null, p.why)),
+      (a.points || []).length > 1 ? () => { a.points.forEach(usePoint); toast('All main points added.'); } : null, 'Each goes into the next empty main point.'));
+    panel.append(group('Application and conclusion', [
+      a.application ? item('Application', a.application, () => { add('application', a.application); toast('Added to Application.'); }) : null,
+      a.conclusion ? item('Conclusion', a.conclusion, () => { add('conclusion', a.conclusion); toast('Added to Conclusion.'); }) : null,
+    ].filter(Boolean)));
+    const illLine = x => `${x.title ? x.title + ': ' : ''}${x.body}`;
+    panel.append(group('Illustrations', (a.illustrations || []).map(x => item(x.title, x.body, () => { add('illustrations', illLine(x)); toast('Added to Illustrations under step 5.'); }, null, x.serves ? `For ${x.serves}.` : '')),
+      (a.illustrations || []).length > 1 ? () => { add('illustrations', a.illustrations.map(illLine).join('\n\n')); toast('All illustrations added under step 5.'); } : null, 'They go into the Illustrations box under step 5.'));
+    buildBox.append(panel);
+  }
+  renderBuild();
   container.append(field('Introduction', 'intro', { rows: 4, placeholder: 'How you will begin: a question, a picture from daily life, the setting of the text' }));
   const pointsBox = el('div', { class: 'points' });
   function renderPoints() {

@@ -50,7 +50,9 @@ The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
   keeps in the `guides` store on the device, lists in the Prepare tab and uses to fill a
   preparation; and "Suggest answers" under step 3 of a preparation returns the context of
   the text, key words, Catechism sections, cross references and sermon thoughts, each with
-  a "Use" button. The Catechism sections' text and the Guide's article go along in the
+  a "Use" button; "Suggest the sermon" under step 4 returns the build itself (introduction,
+  main points, application, conclusion, illustrations, each with a line on why it works),
+  drawing on the minister's own draft and notes. The Catechism sections' text and the Guide's article go along in the
   request when they are on the device; the Guide, like the Catechism, is the Church's text
   and stays out of the repository and the backup.
 - **Storage.** Notes, preparations and settings live in IndexedDB on the device
@@ -71,7 +73,7 @@ The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
 - `src/bible.js` – bundled texts, API.Bible client and cache, links out
 - `src/catechism.js` – Catechism index and tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
-- `src/ai.js` – Claude: the request, the two prompts and their JSON schemas
+- `src/ai.js` – Claude: the request, the three prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
 - `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)

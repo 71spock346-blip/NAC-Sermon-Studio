@@ -612,6 +612,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .ai-text { flex: 1 1 auto; min-width: 0; font-size: 14.5px; line-height: 1.5; white-space: pre-line; }
 .ai-text b { color: var(--ink); }
 .ai-text .num { font-weight: 600; text-decoration: none; }
+.ai-why { margin-top: 3px; font-style: italic; }
 .ai-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 .busy { display: flex; gap: 12px; align-items: flex-start; }
 .busy-text { margin: 6px 0 0; flex: 1 1 auto; }

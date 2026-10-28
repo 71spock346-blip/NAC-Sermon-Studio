@@ -11,6 +11,9 @@
  *                     key words, Catechism sections, cross references and a
  *                     few sermon thoughts, drawn from the text, the Guide's
  *                     article and the Catechism
+ *   outline(s, …)     for the same preparation: how the sermon is best built
+ *                     from all of that: introduction, main points,
+ *                     application, conclusion and illustrations
  *
  * Both ask for an answer in a fixed JSON shape, streamed so a long answer does
  * not time out. What is sent (the Guide, the Catechism sections, the text and
@@ -324,37 +327,11 @@ Rules:
  */
 export async function suggest(s, { service = null, guideTitle = '', signal, onProgress } = {}) {
   const lang = state.settings.aiLang === 'af' ? 'af' : 'en';
-  const parts = [];
-  const ref = s.ref ? formatRef(s.ref, 'en') : (s.refText || '');
-  parts.push(`THE SERVICE\nDate: ${s.date || '–'}\nOccasion: ${s.occasion || '–'}\nCongregation: ${s.congregation || '–'}\nText word: ${ref || '(no reference given)'}${s.translation ? ` (${s.translation})` : ''}`);
+  const parts = [servicePart(s)];
   if (s.text) parts.push(`THE TEXT\n${s.text}`);
-
-  if (s.ref) {
-    try {
-      const ch = await Bible.getChapter('web', s.ref.book, s.ref.chapter);
-      if (ch && ch.verses && ch.verses.length) {
-        parts.push(`THE WHOLE CHAPTER, ${formatRef({ book: s.ref.book, chapter: s.ref.chapter }, 'en')} (World English Bible), for the context\n` + ch.verses.map(v => `${v.n} ${v.text}`).join('\n'));
-      }
-    } catch (e) { /* no chapter text: Claude knows the Bible */ }
-  }
-
-  if (service) {
-    const g = [`THE ARTICLE IN THE DIVINE SERVICE GUIDE${guideTitle ? ` (${guideTitle}` : ''}${service.dateText ? `${guideTitle ? ', ' : ' ('}${service.dateText}` : ''}${guideTitle || service.dateText ? ')' : ''}`];
-    if (service.label) g.push(`Service: ${service.label}`);
-    if (service.title) g.push(`Title: ${service.title}`);
-    if (service.message) g.push(`Message: ${service.message}`);
-    if (service.introduction) g.push(`Introduction: ${service.introduction}`);
-    for (const sec of service.sections || []) g.push(`${sec.heading}\n${sec.body}`);
-    if (service.context) g.push(`Context: ${service.context}`);
-    if ((service.summary || []).length) g.push('Summary:\n' + service.summary.map(x => `- ${x}`).join('\n'));
-    if ((service.catechismRefs || []).length) g.push(`Catechism sections the article cites: ${service.catechismRefs.join(', ')}`);
-    if (service.reading) g.push(`Suggested reading: ${service.reading}`);
-    parts.push(g.join('\n\n'));
-  } else if (s.theme || s.core || s.guide) {
-    parts.push(['THE MESSAGE OF THE SERVICE, as the minister noted it from the Divine Service Guide', s.theme ? `Message: ${s.theme}` : '', s.core ? `Core thought: ${s.core}` : '', s.guide ? `Notes from the Guide: ${s.guide}` : ''].filter(Boolean).join('\n'));
-  } else {
-    parts.push('THE MESSAGE OF THE SERVICE\nNot given: take the direction from the text itself.');
-  }
+  const chapter = await chapterPart(s);
+  if (chapter) parts.push(chapter);
+  parts.push(messagePart(s, service, guideTitle));
 
   const own = [s.context ? `Context: ${s.context}` : '', s.keywords ? `Key words: ${s.keywords}` : '', s.crossRefs ? `Cross references: ${s.crossRefs}` : '', (s.points || []).some(p => p.heading || p.body) ? 'Main points so far: ' + s.points.filter(p => p.heading || p.body).map(p => `${p.heading}${p.body ? ' – ' + p.body : ''}`).join(' | ') : ''].filter(Boolean);
   if (own.length) parts.push('THE MINISTER\'S OWN NOTES SO FAR (build on them; do not repeat them)\n' + own.join('\n'));
@@ -372,8 +349,50 @@ export async function suggest(s, { service = null, guideTitle = '', signal, onPr
   return tidySuggestions(r, lang, qs);
 }
 
-/** The Catechism sections that quote the text (with their text when it is on the device) and the whole index. */
-async function catechismPart(s, service) {
+/** The service in a few lines: date, occasion, congregation, text word. */
+function servicePart(s) {
+  const ref = s.ref ? formatRef(s.ref, 'en') : (s.refText || '');
+  return `THE SERVICE\nDate: ${s.date || '–'}\nOccasion: ${s.occasion || '–'}\nCongregation: ${s.congregation || '–'}\nText word: ${ref || '(no reference given)'}${s.translation ? ` (${s.translation})` : ''}`;
+}
+
+/** The whole chapter of the text word (World English Bible, bundled), for the context; '' when there is none. */
+async function chapterPart(s) {
+  if (!s.ref) return '';
+  try {
+    const ch = await Bible.getChapter('web', s.ref.book, s.ref.chapter);
+    if (ch && ch.verses && ch.verses.length) {
+      return `THE WHOLE CHAPTER, ${formatRef({ book: s.ref.book, chapter: s.ref.chapter }, 'en')} (World English Bible), for the context\n` + ch.verses.map(v => `${v.n} ${v.text}`).join('\n');
+    }
+  } catch (e) { /* no chapter text: Claude knows the Bible */ }
+  return '';
+}
+
+/** The Guide's article when the preparation is linked to one, else the message as the minister noted it. */
+function messagePart(s, service, guideTitle) {
+  if (service) {
+    const g = [`THE ARTICLE IN THE DIVINE SERVICE GUIDE${guideTitle ? ` (${guideTitle}` : ''}${service.dateText ? `${guideTitle ? ', ' : ' ('}${service.dateText}` : ''}${guideTitle || service.dateText ? ')' : ''}`];
+    if (service.label) g.push(`Service: ${service.label}`);
+    if (service.title) g.push(`Title: ${service.title}`);
+    if (service.message) g.push(`Message: ${service.message}`);
+    if (service.introduction) g.push(`Introduction: ${service.introduction}`);
+    for (const sec of service.sections || []) g.push(`${sec.heading}\n${sec.body}`);
+    if (service.context) g.push(`Context: ${service.context}`);
+    if ((service.summary || []).length) g.push('Summary:\n' + service.summary.map(x => `- ${x}`).join('\n'));
+    if ((service.catechismRefs || []).length) g.push(`Catechism sections the article cites: ${service.catechismRefs.join(', ')}`);
+    if (service.reading) g.push(`Suggested reading: ${service.reading}`);
+    return g.join('\n\n');
+  }
+  if (s.theme || s.core || s.guide) {
+    return ['THE MESSAGE OF THE SERVICE, as the minister noted it from the Divine Service Guide', s.theme ? `Message: ${s.theme}` : '', s.core ? `Core thought: ${s.core}` : '', s.guide ? `Notes from the Guide: ${s.guide}` : ''].filter(Boolean).join('\n');
+  }
+  return 'THE MESSAGE OF THE SERVICE\nNot given: take the direction from the text itself.';
+}
+
+/**
+ * The Catechism sections that quote the text (with their text when it is on
+ * the device) and, unless `index` is false, the whole index.
+ */
+async function catechismPart(s, service, { index = true } = {}) {
   await Cat.load().catch(() => null);
   const haveText = await Cat.loadText().catch(() => false);
   const lines = ['THE CATECHISM OF THE NEW APOSTOLIC CHURCH'];
@@ -403,8 +422,10 @@ async function catechismPart(s, service) {
   } else {
     lines.push('No section of the Catechism quotes this text directly.');
   }
-  lines.push('INDEX OF THE CATECHISM (number and title; cite only these numbers):');
-  lines.push(Cat.allSections().filter(x => x.n !== 'Intro' && x.n !== 'Appendix').map(x => `${x.n} ${x.title}`).join('\n'));
+  if (index) {
+    lines.push('INDEX OF THE CATECHISM (number and title; cite only these numbers):');
+    lines.push(Cat.allSections().filter(x => x.n !== 'Intro' && x.n !== 'Appendix').map(x => `${x.n} ${x.title}`).join('\n'));
+  }
   return lines.join('\n');
 }
 
@@ -431,5 +452,106 @@ function tidySuggestions(r, lang, qs) {
     cost: cost(r.usage, r.model),
     context, keywords, catechism, crossRefs, points,
     application: str(d.application), note: str(d.note),
+  };
+}
+
+/* ---------------------------------------------------------------- building the sermon */
+
+const OUTLINE_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['intro', 'points', 'application', 'conclusion', 'illustrations', 'note'],
+  properties: {
+    intro: {
+      type: 'object', additionalProperties: false, required: ['text', 'why'], description: 'The introduction: how the sermon opens',
+      properties: { text: { type: 'string', description: 'Three to five sentences, as the minister could speak them' }, why: { type: 'string', description: 'One line on why this opening works for this text and message' } },
+    },
+    points: {
+      type: 'array', description: 'Two or three main points, in the order to preach them',
+      items: { type: 'object', additionalProperties: false, required: ['heading', 'body', 'why'], properties: { heading: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'Three to six sentences: what the text says, what it means, what it asks of us' }, why: { type: 'string', description: 'One line on what this point does for the message' } } },
+    },
+    application: { type: 'string', description: 'The application for the congregation: what the text asks of them this week, named for the people in front of the minister; two to four sentences' },
+    conclusion: { type: 'string', description: 'The conclusion: gathers the thoughts and leads to the altar; two to four sentences' },
+    illustrations: {
+      type: 'array', description: 'One to three pictures, stories or examples that make a point visible',
+      items: { type: 'object', additionalProperties: false, required: ['title', 'body', 'serves'], properties: { title: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'The picture or story in two to five sentences' }, serves: { type: 'string', description: 'The part of the sermon it serves, e.g. "the introduction" or "main point 2"' } } },
+    },
+    note: { type: 'string', description: 'Anything the minister should know about this outline, e.g. a choice made between two directions; else empty' },
+  },
+};
+
+function outlineSystem(lang) {
+  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to propose how the sermon is best built from them: an introduction that opens the door, two or three main points that each stand on the text, an application for the congregation, a conclusion that leads to the altar, and a few illustrations. For each part say in one line why it works here. The minister decides; he takes what serves him.
+
+Rules:
+- Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Where the Catechism text given below speaks to the matter, let it shape the points. Do not state what a Catechism section says unless its text is given.
+- The message of the service gives the direction: the whole outline serves it and does not pull the text elsewhere. The Guide's article, where given, is the first source for the points.
+- A New Apostolic sermon is preached freely, lasts about twenty to thirty minutes, and leads the congregation to the forgiveness of sins and Holy Communion: the conclusion ends there. In a divine service for the departed, the departed are included in the hope and the intercession. A youth service speaks to young people in their world; a children's service speaks simply.
+- Write every part so the minister could speak it as it stands: in the voice of a minister speaking to his congregation, "we" and "us", plain words, short sentences, nothing padded, no headings inside the text. Each main point has a heading of a few words and three to six sentences.
+- Build on what the minister has written already: keep his direction and wording where he has one, fill what is empty, and offer an alternative only where his draft is thin. Do not repeat his text back to him.
+- Illustrations: a picture from daily life, a true-to-life example or a Bible story that makes a point visible. When one of the minister's own notes fits, use that one and say so ("from your notes: …") rather than inventing another.
+- Answer in ${lang === 'af' ? 'Afrikaans' : 'English'}. Put nothing outside the JSON fields.`;
+}
+
+/**
+ * How the sermon is best built for one preparation: introduction, main
+ * points, application, conclusion and illustrations, each with a line on why
+ * it works. Draws on the text and its chapter, the Guide's article, the
+ * minister's own notes under steps 2 to 5, the ticked Catechism sections and
+ * the minister's experience and illustration notes.
+ */
+export async function outline(s, { service = null, guideTitle = '', signal, onProgress } = {}) {
+  const lang = state.settings.aiLang === 'af' ? 'af' : 'en';
+  const parts = [servicePart(s)];
+  if (s.text) parts.push(`THE TEXT\n${s.text}`);
+  const chapter = await chapterPart(s);
+  if (chapter) parts.push(chapter);
+  parts.push(messagePart(s, service, guideTitle));
+
+  const seen = [s.context ? `Context: ${s.context}` : '', s.keywords ? `Key words: ${s.keywords}` : '', s.crossRefs ? `Cross references: ${s.crossRefs}` : ''].filter(Boolean);
+  if (seen.length) parts.push('THE MINISTER\'S UNDERSTANDING OF THE TEXT (his notes under step 3)\n' + seen.join('\n'));
+  if (s.ai && ((s.ai.points || []).length || s.ai.application)) {
+    parts.push('SERMON THOUGHTS SUGGESTED EARLIER (build on them where they serve; do not repeat them unchanged)\n'
+      + (s.ai.points || []).map(p => `- ${p.heading}${p.body ? ': ' + p.body : ''}`).join('\n')
+      + (s.ai.application ? `\n- Application: ${s.ai.application}` : ''));
+  }
+
+  const points = (s.points || []).filter(p => p.heading || p.body);
+  const draft = [
+    s.intro ? `Introduction: ${s.intro}` : '',
+    ...points.map((p, i) => `Main point ${i + 1}: ${p.heading}${p.body ? ' – ' + p.body : ''}`),
+    s.application ? `Application: ${s.application}` : '',
+    s.conclusion ? `Conclusion: ${s.conclusion}` : '',
+    s.illustrations ? `Illustrations: ${s.illustrations}` : '',
+  ].filter(Boolean);
+  parts.push(draft.length
+    ? 'THE MINISTER\'S DRAFT OF THE SERMON SO FAR (keep his direction; fill what is missing; improve only what is thin)\n' + draft.join('\n')
+    : 'THE MINISTER\'S DRAFT OF THE SERMON SO FAR\nNothing written yet: propose the whole build.');
+
+  parts.push(await catechismPart(s, service, { index: false }));
+
+  const notes = (state.notes || []).filter(n => n.kind === 'experience' || n.kind === 'illustration').slice(0, 15);
+  if (notes.length) {
+    parts.push('THE MINISTER\'S OWN EXPERIENCES AND ILLUSTRATIONS, from his notes (use one where it fits the message)\n'
+      + notes.map(n => `- ${formatRef({ book: n.book, chapter: n.chapter, verse: n.verse, verseEnd: n.verseEnd }, 'en')}${n.title ? ` – ${n.title}` : ''}: ${(n.body || '').slice(0, 500)}`).join('\n'));
+  }
+
+  const r = await run({
+    system: outlineSystem(lang),
+    content: [{ type: 'text', text: parts.join('\n\n\n') }],
+    schema: OUTLINE_SCHEMA, effort: 'high', maxTokens: 12000, signal, onProgress,
+  });
+  return tidyOutline(r, lang);
+}
+
+function tidyOutline(r, lang) {
+  const d = r.data || {};
+  const list = v => (Array.isArray(v) ? v.filter(Boolean) : []);
+  const intro = d.intro && typeof d.intro === 'object' ? { text: str(d.intro.text), why: str(d.intro.why) } : { text: str(d.intro), why: '' };
+  const points = list(d.points).map(p => ({ heading: str(p.heading), body: str(p.body), why: str(p.why) })).filter(p => p.heading || p.body);
+  const illustrations = list(d.illustrations).map(x => ({ title: str(x.title), body: str(x.body), serves: str(x.serves) })).filter(x => x.body);
+  return {
+    at: new Date().toISOString(), model: r.model, lang,
+    cost: cost(r.usage, r.model),
+    intro, points, application: str(d.application), conclusion: str(d.conclusion), illustrations, note: str(d.note),
   };
 }
