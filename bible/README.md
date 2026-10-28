@@ -62,7 +62,7 @@ The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
 - `src/catechism.js` – Catechism index and tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
 - `src/pdf.js` – printed outputs
-- `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices)
+- `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)
 - `vendor/fonts/` – Literata (SIL OFL 1.1), Latin and Latin-extended subsets
 - `tools/` – the scripts that generate `data/` (see below)

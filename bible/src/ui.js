@@ -23,6 +23,7 @@ export function el(tag, attrs, children) {
       node.append(c.nodeType ? c : document.createTextNode(String(c)));
     }
   }
+  if (tag === 'textarea') autosize(node);   // every text box grows with its text
   return node;
 }
 
@@ -179,6 +180,92 @@ export function confirmBox(message, action, danger) {
       ]));
     setTimeout(() => ok.focus(), 30);
   });
+}
+
+/* ---------------------------------------------------------- growing boxes */
+
+/*
+ * Every textarea grows with its text, so nothing scrolls inside a box: the
+ * page (or the sheet) scrolls instead, and `rows` is only the smallest size.
+ * el() attaches this to each textarea it makes. Typing is handled here; text
+ * set from code (ta.value = …) needs fit(ta) afterwards.
+ */
+const widths = new WeakMap();
+const resizer = 'ResizeObserver' in window ? new ResizeObserver(entries => {
+  // a turned phone or a resized window wraps the text differently
+  const changed = [];
+  for (const e of entries) {
+    const w = e.contentRect.width;
+    if (w === widths.get(e.target)) continue;
+    widths.set(e.target, w);
+    if (w) changed.push(e.target);
+  }
+  if (changed.length) requestAnimationFrame(() => fitAll(changed));   // outside the observer's own callback
+}) : null;
+let queued = [];
+
+export function autosize(ta) {
+  if (ta.classList.contains('grows')) return ta;
+  ta.classList.add('grows');
+  ta.addEventListener('input', () => fit(ta));
+  if (resizer) resizer.observe(ta);
+  // the first measure, once the script that made the box has put it on the page
+  if (!queued.length) queueMicrotask(() => { const q = queued; queued = []; fitAll(q); });
+  queued.push(ta);
+  return ta;
+}
+
+/** Sets a textarea's height to its text: call it after setting .value from code. */
+export function fit(ta) { fitAll([ta]); }
+
+function fitAll(tas) {
+  const list = tas.filter(t => t.isConnected);
+  if (!list.length) return;
+  // the page and the sheet keep their place while the boxes are measured
+  const scrollerOf = t => t.closest('.sheet-body') || document.scrollingElement;
+  const scrollers = [...new Set(list.map(scrollerOf))];
+  const tops = scrollers.map(s => s.scrollTop);
+  const before = list.map(t => t.offsetHeight);
+  for (const t of list) t.style.height = 'auto';
+  const heights = list.map(t => {
+    const h = t.scrollHeight;
+    if (!h) return '';   // not shown yet: measured again when it is
+    const cs = getComputedStyle(t);
+    return h + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth) + 'px';
+  });
+  list.forEach((t, i) => { t.style.height = heights[i]; });
+  scrollers.forEach((s, i) => { if (s.scrollTop !== tops[i]) s.scrollTop = tops[i]; });
+  // typing at the foot of a box that has just grown: keep the new line in sight, above the keyboard
+  const i = list.indexOf(document.activeElement);
+  if (i < 0) return;
+  const ta = list[i], grew = ta.offsetHeight - before[i];
+  if (grew <= 0) return;
+  const scroller = scrollerOf(ta);
+  const vv = window.visualViewport;
+  let seen = vv ? vv.offsetTop + vv.height : window.innerHeight;
+  if (scroller !== document.scrollingElement) seen = Math.min(seen, scroller.getBoundingClientRect().bottom);
+  const below = ta.getBoundingClientRect().bottom - seen;
+  if (below > 0) scroller.scrollTop += Math.min(below, grew);
+}
+
+/**
+ * A one-line box, such as a title, that wraps onto a second line instead of
+ * scrolling sideways: a textarea that never takes a newline. On a phone the
+ * Enter key reads "Done" and closes the keyboard.
+ */
+export function lineBox(attrs = {}) {
+  const { value, ...rest } = attrs;
+  const ta = el('textarea', { rows: 1, enterkeyhint: 'done', ...rest, class: 'oneline' + (rest.class ? ' ' + rest.class : '') });
+  if (value != null) ta.value = value;
+  ta.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    e.preventDefault();
+    if (isTouch()) ta.blur();
+  });
+  ta.addEventListener('input', () => {   // pasted line breaks become spaces
+    if (/[\r\n]/.test(ta.value)) { ta.value = ta.value.replace(/\s*[\r\n]+\s*/g, ' '); fit(ta); }
+  });
+  return ta;
 }
 
 export function escapeHtml(s) {
