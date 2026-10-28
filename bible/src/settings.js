@@ -7,9 +7,10 @@ import { el, clear, toast, confirmBox, download, today, sheet, fmtDate, seg, THE
 import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts, saveCatechismText, deleteCatechismText } from './store.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
+import * as AI from './ai.js';
 import { BOOKS } from './books.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 
 let root = null;   // the Settings tab, so a section can redraw the whole tab after a change
 
@@ -97,6 +98,7 @@ export function render(container) {
 
   myTextsSection(trans);
   catechismSection(container);
+  aiSection(container);
 
   // ---- backup
   const fileInput = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
@@ -156,6 +158,7 @@ export function render(container) {
       el('li', { text: 'Scripture read through API.Bible or the YouVersion Platform is the copyright of its publishers and is shown under their terms; see the notice under each chapter.' }),
       el('li', { text: 'Text you paste in yourself stays on this device for your own study and remains the copyright of its publisher.' }),
       el('li', { text: 'Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only the section numbers, titles and Bible references; the text itself is loaded by you onto this device for your own study, or read at nak.org.' }),
+      el('li', { text: 'Divine Service Guide © New Apostolic Church International. A Guide you load is read by Claude (Anthropic) with your own key and kept on this device only, for your own preparation.' }),
       el('li', { text: 'Reading typeface: Literata, © The Literata Project Authors, SIL Open Font License 1.1.' }),
     ]),
     el('div', { class: 'row' }, [
@@ -246,6 +249,44 @@ function catechismSection(container) {
       } }) : null,
       fileInput,
     ]),
+  ]));
+}
+
+/** The AI helper: the Anthropic key, which Claude to ask, and the language of the suggestions. */
+function aiSection(container) {
+  const S = state.settings;
+  const keyInput = el('input', { type: 'password', value: S.aiKey || '', placeholder: 'Paste your Anthropic key (sk-ant-…)', autocomplete: 'off', spellcheck: 'false' });
+  const showBtn = el('button', { class: 'btn small ghost', type: 'button', text: 'Show', onclick: () => { keyInput.type = keyInput.type === 'password' ? 'text' : 'password'; showBtn.textContent = keyInput.type === 'password' ? 'Show' : 'Hide'; } });
+  keyInput.addEventListener('change', async () => { await saveSetting('aiKey', keyInput.value.trim()); toast(keyInput.value.trim() ? 'Key saved on this device.' : 'Key removed.'); });
+  const checkBtn = el('button', { class: 'btn small', type: 'button', text: 'Check key', onclick: async () => {
+    await saveSetting('aiKey', keyInput.value.trim());
+    if (!S.aiKey) { toast('Paste the key first.', true); return; }
+    checkBtn.disabled = true;
+    try { await AI.checkKey(); toast('The key works. Claude is ready in the Prepare tab.'); }
+    catch (e) { toast(e.message, true); }
+    checkBtn.disabled = false;
+  } });
+  const modelSel = el('select', {}, AI.MODELS.map(m => el('option', { value: m.id, text: `${m.label} – ${m.note}`, selected: m.id === AI.model().id })));
+  modelSel.addEventListener('change', async () => { await saveSetting('aiModel', modelSel.value); toast(`Claude: ${AI.modelLabel(modelSel.value)}.`); });
+  const langSel = el('select', {}, AI.LANGS.map(([v, l]) => el('option', { value: v, text: l, selected: (S.aiLang || 'en') === v })));
+  langSel.addEventListener('change', async () => { await saveSetting('aiLang', langSel.value); toast('Suggestions will come in ' + (langSel.value === 'af' ? 'Afrikaans' : 'English') + '.'); });
+
+  container.append(section('AI helper', [
+    el('p', { class: 'small', text: 'Claude, the AI from Anthropic, can read the monthly Divine Service Guide into the Prepare tab and suggest answers for a preparation: the context of the text, key words, Catechism sections, cross references and sermon thoughts. It works with a key of your own, so you pay Anthropic only for what you use (roughly R10 to read a month\'s Guide and a few rand for a set of suggestions) and the key stays on this device, out of any backup.' }),
+    el('details', { class: 'small' }, [
+      el('summary', { text: 'How to get a key' }),
+      el('ol', {}, [
+        el('li', {}, ['Open ', el('a', { href: 'https://console.anthropic.com', target: '_blank', rel: 'noopener', text: 'console.anthropic.com' }), ' and create an account, or sign in.']),
+        el('li', { text: 'Under Billing, add some credit; it is prepaid, and $5 to $10 lasts months.' }),
+        el('li', { text: 'Under API Keys, create a key, copy it (it is shown once) and paste it below. Then tap "Check key".' }),
+      ]),
+    ]),
+    el('label', { class: 'f' }, ['Anthropic key', el('div', { class: 'row line' }, [keyInput, showBtn, checkBtn])]),
+    el('div', { class: 'fields two' }, [
+      el('label', { class: 'f' }, ['Which Claude', modelSel]),
+      el('label', { class: 'f' }, ['Language of the suggestions', langSel]),
+    ]),
+    el('p', { class: 'muted small', text: 'What goes to Anthropic to answer: the Guide PDF when you load one, the text word with its chapter, the Catechism sections that belong to it, and your own notes on that preparation. Anthropic processes it to answer and does not train its models on it. Nothing is put on the public site, and the suggestions are a starting point: the sermon remains yours.' }),
   ]));
 }
 
