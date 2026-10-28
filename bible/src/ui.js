@@ -182,6 +182,31 @@ export function confirmBox(message, action, danger) {
   });
 }
 
+/**
+ * A sheet for work that takes a while, such as a request to Claude:
+ * busy('Reading the Guide', onCancel) → {say(text), done(), fail(message)}.
+ * Closing the sheet (the ✕, Escape or Cancel) calls onCancel while the work runs.
+ */
+export function busy(title, onCancel) {
+  let finished = false;
+  const s = sheet(title, { sticky: true, onclose: () => { if (!finished && onCancel) onCancel(); } });
+  const text = el('p', { class: 'busy-text', role: 'status' });
+  const spin = el('span', { class: 'spin', 'aria-hidden': 'true' });
+  const cancel = el('button', { class: 'btn ghost', type: 'button', text: 'Cancel', onclick: () => s.close() });
+  s.body.append(el('div', { class: 'busy' }, [spin, text]), el('div', { class: 'row end' }, [cancel]));
+  return {
+    say(msg) { text.textContent = msg; },
+    done() { finished = true; s.close(); },
+    fail(msg) {
+      finished = true;
+      spin.remove();
+      text.textContent = msg;
+      text.classList.add('error');
+      cancel.textContent = 'Close';
+    },
+  };
+}
+
 /* ---------------------------------------------------------- growing boxes */
 
 /*

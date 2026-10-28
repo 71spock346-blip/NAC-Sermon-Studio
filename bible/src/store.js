@@ -6,8 +6,8 @@
  * arrays as the truth. Export/Import moves the lot between devices.
  */
 const DB_NAME = 'nac-study-bible';
-const DB_VERSION = 3;
-const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism'];
+const DB_VERSION = 4;
+const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides'];
 
 let dbPromise = null;
 
@@ -23,6 +23,7 @@ function openDb() {
       if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'key' });
       if (!db.objectStoreNames.contains('texts')) db.createObjectStore('texts', { keyPath: 'key' });
       if (!db.objectStoreNames.contains('catechism')) db.createObjectStore('catechism', { keyPath: 'key' });
+      if (!db.objectStoreNames.contains('guides')) db.createObjectStore('guides', { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -66,6 +67,9 @@ export const DEFAULT_SETTINGS = {
   yvKey: '',              // YouVersion Platform app key, same rules as apiKey
   yvBibles: [],           // [{id, abbreviation, name, language}] chosen from that catalogue
   myTexts: [],            // versions the person pastes in chapter by chapter ('afr83'), shown as "(pasted)"
+  aiKey: '',              // Anthropic key for the AI helper, same rules as apiKey
+  aiModel: 'claude-opus-5-5',
+  aiLang: 'en',           // language of the suggestions: 'en' or 'af'
   name: '',
   congregation: '',
   lastRef: 'PSA.23',
@@ -78,11 +82,13 @@ export const state = {
   settings: { ...DEFAULT_SETTINGS },
   texts: {},              // version -> Set of 'BOOK.chapter' pasted in (the text itself stays in the database)
   catechism: null,        // {edition, sections, builtAt, loadedAt} when the Catechism text is loaded on this device
+  guides: [],             // Divine Service Guides read by the AI helper, each with its services (device only, see guides.js)
 };
 
 export async function load() {
-  const [notes, sermons, settings, textKeys, catMeta] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta')]);
+  const [notes, sermons, settings, textKeys, catMeta, guides] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta'), db.all('guides')]);
   state.catechism = catMeta ? catMeta.value : null;
+  state.guides = guides;
   state.texts = {};
   for (const k of textKeys) {
     const [version, ref] = String(k).split(':');
@@ -228,6 +234,21 @@ export async function deleteCatechismText() {
   state.catechism = null;
 }
 
+/* ---- the Divine Service Guides the AI helper has read ----
+   The Church's text again, so: on this device only, not in the backup. */
+export async function saveGuide(guide) {
+  if (!guide.id) guide.id = uid();
+  const i = state.guides.findIndex(g => g.id === guide.id);
+  if (i >= 0) state.guides[i] = guide; else state.guides.push(guide);
+  await db.put('guides', guide);
+  return guide;
+}
+
+export async function deleteGuide(id) {
+  state.guides = state.guides.filter(g => g.id !== id);
+  await db.del('guides', id);
+}
+
 /* ---- backup (pasted text and the Catechism text are not in it: see exportTexts) ---- */
 export async function exportAll() {
   return {
@@ -236,9 +257,12 @@ export async function exportAll() {
     exportedAt: new Date().toISOString(),
     notes: state.notes,
     sermons: state.sermons,
-    settings: Object.fromEntries(Object.entries(state.settings).filter(([k]) => k !== 'apiKey' && k !== 'yvKey')),
+    settings: Object.fromEntries(Object.entries(state.settings).filter(([k]) => !SECRET.has(k))),
   };
 }
+
+/** The keys never leave the device: not in a backup, not taken from one. */
+const SECRET = new Set(['apiKey', 'yvKey', 'aiKey']);
 
 /** Merge a backup in: newer copies win, nothing is deleted. Returns counts. */
 export async function importAll(data) {
@@ -261,7 +285,7 @@ export async function importAll(data) {
     }
   }
   for (const [k, v] of Object.entries(data.settings || {})) {
-    if (k === 'apiKey' || k === 'yvKey') continue;
+    if (SECRET.has(k)) continue;
     if (!(k in DEFAULT_SETTINGS)) continue;
     await saveSetting(k, v);
   }
@@ -277,4 +301,5 @@ export async function wipeAll() {
   state.settings = { ...DEFAULT_SETTINGS };
   state.texts = {};
   state.catechism = null;
+  state.guides = [];
 }
