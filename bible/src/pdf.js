@@ -10,7 +10,7 @@ import { formatRef } from './books.js';
 import { state } from './store.js';
 import * as Cat from './catechism.js';
 
-const BLUE = [17, 87, 171];
+const BLUE = [31, 78, 140];      // the Church's blue, the same as --accent on screen
 const INK = [31, 41, 55];
 const MUTED = [107, 114, 128];
 

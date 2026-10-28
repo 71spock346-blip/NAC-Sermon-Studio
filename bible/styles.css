@@ -206,6 +206,8 @@ h3.sub:first-child { margin-top: 0; }
 .fields.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .fields > label.full { grid-column: 1 / -1; }   /* a whole row at every width: a title has room to wrap, not scroll */
 label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; color: var(--ink-2); margin: 6px 0; min-width: 0; }
+/* the titles of the sermon's sections in a preparation, as on the printed notes: bold, in the Church's blue */
+#tab-prepare label.f > .f-title { font: 700 14px/1.3 var(--sans); color: var(--accent-text); }
 label.f > input, label.f > select, label.f > textarea { color: var(--ink); font-weight: 400; }
 label.f .row.line { width: 100%; }
 .fields > label.f { margin: 0; }
@@ -385,12 +387,14 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .prep-head .docbar { margin: 0; }
 .status-sel { width: auto; flex: 0 0 auto; }
 .step-head { display: flex; gap: 12px; align-items: flex-start; margin: 26px 0 6px; padding-top: 16px; border-top: 1px solid var(--line); }
-.step-head h3 { font: 700 17px/1.25 var(--sans); margin: 1px 0 0; }
+.step-head h3 { font: 700 17px/1.25 var(--sans); margin: 1px 0 0; color: var(--accent-text); }
 .step-head p { margin: 4px 0 0; }
 .step-n { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
 .step-n.small { width: 26px; height: 26px; font-size: 12px; background: var(--accent-soft); color: var(--accent-text); }
 .points .point { border-radius: var(--radius-s); padding: 10px; margin: 10px 0; background: var(--surface-2); }
 .points .point > textarea { margin-top: 8px; }
+/* what is a title on the printed notes (the sermon title, the message, each main point) is bold while it is typed */
+#tab-prepare textarea.oneline { font-weight: 600; }
 .catbox { border-radius: var(--radius-s); padding: 2px 10px; background: var(--surface); box-shadow: var(--shadow-card); }
 .catbox > span { display: block; padding: 8px 0; }
 .catbox .cat-item { border-top: 1px solid var(--line); }
