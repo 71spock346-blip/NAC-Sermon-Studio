@@ -119,6 +119,8 @@ function renderEditor(container, s) {
   }, 500);
   const touch = () => { save(); };
 
+  // the title of a section of the sermon, above its box: styled as a heading (see #tab-prepare .f-title in styles.css)
+  const title = text => el('span', { class: 'f-title', text });
   // every box grows with its text (see autosize in ui.js); `line` is a one-line box that wraps rather than scrolls sideways
   function field(label, key, opts = {}) {
     const input = opts.rows
@@ -128,7 +130,7 @@ function renderEditor(container, s) {
         : el('input', { type: opts.type || 'text', placeholder: opts.placeholder || '' });
     input.value = s[key] || '';
     input.addEventListener('input', () => { s[key] = input.value; touch(); });
-    return el('label', { class: 'f' + (opts.cls ? ' ' + opts.cls : '') }, [label, input, opts.hint ? el('span', { class: 'hint muted small', text: opts.hint }) : null]);
+    return el('label', { class: 'f' + (opts.cls ? ' ' + opts.cls : '') }, [title(label), input, opts.hint ? el('span', { class: 'hint muted small', text: opts.hint }) : null]);
   }
   function step(n, title, hint) {
     return el('div', { class: 'step-head' }, [el('span', { class: 'step-n', text: n }), el('div', {}, [el('h3', { text: title }), hint ? el('p', { class: 'muted small', text: hint }) : null])]);
@@ -156,7 +158,7 @@ function renderEditor(container, s) {
   container.append(el('div', { class: 'fields three' }, [
     field('Date', 'date', { type: 'date' }),
     field('Congregation', 'congregation', { placeholder: 'e.g. Phumolong' }),
-    el('label', { class: 'f wide' }, ['Occasion', occSel]),
+    el('label', { class: 'f wide' }, [title('Occasion'), occSel]),
     field('Sermon title (optional)', 'title', { cls: 'full', line: true, placeholder: 'A heading for your notes' }),
   ]));
 
@@ -211,10 +213,10 @@ function renderEditor(container, s) {
 
   container.append(
     el('div', { class: 'fields two' }, [
-      el('label', { class: 'f' }, ['Reference', refInput, refHint]),
-      el('label', { class: 'f' }, ['Translation', el('div', { class: 'row line' }, [transSel, typedTrans, fetchBtn])]),
+      el('label', { class: 'f' }, [title('Reference'), refInput, refHint]),
+      el('label', { class: 'f' }, [title('Translation'), el('div', { class: 'row line' }, [transSel, typedTrans, fetchBtn])]),
     ]),
-    el('label', { class: 'f' }, ['Text', textArea]),
+    el('label', { class: 'f' }, [title('Text'), textArea]),
     el('div', { class: 'row' }, [
       el('a', { class: 'btn small ghost', href: '#read', text: 'Open in the reader', onclick: e => { if (s.ref) { e.preventDefault(); location.hash = `#read/${s.ref.book}/${s.ref.chapter}${s.ref.verse ? '/' + s.ref.verse : ''}`; } } }),
     ]));
@@ -242,7 +244,7 @@ function renderEditor(container, s) {
   container.append(
     field('Context', 'context', { rows: 4, placeholder: 'The setting of the text: the people, the situation, the surrounding chapters' }),
     field('Key words and their meaning', 'keywords', { rows: 3, placeholder: 'One word per line, with what it means here' }),
-    el('label', { class: 'f' }, ['Catechism references', catBox]),
+    el('label', { class: 'f' }, [title('Catechism references'), catBox]),
     el('div', { class: 'row line cat-row' }, [el('span', { class: 'small', text: 'In the sermon notes:' }), catChoice]),
     catNote,
     field('Cross references', 'crossRefs', { rows: 3, placeholder: 'Other passages that shed light, one per line: "Romans 8:28 – all things work together"' }),
