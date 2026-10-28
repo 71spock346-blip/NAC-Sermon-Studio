@@ -207,7 +207,13 @@ h3.sub:first-child { margin-top: 0; }
 .fields > label.full { grid-column: 1 / -1; }   /* a whole row at every width: a title has room to wrap, not scroll */
 label.f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; color: var(--ink-2); margin: 6px 0; min-width: 0; }
 /* the titles of the sermon's sections in a preparation, as on the printed notes: bold, in the Church's blue */
-#tab-prepare label.f > .f-title { font: 700 14px/1.3 var(--sans); color: var(--accent-text); }
+#tab-prepare label.f .f-title { font: 700 14px/1.3 var(--sans); color: var(--accent-text); }
+/* the title row of a box: the heading and, while the box has text, Clear */
+.f-head { display: flex; align-items: center; gap: 8px; }
+.f-head .f-title { flex: 1 1 auto; }
+.clear-btn { flex: 0 0 auto; background: none; border: 0; color: var(--muted); font: 500 12px/1 var(--sans); padding: 6px 8px; margin: -6px -8px -6px 0; border-radius: 6px; cursor: pointer; }
+.clear-btn[hidden] { display: none; }
+@media (hover: hover) and (pointer: fine) { .clear-btn:hover { color: var(--danger); background: var(--surface-2); } }
 label.f > input, label.f > select, label.f > textarea { color: var(--ink); font-weight: 400; }
 label.f .row.line { width: 100%; }
 .fields > label.f { margin: 0; }
@@ -290,6 +296,9 @@ details[open] summary { margin-bottom: 4px; }
 .toast { position: fixed; left: 50%; bottom: calc(18px + var(--tabbar)); transform: translate(-50%, 12px); background: var(--bar); color: var(--bar-ink); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .18s ease-out, transform .18s ease-out; z-index: 40; max-width: 92vw; text-align: center; box-shadow: var(--shadow-pop); }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.error { background: var(--danger); color: #fff; }
+.toast.action { pointer-events: auto; }
+.toast-undo { margin-left: 12px; background: transparent; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); color: inherit; border-radius: 999px; padding: 3px 11px; font: inherit; font-weight: 600; cursor: pointer; }
+.toast-undo:hover { background: color-mix(in srgb, currentColor 15%, transparent); }
 
 /* ------------------------------------------------------------ lists */
 .list { display: flex; flex-direction: column; margin-top: 8px; border-radius: var(--radius); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-card); }
@@ -386,7 +395,9 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .prep-head { position: sticky; top: var(--top); z-index: 4; background: var(--bg); padding: 6px 0; margin: 0 0 6px; border-bottom: 1px solid var(--line); }
 .prep-head .docbar { margin: 0; }
 .status-sel { width: auto; flex: 0 0 auto; }
-.step-head { display: flex; gap: 12px; align-items: flex-start; margin: 26px 0 6px; padding-top: 16px; border-top: 1px solid var(--line); }
+.step-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; margin: 26px 0 6px; padding-top: 16px; border-top: 1px solid var(--line); }
+.step-head .step-text { flex: 1 1 240px; min-width: 0; }
+.step-head .step-clear { flex: 0 0 auto; margin-left: auto; }
 .step-head h3 { font: 700 17px/1.25 var(--sans); margin: 1px 0 0; color: var(--accent-text); }
 .step-head p { margin: 4px 0 0; }
 .step-n { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }

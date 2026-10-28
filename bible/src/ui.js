@@ -41,13 +41,17 @@ export function isTouch() {
 }
 
 let toastTimer;
-export function toast(msg, isError) {
+/** A short message at the bottom; with `undo` (a function) it carries an Undo button and stays a little longer. */
+export function toast(msg, isError, undo) {
   const t = $('#toast');
   if (!t) return;
   t.textContent = msg;
-  t.className = 'toast show' + (isError ? ' error' : '');
+  if (typeof undo === 'function') {
+    t.append(el('button', { class: 'toast-undo', type: 'button', text: 'Undo', onclick: () => { t.className = 'toast'; undo(); } }));
+  }
+  t.className = 'toast show' + (isError ? ' error' : '') + (typeof undo === 'function' ? ' action' : '');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = 'toast'; }, isError ? 5000 : 3000);
+  toastTimer = setTimeout(() => { t.className = 'toast'; }, isError ? 5000 : typeof undo === 'function' ? 8000 : 3000);
 }
 
 export function debounce(fn, ms) {
