@@ -43,6 +43,16 @@ The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
   loaded, `src/catechism.js` shows the sections (with the book's own summaries,
   footnotes and the table of the Ten Commandments), searches them by word, and
   `src/pdf.js` prints the sections chosen for a service into the sermon notes.
+- **AI helper.** `src/ai.js` calls Claude (Anthropic) straight from the browser with the
+  person's own key (Settings → AI helper, on the device only, never exported), streaming
+  and with the answer held to a JSON schema. Two jobs: a monthly Divine Service Guide
+  (PDF, sent as a document block) comes back as one entry per service, which `src/guides.js`
+  keeps in the `guides` store on the device, lists in the Prepare tab and uses to fill a
+  preparation; and "Suggest answers" under step 3 of a preparation returns the context of
+  the text, key words, Catechism sections, cross references and sermon thoughts, each with
+  a "Use" button. The Catechism sections' text and the Guide's article go along in the
+  request when they are on the device; the Guide, like the Catechism, is the Church's text
+  and stays out of the repository and the backup.
 - **Storage.** Notes, preparations and settings live in IndexedDB on the device
   (`src/store.js`). Settings → Backup exports and merges a JSON file.
 - **Offline.** `sw.js` serves the shell network-first and the texts, library and
@@ -61,6 +71,8 @@ The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
 - `src/bible.js` – bundled texts, API.Bible client and cache, links out
 - `src/catechism.js` – Catechism index and tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
+- `src/ai.js` – Claude: the request, the two prompts and their JSON schemas
+- `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
 - `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)

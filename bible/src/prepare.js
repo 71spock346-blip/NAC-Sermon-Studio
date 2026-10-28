@@ -6,14 +6,23 @@
  * the text, building the sermon, illustrations from the person's own notes,
  * and a reflection afterwards. Everything saves as it is typed. Two printed
  * outputs come from it: the full sermon notes and a one-page cue card.
+ *
+ * Two helpers sit alongside the form. A loaded Divine Service Guide
+ * (guides.js) fills the text word, message and notes of a service in one tap
+ * and keeps the article at hand under step 2. "Suggest answers" under step 3
+ * asks Claude (ai.js) for the context of the text, key words, Catechism
+ * sections, cross references and sermon thoughts; each comes with a "Use"
+ * button, so nothing lands in the notes that the person did not choose.
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox } from './ui.js';
+import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox, busy } from './ui.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveSermon, deleteSermon } from './store.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
 import * as Notes from './notes.js';
 import * as Pdf from './pdf.js';
+import * as Guides from './guides.js';
+import * as AI from './ai.js';
 
 export const OCCASIONS = [
   'Sunday divine service', 'Midweek divine service', 'Divine service for the departed',
@@ -22,22 +31,38 @@ export const OCCASIONS = [
 const STATUS = [['draft', 'Draft'], ['ready', 'Ready'], ['held', 'Held']];
 const STATUS_LABEL = Object.fromEntries(STATUS);
 
+function blank() {
+  return {
+    date: nextSunday(), congregation: state.settings.congregation || '', occasion: OCCASIONS[0], title: '',
+    ref: null, refText: '', translation: Bible.source(state.settings.translation)?.short || 'KJV', translationId: state.settings.translation, text: '',
+    theme: '', core: '', guide: '', context: '', keywords: '', catechism: [], catechismText: 'full', crossRefs: '', intro: '',
+    points: [{ heading: '', body: '' }, { heading: '', body: '' }, { heading: '', body: '' }],
+    application: '', illustrations: '', conclusion: '', reflection: '', status: 'draft',
+  };
+}
+
 export async function newFromText(ref, text, translationShort) {
   await Cat.load().catch(() => {});
   const s = {
-    date: nextSunday(),
-    congregation: state.settings.congregation || '',
-    occasion: OCCASIONS[0],
-    title: '',
+    ...blank(),
     ref, refText: formatRef(ref, state.settings.bookLang),
     translation: translationShort || '', translationId: state.settings.translation,
     text: text || '',
-    theme: '', core: '', guide: '', context: '', keywords: '',
     catechism: sectionsForRef(ref).slice(0, 12).map(c => ({ n: c.n, title: c.title })),
-    catechismText: 'full',
-    crossRefs: '', intro: '', points: [{ heading: '', body: '' }, { heading: '', body: '' }, { heading: '', body: '' }],
-    application: '', illustrations: '', conclusion: '', reflection: '', status: 'draft',
   };
+  // the Guide has an article on this text: its message and notes come along
+  const m = Guides.matchService(ref);
+  if (m) Guides.prefill(s, m.guide, m.i, { fresh: true });
+  await saveSermon(s);
+  location.hash = `#prepare/${s.id}`;
+}
+
+/** A preparation started from a service in a loaded Guide. */
+export async function newFromService(guide, i) {
+  await Cat.load().catch(() => {});
+  const s = blank();
+  Guides.prefill(s, guide, i, { force: true, fresh: true });
+  for (const c of sectionsForRef(s.ref).slice(0, 12)) if (!s.catechism.find(x => x.n === c.n)) s.catechism.push({ n: c.n, title: c.title });
   await saveSermon(s);
   location.hash = `#prepare/${s.id}`;
 }
@@ -92,24 +117,19 @@ function renderList(container) {
       el('button', { class: 'btn small', type: 'button', text: 'New preparation', onclick: () => newBlank() }),
     ]),
     el('p', { class: 'muted small', text: 'Each card is one divine service: the text word, the message from the Divine Service Guide, your own thoughts, and the printed sermon notes and cue card.' }),
+    Guides.card({ onPrepare: newFromService, onChange: () => renderList(clear(container)) }),
     search, list);
   show();
 }
 
 async function newBlank() {
-  const s = {
-    date: nextSunday(), congregation: state.settings.congregation || '', occasion: OCCASIONS[0], title: '',
-    ref: null, refText: '', translation: Bible.source(state.settings.translation)?.short || 'KJV', translationId: state.settings.translation, text: '',
-    theme: '', core: '', guide: '', context: '', keywords: '', catechism: [], catechismText: 'full', crossRefs: '', intro: '',
-    points: [{ heading: '', body: '' }, { heading: '', body: '' }, { heading: '', body: '' }],
-    application: '', illustrations: '', conclusion: '', reflection: '', status: 'draft',
-  };
+  const s = blank();
   await saveSermon(s);
   location.hash = `#prepare/${s.id}`;
 }
 
 /* ---------------------------------------------------------------- editor */
-function renderEditor(container, s) {
+function renderEditor(root, s) {
   const lang = state.settings.bookLang;
   const savedBadge = el('span', { class: 'badge', text: 'Saved', hidden: true });
   const save = debounce(async () => {
@@ -118,6 +138,7 @@ function renderEditor(container, s) {
     setTimeout(() => { savedBadge.hidden = true; }, 1500);
   }, 500);
   const touch = () => { save(); };
+  const inputs = {};   // key -> its box, so a suggestion can be put into it
 
   // the title of a section of the sermon, above its box: styled as a heading (see #tab-prepare .f-title in styles.css)
   const title = text => el('span', { class: 'f-title', text });
@@ -130,16 +151,23 @@ function renderEditor(container, s) {
         : el('input', { type: opts.type || 'text', placeholder: opts.placeholder || '' });
     input.value = s[key] || '';
     input.addEventListener('input', () => { s[key] = input.value; touch(); });
+    inputs[key] = input;
     return el('label', { class: 'f' + (opts.cls ? ' ' + opts.cls : '') }, [title(label), input, opts.hint ? el('span', { class: 'hint muted small', text: opts.hint }) : null]);
   }
   function step(n, title, hint) {
     return el('div', { class: 'step-head' }, [el('span', { class: 'step-n', text: n }), el('div', {}, [el('h3', { text: title }), hint ? el('p', { class: 'muted small', text: hint }) : null])]);
   }
+  /** Adds text to a box: a suggestion the person chose to keep. */
+  function add(key, text, sep = '\n\n') {
+    s[key] = (s[key] && s[key].trim() ? s[key].trim() + sep : '') + text;
+    if (inputs[key]) { inputs[key].value = s[key]; fit(inputs[key]); }
+    touch();
+  }
 
   // ---- header
   const statusSel = el('select', { class: 'status-sel', 'aria-label': 'Status of this preparation' }, STATUS.map(([v, l]) => el('option', { value: v, text: l, selected: (s.status || 'draft') === v })));
   statusSel.addEventListener('change', () => { s.status = statusSel.value; touch(); });
-  container.append(
+  root.append(
     el('div', { class: 'crumbs' }, [el('a', { href: '#prepare', text: '‹ All preparations' })]),
     el('div', { class: 'prep-head' }, [el('div', { class: 'docbar' }, [
       el('h2', { text: s.ref ? formatRef(s.ref, lang) : 'Service preparation' }),
@@ -148,9 +176,8 @@ function renderEditor(container, s) {
       statusSel,
     ])]));
   // the form itself sits on a page under the pinned heading
-  const page = el('div', { class: 'page' });
-  container.append(page);
-  container = page;
+  const container = el('div', { class: 'page' });
+  root.append(container);
 
   // ---- service details
   const occSel = el('select', {}, [...OCCASIONS, ...(OCCASIONS.includes(s.occasion) || !s.occasion ? [] : [s.occasion])].map(o => el('option', { value: o, text: o, selected: o === s.occasion })));
@@ -172,6 +199,7 @@ function renderEditor(container, s) {
   const textArea = el('textarea', { rows: 5, placeholder: 'The Bible text as it will be read. Tap "Fetch text" to fill it from the chosen translation.' });
   textArea.value = s.text || '';
   textArea.addEventListener('input', () => { s.text = textArea.value; touch(); });
+  inputs.text = textArea;
   const catBox = el('div', { class: 'catbox' });
 
   function applyRef() {
@@ -224,6 +252,38 @@ function renderEditor(container, s) {
   // ---- 2. the Guide
   container.append(step(2, 'The message from the Divine Service Guide',
     'Write the message and core thought of the Guide in your own words first. The Guide gives the direction; the sermon is how it reaches this congregation.'));
+  const guideBox = el('div', { class: 'guide-row' });
+  container.append(guideBox);
+  function renderGuide() {
+    clear(guideBox);
+    const link = Guides.findService(s);
+    const pick = () => Guides.picker(s, async (guide, i) => {
+      Guides.prefill(s, guide, i, { force: !s.theme && !s.guide });
+      await saveSermon(s);
+      toast('Taken from the Guide.');
+      render(clear(root), ['prepare', s.id]);
+    });
+    if (link) {
+      const art = el('div', { class: 'guide-art', hidden: true });
+      const readBtn = el('button', { class: 'btn small ghost', type: 'button', text: 'Read the article', 'aria-expanded': 'false', onclick: () => {
+        if (art.hidden) { if (!art.firstChild) art.append(Guides.article(link.service, link.guide)); art.hidden = false; readBtn.textContent = 'Hide the article'; readBtn.setAttribute('aria-expanded', 'true'); }
+        else { art.hidden = true; readBtn.textContent = 'Read the article'; readBtn.setAttribute('aria-expanded', 'false'); }
+      } });
+      guideBox.append(
+        el('div', { class: 'row line guide-link' }, [
+          el('span', { class: 'small grow' }, [el('b', { text: 'From the Guide: ' }), `${link.service.dateText || fmtDate(link.service.date)} · ${link.service.title || link.service.label}`]),
+          readBtn,
+          el('button', { class: 'btn small ghost', type: 'button', text: 'Change', onclick: pick }),
+        ]),
+        art);
+    } else if (Guides.all().length) {
+      guideBox.append(el('div', { class: 'row' }, [
+        el('button', { class: 'btn small ghost', type: 'button', text: 'Take the message from the Guide', onclick: pick }),
+        el('span', { class: 'muted small', text: 'Fills the title, message and notes from the loaded Guide\'s article.' }),
+      ]));
+    }
+  }
+  renderGuide();
   container.append(
     field('Message of the service', 'theme', { line: true, placeholder: 'The theme in one sentence' }),
     field('Core thought', 'core', { rows: 2, placeholder: 'The one thing the congregation should take home' }),
@@ -233,6 +293,8 @@ function renderEditor(container, s) {
   // ---- 3. understand
   container.append(step(3, 'Understand the text',
     'Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'));
+  const aiBox = el('div', { class: 'ai-box' });
+  container.append(aiBox);
   const catChoice = el('select', { class: 'small' }, [
     el('option', { value: 'full', text: 'Full text of each section' }),
     el('option', { value: 'summary', text: 'The Catechism\'s own summary' }),
@@ -294,6 +356,89 @@ function renderEditor(container, s) {
       : 'The text of the Catechism is not loaded on this device, so the notes list the ticked sections by number and title. Load it under Settings → Catechism to read the sections here and print them.';
   }
   renderCatechism();
+
+  // ---- the suggestions from Claude
+  async function askAi() {
+    if (!AI.ready()) { Guides.noKey(); return; }
+    if (!s.ref && !(s.text || '').trim()) { toast('Give the text word first: a reference or the text itself.', true); return; }
+    const ctrl = new AbortController();
+    const b = busy('Asking Claude', () => ctrl.abort());
+    b.say('Claude is reading the text, the chapter, the Guide\'s article and the Catechism sections. This takes about a minute.');
+    try {
+      const link = Guides.findService(s);
+      const out = await AI.suggest(s, {
+        service: link ? link.service : null, guideTitle: link ? link.guide.title : '',
+        signal: ctrl.signal, onProgress: n => b.say(`Writing the suggestions… ${Math.round(n / 100) / 10}k letters so far.`),
+      });
+      s.ai = out;
+      await saveSermon(s);
+      b.done();
+      renderAi();
+      toast('Suggestions ready. Tap "Use" on the ones to keep.');
+    } catch (e) {
+      if (e && e.name === 'AbortError') { b.done(); return; }
+      b.fail(e.message || 'Claude could not answer.');
+    }
+  }
+  function item(title, body, onUse, extra) {
+    return el('div', { class: 'ai-item' }, [
+      el('div', { class: 'ai-text' }, [title ? el('b', { text: title }) : null, title && body ? ' ' : null, body || null]),
+      el('div', { class: 'ai-actions' }, [extra || null, onUse ? el('button', { class: 'btn small ghost', type: 'button', text: 'Use', onclick: onUse }) : null]),
+    ]);
+  }
+  function group(title, items, onUseAll, hint) {
+    if (!items.length) return null;
+    return el('div', { class: 'ai-sec' }, [
+      el('div', { class: 'row line ai-sec-head' }, [el('h4', { text: title }), hint ? el('span', { class: 'muted small grow', text: hint }) : el('span', { class: 'grow' }), onUseAll ? el('button', { class: 'btn small ghost', type: 'button', text: 'Use all', onclick: onUseAll }) : null]),
+      ...items,
+    ]);
+  }
+  function renderAi() {
+    clear(aiBox);
+    const a = s.ai;
+    const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askAi }, [sparkle(), a ? 'Ask again' : 'Suggest answers']);
+    aiBox.append(el('div', { class: 'row ai-head' }, [btn, el('span', { class: 'muted small grow', text: a
+      ? `Suggested ${fmtDate(a.at)} by ${AI.modelLabel(a.model)}${a.cost ? ', ' + AI.fmtCost(a.cost) : ''}. A starting point: the sermon is yours.`
+      : 'Claude answers the questions above from the text, the Guide\'s article and the Catechism, and suggests cross references and sermon thoughts. You choose what to keep.' })]));
+    if (!a) return;
+    const panel = el('details', { class: 'ai-panel', open: true });
+    panel.append(el('summary', { text: 'The suggestions' }));
+    if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
+    const ctxLine = c => `${c.question}\n${c.answer}`;
+    panel.append(group('Understanding the text', (a.context || []).map(c => item(c.question, c.answer, () => { add('context', ctxLine(c)); toast('Added to Context.'); })),
+      () => { add('context', a.context.map(ctxLine).join('\n\n')); toast('All answers added to Context.'); }));
+    const kwLine = k => `${k.word} – ${k.meaning}`;
+    panel.append(group('Key words', (a.keywords || []).map(k => item(k.word, k.meaning, () => { add('keywords', kwLine(k), '\n'); toast('Added to Key words.'); })),
+      () => { add('keywords', a.keywords.map(kwLine).join('\n'), '\n'); toast('All key words added.'); }));
+    panel.append(group('Catechism', (a.catechism || []).map(c => {
+      const on = () => (s.catechism || []).some(x => x.n === c.n);
+      const tick = el('button', { class: 'btn small ghost', type: 'button', text: on() ? 'Ticked' : 'Tick', onclick: () => {
+        if (on()) { s.catechism = s.catechism.filter(x => x.n !== c.n); tick.textContent = 'Tick'; }
+        else { (s.catechism = s.catechism || []).push({ n: c.n, title: c.title }); tick.textContent = 'Ticked'; }
+        touch();
+        renderCatechism();
+      } });
+      return el('div', { class: 'ai-item' }, [
+        el('div', { class: 'ai-text' }, [el('a', { href: `#catechism/${encodeURIComponent(c.n)}`, class: 'num', text: c.n }), ' ', el('b', { text: c.title }), c.why ? ' ' + c.why : null]),
+        el('div', { class: 'ai-actions' }, [tick]),
+      ]);
+    }), null, 'Ticked sections print in the sermon notes.'));
+    const xrLine = x => `${x.reference}${x.why ? ' – ' + x.why : ''}`;
+    panel.append(group('Cross references', (a.crossRefs || []).map(x => item(x.reference, x.why, () => { add('crossRefs', xrLine(x), '\n'); toast('Added to Cross references.'); },
+      x.ref ? el('a', { class: 'btn small ghost', href: `#read/${x.ref.book}/${x.ref.chapter}${x.ref.verse ? '/' + x.ref.verse : ''}`, text: 'Read' }) : null)),
+      () => { add('crossRefs', a.crossRefs.map(xrLine).join('\n'), '\n'); toast('All cross references added.'); }));
+    panel.append(group('Sermon thoughts', [
+      ...(a.points || []).map(p => item(p.heading, p.body, () => {
+        const slot = s.points.find(x => !x.heading && !x.body) || (s.points.push({ heading: '', body: '' }), s.points[s.points.length - 1]);
+        slot.heading = p.heading; slot.body = p.body;
+        touch(); renderPoints();
+        toast('Added as a main point.');
+      })),
+      a.application ? item('Application', a.application, () => { add('application', a.application); toast('Added to Application.'); }) : null,
+    ].filter(Boolean), null, 'Each goes into the next empty main point under step 4.'));
+    aiBox.append(panel);
+  }
+  renderAi();
 
   // ---- 4. build
   container.append(step(4, 'Build the sermon',
@@ -372,6 +517,13 @@ function renderEditor(container, s) {
       }
     } }),
   ]));
+}
+
+/** The small mark on the button that asks Claude. */
+function sparkle() {
+  const span = el('span', { class: 'spark', 'aria-hidden': 'true' });
+  span.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2l1.8 5.6L19 9.5l-5.2 1.9L12 17l-1.8-5.6L5 9.5l5.2-1.9zM19 15l.9 2.6 2.6.9-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9zM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg>';
+  return span;
 }
 
 function pickNote(onPick) {

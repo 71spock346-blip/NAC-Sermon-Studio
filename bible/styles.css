@@ -569,3 +569,61 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 }
 /* With "Beside" on, the text keeps to the left so the BibleSA window can sit on the right of the screen. */
 @media (min-width: 1200px) { body.beside .tab { margin-left: 0; } }
+
+/* ------------------------------------------------------------ the Guide and the AI helper */
+.guide-card { background: var(--surface); box-shadow: var(--shadow-card); border-radius: var(--radius); padding: 10px 14px 12px; margin: 10px 0 14px; }
+.guide-card > summary { font-weight: 600; color: var(--ink); font-size: 15px; }
+.guide-card > summary .muted { font-weight: 400; }
+.guide-card .list { box-shadow: none; border: 1px solid var(--line); }
+.guide-card .list .item.svc .when, .sheet-body .item.svc .when { flex: 0 0 150px; display: flex; flex-direction: column; }
+.item.svc .ref { font-weight: 600; }
+.guide-choose { margin: 6px 0 2px; }
+.row.line.guide-choose select { flex: 0 1 auto; width: auto; }
+.guide-row { margin: 6px 0 2px; }
+.guide-link { padding: 8px 12px; border-radius: var(--radius-s); background: var(--accent-soft); }
+.guide-link .grow { line-height: 1.35; }
+.guide-art { margin: 8px 0 4px; padding: 4px 14px 2px; border-left: 3px solid var(--accent); }
+.guide-article { font-family: var(--serif); font-size: 16.5px; line-height: 1.6; max-width: 68ch; }
+.guide-article p { margin: 0 0 10px; }
+.guide-article .guide-meta { font-family: var(--sans); margin-bottom: 8px; }
+.guide-article .guide-verse { font-style: italic; color: var(--ink-2); }
+.guide-article .guide-verse b { font-style: normal; font-family: var(--sans); font-size: .85em; }
+.guide-article h4 { font: 700 1.2em/1.3 var(--serif); margin: 8px 0 6px; }
+.guide-article h5 { font: 600 1em/1.3 var(--serif); margin: 14px 0 4px; }
+.guide-article ul { margin: 0 0 10px; padding-left: 22px; }
+.guide-article li { margin-bottom: 4px; }
+.guide-box { background: var(--surface-2); border-radius: var(--radius-s); padding: 10px 14px; margin: 10px 0; font-size: .94em; }
+.guide-box > b { display: block; font: 600 11px/1.3 var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; }
+.guide-box p:last-child, .guide-box ul { margin-bottom: 0; }
+.guide-refs { font-family: var(--sans); }
+
+.ai-box { margin: 4px 0 10px; }
+.ai-head { align-items: center; }
+.ai-btn .spark { display: inline-flex; margin-right: 6px; }
+.ai-btn .spark svg { width: 16px; height: 16px; }
+.ai-panel { margin-top: 10px; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 14px 10px; background: var(--surface-2); }
+.ai-panel > summary { font-weight: 600; color: var(--ink); }
+.ai-note { color: var(--ink-2); margin: 4px 0 8px; }
+.ai-sec { margin: 10px 0 4px; }
+.ai-sec-head { margin: 0 0 2px; }
+.ai-sec h4 { font: 600 12px/1.3 var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 8px 0 0; }
+.ai-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); }
+.ai-sec .ai-item:first-of-type { border-top: none; }
+.ai-text { flex: 1 1 auto; min-width: 0; font-size: 14.5px; line-height: 1.5; white-space: pre-line; }
+.ai-text b { color: var(--ink); }
+.ai-text .num { font-weight: 600; text-decoration: none; }
+.ai-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.busy { display: flex; gap: 12px; align-items: flex-start; }
+.busy-text { margin: 6px 0 0; flex: 1 1 auto; }
+.spin { flex: 0 0 auto; width: 22px; height: 22px; margin-top: 6px; border-radius: 50%; border: 3px solid var(--line-strong); border-top-color: var(--accent); animation: turn .9s linear infinite; }
+@keyframes turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; border-top-color: var(--line-strong); } }
+@media (max-width: 759.98px) {
+  /* on a phone the date and occasion take a line of their own above the text */
+  .item.svc { flex-wrap: wrap; row-gap: 2px; }
+  .guide-card .list .item.svc .when, .sheet-body .item.svc .when { flex: 1 0 100%; flex-direction: row; align-items: baseline; gap: 8px; }
+  .item.svc .when b { white-space: nowrap; }
+  .item.svc .grow { flex: 1 1 0; }
+  .ai-item { flex-wrap: wrap; }
+  .ai-actions { margin-left: auto; }
+}

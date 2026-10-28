@@ -45,6 +45,11 @@ export function section(n) {
   return data ? data.byN[n] || null : null;
 }
 
+/** Every section of the index, in the book's order: [{n, title, id, page}]. */
+export function allSections() {
+  return data ? data.sections : [];
+}
+
 /* ---------------------------------------------------------------- the text */
 
 /** Is the Catechism text loaded on this device (whether or not it is in memory yet)? */
