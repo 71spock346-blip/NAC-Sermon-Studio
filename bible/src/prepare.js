@@ -30,6 +30,8 @@ export const OCCASIONS = [
   'Sunday divine service', 'Midweek divine service', 'Divine service for the departed',
   'Youth service', 'Children\'s service', 'Funeral service', 'Wedding', 'Other',
 ];
+let headCount = 0;   // ids for the titles of the boxes (aria-labelledby)
+
 const STATUS = [['draft', 'Draft'], ['ready', 'Ready'], ['held', 'Held']];
 const STATUS_LABEL = Object.fromEntries(STATUS);
 
@@ -144,6 +146,37 @@ function renderEditor(root, s) {
 
   // the title of a section of the sermon, above its box: styled as a heading (see #tab-prepare .f-title in styles.css)
   const title = text => el('span', { class: 'f-title', text });
+  /** Puts text into a box from code (a suggestion, a clear, an undo) the same way typing would. */
+  function setBox(key, value) {
+    s[key] = value || '';
+    const input = inputs[key];
+    if (!input) return;
+    input.value = s[key];
+    if (input.tagName === 'TEXTAREA') fit(input);
+    input.dispatchEvent(new Event('input', { bubbles: true }));   // the Clear button follows the content
+  }
+  /** Empties one box, with Undo in the toast. */
+  function clearBox(key, label) {
+    const old = s[key] || '';
+    if (!old.trim()) return;
+    setBox(key, '');
+    toast(`${label} cleared.`, false, () => { setBox(key, old); });
+  }
+  /**
+   * The title row of a box: the heading and, while the box has text, a Clear
+   * button. The box is named by the heading alone (aria-labelledby), so a
+   * screen reader does not read "Clear" as part of the box's name.
+   */
+  function head(label, key, input) {
+    const t = title(label);
+    t.id = `box-title-${key}-${++headCount}`;
+    input.setAttribute('aria-labelledby', t.id);
+    const btn = el('button', { class: 'clear-btn', type: 'button', text: 'Clear', 'aria-label': `Clear ${label}`, onclick: ev => { ev.preventDefault(); clearBox(key, label); } });
+    const show = () => { btn.hidden = !(input.value || '').trim(); };
+    input.addEventListener('input', show);
+    show();
+    return el('span', { class: 'f-head' }, [t, btn]);
+  }
   // every box grows with its text (see autosize in ui.js); `line` is a one-line box that wraps rather than scrolls sideways
   function field(label, key, opts = {}) {
     const input = opts.rows
@@ -154,15 +187,35 @@ function renderEditor(root, s) {
     input.value = s[key] || '';
     input.addEventListener('input', () => { s[key] = input.value; touch(); });
     inputs[key] = input;
-    return el('label', { class: 'f' + (opts.cls ? ' ' + opts.cls : '') }, [title(label), input, opts.hint ? el('span', { class: 'hint muted small', text: opts.hint }) : null]);
+    return el('label', { class: 'f' + (opts.cls ? ' ' + opts.cls : '') }, [opts.noClear ? title(label) : head(label, key, input), input, opts.hint ? el('span', { class: 'hint muted small', text: opts.hint }) : null]);
   }
-  function step(n, title, hint) {
-    return el('div', { class: 'step-head' }, [el('span', { class: 'step-n', text: n }), el('div', {}, [el('h3', { text: title }), hint ? el('p', { class: 'muted small', text: hint }) : null])]);
+  /** A step's heading; with `onClear` it carries "Clear this step" at the right. */
+  function step(n, title, hint, onClear) {
+    return el('div', { class: 'step-head' }, [
+      el('span', { class: 'step-n', text: n }),
+      el('div', { class: 'step-text' }, [el('h3', { text: title }), hint ? el('p', { class: 'muted small', text: hint }) : null]),
+      onClear ? el('button', { class: 'btn small ghost step-clear', type: 'button', text: 'Clear this step', onclick: onClear }) : null,
+    ]);
+  }
+  /**
+   * Empties every box of a step after a confirmation, with Undo in the
+   * toast. `extra` clears and restores what is not a plain box (ticks, points).
+   */
+  async function clearStep(n, label, keys, extra) {
+    if (!await confirmBox(`Clear everything under step ${n}, ${label}? The other steps stay as they are. You can undo it straight after.`, 'Clear', true)) return;
+    const old = {};
+    for (const k of keys) { old[k] = s[k] || ''; setBox(k, ''); }
+    const kept = extra ? extra.clear() : null;
+    touch();
+    toast(`Step ${n} cleared.`, false, () => {
+      for (const k of keys) setBox(k, old[k]);
+      if (extra) extra.restore(kept);
+      touch();
+    });
   }
   /** Adds text to a box: a suggestion the person chose to keep. */
   function add(key, text, sep = '\n\n') {
-    s[key] = (s[key] && s[key].trim() ? s[key].trim() + sep : '') + text;
-    if (inputs[key]) { inputs[key].value = s[key]; fit(inputs[key]); }
+    setBox(key, (s[key] && s[key].trim() ? s[key].trim() + sep : '') + text);
     touch();
   }
 
@@ -185,7 +238,7 @@ function renderEditor(root, s) {
   const occSel = el('select', {}, [...OCCASIONS, ...(OCCASIONS.includes(s.occasion) || !s.occasion ? [] : [s.occasion])].map(o => el('option', { value: o, text: o, selected: o === s.occasion })));
   occSel.addEventListener('change', () => { s.occasion = occSel.value; touch(); });
   container.append(el('div', { class: 'fields three' }, [
-    field('Date', 'date', { type: 'date' }),
+    field('Date', 'date', { type: 'date', noClear: true }),
     field('Congregation', 'congregation', { placeholder: 'e.g. Phumolong' }),
     el('label', { class: 'f wide' }, [title('Occasion'), occSel]),
     field('Sermon title (optional)', 'title', { cls: 'full', line: true, placeholder: 'A heading for your notes' }),
@@ -246,23 +299,26 @@ function renderEditor(root, s) {
       el('label', { class: 'f' }, [title('Reference'), refInput, refHint]),
       el('label', { class: 'f' }, [title('Translation'), el('div', { class: 'row line' }, [transSel, typedTrans, fetchBtn])]),
     ]),
-    el('label', { class: 'f' }, [title('Text'), textArea]),
+    el('label', { class: 'f' }, [head('Text', 'text', textArea), textArea]),
     el('div', { class: 'row' }, [
       el('a', { class: 'btn small ghost', href: '#read', text: 'Open in the reader', onclick: e => { if (s.ref) { e.preventDefault(); location.hash = `#read/${s.ref.book}/${s.ref.chapter}${s.ref.verse ? '/' + s.ref.verse : ''}`; } } }),
     ]));
 
   // ---- 2. the Guide
   container.append(step(2, 'The message from the Divine Service Guide',
-    'Write the message and core thought of the Guide in your own words first. The Guide gives the direction; the sermon is how it reaches this congregation.'));
+    'Write the message and core thought of the Guide in your own words first. The Guide gives the direction; the sermon is how it reaches this congregation.',
+    () => clearStep(2, 'the message', ['theme', 'core', 'guide'])));
   const guideBox = el('div', { class: 'guide-row' });
   container.append(guideBox);
   function renderGuide() {
     clear(guideBox);
     const link = Guides.findService(s);
     const pick = () => Guides.picker(s, async (guide, i) => {
-      Guides.prefill(s, guide, i, { force: !s.theme && !s.guide });
+      const filled = !!((s.theme || '').trim() || (s.guide || '').trim() || (s.text || '').trim() || (s.title || '').trim());
+      const replace = !filled || await confirmBox('Replace the text word, title, message and notes with this service\'s? Your own notes under steps 3 to 6 stay as they are.', 'Replace', true);
+      Guides.prefill(s, guide, i, { force: replace });
       await saveSermon(s);
-      toast('Taken from the Guide.');
+      toast(replace ? 'Taken from the Guide.' : 'Linked to the Guide; what you had written was kept.');
       render(clear(root), ['prepare', s.id]);
     });
     if (link) {
@@ -294,7 +350,11 @@ function renderEditor(root, s) {
 
   // ---- 3. understand
   container.append(step(3, 'Understand the text',
-    'Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'));
+    'Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.',
+    () => clearStep(3, 'understanding the text', ['context', 'keywords', 'crossRefs'], {
+      clear: () => { const kept = s.catechism || []; s.catechism = []; renderCatechism(); return kept; },
+      restore: kept => { s.catechism = kept; renderCatechism(); },
+    })));
   const aiBox = el('div', { class: 'ai-box' });
   container.append(aiBox);
   const catChoice = el('select', { class: 'small' }, [
@@ -405,7 +465,11 @@ function renderEditor(root, s) {
     clear(aiBox);
     const a = s.ai;
     const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askAi }, [sparkle(), a ? 'Ask again' : 'Suggest answers']);
-    aiBox.append(el('div', { class: 'row ai-head' }, [btn, el('span', { class: 'muted small grow', text: a
+    const drop = a ? el('button', { class: 'btn small ghost', type: 'button', text: 'Remove', onclick: () => {
+      s.ai = null; touch(); renderAi();
+      toast('Suggestions removed.', false, () => { s.ai = a; touch(); renderAi(); });
+    } }) : null;
+    aiBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
       ? `Suggested ${fmtDate(a.at)} by ${AI.modelLabel(a.model)}${a.cost ? ', ' + AI.fmtCost(a.cost) : ''}. A starting point: the sermon is yours.`
       : 'Claude answers the questions above from the text, the Guide\'s article and the Catechism, and suggests cross references and sermon thoughts. You choose what to keep.' })]));
     if (!a) return;
@@ -445,7 +509,11 @@ function renderEditor(root, s) {
 
   // ---- 4. build
   container.append(step(4, 'Build the sermon',
-    'An introduction that opens the door, two or three main points that each stand on the text, and a conclusion that leads to the altar. Plain words, short sentences.'));
+    'An introduction that opens the door, two or three main points that each stand on the text, and a conclusion that leads to the altar. Plain words, short sentences.',
+    () => clearStep(4, 'building the sermon', ['intro', 'application', 'conclusion'], {
+      clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
+      restore: kept => { s.points = kept; renderPoints(); },
+    })));
   const buildBox = el('div', { class: 'ai-box build-box' });
   container.append(buildBox);
   async function askBuild() {
@@ -474,7 +542,11 @@ function renderEditor(root, s) {
     clear(buildBox);
     const a = s.build;
     const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askBuild }, [sparkle(), a ? 'Suggest again' : 'Suggest the sermon']);
-    buildBox.append(el('div', { class: 'row ai-head' }, [btn, el('span', { class: 'muted small grow', text: a
+    const drop = a ? el('button', { class: 'btn small ghost', type: 'button', text: 'Remove', onclick: () => {
+      s.build = null; touch(); renderBuild();
+      toast('Outline removed.', false, () => { s.build = a; touch(); renderBuild(); });
+    } }) : null;
+    buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
       ? `Suggested ${fmtDate(a.at)} by ${AI.modelLabel(a.model)}${a.cost ? ', ' + AI.fmtCost(a.cost) : ''}. A starting point: the sermon is yours.`
       : 'Claude proposes how to build this sermon from the text, the message and your notes: an introduction, the main points, the application, the conclusion and illustrations, each with a line on why it works. You choose what to keep.' })]));
     if (!a) return;
@@ -524,7 +596,8 @@ function renderEditor(root, s) {
 
   // ---- 5. illustrations
   container.append(step(5, 'Illustrations and experiences',
-    'A true experience says more than an explanation. Bring one in from your notes, or write it here.'));
+    'A true experience says more than an explanation. Bring one in from your notes, or write it here.',
+    () => clearStep(5, 'illustrations', ['illustrations'])));
   const illus = field('Illustrations', 'illustrations', { rows: 5, placeholder: 'A story, an experience, a picture that makes the point visible' });
   const illusArea = illus.querySelector('textarea');
   container.append(illus, el('div', { class: 'row' }, [
@@ -558,7 +631,8 @@ function renderEditor(root, s) {
   container.append(out);
 
   // ---- 6. reflection
-  container.append(step(6, 'After the service', 'A few honest lines while it is fresh. They make the next preparation better.'));
+  container.append(step(6, 'After the service', 'A few honest lines while it is fresh. They make the next preparation better.',
+    () => clearStep(6, 'after the service', ['reflection'])));
   container.append(field('Reflection', 'reflection', { rows: 4, placeholder: 'What spoke? What would you do differently? What did the congregation give back?' }));
 
   container.append(el('div', { class: 'row end' }, [
