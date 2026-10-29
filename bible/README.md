@@ -51,8 +51,11 @@ The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
   preparation; and "Suggest answers" under step 3 of a preparation returns the context of
   the text, key words, Catechism sections, cross references and sermon thoughts, each with
   a "Use" button; "Suggest the sermon" under step 4 returns the build itself (introduction,
-  main points, application, conclusion, illustrations, each with a line on why it works),
-  drawing on the minister's own draft and notes. The Catechism sections' text and the Guide's article go along in the
+  main points, application, conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works),
+  drawing on the minister's own draft and notes. Every answer is written in short sentences and everyday words, shaped
+  for the people the preparation names (age group, a line about the congregation, its own language) with the humour
+  level the person chose (none at a funeral or a service for the departed) and the person's own note on how they preach
+  (Settings → AI helper). The Catechism sections' text and the Guide's article go along in the
   request when they are on the device; the Guide, like the Catechism, is the Church's text
   and stays out of the repository and the backup.
 - **Storage.** Notes, preparations and settings live in IndexedDB on the device

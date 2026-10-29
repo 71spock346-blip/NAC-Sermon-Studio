@@ -134,6 +134,30 @@
   --shadow-pop: 0 0 0 1px rgba(255, 255, 255, .1), 0 16px 40px -12px rgba(0, 0, 0, .7);
 }
 
+/* ------------------------------------------------------------ easy-read */
+/*
+ * "Easy-read" (Settings → Appearance, or the Aa sheet) swaps the book face
+ * for plain letters and gives them more room: wider spacing between letters,
+ * words and lines, no italics, shorter lines. Many people with dyslexia read
+ * this more easily. index.html sets data-read before the first paint.
+ */
+:root[data-read="easy"] {
+  --serif: Verdana, "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
+}
+[data-read="easy"] .scripture, [data-read="easy"] .cat-text, [data-read="easy"] .guide-article, [data-read="easy"] .ai-text,
+[data-read="easy"] .note-body, [data-read="easy"] textarea, [data-read="easy"] .help p, [data-read="easy"] .help li,
+[data-read="easy"] .step-head p, [data-read="easy"] .sheet-body p, [data-read="easy"] .sec > p, [data-read="easy"] .hint,
+[data-read="easy"] .item, [data-read="easy"] label.check {
+  letter-spacing: .035em; word-spacing: .12em; line-height: 1.8;
+}
+[data-read="easy"] .scripture { line-height: 1.85; max-width: 62ch; }
+[data-read="easy"] .scripture .verse { padding-top: 7px; padding-bottom: 7px; }
+[data-read="easy"] .cat-text, [data-read="easy"] .guide-article { max-width: 62ch; }
+[data-read="easy"] .cat-text p, [data-read="easy"] .guide-article p { margin-bottom: 16px; }
+[data-read="easy"] textarea.oneline { line-height: 1.5; }
+[data-read="easy"] .chap-head h2, [data-read="easy"] .docbar h2, [data-read="easy"] h2.title { letter-spacing: 0; }
+[data-read="easy"] .ai-why, [data-read="easy"] .guide-verse, [data-read="easy"] i, [data-read="easy"] em { font-style: normal; }
+
 /* ------------------------------------------------------------ base */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -406,6 +430,11 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .points .point > textarea { margin-top: 8px; }
 /* what is a title on the printed notes (the sermon title, the message, each main point) is bold while it is typed */
 #tab-prepare textarea.oneline { font-weight: 600; }
+#tab-prepare label.people textarea.oneline { font-weight: 400; }   /* the line about the people is not a title */
+.who-hint { margin: 2px 0 0; }
+/* who is listening: three choices in a row on a PC, one under the other on a phone, so no choice is cut short */
+.fields.who { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 759.98px) { .fields.who { grid-template-columns: minmax(0, 1fr); } }
 .catbox { border-radius: var(--radius-s); padding: 2px 10px; background: var(--surface); box-shadow: var(--shadow-card); }
 .catbox > span { display: block; padding: 8px 0; }
 .catbox .cat-item { border-top: 1px solid var(--line); }

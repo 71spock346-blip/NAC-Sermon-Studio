@@ -15,9 +15,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <!-- The chosen theme is applied before the page paints, so there is no flash of the wrong colours. -->
-<script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;}catch(e){}</script>
+<script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';}catch(e){}</script>
 <link rel="preload" href="vendor/fonts/literata-latin-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=16">
+<link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
@@ -56,6 +56,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="vendor/jspdf.umd.min.js?v=9" defer></script>
-<script type="module" src="src/app.js?v=16"></script>
+<script type="module" src="src/app.js?v=17"></script>
 </body>
 </html>

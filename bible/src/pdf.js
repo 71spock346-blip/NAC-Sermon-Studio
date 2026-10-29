@@ -9,6 +9,7 @@
 import { formatRef } from './books.js';
 import { state } from './store.js';
 import * as Cat from './catechism.js';
+import { audienceOf, audienceLabel } from './ai.js';
 
 const BLUE = [31, 78, 140];      // the Church's blue, the same as --accent on screen
 const INK = [31, 41, 55];
@@ -88,6 +89,8 @@ function serviceLine(s) {
   if (s.date) parts.push(new Date(s.date + 'T12:00:00').toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
   if (s.congregation) parts.push(s.congregation);
   if (s.occasion) parts.push(s.occasion);
+  const who = audienceOf(s);   // who is listening, when the preparation names an age group
+  if (who) parts.push(audienceLabel(who));
   return parts.join('  ·  ');
 }
 
@@ -108,6 +111,7 @@ export function sermonPdf(s) {
 
   w.font(9, 'normal', MUTED);
   if (serviceLine(s)) { doc.text(serviceLine(s), w.m, w.y); w.y += 6; }
+  if ((s.people || '').trim()) w.para('Who is listening: ' + s.people.trim(), { size: 9, color: MUTED, after: 1 });
   w.font(18, 'bold', INK);
   const title = s.title || s.theme || ref || 'Sermon notes';
   for (const line of doc.splitTextToSize(title, w.width)) { doc.text(line, w.m, w.y + 5); w.y += 8; }
