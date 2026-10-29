@@ -14,8 +14,12 @@
  *   outline(s, …)     for the same preparation: how the sermon is best built
  *                     from all of that: introduction, main points,
  *                     application, conclusion and illustrations
+ *   breakdown(s, …)   the Guide's article for the service taken apart piece by
+ *                     piece: what each sentence says in plain words, what it
+ *                     gives the sermon, and the Bible passages and Catechism
+ *                     sections that bring depth to it
  *
- * Both ask for an answer in a fixed JSON shape, streamed so a long answer does
+ * All of them ask for an answer in a fixed JSON shape, streamed so a long answer does
  * not time out. What is sent (the Guide, the Catechism sections, the text and
  * the person's notes) is processed by Anthropic to answer; nothing of it goes
  * onto the public site.
@@ -547,21 +551,32 @@ async function catechismPart(s, service, { index = true } = {}) {
 
 const DASHES = /[–—]/g;
 
+/** Catechism references as the model gave them → [{n, title, why}], only numbers that are in the index, each once. */
+function tidyCatRefs(items) {
+  const out = [];
+  for (const c of (Array.isArray(items) ? items : []).filter(Boolean)) {
+    const n = str(c.n).replace(/^CNAC\s*/i, '');
+    const sec = Cat.section(n);
+    if (sec && !out.find(x => x.n === n)) out.push({ n, title: sec.title, why: str(c.why) });
+  }
+  return out;
+}
+
+/** Bible references as the model gave them → [{reference, why, ref}], `ref` parsed when the app understands it. */
+function tidyBibleRefs(items) {
+  return (Array.isArray(items) ? items : []).filter(Boolean).map(x => {
+    const reference = str(x.reference).replace(DASHES, '-');
+    return { reference, why: str(x.why), ref: parseRef(reference) };
+  }).filter(x => x.reference);
+}
+
 function tidySuggestions(r, lang, qs) {
   const d = r.data || {};
   const list = v => (Array.isArray(v) ? v.filter(Boolean) : []);
   const context = list(d.context).map((c, i) => ({ question: str(c.question) || qs[i] || '', answer: str(c.answer) })).filter(c => c.answer);
   const keywords = list(d.keywords).map(k => ({ word: str(k.word), meaning: str(k.meaning) })).filter(k => k.word);
-  const catechism = [];
-  for (const c of list(d.catechism)) {
-    const n = str(c.n).replace(/^CNAC\s*/i, '');
-    const sec = Cat.section(n);
-    if (sec && !catechism.find(x => x.n === n)) catechism.push({ n, title: sec.title, why: str(c.why) });
-  }
-  const crossRefs = list(d.crossRefs).map(x => {
-    const reference = str(x.reference).replace(DASHES, '-');
-    return { reference, why: str(x.why), ref: parseRef(reference) };
-  }).filter(x => x.reference);
+  const catechism = tidyCatRefs(d.catechism);
+  const crossRefs = tidyBibleRefs(d.crossRefs);
   const points = list(d.points).map(p => ({ heading: str(p.heading), body: str(p.body) })).filter(p => p.heading || p.body);
   return {
     at: new Date().toISOString(), model: r.model, lang,
@@ -683,5 +698,99 @@ function tidyOutline(r, lang, humour) {
     at: new Date().toISOString(), model: r.model, lang, humour,
     cost: cost(r.usage, r.model),
     intro, points, application: str(d.application), conclusion: str(d.conclusion), illustrations, lighter, note: str(d.note),
+  };
+}
+
+/* ---------------------------------------------------------------- the Guide, piece by piece */
+
+const BREAKDOWN_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['parts', 'thread', 'note'],
+  properties: {
+    parts: {
+      type: 'array', description: 'The article taken apart piece by piece, in the order of the booklet',
+      items: {
+        type: 'object', additionalProperties: false, required: ['heading', 'quote', 'said', 'insight', 'bible', 'catechism'],
+        properties: {
+          heading: { type: 'string', description: 'The heading of the article this piece stands under, as the Guide prints it: "Message", "Introduction", the section\'s own heading, or "Context"' },
+          quote: { type: 'string', description: 'The sentence, or the two or three sentences that make one thought, word for word as the Guide prints them' },
+          said: { type: 'string', description: 'What it says, in plain words: one or two short sentences' },
+          insight: { type: 'string', description: 'What it gives the sermon: the thought behind it, what it means for the people, what it asks of them; one to three short sentences' },
+          bible: {
+            type: 'array', description: 'Bible passages that bring depth to this piece: none, one or two',
+            items: { type: 'object', additionalProperties: false, required: ['reference', 'why'], properties: { reference: { type: 'string', description: 'English book name, chapter and verse(s), e.g. "Romans 8:28" or "1 Peter 3:18-20"' }, why: { type: 'string', description: 'One line on what it adds here' } } },
+          },
+          catechism: {
+            type: 'array', description: 'Catechism sections that bring depth to this piece: none, one or two, by number from the index given',
+            items: { type: 'object', additionalProperties: false, required: ['n', 'why'], properties: { n: { type: 'string', description: 'The section number as in the index, e.g. "9.6.3"' }, why: { type: 'string', description: 'One line on what it adds here' } } },
+          },
+        },
+      },
+    },
+    thread: { type: 'string', description: 'The line that runs through the whole article: the one thing it drives at, in two or three short sentences' },
+    note: { type: 'string', description: 'Anything the minister should know about this breakdown, e.g. where the Catechism does not speak to the article; else empty' },
+  },
+};
+
+function breakdownSystem(lang) {
+  return `You help a minister of the New Apostolic Church prepare an unscripted sermon for a divine service. The Church's Divine Service Guide gives an article for the service: the Bible text, the message and a few paragraphs that unfold it. The minister wants to understand that article thoroughly before he builds his sermon. Your task is to take the article apart piece by piece, in its own order, and for each piece say what it says in plain words, what it gives the sermon, and which Bible passages and Catechism sections bring depth to it.
+
+Rules:
+- A piece is one sentence. Where one sentence alone is too thin to carry a thought (a list, a sentence that only leads into the next, a short question with its answer), take two or three sentences together as one piece. Never more than three.
+- Cover the whole article: the Message, the Introduction, every section under its own heading, and the Context box (as one or two pieces). Leave out the Bible text at the top, the Summary box (it repeats the article) and the Catechism citations in brackets. Skip nothing else, and change the order of nothing.
+- Copy each piece word for word, in the language of the Guide, so the minister finds it in his booklet. Everything else you write comes in the language given below.
+- "What it says": the piece again in plain words, as you would explain it to a friend. Where the Guide uses a Church or Bible word, say what it means here.
+- "What it gives the sermon": the thought behind the piece. Why the Guide says it here, what it means for the people, what it asks of them, or where it leads. One to three short sentences. Where a piece only leads into the next, say so in one line.
+- Bible passages: one or two for a piece, only where a passage genuinely deepens that piece (the story it points to, the verse it echoes, the promise it rests on). Many pieces need none. Give the English book name, chapter and verse(s), and one line on what it adds. Do not quote the verse, and do not give the text word of the service itself again.
+- Catechism: one or two sections for a piece, only where the Catechism speaks to that piece, by number from the index given below, with one line on what it adds. Never state what a section says unless its text is given; where it is given, draw on it in plain words. Many pieces need none.
+- Stay faithful to the Bible text, to the Guide and to the doctrine of the New Apostolic Church as the Catechism states it. Do not pull the article elsewhere.
+- The thread: at the end, the line that runs through the whole article, as the one thing it drives at, in two or three short sentences.
+
+${voiceRules(lang)}
+
+${peopleRules()}
+
+Put nothing outside the JSON fields.`;
+}
+
+/**
+ * The Guide's article for one preparation, taken apart piece by piece: for
+ * each sentence (or short passage) what it says in plain words, what it
+ * gives the sermon, and the Bible passages and Catechism sections that bring
+ * depth to it. `service` is the Guide's article the preparation is linked to.
+ */
+export async function breakdown(s, { service = null, guideTitle = '', signal, onProgress } = {}) {
+  if (!service) throw new Error(t('Take the message from the Guide first (step 2), so Claude has the article.'));
+  const lang = langOf(s);
+  const parts = [servicePart(s), peoplePart(s, lang), preacherPart()].filter(Boolean);
+  if (s.text) parts.push(`THE TEXT\n${s.text}`);
+  const chapter = await chapterPart(s);
+  if (chapter) parts.push(chapter);
+  parts.push(messagePart(s, service, guideTitle));
+  parts.push(await catechismPart(s, service));
+  parts.push('THE TASK\nTake the article under THE ARTICLE IN THE DIVINE SERVICE GUIDE apart piece by piece, as the rules say.');
+
+  const r = await run({
+    system: breakdownSystem(lang),
+    content: [{ type: 'text', text: parts.join('\n\n\n') }],
+    schema: BREAKDOWN_SCHEMA, effort: 'high', maxTokens: 24000, signal, onProgress,
+  });
+  return { ...tidyBreakdown(r, lang), audience: audienceOf(s) };
+}
+
+function tidyBreakdown(r, lang) {
+  const d = r.data || {};
+  const parts = (Array.isArray(d.parts) ? d.parts : []).filter(Boolean).map(p => ({
+    heading: str(p.heading),
+    quote: str(p.quote),
+    said: str(p.said),
+    insight: str(p.insight),
+    bible: tidyBibleRefs(p.bible),
+    catechism: tidyCatRefs(p.catechism),
+  })).filter(p => p.quote && (p.said || p.insight));
+  return {
+    at: new Date().toISOString(), model: r.model, lang,
+    cost: cost(r.usage, r.model),
+    parts, thread: str(d.thread), note: str(d.note),
   };
 }

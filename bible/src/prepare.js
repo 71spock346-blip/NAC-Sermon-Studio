@@ -7,14 +7,17 @@
  * and a reflection afterwards. Everything saves as it is typed. Two printed
  * outputs come from it: the full sermon notes and a one-page cue card.
  *
- * Two helpers sit alongside the form. A loaded Divine Service Guide
- * (guides.js) fills the text word, message and notes of a service in one tap
- * and keeps the article at hand under step 2. "Suggest answers" under step 3
- * asks Claude (ai.js) for the context of the text, key words, Catechism
- * sections, cross references and sermon thoughts; "Suggest the sermon" under
- * step 4 asks for the build itself: introduction, main points, application,
- * conclusion and illustrations. Each suggestion comes with a "Use" button, so
- * nothing lands in the notes that the person did not choose.
+ * Helpers sit alongside the form. A loaded Divine Service Guide (guides.js)
+ * fills the text word, message and notes of a service in one tap and keeps
+ * the article at hand under step 2, where "Break down the article" asks
+ * Claude (ai.js) to take it apart sentence by sentence: what each one says
+ * in plain words, what it gives the sermon, and the Bible passages and
+ * Catechism sections that bring depth to it. "Suggest answers" under step 3
+ * asks for the context of the text, key words, Catechism sections, cross
+ * references and sermon thoughts; "Suggest the sermon" under step 4 asks for
+ * the build itself: introduction, main points, application, conclusion and
+ * illustrations. Each suggestion comes with a "Use" button, so nothing lands
+ * in the notes that the person did not choose.
  */
 import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox, busy } from './ui.js';
 import { t } from './i18n.js';
@@ -32,6 +35,11 @@ export const OCCASIONS = [
   'Youth service', 'Children\'s service', 'Funeral service', 'Wedding', 'Other',
 ];
 let headCount = 0;   // ids for the titles of the boxes (aria-labelledby)
+
+/** A suggested cross reference as one line of the Cross references box. */
+const xrLine = x => `${x.reference}${x.why ? ' – ' + x.why : ''}`;
+/** A piece of the Guide's breakdown as it goes into "Notes from the Guide": the Guide's words, then the plain words and the insight. */
+const pieceLine = p => `“${p.quote}”\n${[p.said, p.insight].filter(Boolean).join(' ')}`;
 
 const STATUS = [['draft', 'Draft'], ['ready', 'Ready'], ['held', 'Held']];
 const STATUS_LABEL = Object.fromEntries(STATUS);
@@ -392,6 +400,93 @@ function renderEditor(root, s) {
     }
   }
   renderGuide();
+
+  // ---- the Guide, piece by piece: Claude takes the article apart sentence by sentence (see ai.js)
+  const breakBox = el('div', { class: 'ai-box break-box' });
+  container.append(breakBox);
+  async function askBreak() {
+    if (!AI.ready()) { Guides.noKey(); return; }
+    const link = Guides.findService(s);
+    if (!link) { toast(t('Take the message from the Guide first (step 2), so Claude has the article.'), true); return; }
+    const ctrl = new AbortController();
+    const b = busy(t('Asking Claude'), () => ctrl.abort());
+    b.say(t('Claude is going through the Guide\'s article sentence by sentence, with the text, the chapter and the Catechism at hand. This takes a minute or two.'));
+    try {
+      const out = await AI.breakdown(s, {
+        service: link.service, guideTitle: link.guide.title,
+        signal: ctrl.signal, onProgress: n => b.say(t('Writing the breakdown… {k}k letters so far.', { k: Math.round(n / 100) / 10 })),
+      });
+      s.breakdown = out;
+      await saveSermon(s);
+      b.done();
+      renderBreak();
+      toast(t('The breakdown is ready. Tap "Use" on what to keep.'));
+    } catch (e) {
+      if (e && e.name === 'AbortError') { b.done(); return; }
+      b.fail(e.message || t('Claude could not answer.'));
+    }
+  }
+  /** One piece of the article: the Guide's words, the plain words, the insight, and the passages and sections that bring depth. */
+  function piece(p) {
+    const refs = [];
+    for (const x of p.bible || []) {
+      refs.push(el('div', { class: 'bd-ref' }, [
+        el('span', { class: 'grow' }, [el('b', { text: x.reference }), x.why ? ' – ' + x.why : null]),
+        el('span', { class: 'bd-ref-actions' }, [
+          x.ref ? el('a', { class: 'btn small ghost', href: `#read/${x.ref.book}/${x.ref.chapter}${x.ref.verse ? '/' + x.ref.verse : ''}`, text: t('Read') }) : null,
+          el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), onclick: () => { add('crossRefs', xrLine(x), '\n'); toast(t('Added to Cross references.')); } }),
+        ]),
+      ]));
+    }
+    for (const c of p.catechism || []) {
+      refs.push(el('div', { class: 'bd-ref' }, [
+        el('span', { class: 'grow' }, [el('a', { href: `#catechism/${encodeURIComponent(c.n)}`, class: 'num', text: c.n }), ' ', el('b', { text: c.title }), c.why ? ' – ' + c.why : null]),
+        el('span', { class: 'bd-ref-actions' }, [catTick(c)]),
+      ]));
+    }
+    return el('div', { class: 'ai-item bd-item' }, [
+      el('div', { class: 'ai-text' }, [
+        el('div', { class: 'bd-quote', text: p.quote }),
+        p.said ? el('div', { class: 'bd-line' }, [el('b', { text: t('In plain words: ') }), p.said]) : null,
+        p.insight ? el('div', { class: 'bd-line' }, [el('b', { text: t('For the sermon: ') }), p.insight]) : null,
+        refs.length ? el('div', { class: 'bd-refs' }, refs) : null,
+      ]),
+      el('div', { class: 'ai-actions' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), onclick: () => { add('guide', pieceLine(p)); toast(t('Added to Notes from the Guide.')); } })]),
+    ]);
+  }
+  function renderBreak() {
+    clear(breakBox);
+    const a = s.breakdown;
+    breakBox.hidden = !a && !Guides.findService(s);   // no article to break down, and nothing kept
+    if (breakBox.hidden) return;
+    const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askBreak }, [sparkle(), a ? t('Break it down again') : t('Break down the article')]);
+    const drop = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => {
+      s.breakdown = null; touch(); renderBreak();
+      toast(t('Breakdown removed.'), false, () => { s.breakdown = a; touch(); renderBreak(); });
+    } }) : null;
+    const pdf = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Save as PDF'), onclick: () => run(Pdf.breakdownPdf, 'download') }) : null;
+    const printBtn = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(Pdf.breakdownPdf, 'print') }) : null;
+    breakBox.append(el('div', { class: 'row ai-head' }, [btn, drop, pdf, printBtn, el('span', { class: 'muted small grow', text: a
+      ? t('Broken down {date} by {model}{cost}. The Guide\'s words stay as they are; the rest is a starting point.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
+      : t('Claude takes the Guide\'s article apart sentence by sentence: what each one says in plain words, what it gives the sermon, and the Bible passages and Catechism sections that bring depth to it. You choose what to keep.') })]));
+    if (!a) return;
+    const panel = el('details', { class: 'ai-panel', open: true });
+    panel.append(el('summary', { text: t('The article, piece by piece') }));
+    if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
+    panel.append(el('p', { class: 'muted small bd-how', text: t('"Use" puts a piece into Notes from the Guide; the passages go to Cross references; ticked sections print.') }));
+    if (a.thread) panel.append(group(t('The thread'), [item('', a.thread, () => { add('core', a.thread); toast(t('Added to Core thought.')); })], null, t('What the whole article drives at.')));
+    // the pieces, under the Guide's own headings
+    const groups = [];
+    for (const p of a.parts || []) {
+      const last = groups[groups.length - 1];
+      if (last && last.heading === p.heading) last.parts.push(p); else groups.push({ heading: p.heading, parts: [p] });
+    }
+    for (const g of groups) panel.append(group(g.heading || t('The article'), g.parts.map(piece)));
+    panel.append(el('p', { class: 'muted small', text: t('Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }));
+    breakBox.append(panel);
+  }
+  renderBreak();
+
   container.append(
     field(t('Message of the service'), 'theme', { line: true, placeholder: t('The theme in one sentence') }),
     field(t('Core thought'), 'core', { rows: 2, placeholder: t('The one thing the congregation should take home') }),
@@ -401,8 +496,8 @@ function renderEditor(root, s) {
   // ---- 3. understand
   container.append(step(3, t('Understand the text'), t('Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'),
     () => clearStep(3, t('understanding the text'), ['context', 'keywords', 'crossRefs'], {
-      clear: () => { const kept = s.catechism || []; s.catechism = []; renderCatechism(); return kept; },
-      restore: kept => { s.catechism = kept; renderCatechism(); },
+      clear: () => { const kept = s.catechism || []; s.catechism = []; renderCatechism(); renderTicks(); return kept; },
+      restore: kept => { s.catechism = kept; renderCatechism(); renderTicks(); },
     })));
   const aiBox = el('div', { class: 'ai-box' });
   container.append(aiBox);
@@ -456,11 +551,12 @@ function renderEditor(root, s) {
         s.catechism = (s.catechism || []).filter(c => c.n !== sec.n);
         if (on) s.catechism.push({ n: sec.n, title: sec.title });
         touch();
+        renderTicks();
       }));
     }
     // keep any section chosen earlier that is no longer in the list (the reference changed)
     for (const c of (s.catechism || [])) if (!secs.find(x => x.n === c.n)) {
-      catBox.append(catRow(c, true, () => { s.catechism = s.catechism.filter(x => x.n !== c.n); touch(); renderCatechism(); }, Cat.section(c.n)));
+      catBox.append(catRow(c, true, () => { s.catechism = s.catechism.filter(x => x.n !== c.n); touch(); renderCatechism(); renderTicks(); }, Cat.section(c.n)));
     }
     catNote.textContent = Cat.hasText()
       ? t('Ticked sections go into the sermon notes as chosen above.')
@@ -490,6 +586,23 @@ function renderEditor(root, s) {
       if (e && e.name === 'AbortError') { b.done(); return; }
       b.fail(e.message || t('Claude could not answer.'));
     }
+  }
+  /** The Tick/Ticked button of a suggested Catechism section: it joins or leaves the ticked sections under step 3. */
+  function catTick(c) {
+    const on = () => (s.catechism || []).some(x => x.n === c.n);
+    const tick = el('button', { class: 'btn small ghost', type: 'button', text: on() ? t('Ticked') : t('Tick'), onclick: () => {
+      if (on()) { s.catechism = s.catechism.filter(x => x.n !== c.n); }
+      else { (s.catechism = s.catechism || []).push({ n: c.n, title: c.title }); }
+      touch();
+      renderCatechism();
+      renderTicks();
+    } });
+    tick.dataset.cat = c.n;
+    return tick;
+  }
+  /** Every Tick button on the page shows whether its section is ticked now, whichever panel it sits in. */
+  function renderTicks() {
+    for (const b of root.querySelectorAll('button[data-cat]')) b.textContent = (s.catechism || []).some(x => x.n === b.dataset.cat) ? t('Ticked') : t('Tick');
   }
   function item(title, body, onUse, extra, why) {
     return el('div', { class: 'ai-item' }, [
@@ -531,20 +644,10 @@ function renderEditor(root, s) {
     const kwLine = k => `${k.word} – ${k.meaning}`;
     panel.append(group(t('Key words'), (a.keywords || []).map(k => item(k.word, k.meaning, () => { add('keywords', kwLine(k), '\n'); toast(t('Added to Key words.')); })),
       () => { add('keywords', a.keywords.map(kwLine).join('\n'), '\n'); toast(t('All key words added.')); }));
-    panel.append(group(t('Catechism'), (a.catechism || []).map(c => {
-      const on = () => (s.catechism || []).some(x => x.n === c.n);
-      const tick = el('button', { class: 'btn small ghost', type: 'button', text: on() ? t('Ticked') : t('Tick'), onclick: () => {
-        if (on()) { s.catechism = s.catechism.filter(x => x.n !== c.n); tick.textContent = t('Tick'); }
-        else { (s.catechism = s.catechism || []).push({ n: c.n, title: c.title }); tick.textContent = t('Ticked'); }
-        touch();
-        renderCatechism();
-      } });
-      return el('div', { class: 'ai-item' }, [
-        el('div', { class: 'ai-text' }, [el('a', { href: `#catechism/${encodeURIComponent(c.n)}`, class: 'num', text: c.n }), ' ', el('b', { text: c.title }), c.why ? ' ' + c.why : null]),
-        el('div', { class: 'ai-actions' }, [tick]),
-      ]);
-    }), null, t('Ticked sections print in the sermon notes.')));
-    const xrLine = x => `${x.reference}${x.why ? ' – ' + x.why : ''}`;
+    panel.append(group(t('Catechism'), (a.catechism || []).map(c => el('div', { class: 'ai-item' }, [
+      el('div', { class: 'ai-text' }, [el('a', { href: `#catechism/${encodeURIComponent(c.n)}`, class: 'num', text: c.n }), ' ', el('b', { text: c.title }), c.why ? ' ' + c.why : null]),
+      el('div', { class: 'ai-actions' }, [catTick(c)]),
+    ])), null, t('Ticked sections print in the sermon notes.')));
     panel.append(group(t('Cross references'), (a.crossRefs || []).map(x => item(x.reference, x.why, () => { add('crossRefs', xrLine(x), '\n'); toast(t('Added to Cross references.')); },
       x.ref ? el('a', { class: 'btn small ghost', href: `#read/${x.ref.book}/${x.ref.chapter}${x.ref.verse ? '/' + x.ref.verse : ''}`, text: t('Read') }) : null)),
       () => { add('crossRefs', a.crossRefs.map(xrLine).join('\n'), '\n'); toast(t('All cross references added.')); }));

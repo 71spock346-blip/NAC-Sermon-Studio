@@ -66,7 +66,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   and with the answer held to a JSON schema. Two jobs: a monthly Divine Service Guide
   (PDF, sent as a document block) comes back as one entry per service, which `src/guides.js`
   keeps in the `guides` store on the device, lists in the Prepare tab and uses to fill a
-  preparation; and "Suggest answers" under step 3 of a preparation returns the context of
+  preparation; "Break down the article" under step 2 takes that article apart sentence by
+  sentence (the Guide's words, the plain words, what it gives the sermon, and a Bible passage or
+  Catechism section where one brings depth, each with a Use button, plus a study-sheet PDF);
+  "Suggest answers" under step 3 of a preparation returns the context of
   the text, key words, Catechism sections, cross references and sermon thoughts, each with
   a "Use" button; "Suggest the sermon" under step 4 returns the build itself (introduction,
   main points, application, conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works),

@@ -3,6 +3,8 @@
  *
  *   Sermon notes   A4 portrait, the whole preparation in reading order
  *   Cue card       A5 landscape, large type: text word, theme, main points
+ *   Guide breakdown  A4 portrait, the Guide's article piece by piece as
+ *                  Claude broke it down: a study sheet to read beside the booklet
  *
  * Printing goes through the finished PDF, so the paper matches the file.
  */
@@ -10,7 +12,7 @@ import { formatRef } from './books.js';
 import { t, locale } from './i18n.js';
 import { state } from './store.js';
 import * as Cat from './catechism.js';
-import { audienceOf, audienceLabel } from './ai.js';
+import { audienceOf, audienceLabel, modelLabel } from './ai.js';
 
 const BLUE = [31, 78, 140];      // the Church's blue, the same as --accent on screen
 const INK = [31, 41, 55];
@@ -226,6 +228,55 @@ export function cueCardPdf(s) {
 function firstLine(text) {
   const l = lines(text);
   return l.length ? l[0] : '';
+}
+
+/**
+ * The Guide's article piece by piece, as Claude broke it down (s.breakdown):
+ * under the Guide's own headings, each piece's words, what it says in plain
+ * words, what it gives the sermon, and the passages and Catechism sections
+ * that bring depth to it. The thread of the whole article comes first.
+ */
+export function breakdownPdf(s) {
+  const a = s.breakdown;
+  if (!a || !(a.parts || []).length) throw new Error(t('There is no breakdown of the article yet.'));
+  const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
+  const w = new Writer(doc, 20);
+  const ref = refLabel(s);
+  const title = t('The Guide, piece by piece');
+
+  w.font(9, 'normal', MUTED);
+  if (serviceLine(s)) { doc.text(serviceLine(s), w.m, w.y); w.y += 6; }
+  w.font(18, 'bold', INK);
+  doc.text(title, w.m, w.y + 5);
+  w.y += 10;
+  if (s.title || s.theme) w.para(s.title || s.theme, { style: 'bold', size: 12, after: 1 });
+  if (ref) {
+    w.font(12, 'bold', BLUE);
+    doc.text(ref + (s.translation ? `  (${s.translation})` : ''), w.m, w.y + 3);
+    w.y += 7;
+  }
+  w.rule();
+
+  if (a.thread) { w.heading(t('The thread')); w.para(a.thread); }
+  let heading = null;
+  for (const p of a.parts) {
+    if ((p.heading || '') !== heading) {
+      heading = p.heading || '';
+      if (heading) w.heading(heading);
+    }
+    w.ensure(16);   // a piece's words and the start of its plain words stay on one page
+    w.para(`\u201c${p.quote}\u201d`, { serif: true, style: 'italic', size: 11, after: 1 });
+    if (p.said) w.para(t('In plain words: ') + p.said, { indent: 4, size: 10.5, after: 1 });
+    if (p.insight) w.para(t('For the sermon: ') + p.insight, { indent: 4, size: 10.5, after: 1 });
+    for (const x of p.bible || []) w.para(`• ${x.reference}${x.why ? ' – ' + x.why : ''}`, { indent: 8, size: 10, after: 0.5 });
+    for (const c of p.catechism || []) w.para(`• ${t('Catechism')} ${c.n} ${c.title}${c.why ? ' – ' + c.why : ''}`, { indent: 8, size: 10, after: 0.5 });
+    w.space(3);
+  }
+  w.para(t('Divine Service Guide © New Apostolic Church International. Broken down by {model} for your own preparation; a starting point, not the sermon.', { model: modelLabel(a.model) }), { size: 8, color: MUTED, after: 1 });
+
+  const who = [state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  ·  ');
+  w.footer(who);
+  return { blob: doc.output('blob'), name: fileName(s, '-guide'), title };
 }
 
 /* ---------------------------------------------------------------- output */

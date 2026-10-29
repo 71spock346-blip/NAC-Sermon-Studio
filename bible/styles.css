@@ -156,7 +156,7 @@
 [data-read="easy"] .cat-text p, [data-read="easy"] .guide-article p { margin-bottom: 16px; }
 [data-read="easy"] textarea.oneline { line-height: 1.5; }
 [data-read="easy"] .chap-head h2, [data-read="easy"] .docbar h2, [data-read="easy"] h2.title { letter-spacing: 0; }
-[data-read="easy"] .ai-why, [data-read="easy"] .guide-verse, [data-read="easy"] i, [data-read="easy"] em { font-style: normal; }
+[data-read="easy"] .ai-why, [data-read="easy"] .guide-verse, [data-read="easy"] .bd-quote, [data-read="easy"] i, [data-read="easy"] em { font-style: normal; }
 
 /* ------------------------------------------------------------ base */
 * { box-sizing: border-box; }
@@ -658,6 +658,17 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .ai-text .num { font-weight: 600; text-decoration: none; }
 .ai-why { margin-top: 3px; font-style: italic; }
 .ai-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+/* the Guide's article piece by piece (step 2): the Guide's words, then the plain words and the insight, then the passages and sections */
+.bd-item .ai-text { white-space: normal; }
+.bd-quote { font-family: var(--serif); font-style: italic; font-size: 15.5px; color: var(--ink-2); margin-bottom: 4px; }
+.bd-line { margin: 2px 0; }
+.bd-line b { font-weight: 600; }
+.bd-refs { display: flex; flex-direction: column; gap: 4px; margin-top: 7px; }
+.bd-ref { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13.5px; line-height: 1.4; padding: 5px 10px; border-radius: var(--radius-s); background: var(--surface); }
+.bd-ref .grow { flex: 1 1 220px; min-width: 0; }
+.bd-ref .num { font-weight: 600; }
+.bd-ref-actions { display: flex; gap: 6px; margin-left: auto; }
+.bd-how { margin: 2px 0 6px; }
 .busy { display: flex; gap: 12px; align-items: flex-start; }
 .busy-text { margin: 6px 0 0; flex: 1 1 auto; }
 .spin { flex: 0 0 auto; width: 22px; height: 22px; margin-top: 6px; border-radius: 50%; border: 3px solid var(--line-strong); border-top-color: var(--accent); animation: turn .9s linear infinite; }
