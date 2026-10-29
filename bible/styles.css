@@ -293,6 +293,10 @@ details[open] summary { margin-bottom: 4px; }
 .seg button { font: inherit; font-size: 14px; font-weight: 500; line-height: 1.2; border: 0; background: transparent; color: var(--ink-2); padding: 8px 14px; min-height: 36px; border-radius: 7px; cursor: pointer; flex: 1 1 auto; transition: background-color .15s ease, color .15s ease, box-shadow .15s ease; }
 .seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-card); }
 .seg.block { display: flex; }
+/* the language switch, EN | AF: in the header on a phone, in the side menu on a PC */
+.seg.mini { padding: 3px; gap: 2px; border-radius: 9px; }
+.seg.mini button { padding: 4px 9px; min-height: 28px; font-size: 12px; font-weight: 600; letter-spacing: .03em; flex: 0 0 auto; }
+nav.side .lang-switch { align-self: flex-start; margin-bottom: 4px; }
 
 /* chips and pills */
 .pills { display: flex; gap: 5px; flex-wrap: wrap; }

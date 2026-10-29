@@ -14,6 +14,7 @@
  * chapter read on Sunday morning is still there in the pulpit.
  */
 import { state, cacheGet, cachePut, getText, textCount } from './store.js';
+import { t } from './i18n.js';
 
 const API = 'https://api.scripture.api.bible/v1';
 const YV = 'https://api.youversion.com/v1';
@@ -49,7 +50,7 @@ async function fetchJson(url) {
 async function readJson(r) {
   const text = await r.text();
   if (!text.trim()) return null;
-  try { return JSON.parse(text); } catch (e) { throw new Error('The service sent an answer the app could not read.'); }
+  try { return JSON.parse(text); } catch (e) { throw new Error(t('The service sent an answer the app could not read.')); }
 }
 
 /** Every source the person can read from: the bundled two, the API Bibles they ticked, and the versions they paste in themselves. */
@@ -57,7 +58,7 @@ export function sources() {
   const list = Object.values(BUILT_IN);
   for (const x of EXTERNAL) {
     if ((state.settings.myTexts || []).includes(x.id) || textCount(x.id)) {
-      list.push({ id: 'mine:' + x.id, short: x.label + ' (pasted)', name: `${x.name}, pasted in by you`, lang: x.lang, builtin: false, provider: 'mine', ext: x });
+      list.push({ id: 'mine:' + x.id, short: x.label + ' ' + t('(pasted)'), name: t('{name}, pasted in by you', { name: x.name }), lang: x.lang, builtin: false, provider: 'mine', ext: x });
     }
   }
   for (const b of state.settings.apiBibles || []) {
@@ -85,12 +86,12 @@ export async function copyrightOf(sourceId) {
   if (!s) return '';
   if (s.builtin) return (await fetchJson(`data/${s.id}/index.json`)).copyright;
   if (s.provider === 'mine') return pastedCopyright(s.ext);
-  if (s.provider === 'yv') return `${s.name}. Scripture text from the YouVersion Platform, © its publisher.`;
-  return `${s.name}. Scripture text provided by API.Bible.`;
+  if (s.provider === 'yv') return t('{name}. Scripture text from the YouVersion Platform, © its publisher.', { name: s.name });
+  return t('{name}. Scripture text provided by API.Bible.', { name: s.name });
 }
 
 function pastedCopyright(ext) {
-  return `${ext.name} © ${ext.holder}. Text you pasted in yourself, kept on this device only.`;
+  return t('{name} © {holder}. Text you pasted in yourself, kept on this device only.', { name: ext.name, holder: ext.holder });
 }
 
 /**
@@ -101,7 +102,7 @@ function pastedCopyright(ext) {
  */
 export async function getChapter(sourceId, book, chapter) {
   const s = source(sourceId);
-  if (!s) throw new Error('Unknown translation');
+  if (!s) throw new Error(t('Unknown translation'));
   if (s.builtin) {
     let data;
     try { data = await fetchJson(`data/${s.id}/${book}.json`); } catch (e) { return { verses: [], missing: true }; }
@@ -122,7 +123,7 @@ export async function getChapter(sourceId, book, chapter) {
 
 function apiHeaders() {
   const key = (state.settings.apiKey || '').trim();
-  if (!key) throw new Error('Add your API.Bible key in Settings to read this translation.');
+  if (!key) throw new Error(t('Add your API.Bible key in Settings to read this translation.'));
   return { 'api-key': key, 'Accept': 'application/json' };
 }
 
@@ -131,12 +132,12 @@ async function apiGet(path) {
   try {
     r = await fetch(API + path, { headers: apiHeaders() });
   } catch (e) {
-    throw new Error('No connection to API.Bible. Check your network, or read the bundled KJV.');
+    throw new Error(t('No connection to API.Bible. Check your network, or read the bundled KJV.'));
   }
-  if (r.status === 401 || r.status === 403) throw new Error('API.Bible did not accept the key. Check it in Settings.');
+  if (r.status === 401 || r.status === 403) throw new Error(t('API.Bible did not accept the key. Check it in Settings.'));
   if (r.status === 204 || r.status === 404) return null;
-  if (r.status === 429) throw new Error('API.Bible limit reached for this month. Cached chapters still work.');
-  if (!r.ok) throw new Error(`API.Bible error ${r.status}`);
+  if (r.status === 429) throw new Error(t('API.Bible limit reached for this month. Cached chapters still work.'));
+  if (!r.ok) throw new Error(t('API.Bible error {status}', { status: r.status }));
   return readJson(r);
 }
 
@@ -190,7 +191,7 @@ async function apiChapter(bibleId, book, chapter) {
 
 function yvHeaders() {
   const key = (state.settings.yvKey || '').trim();
-  if (!key) throw new Error('Add your YouVersion app key in Settings to read this translation.');
+  if (!key) throw new Error(t('Add your YouVersion app key in Settings to read this translation.'));
   return { 'X-YVP-App-Key': key, 'Accept': 'application/json' };
 }
 
@@ -199,17 +200,17 @@ async function yvGet(path) {
   try {
     r = await fetch(YV + path, { headers: yvHeaders() });
   } catch (e) {
-    throw new Error('No connection to YouVersion. Check your network, or read the bundled KJV.');
+    throw new Error(t('No connection to YouVersion. Check your network, or read the bundled KJV.'));
   }
   // 204 means nothing matches (a language with no Bibles for this key); it is not an error.
   if (r.status === 204 || r.status === 404) return null;
-  if (r.status === 401) throw new Error('YouVersion did not accept the app key. Check it in Settings.');
-  if (r.status === 403) throw new Error('This Bible is not licensed to your YouVersion app yet. Request it for your app at platform.youversion.com, then try again.');
-  if (r.status === 412) throw new Error('YouVersion says this app was archived or removed. Create a new app at platform.youversion.com and paste its key in Settings.');
-  if (r.status === 429) throw new Error('YouVersion limit reached for now. Cached chapters still work.');
+  if (r.status === 401) throw new Error(t('YouVersion did not accept the app key. Check it in Settings.'));
+  if (r.status === 403) throw new Error(t('This Bible is not licensed to your YouVersion app yet. Request it for your app at platform.youversion.com, then try again.'));
+  if (r.status === 412) throw new Error(t('YouVersion says this app was archived or removed. Create a new app at platform.youversion.com and paste its key in Settings.'));
+  if (r.status === 429) throw new Error(t('YouVersion limit reached for now. Cached chapters still work.'));
   if (!r.ok) {
     const body = await readJson(r).catch(() => null);
-    throw new Error(`YouVersion error ${r.status}` + (body && body.message ? `: ${body.message}` : ''));
+    throw new Error(t('YouVersion error {status}', { status: r.status }) + (body && body.message ? `: ${body.message}` : ''));
   }
   return readJson(r);
 }
@@ -266,7 +267,7 @@ export async function yvCatalogue(languages) {
 export async function yvLicence(bibleId) {
   const res = await yvGet(`/licenses?bible_id=${encodeURIComponent(bibleId)}`);
   const lic = res && Array.isArray(res.data) ? res.data[0] : null;
-  return lic ? { id: lic.id, name: lic.name || `Licence ${lic.id}`, uri: lic.uri || '' } : null;
+  return lic ? { id: lic.id, name: lic.name || t('Licence {id}', { id: lic.id }), uri: lic.uri || '' } : null;
 }
 
 /**

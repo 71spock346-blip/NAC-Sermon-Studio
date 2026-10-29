@@ -4,6 +4,7 @@
  * verses that carry notes; this tab lists and searches them.
  */
 import { el, clear, toast, sheet, confirmBox, fmtDate, isTouch, lineBox } from './ui.js';
+import { t } from './i18n.js';
 import { parseRef, formatRef, BY_ID } from './books.js';
 import { state, saveNote, deleteNote } from './store.js';
 
@@ -16,6 +17,9 @@ export const KINDS = [
   ['question', 'Question'],
 ];
 const KIND_LABEL = Object.fromEntries(KINDS);
+
+/** The name of a kind of note in the interface language. */
+export function kindLabel(kind) { return t(KIND_LABEL[kind] || kind); }
 
 export function notesFor(book, chapter) {
   return state.notes
@@ -43,12 +47,12 @@ export function card(n, onChange) {
     el('div', { class: 'note-top' }, [
       el('div', { class: 'note-head' }, [
         el('a', { class: 'ref', href, text: refLabel(n) }),
-        el('span', { class: 'pill kind ' + n.kind, text: KIND_LABEL[n.kind] || n.kind }),
+        el('span', { class: 'pill kind ' + n.kind, text: kindLabel(n.kind) }),
         ...(n.tags || []).map(t => el('span', { class: 'pill', text: '#' + t })),
       ]),
       el('div', { class: 'note-meta' }, [
         el('span', { class: 'muted small', text: fmtDate(n.updated) }),
-        el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', 'aria-label': `Edit the note on ${refLabel(n)}`, onclick: () => editNote(n, onChange) }),
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Edit'), 'aria-label': t('Edit the note on {ref}', { ref: refLabel(n) }), onclick: () => editNote(n, onChange) }),
       ]),
     ]),
     n.title ? el('div', { class: 'note-title', text: n.title }) : null,
@@ -60,57 +64,57 @@ export function card(n, onChange) {
 export function editNote(note, onSaved) {
   const n = { ...note, tags: [...(note.tags || [])] };
   const lang = state.settings.bookLang;
-  const s = sheet(n.id ? 'Edit note' : 'New note', { sticky: true });
+  const s = sheet(n.id ? t('Edit note') : t('New note'), { sticky: true });
 
-  const refInput = el('input', { type: 'text', value: n.book ? formatRef(refOf(n), lang) : '', placeholder: 'e.g. Psalm 130:7 or Lukas 8:16-18', autocomplete: 'off' });
+  const refInput = el('input', { type: 'text', value: n.book ? formatRef(refOf(n), lang) : '', placeholder: t('e.g. Psalm 130:7 or Lukas 8:16-18'), autocomplete: 'off' });
   const refHint = el('div', { class: 'hint muted small' });
   function checkRef() {
     const r = parseRef(refInput.value);
-    refHint.textContent = r ? '→ ' + formatRef(r, lang) : (refInput.value.trim() ? 'Not understood yet. Book, chapter, then verse: "Johannes 3:16".' : 'Which verse or verses is this about?');
+    refHint.textContent = r ? '→ ' + formatRef(r, lang) : (refInput.value.trim() ? t('Not understood yet. Book, chapter, then verse: "Johannes 3:16".') : t('Which verse or verses is this about?'));
     refHint.classList.toggle('error', !r && !!refInput.value.trim());
     return r;
   }
   refInput.addEventListener('input', checkRef);
   checkRef();
 
-  const kindSel = el('select', {}, KINDS.map(([v, label]) => el('option', { value: v, text: label, selected: v === n.kind })));
-  const titleInput = lineBox({ value: n.title || '', placeholder: 'A short title (optional)' });
-  const body = el('textarea', { rows: 8, placeholder: 'What struck you? What happened? How does it connect to the Church\'s teaching?' });
+  const kindSel = el('select', {}, KINDS.map(([v, label]) => el('option', { value: v, text: t(label), selected: v === n.kind })));
+  const titleInput = lineBox({ value: n.title || '', placeholder: t('A short title (optional)') });
+  const body = el('textarea', { rows: 8, placeholder: t('What struck you? What happened? How does it connect to the Church\'s teaching?') });
   body.value = n.body || '';
-  const tagsInput = lineBox({ value: (n.tags || []).join(', '), placeholder: 'grace, prayer, youth (optional, comma separated)' });
+  const tagsInput = lineBox({ value: (n.tags || []).join(', '), placeholder: t('grace, prayer, youth (optional, comma separated)') });
 
-  const saveBtn = el('button', { class: 'btn', type: 'button', text: 'Save', onclick: async () => {
+  const saveBtn = el('button', { class: 'btn', type: 'button', text: t('Save'), onclick: async () => {
     const r = checkRef();
-    if (!r) { toast('Please give the verse this note belongs to.', true); refInput.focus(); return; }
-    if (!body.value.trim() && !titleInput.value.trim()) { toast('Write something first.', true); body.focus(); return; }
+    if (!r) { toast(t('Please give the verse this note belongs to.'), true); refInput.focus(); return; }
+    if (!body.value.trim() && !titleInput.value.trim()) { toast(t('Write something first.'), true); body.focus(); return; }
     Object.assign(n, { book: r.book, chapter: r.chapter, verse: r.verse, verseEnd: r.verseEnd, kind: kindSel.value, title: titleInput.value.trim(), body: body.value.trim(),
       tags: tagsInput.value.split(/[,;]/).map(t => t.trim().replace(/^#/, '')).filter(Boolean) });
     await saveNote(n);
-    toast('Note saved.');
+    toast(t('Note saved.'));
     s.close();
     if (onSaved) onSaved(n);
   } });
   const row = el('div', { class: 'row end' }, [
-    n.id ? el('button', { class: 'btn ghost danger', type: 'button', text: 'Delete', onclick: async () => {
-      if (await confirmBox('Delete this note? This cannot be undone.', 'Delete', true)) {
+    n.id ? el('button', { class: 'btn ghost danger', type: 'button', text: t('Delete'), onclick: async () => {
+      if (await confirmBox(t('Delete this note? This cannot be undone.'), t('Delete'), true)) {
         await deleteNote(n.id);
-        toast('Note deleted.');
+        toast(t('Note deleted.'));
         s.close();
         if (onSaved) onSaved(null);
       }
     } }) : null,
     el('div', { class: 'spacer' }),
-    el('button', { class: 'btn ghost', type: 'button', text: 'Cancel', onclick: () => s.close() }),
+    el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => s.close() }),
     saveBtn,
   ]);
   s.body.append(
-    el('label', { class: 'f' }, ['Verse(s)', refInput, refHint]),
+    el('label', { class: 'f' }, [t('Verse(s)'), refInput, refHint]),
     el('div', { class: 'fields two' }, [
-      el('label', { class: 'f' }, ['Kind', kindSel]),
-      el('label', { class: 'f' }, ['Title', titleInput]),
+      el('label', { class: 'f' }, [t('Kind'), kindSel]),
+      el('label', { class: 'f' }, [t('Title'), titleInput]),
     ]),
-    el('label', { class: 'f' }, ['Note', body]),
-    el('label', { class: 'f' }, ['Tags', tagsInput]),
+    el('label', { class: 'f' }, [t('Note'), body]),
+    el('label', { class: 'f' }, [t('Tags'), tagsInput]),
     row,
   );
   if (!isTouch()) setTimeout(() => (n.book ? body : refInput).focus(), 50);
@@ -126,13 +130,13 @@ export function render(container, route) {
     const n = state.notes.find(x => x.id === route[1]);
     if (n) { editNote(n, () => { location.hash = '#notes'; }); }
   }
-  const search = el('input', { type: 'search', placeholder: 'Search notes: a word, a tag, or a reference such as "Ps 23"…', 'aria-label': 'Search notes', autocomplete: 'off' });
+  const search = el('input', { type: 'search', placeholder: t('Search notes: a word, a tag, or a reference such as "Ps 23"…'), 'aria-label': t('Search notes'), autocomplete: 'off' });
   const list = el('div', { class: 'notes' });
   const chips = el('div', { class: 'row chips' });
   function chip(v, label) {
     return el('button', { class: 'chip' + (filterKind === v ? ' on' : ''), type: 'button', text: label, onclick: () => { filterKind = v; show(); for (const c of chips.children) c.classList.toggle('on', c.dataset.v === v); }, dataset: { v } });
   }
-  chips.append(chip('', 'All'), ...KINDS.map(([v, l]) => chip(v, l)));
+  chips.append(chip('', t('All')), ...KINDS.map(([v, l]) => chip(v, t(l))));
 
   function show() {
     clear(list);
@@ -146,16 +150,16 @@ export function render(container, route) {
       items = items.filter(n => (n.title + ' ' + n.body + ' ' + (n.tags || []).join(' ') + ' ' + refLabel(n)).toLowerCase().includes(q));
     }
     if (!items.length) {
-      list.append(el('p', { class: 'muted', text: state.notes.length ? 'No notes match.' : 'No notes yet. Open a chapter, tap a verse and choose "Note", or tap "New note".' }));
+      list.append(el('p', { class: 'muted', text: state.notes.length ? t('No notes match.') : t('No notes yet. Open a chapter, tap a verse and choose "Note", or tap "New note".') }));
     }
     for (const n of items) list.append(card(n, show));
   }
   search.addEventListener('input', show);
   container.append(
     el('div', { class: 'docbar' }, [
-      el('h2', { text: `Notes (${state.notes.length})` }),
+      el('h2', { text: t('Notes ({n})', { n: state.notes.length }) }),
       el('div', { class: 'spacer' }),
-      el('button', { class: 'btn small', type: 'button', text: 'New note', onclick: () => editNote({ kind: 'thought', tags: [] }, show) }),
+      el('button', { class: 'btn small', type: 'button', text: t('New note'), onclick: () => editNote({ kind: 'thought', tags: [] }, show) }),
     ]),
     search, chips, list);
   show();

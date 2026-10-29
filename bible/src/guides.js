@@ -13,6 +13,7 @@
  * step 2 so the Guide is at hand while the sermon takes shape.
  */
 import { el, clear, toast, sheet, confirmBox, fmtDate, busy } from './ui.js';
+import { t, tn } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveGuide, deleteGuide, uid } from './store.js';
 import * as AI from './ai.js';
@@ -96,7 +97,7 @@ export function prefill(s, guide, i, { force = false, fresh = false } = {}) {
   set('title', svc.title);
   set('theme', svc.message);
   set('guide', notesFrom(svc));
-  if (svc.reading && !(s.crossRefs || '').includes(svc.reading)) s.crossRefs = (s.crossRefs ? s.crossRefs.trim() + '\n' : '') + `${svc.reading} – reading suggested in the Guide`;
+  if (svc.reading && !(s.crossRefs || '').includes(svc.reading)) s.crossRefs = (s.crossRefs ? s.crossRefs.trim() + '\n' : '') + t('{reading} – reading suggested in the Guide', { reading: svc.reading });
   s.catechism = s.catechism || [];
   for (const n of svc.catechismRefs || []) {
     const sec = Cat.section(n);
@@ -122,22 +123,22 @@ export function article(service, guide) {
   box.append(el('p', { class: 'muted small guide-meta', text: [guide && guide.title, service.dateText, service.label].filter(Boolean).join(' · ') }));
   if (service.bibleText) box.append(el('p', { class: 'guide-verse' }, [service.bibleText, ' ', el('b', { text: service.reference })]));
   if (service.title) box.append(el('h4', { text: service.title }));
-  if (service.message) box.append(el('p', { class: 'guide-message' }, [el('b', { text: 'Message ' }), service.message]));
-  if (service.introduction) { box.append(el('h5', { text: 'Introduction' }), ...paras(service.introduction)); }
+  if (service.message) box.append(el('p', { class: 'guide-message' }, [el('b', { text: t('Message ') }), service.message]));
+  if (service.introduction) { box.append(el('h5', { text: t('Introduction') }), ...paras(service.introduction)); }
   for (const sec of service.sections || []) {
     if (sec.heading) box.append(el('h5', { text: sec.heading }));
     box.append(...paras(sec.body));
   }
-  if (service.context) box.append(el('div', { class: 'guide-box' }, [el('b', { text: 'Context' }), ...paras(service.context)]));
-  if ((service.summary || []).length) box.append(el('div', { class: 'guide-box' }, [el('b', { text: 'Summary' }), el('ul', {}, service.summary.map(x => el('li', { text: x })))]));
+  if (service.context) box.append(el('div', { class: 'guide-box' }, [el('b', { text: t('Context|box') }), ...paras(service.context)]));
+  if ((service.summary || []).length) box.append(el('div', { class: 'guide-box' }, [el('b', { text: t('Summary') }), el('ul', {}, service.summary.map(x => el('li', { text: x })))]));
   const refs = (service.catechismRefs || []).filter(n => Cat.section(n));
   if (refs.length || service.reading) {
     box.append(el('p', { class: 'small guide-refs' }, [
-      refs.length ? ['Catechism: ', ...refs.flatMap((n, i) => [i ? ', ' : '', el('a', { href: `#catechism/${encodeURIComponent(n)}`, text: n })]), '. '] : null,
-      service.reading ? `Reading: ${service.reading}.` : null,
+      refs.length ? [t('Catechism: '), ...refs.flatMap((n, i) => [i ? ', ' : '', el('a', { href: `#catechism/${encodeURIComponent(n)}`, text: n })]), '. '] : null,
+      service.reading ? t('Reading: {reading}.', { reading: service.reading }) : null,
     ].flat().filter(Boolean)));
   }
-  box.append(el('p', { class: 'muted small', text: 'Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.' }));
+  box.append(el('p', { class: 'muted small', text: t('Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }));
   return box;
 }
 
@@ -162,30 +163,30 @@ export function load() {
 
 async function read(file) {
   const ctrl = new AbortController();
-  const b = busy('Reading the Guide', () => ctrl.abort());
-  b.say(`Claude is reading "${file.name}". A whole month takes a minute or two; you can keep the app open.`);
+  const b = busy(t('Reading the Guide'), () => ctrl.abort());
+  b.say(t('Claude is reading "{file}". A whole month takes a minute or two; you can keep the app open.', { file: file.name }));
   try {
-    const g = await AI.readGuide(file, { signal: ctrl.signal, onProgress: n => b.say(`Reading "${file.name}"… ${Math.round(n / 1000)}k letters of it are in so far.`) });
+    const g = await AI.readGuide(file, { signal: ctrl.signal, onProgress: n => b.say(t('Reading "{file}"… {k}k letters of it are in so far.', { file: file.name, k: Math.round(n / 1000) })) });
     const older = state.guides.find(x => x.year === g.year && x.month === g.month && x.language === g.language);
     const guide = { ...g, id: older ? older.id : uid(), loadedAt: new Date().toISOString() };
     await saveGuide(guide);
     b.done();
-    toast(`${guide.title}: ${guide.services.length} service${guide.services.length === 1 ? '' : 's'} read${older ? ' (the earlier copy was replaced)' : ''}. ${AI.fmtCost(guide.cost) ? 'This cost ' + AI.fmtCost(guide.cost) + '.' : ''}`);
+    toast(`${guide.title}: ` + tn(guide.services.length, '{n} service read', '{n} services read') + (older ? ' ' + t('(the earlier copy was replaced)') : '') + '. ' + (AI.fmtCost(guide.cost) ? t('This cost {cost}.', { cost: AI.fmtCost(guide.cost) }) : ''));
     return guide;
   } catch (e) {
     if (e && e.name === 'AbortError') { b.done(); return null; }
-    b.fail(e.message || 'The Guide could not be read.');
+    b.fail(e.message || t('The Guide could not be read.'));
     return null;
   }
 }
 
 /** Where to go when there is no key yet. */
 export function noKey() {
-  const s = sheet('Your Anthropic key is needed');
+  const s = sheet(t('Your Anthropic key is needed'));
   s.body.append(
-    el('p', { text: 'Claude reads the Guide and makes the suggestions with a key of your own, so that you pay only for what you use and the key stays on this device.' }),
-    el('p', { class: 'small' }, ['Get the key at console.anthropic.com and paste it under Settings → AI helper. The settings page has the steps.']),
-    el('div', { class: 'row end' }, [el('a', { class: 'btn', href: '#settings', text: 'Open Settings', onclick: () => s.close() })]),
+    el('p', { text: t('Claude reads the Guide and makes the suggestions with a key of your own, so that you pay only for what you use and the key stays on this device.') }),
+    el('p', { class: 'small' }, [t('Get the key at console.anthropic.com and paste it under Settings → AI helper. The settings page has the steps.')]),
+    el('div', { class: 'row end' }, [el('a', { class: 'btn', href: '#settings', text: t('Open Settings'), onclick: () => s.close() })]),
   );
 }
 
@@ -199,12 +200,12 @@ function serviceRow(guide, i, onPrepare) {
     if (done.length) { location.hash = `#prepare/${done[0].id}`; return; }
     onPrepare(guide, i);
   } }, [
-    el('div', { class: 'when' }, [el('b', { text: svc.date ? fmtDate(svc.date, true) : (svc.dateText || '') }), el('span', { class: 'muted small', text: svc.label || occasionFor(svc) })]),
+    el('div', { class: 'when' }, [el('b', { text: svc.date ? fmtDate(svc.date, true) : (svc.dateText || '') }), el('span', { class: 'muted small', text: svc.label || t(occasionFor(svc)) })]),
     el('div', { class: 'grow' }, [
       el('div', { class: 'ref', text: ref ? formatRef(ref, state.settings.bookLang) : svc.reference }),
       el('div', { class: 'muted small', text: svc.title }),
     ]),
-    done.length ? el('span', { class: 'pill status ' + (done[0].status || 'draft'), text: done[0].status === 'ready' ? 'Ready' : done[0].status === 'held' ? 'Held' : 'Draft' }) : el('span', { class: 'pill link', text: 'Prepare' }),
+    done.length ? el('span', { class: 'pill status ' + (done[0].status || 'draft'), text: t(done[0].status === 'ready' ? 'Ready' : done[0].status === 'held' ? 'Held' : 'Draft') }) : el('span', { class: 'pill link', text: t('Prepare') }),
   ]);
   return row;
 }
@@ -219,28 +220,28 @@ export function card({ onPrepare, onChange }) {
   const wrap = el('details', { class: 'guide-card', open: true });
   if (!guides.length) {
     wrap.append(
-      el('summary', { text: 'Divine Service Guide' }),
-      el('p', { class: 'small muted', text: 'Load this month\'s Guide (the PDF) and Claude reads every service out of it: date, text word, message, the article and its Catechism references. A preparation then starts with all of that filled in.' }),
-      el('div', { class: 'row' }, [el('button', { class: 'btn small', type: 'button', text: 'Load a Guide (PDF)', onclick: async () => { if (await load()) onChange(); } })]),
+      el('summary', { text: t('Divine Service Guide') }),
+      el('p', { class: 'small muted', text: t('Load this month\'s Guide (the PDF) and Claude reads every service out of it: date, text word, message, the article and its Catechism references. A preparation then starts with all of that filled in.') }),
+      el('div', { class: 'row' }, [el('button', { class: 'btn small', type: 'button', text: t('Load a Guide (PDF)'), onclick: async () => { if (await load()) onChange(); } })]),
     );
     return wrap;
   }
   let current = guides[0];
   const body = el('div');
-  const choose = guides.length > 1 ? el('select', { class: 'small', 'aria-label': 'Which Guide' }, guides.map(g => el('option', { value: g.id, text: `${g.title}${g.language === 'af' ? ' (Afrikaans)' : g.language === 'en' ? ' (English)' : ''}` }))) : null;
+  const choose = guides.length > 1 ? el('select', { class: 'small', 'aria-label': t('Which Guide') }, guides.map(g => el('option', { value: g.id, text: `${g.title}${g.language === 'af' ? ' (Afrikaans)' : g.language === 'en' ? ' (English)' : ''}` }))) : null;
   if (choose) choose.addEventListener('change', () => { current = guides.find(g => g.id === choose.value) || guides[0]; draw(); });
   function draw() {
     clear(body);
     const list = el('div', { class: 'list' }, current.services.map((_, i) => serviceRow(current, i, onPrepare)));
     body.append(
-      el('p', { class: 'small muted', text: `Tap a service to start its preparation, or to open the one already started. Loaded ${fmtDate(current.loadedAt)} from "${current.fileName || 'a PDF'}".` }),
+      el('p', { class: 'small muted', text: t('Tap a service to start its preparation, or to open the one already started. Loaded {date} from "{file}".', { date: fmtDate(current.loadedAt), file: current.fileName || t('a PDF') }) }),
       list,
       el('div', { class: 'row' }, [
-        el('button', { class: 'btn small ghost', type: 'button', text: 'Load another Guide', onclick: async () => { if (await load()) onChange(); } }),
-        el('button', { class: 'btn small ghost danger', type: 'button', text: 'Remove this Guide', onclick: async () => {
-          if (await confirmBox(`Remove "${current.title}" from this device? Preparations made from it keep their text; you can load the PDF again later.`, 'Remove', true)) {
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Load another Guide'), onclick: async () => { if (await load()) onChange(); } }),
+        el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove this Guide'), onclick: async () => {
+          if (await confirmBox(t('Remove "{title}" from this device? Preparations made from it keep their text; you can load the PDF again later.', { title: current.title }), t('Remove'), true)) {
             await deleteGuide(current.id);
-            toast('Guide removed.');
+            toast(t('Guide removed.'));
             onChange();
           }
         } }),
@@ -248,9 +249,9 @@ export function card({ onPrepare, onChange }) {
     );
   }
   draw();
-  const title = /guide|gids/i.test(current.title) ? current.title : `Divine Service Guide: ${current.title}`;
-  wrap.append(el('summary', {}, [title, el('span', { class: 'muted small', text: ` · ${current.services.length} service${current.services.length === 1 ? '' : 's'}` })]));
-  if (choose) wrap.append(el('div', { class: 'row line guide-choose' }, [el('span', { class: 'small', text: 'Month:' }), choose]));
+  const title = /guide|gids|handleiding/i.test(current.title) ? current.title : t('Divine Service Guide: {title}', { title: current.title });
+  wrap.append(el('summary', {}, [title, el('span', { class: 'muted small', text: ' · ' + tn(current.services.length, '{n} service', '{n} services') })]));
+  if (choose) wrap.append(el('div', { class: 'row line guide-choose' }, [el('span', { class: 'small', text: t('Month:') }), choose]));
   wrap.append(body);
   return wrap;
 }
@@ -260,13 +261,13 @@ export function card({ onPrepare, onChange }) {
 /** A sheet to pick the Guide's article for a preparation; onPick(guide, i). */
 export function picker(s, onPick) {
   const guides = all();
-  const sh = sheet('The service in the Guide');
+  const sh = sheet(t('The service in the Guide'));
   if (!guides.length) {
-    sh.body.append(el('p', { class: 'muted', text: 'No Guide is loaded on this device yet. Load the month\'s PDF in the Prepare list first.' }));
+    sh.body.append(el('p', { class: 'muted', text: t('No Guide is loaded on this device yet. Load the month\'s PDF in the Prepare list first.') }));
     return;
   }
   const match = s.ref ? matchService(s.ref) : null;
-  if (match) sh.body.append(el('p', { class: 'small', text: `The ${match.guide.title} has a service on ${match.service.reference}: it is listed first.` }));
+  if (match) sh.body.append(el('p', { class: 'small', text: t('The {title} has a service on {reference}: it is listed first.', { title: match.guide.title, reference: match.service.reference }) }));
   const list = el('div', { class: 'list' });
   const rows = [];
   for (const guide of guides) guide.services.forEach((svc, i) => rows.push({ guide, i, svc }));
@@ -274,7 +275,7 @@ export function picker(s, onPick) {
   for (const { guide, i, svc } of rows) {
     const ref = refOf(svc);
     list.append(el('button', { class: 'item svc', type: 'button', onclick: () => { sh.close(); onPick(guide, i); } }, [
-      el('div', { class: 'when' }, [el('b', { text: svc.date ? fmtDate(svc.date, true) : (svc.dateText || '') }), el('span', { class: 'muted small', text: guides.length > 1 ? guide.title : (svc.label || occasionFor(svc)) })]),
+      el('div', { class: 'when' }, [el('b', { text: svc.date ? fmtDate(svc.date, true) : (svc.dateText || '') }), el('span', { class: 'muted small', text: guides.length > 1 ? guide.title : (svc.label || t(occasionFor(svc))) })]),
       el('div', { class: 'grow' }, [el('div', { class: 'ref', text: ref ? formatRef(ref, state.settings.bookLang) : svc.reference }), el('div', { class: 'muted small', text: svc.title })]),
     ]));
   }

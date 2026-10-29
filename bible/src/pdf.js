@@ -7,6 +7,7 @@
  * Printing goes through the finished PDF, so the paper matches the file.
  */
 import { formatRef } from './books.js';
+import { t, locale } from './i18n.js';
 import { state } from './store.js';
 import * as Cat from './catechism.js';
 import { audienceOf, audienceLabel } from './ai.js';
@@ -17,7 +18,7 @@ const MUTED = [107, 114, 128];
 
 function jsPDF() {
   const lib = window.jspdf && window.jspdf.jsPDF;
-  if (!lib) throw new Error('The PDF library did not load. Reload the page while online.');
+  if (!lib) throw new Error(t('The PDF library did not load. Reload the page while online.'));
   return lib;
 }
 
@@ -86,11 +87,11 @@ function lines(text) {
 
 function serviceLine(s) {
   const parts = [];
-  if (s.date) parts.push(new Date(s.date + 'T12:00:00').toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+  if (s.date) parts.push(new Date(s.date + 'T12:00:00').toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
   if (s.congregation) parts.push(s.congregation);
-  if (s.occasion) parts.push(s.occasion);
+  if (s.occasion) parts.push(t(s.occasion));
   const who = audienceOf(s);   // who is listening, when the preparation names an age group
-  if (who) parts.push(audienceLabel(who));
+  if (who) parts.push(t(audienceLabel(who)));
   return parts.join('  ·  ');
 }
 
@@ -111,9 +112,9 @@ export function sermonPdf(s) {
 
   w.font(9, 'normal', MUTED);
   if (serviceLine(s)) { doc.text(serviceLine(s), w.m, w.y); w.y += 6; }
-  if ((s.people || '').trim()) w.para('Who is listening: ' + s.people.trim(), { size: 9, color: MUTED, after: 1 });
+  if ((s.people || '').trim()) w.para(t('Who is listening: ') + s.people.trim(), { size: 9, color: MUTED, after: 1 });
   w.font(18, 'bold', INK);
-  const title = s.title || s.theme || ref || 'Sermon notes';
+  const title = s.title || s.theme || ref || t('Sermon notes');
   for (const line of doc.splitTextToSize(title, w.width)) { doc.text(line, w.m, w.y + 5); w.y += 8; }
   w.y += 2;
   if (ref) {
@@ -125,36 +126,36 @@ export function sermonPdf(s) {
   w.rule();
 
   if (s.theme || s.core) {
-    w.heading('Message of the service');
+    w.heading(t('Message of the service'));
     if (s.theme) w.para(s.theme, { style: 'bold' });
     if (s.core) w.para(s.core);
   }
-  if (s.guide) { w.heading('From the Divine Service Guide'); w.para(s.guide); }
+  if (s.guide) { w.heading(t('From the Divine Service Guide')); w.para(s.guide); }
   if (s.context || s.keywords) {
-    w.heading('Understanding the text');
+    w.heading(t('Understanding the text'));
     if (s.context) w.para(s.context);
-    if (s.keywords) { w.para('Key words', { style: 'bold', size: 10, after: 0.5 }); w.para(s.keywords); }
+    if (s.keywords) { w.para(t('Key words'), { style: 'bold', size: 10, after: 0.5 }); w.para(s.keywords); }
   }
   if ((s.catechism || []).length) {
-    w.heading('Catechism');
+    w.heading(t('Catechism'));
     catechismNotes(w, s);
   }
-  if (s.crossRefs) { w.heading('Cross references'); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); }
-  if (s.intro) { w.heading('Introduction'); w.para(s.intro); }
+  if (s.crossRefs) { w.heading(t('Cross references')); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); }
+  if (s.intro) { w.heading(t('Introduction')); w.para(s.intro); }
   const points = (s.points || []).filter(p => p.heading || p.body);
   if (points.length) {
-    w.heading('Main points');
+    w.heading(t('Main points'));
     points.forEach((p, i) => {
       if (p.heading) w.para(`${i + 1}. ${p.heading}`, { style: 'bold', size: 11, after: 1 });
       if (p.body) w.para(p.body, { indent: 5 });
     });
   }
-  if (s.application) { w.heading('Application for the congregation'); w.para(s.application); }
-  if (s.illustrations) { w.heading('Illustrations and experiences'); w.para(s.illustrations); }
-  if (s.conclusion) { w.heading('Conclusion'); w.para(s.conclusion); }
-  if (s.reflection) { w.heading('After the service'); w.para(s.reflection); }
+  if (s.application) { w.heading(t('Application for the congregation')); w.para(s.application); }
+  if (s.illustrations) { w.heading(t('Illustrations and experiences')); w.para(s.illustrations); }
+  if (s.conclusion) { w.heading(t('Conclusion')); w.para(s.conclusion); }
+  if (s.reflection) { w.heading(t('After the service')); w.para(s.reflection); }
 
-  const who = [state.settings.name, 'NAC Study Bible'].filter(Boolean).join('  ·  ');
+  const who = [state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  ·  ');
   w.footer(who);
   return { blob: doc.output('blob'), name: fileName(s, '-sermon'), title: title };
 }
@@ -192,7 +193,7 @@ function catechismNotes(w, s) {
       else w.para(plainSup(line.text), { indent: line.kind === 'li' ? 6 : 3, size: 10, after: 1 });
       quoted = true;
     }
-    for (const p of summary) w.para('In short: ' + plainSup(p), { indent: 3, size: 10, style: 'italic', after: 1 });
+    for (const p of summary) w.para(t('In short: ') + plainSup(p), { indent: 3, size: 10, style: 'italic', after: 1 });
     for (const nt of Cat.notesOf(sec.n)) w.para(`[${nt.n}] ${nt.t}`, { indent: 3, size: 8.5, color: MUTED, after: 0.5 });
     w.space(2);
   }
@@ -207,7 +208,7 @@ export function cueCardPdf(s) {
   w.font(10, 'normal', MUTED);
   if (serviceLine(s)) { doc.text(serviceLine(s), w.m, w.y); w.y += 7; }
   w.font(20, 'bold', BLUE);
-  doc.text(ref || (s.title || 'Cue card'), w.m, w.y + 5);
+  doc.text(ref || (s.title || t('Cue card')), w.m, w.y + 5);
   w.y += 11;
   if (s.text) w.para(s.text, { serif: true, style: 'italic', size: 12, after: 3 });
   if (s.theme) w.para(s.theme, { style: 'bold', size: 14, after: 2 });
@@ -216,8 +217,8 @@ export function cueCardPdf(s) {
   points.forEach((p, i) => {
     w.para(`${i + 1}. ${p.heading || firstLine(p.body)}`, { style: 'bold', size: 13, after: 1 });
   });
-  if (s.application) { w.space(2); w.para('Apply: ' + firstLine(s.application), { size: 12, after: 1 }); }
-  if (s.conclusion) { w.para('Close: ' + firstLine(s.conclusion), { size: 12, style: 'italic' }); }
+  if (s.application) { w.space(2); w.para(t('Apply: ') + firstLine(s.application), { size: 12, after: 1 }); }
+  if (s.conclusion) { w.para(t('Close: ') + firstLine(s.conclusion), { size: 12, style: 'italic' }); }
   w.footer(s.title || '');
   return { blob: doc.output('blob'), name: fileName(s, '-cue-card'), title: ref };
 }

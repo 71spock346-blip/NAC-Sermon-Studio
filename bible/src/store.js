@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 /*
  * Storage. Everything a person writes lives in IndexedDB on the device:
  * notes, service preparations, settings, and a cache of chapters fetched
@@ -60,6 +61,7 @@ export const DEFAULT_SETTINGS = {
   compare: '',
   beside: '',             // BibleSA version shown next to the text ('AFR83'), or ''
   bookLang: 'en',
+  uiLang: 'en',           // language of the interface: 'en' or 'af' (i18n.js); the switch also sets bookLang and aiLang
   fontSize: 'm',
   theme: 'system',        // 'system' follows the device; 'paper', 'white' or 'dark' are fixed
   apiKey: '',
@@ -195,7 +197,7 @@ export async function exportTexts() {
 
 /** Loads a pasted-text file: newer chapters win, nothing is deleted. Returns the number of chapters taken. */
 export async function importTexts(data) {
-  if (!data || data.app !== 'nac-study-bible-texts' || !Array.isArray(data.texts)) throw new Error('Not a pasted-text file from this app');
+  if (!data || data.app !== 'nac-study-bible-texts' || !Array.isArray(data.texts)) throw new Error(t('Not a pasted-text file from this app'));
   let n = 0;
   for (const t of data.texts) {
     if (!t || !t.version || !t.book || !t.chapter || !Array.isArray(t.verses)) continue;
@@ -217,9 +219,9 @@ export async function wipeTexts() {
    only: its own store, not in the backup. 'meta' is read at start (is it
    there, which edition); 'text' holds the sections and is read when needed. */
 export async function saveCatechismText(data) {
-  if (!data || data.app !== 'nac-study-bible-catechism' || !Array.isArray(data.sections) || !data.sections.length) throw new Error('Not a Catechism text file from this app');
+  if (!data || data.app !== 'nac-study-bible-catechism' || !Array.isArray(data.sections) || !data.sections.length) throw new Error(t('Not a Catechism text file from this app'));
   const sections = data.sections.filter(x => x && x.n && Array.isArray(x.blocks));
-  if (!sections.length) throw new Error('The file holds no Catechism sections');
+  if (!sections.length) throw new Error(t('The file holds no Catechism sections'));
   const meta = { edition: data.edition || 'Catechism of the New Apostolic Church', copyright: data.copyright || '', builtAt: data.builtAt || '', sections: sections.length, loadedAt: new Date().toISOString() };
   await db.put('catechism', { key: 'text', value: sections });
   await db.put('catechism', { key: 'meta', value: meta });
@@ -269,7 +271,7 @@ const SECRET = new Set(['apiKey', 'yvKey', 'aiKey']);
 
 /** Merge a backup in: newer copies win, nothing is deleted. Returns counts. */
 export async function importAll(data) {
-  if (!data || data.app !== 'nac-study-bible') throw new Error('Not a Study Bible backup file');
+  if (!data || data.app !== 'nac-study-bible') throw new Error(t('Not a Study Bible backup file'));
   let notes = 0, sermons = 0;
   for (const n of data.notes || []) {
     const mine = state.notes.find(x => x.id === n.id);

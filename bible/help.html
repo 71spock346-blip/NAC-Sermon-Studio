@@ -8,19 +8,35 @@
 <meta name="theme-color" content="#f4f1ea">
 <link rel="icon" type="image/svg+xml" href="icons/emblem.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=17">
+<!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
+<script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
+<link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body class="help">
 <header class="top">
-  <h1><span class="mark" aria-hidden="true"><svg viewBox="0 0 160 160"><rect width="160" height="160" rx="30" fill="currentColor"/><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M76 8H84V27H108V35H84V127H76V35H52V27H76Z" fill="currentColor" stroke-width="3"/><path d="M74.4 99.6L64.8 54.6M85.6 99.6L95.2 54.6M66.5 102.6L45 65.4M93.5 102.6L115 65.4M59.9 106.5L33.3 80.8M100.1 106.5L126.7 80.8M56.6 112.5L29.8 97M103.4 112.5L130.2 97M33 119H55M105 119H127" stroke-width="3.2"/><path d="M38 131H54M60 131Q80 136 100 131M106 131H122M45 139H60M66 139Q80 143 97 139M102 139H117M57 147Q80 152 102 147" stroke-width="4.5"/></g></svg></span>Help</h1>
-  <div class="actions"><a class="btn small" href="index.html">Back to the app</a></div>
+  <h1><span class="mark" aria-hidden="true"><svg viewBox="0 0 160 160"><rect width="160" height="160" rx="30" fill="currentColor"/><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M76 8H84V27H108V35H84V127H76V35H52V27H76Z" fill="currentColor" stroke-width="3"/><path d="M74.4 99.6L64.8 54.6M85.6 99.6L95.2 54.6M66.5 102.6L45 65.4M93.5 102.6L115 65.4M59.9 106.5L33.3 80.8M100.1 106.5L126.7 80.8M56.6 112.5L29.8 97M103.4 112.5L130.2 97M33 119H55M105 119H127" stroke-width="3.2"/><path d="M38 131H54M60 131Q80 136 100 131M106 131H122M45 139H60M66 139Q80 143 97 139M102 139H117M57 147Q80 152 102 147" stroke-width="4.5"/></g></svg></span><span data-en="Help" data-af="Hulp">Help</span></h1>
+  <div class="actions">
+    <div class="seg mini lang-switch" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="true" title="English">EN</button>
+      <button type="button" data-lang="af" aria-pressed="false" title="Afrikaans">AF</button>
+    </div>
+    <a class="btn small" href="index.html" data-en="Back to the app" data-af="Terug na die app">Back to the app</a>
+  </div>
 </header>
 <main>
-<div class="page">
+
+<!-- ============================================================ English -->
+<div class="page" data-lang="en">
 <p>The Study Bible is a personal tool for reading Scripture, keeping your own thoughts on it, seeing where the
 Catechism of the New Apostolic Church refers to a verse, and preparing a divine service from a text word.
 Everything you write stays on your own device. There is no account and no server.</p>
+
+<h2>Language</h2>
+<p>The app speaks English or Afrikaans. The <b>EN / AF</b> switch sits in the header on a phone and at the foot of
+the side menu on a PC, and the same choice is under Settings → Language and under the Aa button in the reader. It
+changes the screens, the buttons, this help page and the headings of the printed notes. It also sets the book names
+and the language of Claude's suggestions, and each of those can be changed on its own afterwards under Settings. The
+Bible text itself stays in the translation you choose.</p>
 
 <h2>Reading</h2>
 <ul>
@@ -32,7 +48,7 @@ Everything you write stays on your own device. There is no account and no server
   <li><b>The Aa button</b> holds the reading choices: the text size (the largest, "Pulpit", is meant for reading
     while standing), the look of the app (System, Paper, White or Dark), the letters and spacing ("Easy-read" uses
     plain letters with more room between them and between the lines, in the whole app, which many people with
-    dyslexia find easier), "Compare", which shows a second translation
+    dyslexia find easier), the language of the app, "Compare", which shows a second translation
     under each verse, and "Beside", which opens the same chapter from BibleSA, the Bible Society of South Africa's
     free site with the Afrikaans Bibles, in its own window next to the app; while that window stays open it follows
     you from chapter to chapter. (BibleSA does not allow its pages to be shown inside another site, so a window is
@@ -71,7 +87,7 @@ and is not in the backup file.</p>
 <p>With the text loaded you can read every section in the Catechism tab, with the book's own summary at the top and
 "see 4.2" links between sections; search the whole Catechism by word; tap the <b>C</b> on a verse to see the summary
 of each section that quotes it; and open a section under a service preparation with "Read". Without it, each section
-links to the same text at nak.org.</p>
+links to the same text at nak.org. The Catechism's text and index are in English, so search it with English words.</p>
 
 <h2>Preparing a divine service</h2>
 <ol>
@@ -83,7 +99,7 @@ links to the same text at nak.org.</p>
     summary, or the number and title only.</li>
   <li>Build the sermon: introduction, main points, application for the congregation, conclusion, illustrations.</li>
   <li>Save or print the <b>sermon notes</b> (everything, A4) or the <b>cue card</b> (one A5 page in large type).
-    On a phone, "Share" sends the PDF to WhatsApp or e-mail.</li>
+    On a phone, "Share" sends the PDF to WhatsApp or e-mail. The headings on the notes follow the language of the app.</li>
   <li>After the service, add a short reflection. It is saved with the preparation.</li>
 </ol>
 <p>Everything saves as you type. Use the status (Draft, Ready, Held) to keep the list tidy. To start a part again,
@@ -167,6 +183,208 @@ like an app.</p>
   <li>Reading typeface: Literata, © The Literata Project Authors, under the SIL Open Font License 1.1.</li>
 </ul>
 </div>
+
+<!-- ============================================================ Afrikaans -->
+<div class="page" data-lang="af" hidden>
+<p>Die Studiebybel is 'n persoonlike hulpmiddel om die Skrif te lees, jou eie gedagtes daaroor te bewaar, te sien waar
+die Kategismus van die Nuwe Apostoliese Kerk na 'n vers verwys, en 'n godsdiens uit 'n tekswoord voor te berei.
+Alles wat jy skryf, bly op jou eie toestel. Daar is geen rekening en geen bediener nie.</p>
+
+<h2>Taal</h2>
+<p>Die app praat Engels of Afrikaans. Die <b>EN / AF</b>-skakelaar sit in die kopstuk op 'n foon en onderaan die
+symenu op 'n rekenaar, en dieselfde keuse is onder Instellings → Taal en onder die Aa-knoppie in die leser. Dit
+verander die skerms, die knoppies, hierdie hulpblad en die opskrifte van die gedrukte notas. Dit stel ook die boekname
+en die taal van Claude se voorstelle, en elkeen daarvan kan daarna op sy eie onder Instellings verander word. Die
+Bybelteks self bly in die vertaling wat jy kies.</p>
+
+<h2>Lees</h2>
+<ul>
+  <li><b>Vind 'n gedeelte:</b> kies die boek en hoofstuk bo-aan, of tik 'n verwysing soos
+    <i>Ps 130:7</i>, <i>Lukas 8:16</i> of <i>1 Kor 13</i> in die "Gaan na"-boks. Engelse en Afrikaanse boekname werk albei.
+    Die ‹- en ›-knoppies blaai die hoofstuk; op 'n rekenaar doen die linker- en regterpyltjie dieselfde.</li>
+  <li><b>Vertalings:</b> die King James Version (met die Apokriewe) en die World English Bible is ingebou en werk
+    vanlyn. Kies die vertaling langs die Gaan na-boks.</li>
+  <li><b>Die Aa-knoppie</b> hou die leeskeuses: die teksgrootte (die grootste, "Kansel", is bedoel vir lees terwyl jy
+    staan), die voorkoms van die app (Stelsel, Papier, Wit of Donker), die letters en spasiëring ("Maklik-lees"
+    gebruik eenvoudige letters met meer ruimte tussen hulle en tussen die reëls, in die hele app, wat baie mense met
+    disleksie makliker vind), die taal van die app, "Vergelyk", wat 'n tweede vertaling onder elke vers wys, en
+    "Langsaan", wat dieselfde hoofstuk van BibleSA, die Bybelgenootskap van Suid-Afrika se gratis webwerf met die
+    Afrikaanse Bybels, in sy eie venster langs die app oopmaak; solank daardie venster oop bly, volg dit jou van
+    hoofstuk tot hoofstuk. (BibleSA laat nie toe dat sy bladsye binne 'n ander webwerf gewys word nie, dus is 'n
+    venster die naaste wat die app kan kom.)</li>
+  <li><b>Jou eie teks:</b> vir 'n Bybelteks wat jy self mag gebruik, merk sy weergawe onder Instellings → Vertalings →
+    "My geplakte teks", kies dit in die leser (gemerk "geplak") en plak elke hoofstuk in van die bladsy waar jy dit
+    lees, versnommers ingesluit. Dit bly net in hierdie blaaier en het sy eie stoorlêer in Instellings.</li>
+  <li><b>NKJV en Afrikaans:</b> hierdie is kopieregbeskerm en kan nie ingebou word nie. Voeg jou eie gratis sleutel
+    vir API.Bible of die YouVersion Platform in Instellings by om hulle binne die app te lees (sien hieronder), of
+    gebruik die skakels onder elke hoofstuk om dieselfde hoofstuk op YouVersion, op BibleSA of op BibleGateway oop te
+    maak.</li>
+  <li><b>Merke:</b> 'n pers <b>C</b> beteken die Kategismus verwys na daardie vers; tik daarop om te sien watter
+    afdelings. 'n Pen beteken jy het 'n nota oor daardie vers.</li>
+</ul>
+
+<h2>Voorkoms</h2>
+<p>Onder Instellings → Voorkoms (en onder die Aa-knoppie in die leser) kies jy die tema: <b>Stelsel</b> volg die
+donker of ligte instelling van jou foon of rekenaar, <b>Papier</b> is die warm standaard, <b>Wit</b> is eenvoudig, en
+<b>Donker</b> is om snags te lees. Dieselfde plek stel die teksgrootte, die letters en spasiëring (<b>Boek</b> of
+<b>Maklik-lees</b>) en of boekname in Engels of Afrikaans gewys word. Elke toestel hou sy eie keuse.</p>
+
+<h2>Notas</h2>
+<ul>
+  <li>Tik op 'n vers (of 'n paar) in die leser en kies <b>Nota</b>. Gee dit 'n soort: 'n gedagte, 'n ervaring, 'n
+    leerskakel, 'n illustrasie, 'n preekidee of 'n vraag. Etikette is opsioneel.</li>
+  <li>Die Notas-oortjie lys alles, en soek volgens woord, etiket of verwysing.</li>
+  <li>Ervarings en illustrasies kan met een tik in 'n preekvoorbereiding ingevoeg word.</li>
+</ul>
+
+<h2>Kategismus</h2>
+<p>Die Kategismus-oortjie lys die Kategismus se hoofstukke en afdelings. Maak 'n afdeling oop om die Bybelverse te
+sien wat dit aanhaal. Die teks van die afdelings is die Kerk se kopiereg, dus is dit nie deel van die openbare app
+nie: laai dit een keer op elke toestel onder Instellings → Kategismus, uit die lêer <i>catechism-text.json</i> wat
+uit die Kategismus-PDF gemaak word
+(<code>python3 bible/tools/build_catechism.py catechism.txt catechism-toc.txt --text catechism-text.json</code>, waar
+<i>catechism.txt</i> die PDF as teks uit <code>pdftotext -layout</code> is). Dit bly in hierdie blaaier op hierdie
+toestel en is nie in die rugsteunlêer nie.</p>
+<p>Met die teks gelaai kan jy elke afdeling in die Kategismus-oortjie lees, met die boek se eie samevatting bo-aan en
+"sien 4.2"-skakels tussen afdelings; die hele Kategismus per woord deursoek; op die <b>C</b> by 'n vers tik om die
+samevatting te sien van elke afdeling wat dit aanhaal; en 'n afdeling onder 'n godsdiensvoorbereiding met "Lees"
+oopmaak. Daarsonder skakel elke afdeling na dieselfde teks by nak.org. Die Kategismus se teks en indeks is in Engels,
+soek dus daarin met Engelse woorde.</p>
+
+<h2>'n Godsdiens voorberei</h2>
+<ol>
+  <li>Kies die tekswoord in die leser en kies <b>Berei 'n godsdiens voor</b>, of tik op "Nuwe voorbereiding" in die
+    Voorberei-oortjie.</li>
+  <li>Vul die datum, gemeente en geleentheid in. Die teks kan uit 'n vertaling gehaal of ingetik word.</li>
+  <li>Skryf die boodskap en kerngedagte uit die Handleiding vir Godsdienste in jou eie woorde, dan jou begrip van
+    die teks: konteks, sleutelwoorde, die Kategismus-afdelings wat dit aanhaal, kruisverwysings. Merk die
+    Kategismus-afdelings wat jy wil hou en kies wat die preeknotas vir hulle moet dra: die volledige teks van elke
+    afdeling, die Kategismus se eie samevatting, of net die nommer en titel.</li>
+  <li>Bou die preek: inleiding, hoofpunte, toepassing vir die gemeente, slot, illustrasies.</li>
+  <li>Stoor of druk die <b>preeknotas</b> (alles, A4) of die <b>preekkaart</b> (een A5-bladsy in groot letters).
+    Op 'n foon stuur "Deel" die PDF na WhatsApp of e-pos. Die opskrifte op die notas volg die taal van die app.</li>
+  <li>Voeg ná die godsdiens 'n kort terugblik by. Dit word saam met die voorbereiding gestoor.</li>
+</ol>
+<p>Alles stoor terwyl jy tik. Gebruik die status (Konsep, Gereed, Gehou) om die lys netjies te hou. Om 'n deel weer te
+begin, het elke boks 'n <b>Vee uit</b> aan sy regterkant solank dit teks het, en elke stap 'n <b>Vee hierdie stap
+uit</b>; albei kan vir 'n paar sekondes uit die boodskap onderaan ontdoen word. "Verander" onder stap 2 kies 'n ander
+godsdiens uit die Handleiding en vra of die tekswoord, titel, boodskap en notas vervang moet word; jou eie notas onder
+die latere stappe bly.</p>
+
+<h2>Hulp van Claude (die KI-helper)</h2>
+<p>Claude, die KI van Anthropic, kan twee take van die voorbereiding oorneem. Dit het 'n sleutel van jou eie nodig
+onder Instellings → KI-helper (die stappe is daar): jy betaal Anthropic net vir wat jy gebruik, omtrent R10 om 'n
+maand se Handleiding te lees en 'n paar rand vir 'n stel voorstelle, en die sleutel bly op jou toestel, buite enige
+rugsteun.</p>
+<ul>
+  <li><b>Die Handleiding vir Godsdienste:</b> in die Voorberei-oortjie neem <b>Laai 'n Handleiding (PDF)</b> die
+    maand se Handleiding (Engels of Afrikaans). Claude lees elke godsdiens daaruit: datum, Bybelteks, titel, boodskap,
+    die artikel, die Agtergrond-boks, die Samevatting en die Kategismus-afdelings wat dit aanhaal. Die godsdienste
+    word dan in die Voorberei-oortjie gelys; tik op een en 'n voorbereiding maak oop met die tekswoord, titel,
+    boodskap en notas ingevul en die Kategismus-afdelings gemerk. Onder stap 2 wys <b>Lees die artikel</b> die
+    Handleiding se teks terwyl jy werk. 'n Voorbereiding wat in die leser begin is oor 'n teks wat die Handleiding
+    dek, tel die artikel vanself op; "Neem die boodskap uit die Handleiding" heg een met die hand aan. Gelaaide
+    Handleidings bly net in hierdie blaaier en is nie in die rugsteunlêer nie.</li>
+  <li><b>Stel antwoorde voor:</b> onder stap 3 beantwoord Claude die vrae oor die teks (wie praat met wie, waarom,
+    wat voor en ná gekom het, die agtergrond, die betekenis), verduidelik die sleutelwoorde, noem die
+    Kategismus-afdelings wat by die teks en die boodskap hoort, gee kruisverwysings in lyn met die boodskap, en bied
+    twee of drie preekgedagtes met 'n toepassing. Dit lees die teks en sy hoofstuk, die Handleiding se artikel wanneer
+    een aangeheg is, en die Kategismus-afdelings (hul teks, wanneer dit op hierdie toestel gelaai is). Elke voorstel
+    het 'n <b>Gebruik</b>-knoppie wat dit by die passende boks voeg; niks gaan in jou notas in voordat jy daarop tik
+    nie. Die voorstelle word saam met die voorbereiding gehou, dus kos hulle nie weer wanneer jy dit later oopmaak nie;
+    "Vra weer" wel.</li>
+  <li><b>Stel die preek voor:</b> onder stap 4 stel Claude voor hoe die preek die beste gebou word: 'n inleiding,
+    twee of drie hoofpunte, die toepassing, die slot wat na die altaar lei, en illustrasies, elk met 'n reël oor
+    waarom dit vir hierdie teks en boodskap werk. Dit bou op wat jy reeds onder stappe 2 tot 5 geskryf het, op die
+    Handleiding se artikel, die gemerkte Kategismus-afdelings en jou eie ervaring- en illustrasienotas, en skryf elke
+    deel soos jy dit sou kon sê. <b>Gebruik</b> sit 'n deel in sy boks (die illustrasies gaan onder stap 5);
+    "Gebruik almal" vul die hoofpunte in volgorde in.</li>
+  <li><b>Vir die mense voor jou:</b> bo-aan 'n voorbereiding, onder die datum en die gemeente, sê jy
+    <b>wie luister</b>: die ouderdomsgroep (alle ouderdomme, kinders, jongmense, jong volwassenes, gesinne, meestal
+    ouer lidmate), 'n reël oor die mense (hul werk, hul taal, wat hulle deurmaak, hoeveel), hoeveel <b>humor</b> die
+    preek mag dra, en of die voorstelle in Engels of Afrikaans moet kom. Claude vorm die woorde, die beelde, die
+    voorbeelde en die toepassing vir hulle. Vir 'n gewone Sondag, laat dit soos dit is; die ouderdomsgroep en die reël
+    oor die mense kom saam na jou volgende voorbereiding in dieselfde gemeente, en die reël staan ook bo-aan die
+    gedrukte preeknotas. Daar is nooit humor in 'n begrafnis of 'n godsdiens vir die ontslapenes nie. 'n Ligte oomblik
+    wat Claude dink pas, word op sy eie onder "Stel die preek voor" aangebied, sodat jy dit kan neem of laat.</li>
+  <li><b>In jou woorde:</b> elke voorstel kom in kort sinne en alledaagse woorde, sodat dit maklik is om op 'n foon
+    te lees en van die kansel af te sê; waar 'n Kerk- of Bybelwoord nodig is, sê Claude in eenvoudige woorde wat dit
+    beteken. Onder Instellings → KI-helper → <b>Hoe jy preek</b> stel jy die gewone humor en kan jy 'n paar reëls oor
+    jou eie manier van preek skryf, wat Claude in elke voorstel volg.</li>
+</ul>
+<p>Wat na Anthropic gestuur word om te antwoord: die Handleiding-PDF wanneer jy een laai, die tekswoord en sy
+hoofstuk, die Kategismus-afdelings wat daarby hoort, jou eie notas oor daardie voorbereiding, wie luister en jou nota
+oor hoe jy preek. Anthropic verwerk dit om te antwoord en lei nie daarmee op nie; niks daarvan word op die openbare
+webwerf geplaas nie. Die voorstelle is 'n beginpunt. Die preek bly joune.</p>
+
+<h2>Sleutels vir die gelisensieerde vertalings</h2>
+<p>Twee dienste lisensieer Bybelvertalings aan apps, en albei gee 'n gratis sleutel vir persoonlike, nie-kommersiële
+gebruik. <b>API.Bible</b>: gaan na <a href="https://scripture.api.bible/signup" target="_blank" rel="noopener">scripture.api.bible/signup</a>,
+skep 'n toepassing en kopieer sy sleutel; dit dra die NKJV. <b>YouVersion Platform</b>: registreer by
+<a href="https://platform.youversion.com" target="_blank" rel="noopener">platform.youversion.com</a>, skep 'n app en
+kopieer sy appsleutel; YouVersion dra die Afrikaanse Bybels. Plak 'n sleutel onder Instellings → Vertalings en tik op
+"Kontroleer sleutel": dit lys die Bybels wat daardie sleutel mag lees, en jy merk dié wat in die leser gewys moet
+word. Watter vertalings verskyn, hang af van die lisensies wat elke diens aan jou sleutel toegestaan het. YouVersion
+wys ook die Bybels wat dit in jou tale dra wat nog nie aan jou app gelisensieer is nie, gemerk "lisensie nodig": tik
+op Lisensie langs een om te sien watter ooreenkoms dit dek, aanvaar daardie ooreenkoms op platform.youversion.com, en
+kontroleer dan die sleutel weer. Sleutels word net op jou toestel gestoor en is nooit in 'n rugsteun ingesluit nie.</p>
+
+<h2>Rugsteun en toestelle</h2>
+<p>Notas en voorbereidings leef in die blaaier op elke toestel. Onder Instellings → Rugsteun maak <b>Stoor
+rugsteunlêer</b> een lêer met alles; hou dit in jou Google Drive. <b>Laai rugsteunlêer</b> op 'n ander toestel voeg
+dit saam: nuwer kopieë wen en niks word geskrap nie. As jy die blaaier se webwerfdata uitvee, word die app se berging
+uitgewis, dus stoor eers 'n rugsteun.</p>
+
+<h2>Vanlyn en tuisskerm</h2>
+<p>Die app hou elke hoofstuk wat jy oopmaak. Om die hele Bybel sonder 'n verbinding gereed te hê, gebruik
+<b>Laai alle tekste af vir vanlyn gebruik</b> in Instellings een keer. Gebruik op 'n foon die blaaier se "Voeg by
+tuisskerm" om dit soos 'n app oop te maak.</p>
+
+<h2>Kopiereg</h2>
+<ul>
+  <li>King James Version (1769-teks) met die Apokriewe: publieke domein.</li>
+  <li>World English Bible met die Deuterokanonieke boeke: publieke domein, ebible.org.</li>
+  <li>Vertalings wat deur API.Bible gelees word, bly die kopiereg van hul uitgewers en word onder API.Bible se
+    voorwaardes gewys.</li>
+  <li>Kategismus van die Nuwe Apostoliese Kerk © Nuwe Apostoliese Kerk Internasionaal, Zürich. Die app dra net
+    afdelingnommers, titels en Bybelverwysings; die teks word deur jou op jou eie toestel gelaai vir persoonlike
+    studie.</li>
+  <li>Leesletterstyl: Literata, © The Literata Project Authors, onder die SIL Open Font License 1.1.</li>
+</ul>
+</div>
+
 </main>
+<script>
+/*
+ * The help page carries both languages and shows the one the app is in (the
+ * app mirrors its choice to localStorage 'sb-lang'). The EN / AF buttons here
+ * only turn this page; the app's own switch is in the app.
+ */
+(function () {
+  var pages = document.querySelectorAll('.page[data-lang]');
+  var buttons = document.querySelectorAll('.lang-switch button');
+  var words = document.querySelectorAll('[data-en]');
+  var titles = { en: 'Help – NAC Study Bible', af: 'Hulp – NAK Studiebybel' };
+  function show(l) {
+    l = l === 'af' ? 'af' : 'en';
+    document.documentElement.lang = l;
+    document.title = titles[l];
+    for (var i = 0; i < pages.length; i++) pages[i].hidden = pages[i].getAttribute('data-lang') !== l;
+    for (var j = 0; j < buttons.length; j++) {
+      var on = buttons[j].getAttribute('data-lang') === l;
+      buttons[j].classList.toggle('on', on);
+      buttons[j].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    for (var k = 0; k < words.length; k++) words[k].textContent = words[k].getAttribute('data-' + l) || words[k].getAttribute('data-en');
+    document.querySelector('.lang-switch').setAttribute('aria-label', l === 'af' ? 'Taal' : 'Language');
+  }
+  var l = 'en';
+  try { l = localStorage.getItem('sb-lang') || 'en'; } catch (e) { /* private mode: English */ }
+  show(l);
+  for (var b = 0; b < buttons.length; b++) {
+    buttons[b].addEventListener('click', function (e) { show(e.currentTarget.getAttribute('data-lang')); });
+  }
+})();
+</script>
 </body>
 </html>
