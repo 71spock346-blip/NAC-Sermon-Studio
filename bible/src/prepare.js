@@ -36,13 +36,24 @@ const STATUS = [['draft', 'Draft'], ['ready', 'Ready'], ['held', 'Held']];
 const STATUS_LABEL = Object.fromEntries(STATUS);
 
 function blank() {
+  const congregation = state.settings.congregation || '';
+  const prev = lastPeople(congregation);   // the same people as last time in this congregation
   return {
-    date: nextSunday(), congregation: state.settings.congregation || '', occasion: OCCASIONS[0], title: '',
+    date: nextSunday(), congregation, occasion: OCCASIONS[0], title: '',
+    // who is listening: the age group ('' = all ages), a line about the people, and this preparation's own humour level and language ('' = as in Settings)
+    audience: prev ? prev.audience || '' : '', people: prev ? prev.people || '' : '', humour: '', lang: '',
     ref: null, refText: '', translation: Bible.source(state.settings.translation)?.short || 'KJV', translationId: state.settings.translation, text: '',
     theme: '', core: '', guide: '', context: '', keywords: '', catechism: [], catechismText: 'full', crossRefs: '', intro: '',
     points: [{ heading: '', body: '' }, { heading: '', body: '' }, { heading: '', body: '' }],
     application: '', illustrations: '', conclusion: '', reflection: '', status: 'draft',
   };
+}
+
+/** The latest other preparation for this congregation that says who is listening, or null. */
+function lastPeople(congregation, exceptId) {
+  const c = (congregation || '').trim().toLowerCase();
+  if (!c) return null;
+  return state.sermons.find(x => x.id !== exceptId && (x.congregation || '').trim().toLowerCase() === c && ((x.people || '').trim() || x.audience)) || null;
 }
 
 export async function newFromText(ref, text, translationShort) {
@@ -236,13 +247,52 @@ function renderEditor(root, s) {
 
   // ---- service details
   const occSel = el('select', {}, [...OCCASIONS, ...(OCCASIONS.includes(s.occasion) || !s.occasion ? [] : [s.occasion])].map(o => el('option', { value: o, text: o, selected: o === s.occasion })));
-  occSel.addEventListener('change', () => { s.occasion = occSel.value; touch(); });
+  occSel.addEventListener('change', () => { s.occasion = occSel.value; touch(); syncHumour(); });
   container.append(el('div', { class: 'fields three' }, [
     field('Date', 'date', { type: 'date', noClear: true }),
     field('Congregation', 'congregation', { placeholder: 'e.g. Phumolong' }),
     el('label', { class: 'f wide' }, [title('Occasion'), occSel]),
     field('Sermon title (optional)', 'title', { cls: 'full', line: true, placeholder: 'A heading for your notes' }),
   ]));
+
+  // ---- who is listening: Claude shapes its suggestions for these people (see ai.js); the line about them also heads the sermon notes
+  function pick(label, key, options) {
+    const sel = el('select', {}, options.map(([v, l]) => el('option', { value: v, text: l, selected: (s[key] || '') === v })));
+    sel.addEventListener('change', () => { s[key] = sel.value; touch(); });
+    inputs[key] = sel;
+    return el('label', { class: 'f' }, [title(label), sel]);
+  }
+  const humourSel = pick('Humour', 'humour', [['', `As usual: ${AI.humourLabel(state.settings.aiHumour).toLowerCase()}`], ['none', 'None in this service'], ['some', 'A little, where it fits'], ['more', 'A bit more']]);
+  const humourHint = el('span', { class: 'hint muted small' });
+  humourSel.append(humourHint);
+  /** No humour at a funeral or a service for the departed, whatever is chosen. */
+  function syncHumour() {
+    const off = AI.humourOf({ ...s, humour: 'some' }) === 'none';
+    inputs.humour.disabled = off;
+    humourHint.textContent = off ? 'None in a funeral or a service for the departed.' : '';
+    humourHint.hidden = !off;   // an empty hint would still take a line
+  }
+  syncHumour();
+  container.append(
+    el('div', { class: 'fields who' }, [
+      pick('Who is listening', 'audience', AI.AUDIENCES),
+      humourSel,
+      pick('Language of the sermon', 'lang', [['', `As usual: ${state.settings.aiLang === 'af' ? 'Afrikaans' : 'English'}`], ...AI.LANGS]),
+      field('About the people', 'people', { cls: 'full people', line: true, placeholder: 'A few words: who they are, their work and language, what they are going through, how many' }),
+    ]),
+    el('p', { class: 'muted small who-hint', text: 'Claude shapes its suggestions for these people, in the language chosen. For an ordinary Sunday, leave it as it is. The age group and the people are remembered for your next preparation in this congregation.' }),
+  );
+  // the same congregation as an earlier preparation: its people come along, unless this one already says who is listening
+  inputs.congregation.addEventListener('change', () => {
+    if ((s.people || '').trim() || s.audience) return;
+    const prev = lastPeople(s.congregation, s.id);
+    if (!prev) return;
+    s.audience = prev.audience || '';
+    inputs.audience.value = s.audience;
+    setBox('people', prev.people || '');
+    touch();
+    toast(`Who is listening: taken from your last preparation for ${s.congregation.trim()}.`);
+  });
 
   // ---- 1. text word
   container.append(step(1, 'The text word', 'Read it slowly, more than once, and pray before writing anything. Fetch the text from a translation, or type it in yourself.'));
@@ -425,7 +475,7 @@ function renderEditor(root, s) {
     if (!s.ref && !(s.text || '').trim()) { toast('Give the text word first: a reference or the text itself.', true); return; }
     const ctrl = new AbortController();
     const b = busy('Asking Claude', () => ctrl.abort());
-    b.say('Claude is reading the text, the chapter, the Guide\'s article and the Catechism sections. This takes about a minute.');
+    b.say(`Claude is reading the text, the chapter, the Guide's article and the Catechism sections, with ${AI.audienceLabel(AI.audienceOf(s)).toLowerCase()} in mind. This takes about a minute.`);
     try {
       const link = Guides.findService(s);
       const out = await AI.suggest(s, {
@@ -470,8 +520,8 @@ function renderEditor(root, s) {
       toast('Suggestions removed.', false, () => { s.ai = a; touch(); renderAi(); });
     } }) : null;
     aiBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
-      ? `Suggested ${fmtDate(a.at)} by ${AI.modelLabel(a.model)}${a.cost ? ', ' + AI.fmtCost(a.cost) : ''}. A starting point: the sermon is yours.`
-      : 'Claude answers the questions above from the text, the Guide\'s article and the Catechism, and suggests cross references and sermon thoughts. You choose what to keep.' })]));
+      ? `Suggested ${fmtDate(a.at)} by ${AI.modelLabel(a.model)}${a.audience ? ', for ' + AI.audienceLabel(a.audience).toLowerCase() : ''}${a.cost ? ', ' + AI.fmtCost(a.cost) : ''}. A starting point: the sermon is yours.`
+      : 'Claude answers the questions above from the text, the Guide\'s article and the Catechism, and suggests cross references and sermon thoughts, in short plain sentences and with the people above in mind. You choose what to keep.' })]));
     if (!a) return;
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: 'The suggestions' }));
@@ -521,7 +571,7 @@ function renderEditor(root, s) {
     if (!s.ref && !(s.text || '').trim()) { toast('Give the text word first: a reference or the text itself.', true); return; }
     const ctrl = new AbortController();
     const b = busy('Asking Claude', () => ctrl.abort());
-    b.say('Claude is building the sermon from the text, the message, your notes and the Catechism sections. This takes about a minute.');
+    b.say(`Claude is building the sermon from the text, the message, your notes and the Catechism sections, for ${AI.audienceLabel(AI.audienceOf(s)).toLowerCase()}. This takes about a minute.`);
     try {
       const link = Guides.findService(s);
       const out = await AI.outline(s, {
@@ -547,8 +597,8 @@ function renderEditor(root, s) {
       toast('Outline removed.', false, () => { s.build = a; touch(); renderBuild(); });
     } }) : null;
     buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
-      ? `Suggested ${fmtDate(a.at)} by ${AI.modelLabel(a.model)}${a.cost ? ', ' + AI.fmtCost(a.cost) : ''}. A starting point: the sermon is yours.`
-      : 'Claude proposes how to build this sermon from the text, the message and your notes: an introduction, the main points, the application, the conclusion and illustrations, each with a line on why it works. You choose what to keep.' })]));
+      ? `Suggested ${fmtDate(a.at)} by ${AI.modelLabel(a.model)}${a.audience ? ', for ' + AI.audienceLabel(a.audience).toLowerCase() : ''}${a.cost ? ', ' + AI.fmtCost(a.cost) : ''}. A starting point: the sermon is yours.`
+      : 'Claude proposes how to build this sermon from the text, the message and your notes, for the people above and in your way: an introduction, the main points, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.' })]));
     if (!a) return;
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: 'The outline' }));
@@ -565,6 +615,14 @@ function renderEditor(root, s) {
     const illLine = x => `${x.title ? x.title + ': ' : ''}${x.body}`;
     panel.append(group('Illustrations', (a.illustrations || []).map(x => item(x.title, x.body, () => { add('illustrations', illLine(x)); toast('Added to Illustrations under step 5.'); }, null, x.serves ? `For ${x.serves}.` : '')),
       (a.illustrations || []).length > 1 ? () => { add('illustrations', a.illustrations.map(illLine).join('\n\n')); toast('All illustrations added under step 5.'); } : null, 'They go into the Illustrations box under step 5.'));
+    if (a.lighter && a.lighter.text) {
+      // the light moment goes where Claude placed it: the introduction, the conclusion, or else among the illustrations
+      const where = a.lighter.where || '';
+      const key = /intro|inleiding|open/i.test(where) ? 'intro' : /conclu|slot|close|end/i.test(where) ? 'conclusion' : 'illustrations';
+      const box = { intro: 'Introduction', conclusion: 'Conclusion', illustrations: 'Illustrations under step 5' }[key];
+      panel.append(group('A lighter moment', [item('', a.lighter.text, () => { add(key, a.lighter.text); toast(`Added to ${box}.`); }, null, where ? `For ${where}.` : '')],
+        null, 'A smile where it fits. Yours to use or to leave.'));
+    }
     buildBox.append(panel);
   }
   renderBuild();

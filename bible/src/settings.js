@@ -3,7 +3,7 @@
  * name and congregation, book-name language, backup, offline texts, and the
  * copyright notices the bundled texts and API.Bible ask for.
  */
-import { el, clear, toast, confirmBox, download, today, sheet, fmtDate, seg, THEMES, SIZES, applyTheme } from './ui.js';
+import { el, clear, toast, confirmBox, download, today, sheet, fmtDate, seg, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
 import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts, saveCatechismText, deleteCatechismText } from './store.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
@@ -40,6 +40,7 @@ export function render(container) {
   // ---- appearance
   const themeSeg = seg(THEMES, S.theme || 'system', async v => { await saveSetting('theme', v); applyTheme(v); }, { block: true, label: 'Look' });
   const sizeSeg = seg(SIZES, S.fontSize || 'm', v => saveSetting('fontSize', v), { block: true, label: 'Text size in the reader' });
+  const readSeg = seg(READS, S.readMode || 'book', async v => { await saveSetting('readMode', v); applyRead(v); }, { block: true, label: 'Letters and spacing' });
   const langSel = el('select', {}, [el('option', { value: 'en', text: 'English (Psalm, John, 1 Corinthians)', selected: S.bookLang !== 'af' }), el('option', { value: 'af', text: 'Afrikaans (Psalms, Johannes, 1 Korintiërs)', selected: S.bookLang === 'af' })]);
   langSel.addEventListener('change', async () => { await saveSetting('bookLang', langSel.value); toast('Book names changed.'); });
   container.append(section('Appearance', [
@@ -47,6 +48,7 @@ export function render(container) {
     el('div', { class: 'theme-row' }, [
       el('label', { class: 'f' }, ['Look', themeSeg, el('span', { class: 'hint muted small', text: '"System" follows the setting of this phone or PC. "Paper" is the warm default.' })]),
       el('label', { class: 'f' }, ['Text size in the reader', sizeSeg, el('span', { class: 'hint muted small', text: '"Pulpit" is for reading while standing.' })]),
+      el('label', { class: 'f' }, ['Letters and spacing', readSeg, el('span', { class: 'hint muted small', text: '"Easy-read" uses plain letters with more room between them and between the lines, in the whole app. Many people with dyslexia find it easier.' })]),
     ]),
     el('label', { class: 'f' }, ['Book names', langSel]),
   ]));
@@ -269,10 +271,16 @@ function aiSection(container) {
   const modelSel = el('select', {}, AI.MODELS.map(m => el('option', { value: m.id, text: `${m.label} – ${m.note}`, selected: m.id === AI.model().id })));
   modelSel.addEventListener('change', async () => { await saveSetting('aiModel', modelSel.value); toast(`Claude: ${AI.modelLabel(modelSel.value)}.`); });
   const langSel = el('select', {}, AI.LANGS.map(([v, l]) => el('option', { value: v, text: l, selected: (S.aiLang || 'en') === v })));
-  langSel.addEventListener('change', async () => { await saveSetting('aiLang', langSel.value); toast('Suggestions will come in ' + (langSel.value === 'af' ? 'Afrikaans' : 'English') + '.'); });
+  langSel.addEventListener('change', async () => { await saveSetting('aiLang', langSel.value); toast('Suggestions will come in ' + (langSel.value === 'af' ? 'Afrikaans' : 'English') + ' unless a preparation chooses otherwise.'); });
+
+  // how the person preaches: the humour they like, and their own note on their way, sent with every request
+  const humourSeg = seg(AI.HUMOUR, AI.HUMOUR.some(h => h[0] === S.aiHumour) ? S.aiHumour : 'some', async v => { await saveSetting('aiHumour', v); toast(v === 'none' ? 'No humour in the suggestions.' : v === 'more' ? 'Claude may offer a bit more humour.' : 'Claude may offer a little humour where it fits.'); }, { block: true, label: 'Humour' });
+  const styleBox = el('textarea', { rows: 3, placeholder: 'For example: I speak plainly and like a story from everyday life. I often use pictures from my work. I do not use big words. I like to end with one clear thought to take home.' });
+  styleBox.value = S.aiStyle || '';
+  styleBox.addEventListener('change', async () => { await saveSetting('aiStyle', styleBox.value.trim()); toast(styleBox.value.trim() ? 'Saved. Claude will follow it.' : 'Note removed.'); });
 
   container.append(section('AI helper', [
-    el('p', { class: 'small', text: 'Claude, the AI from Anthropic, can read the monthly Divine Service Guide into the Prepare tab and suggest answers for a preparation: the context of the text, key words, Catechism sections, cross references and sermon thoughts. It works with a key of your own, so you pay Anthropic only for what you use (roughly R10 to read a month\'s Guide and a few rand for a set of suggestions) and the key stays on this device, out of any backup.' }),
+    el('p', { class: 'small', text: 'Claude, the AI from Anthropic, can read the monthly Divine Service Guide into the Prepare tab and suggest answers for a preparation: the context of the text, key words, Catechism sections, cross references, sermon thoughts and the build of the sermon. It works with a key of your own, so you pay Anthropic only for what you use (roughly R10 to read a month\'s Guide and a few rand for a set of suggestions) and the key stays on this device, out of any backup.' }),
     el('details', { class: 'small' }, [
       el('summary', { text: 'How to get a key' }),
       el('ol', {}, [
@@ -284,9 +292,13 @@ function aiSection(container) {
     el('label', { class: 'f' }, ['Anthropic key', el('div', { class: 'row line' }, [keyInput, showBtn, checkBtn])]),
     el('div', { class: 'fields two' }, [
       el('label', { class: 'f' }, ['Which Claude', modelSel]),
-      el('label', { class: 'f' }, ['Language of the suggestions', langSel]),
+      el('label', { class: 'f' }, ['Language of the suggestions', langSel, el('span', { class: 'hint muted small', text: 'The usual language. Each preparation can choose English or Afrikaans for itself.' })]),
     ]),
-    el('p', { class: 'muted small', text: 'What goes to Anthropic to answer: the Guide PDF when you load one, the text word with its chapter, the Catechism sections that belong to it, and your own notes on that preparation. Anthropic processes it to answer and does not train its models on it. Nothing is put on the public site, and the suggestions are a starting point: the sermon remains yours.' }),
+    el('h3', { class: 'sub', text: 'How you preach' }),
+    el('p', { class: 'small', text: 'The suggestions always come in short sentences and everyday words, so they are easy to read on a phone and to say from the pulpit. On each preparation you say who is listening (the age group and a line about the people); Claude shapes the pictures, the examples and the application for them. Here you set what stays the same from service to service.' }),
+    el('label', { class: 'f' }, ['Humour', humourSeg, el('span', { class: 'hint muted small', text: 'How much lightness the suggested sermon may carry. Never at a funeral or a service for the departed. A preparation can choose differently.' })]),
+    el('label', { class: 'f' }, ['Your way of preaching (optional)', styleBox, el('span', { class: 'hint muted small', text: 'A few lines in your own words: what you like to do, what you avoid, where your pictures come from. Claude follows it in every suggestion.' })]),
+    el('p', { class: 'muted small', text: 'What goes to Anthropic to answer: the Guide PDF when you load one, the text word with its chapter, the Catechism sections that belong to it, your own notes on that preparation, who is listening and this note on how you preach. Anthropic processes it to answer and does not train its models on it. Nothing is put on the public site, and the suggestions are a starting point: the sermon remains yours.' }),
   ]));
 }
 

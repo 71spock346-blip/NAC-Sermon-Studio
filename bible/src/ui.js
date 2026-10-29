@@ -88,6 +88,20 @@ export function nextSunday() {
 
 export const THEMES = [['system', 'System'], ['paper', 'Paper'], ['white', 'White'], ['dark', 'Dark']];
 export const SIZES = [['s', 'Small'], ['m', 'Normal'], ['l', 'Large'], ['xl', 'Pulpit']];
+/* Letters and spacing: the book face, or plain letters with more room between them and the lines, which many readers with dyslexia find easier. */
+export const READS = [['book', 'Book'], ['easy', 'Easy-read']];
+
+/**
+ * Applies the letters-and-spacing choice: "easy" puts data-read="easy" on the
+ * page (see styles.css), "book" takes it off. Kept in localStorage too so
+ * index.html can apply it before the first paint, like the theme.
+ */
+export function applyRead(mode) {
+  const m = mode === 'easy' ? 'easy' : 'book';
+  const root = document.documentElement;
+  if (m === 'easy') root.dataset.read = 'easy'; else delete root.dataset.read;
+  try { localStorage.setItem('sb-read', m); } catch (e) { /* private mode: the database still has it */ }
+}
 
 /**
  * Applies a theme to the page. "system" follows the device; the others are

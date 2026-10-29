@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#f4f1ea">
 <link rel="icon" type="image/svg+xml" href="icons/emblem.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=16">
+<script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';}catch(e){}</script>
+<link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body class="help">
 <header class="top">
@@ -30,7 +30,9 @@ Everything you write stays on your own device. There is no account and no server
   <li><b>Translations:</b> the King James Version (with the Apocrypha) and the World English Bible are built in and
     work offline. Choose the translation next to the Go to box.</li>
   <li><b>The Aa button</b> holds the reading choices: the text size (the largest, "Pulpit", is meant for reading
-    while standing), the look of the app (System, Paper, White or Dark), "Compare", which shows a second translation
+    while standing), the look of the app (System, Paper, White or Dark), the letters and spacing ("Easy-read" uses
+    plain letters with more room between them and between the lines, in the whole app, which many people with
+    dyslexia find easier), "Compare", which shows a second translation
     under each verse, and "Beside", which opens the same chapter from BibleSA, the Bible Society of South Africa's
     free site with the Afrikaans Bibles, in its own window next to the app; while that window stays open it follows
     you from chapter to chapter. (BibleSA does not allow its pages to be shown inside another site, so a window is
@@ -48,8 +50,8 @@ Everything you write stays on your own device. There is no account and no server
 <h2>Appearance</h2>
 <p>Under Settings → Appearance (and under the Aa button in the reader) you choose the look: <b>System</b> follows the
 dark or light setting of your phone or PC, <b>Paper</b> is the warm default, <b>White</b> is plain, and <b>Dark</b> is
-for reading at night. The same place sets the text size and whether book names are shown in English or Afrikaans.
-Each device keeps its own choice.</p>
+for reading at night. The same place sets the text size, the letters and spacing (<b>Book</b> or <b>Easy-read</b>)
+and whether book names are shown in English or Afrikaans. Each device keeps its own choice.</p>
 
 <h2>Notes</h2>
 <ul>
@@ -114,9 +116,22 @@ Guide and a few rand for a set of suggestions, and the key stays on your device,
     Guide's article, the ticked Catechism sections and your own experience and illustration notes, and writes each
     part as you could speak it. <b>Use</b> puts a part into its box (the illustrations go under step 5); "Use all"
     fills the main points in order.</li>
+  <li><b>For the people in front of you:</b> at the top of a preparation, under the date and the congregation,
+    you say <b>who is listening</b>: the age group (all ages, children, young people, young adults, families, mostly
+    older members), a line about the people (their work, their language, what they are going through, how many), how
+    much <b>humour</b> the sermon may carry, and whether the suggestions should come in English or Afrikaans. Claude
+    shapes the words, the pictures, the examples and the application for them. For an ordinary Sunday, leave it as it
+    is; the age group and the line about the people come along to your next preparation in the same congregation, and
+    the line also heads the printed sermon notes. There is never humour in a funeral or a service for the departed. A
+    light moment Claude thinks fits is offered on its own under "Suggest the sermon", so you can take it or leave it.</li>
+  <li><b>In your words:</b> every suggestion comes in short sentences and everyday words, so it is easy to read on a
+    phone and to say from the pulpit; where a Church or Bible word is needed, Claude says in plain words what it
+    means. Under Settings → AI helper → <b>How you preach</b> you set the usual humour and can write a few lines about
+    your own way of preaching, which Claude follows in every suggestion.</li>
 </ul>
 <p>What is sent to Anthropic to answer: the Guide PDF when you load one, the text word and its chapter, the
-Catechism sections that belong to it, and your own notes on that preparation. Anthropic processes it to answer and
+Catechism sections that belong to it, your own notes on that preparation, who is listening and your note on how you
+preach. Anthropic processes it to answer and
 does not train on it; nothing of it is put on the public site. The suggestions are a starting point. The sermon
 remains yours.</p>
 

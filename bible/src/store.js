@@ -69,7 +69,10 @@ export const DEFAULT_SETTINGS = {
   myTexts: [],            // versions the person pastes in chapter by chapter ('afr83'), shown as "(pasted)"
   aiKey: '',              // Anthropic key for the AI helper, same rules as apiKey
   aiModel: 'claude-opus-5-5',
-  aiLang: 'en',           // language of the suggestions: 'en' or 'af'
+  aiLang: 'en',           // language of the suggestions: 'en' or 'af'; a preparation can choose its own
+  aiHumour: 'some',       // how much humour the suggested sermon may carry: 'none', 'some' or 'more' (see HUMOUR in ai.js)
+  aiStyle: '',            // the person's own note on how they preach, sent with every request for suggestions
+  readMode: 'book',       // 'book' (Literata, normal spacing) or 'easy' (plain letters, wider spacing: easier with dyslexia)
   name: '',
   congregation: '',
   lastRef: 'PSA.23',

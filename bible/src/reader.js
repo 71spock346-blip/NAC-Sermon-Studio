@@ -10,7 +10,7 @@
  * translation and "Aa", which opens the reading choices (text size, theme,
  * Compare, Beside) in a sheet so the text starts high on a phone.
  */
-import { el, $, clear, toast, sheet, copyText, seg, THEMES, SIZES, applyTheme } from './ui.js';
+import { el, $, clear, toast, sheet, copyText, seg, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
 import { BOOKS, BY_ID, GROUPS, GROUPS_AF, bookName, parseRef, formatRef } from './books.js';
 import { state, saveSetting } from './store.js';
 import * as Bible from './bible.js';
@@ -259,6 +259,7 @@ function viewSheet(srcId) {
     if (art) art.className = 'scripture size-' + v;
   }, { block: true, label: 'Text size' });
   const themeSeg = seg(THEMES, state.settings.theme || 'system', async v => { await saveSetting('theme', v); applyTheme(v); }, { block: true, label: 'Theme' });
+  const readSeg = seg(READS, state.settings.readMode || 'book', async v => { await saveSetting('readMode', v); applyRead(v); }, { block: true, label: 'Letters and spacing' });
 
   const cmpId = state.settings.compare && Bible.source(state.settings.compare) && state.settings.compare !== srcId ? state.settings.compare : '';
   const cmpSel = el('select', { 'aria-label': 'Compare with' }, el('option', { value: '', text: 'None' }));
@@ -272,6 +273,7 @@ function viewSheet(srcId) {
   s.body.append(
     el('label', { class: 'f' }, ['Text size', sizeSeg, el('span', { class: 'hint muted small', text: '"Pulpit" is meant for reading while standing.' })]),
     el('label', { class: 'f' }, ['Look', themeSeg, el('span', { class: 'hint muted small', text: '"System" follows the setting of this phone or PC.' })]),
+    el('label', { class: 'f' }, ['Letters and spacing', readSeg, el('span', { class: 'hint muted small', text: '"Easy-read" uses plain letters with more room between them and between the lines, which many people with dyslexia find easier. It applies everywhere in the app.' })]),
     el('label', { class: 'f' }, ['Compare with a second translation', cmpSel, el('span', { class: 'hint muted small', text: 'Shown under each verse.' })]),
     el('label', { class: 'f' }, ['Beside: the Afrikaans Bible on BibleSA', besideSel, el('span', { class: 'hint muted small', text: 'Opens in its own window next to the app and follows the chapter.' })]),
     el('div', { class: 'row end' }, [el('button', { class: 'btn', type: 'button', text: 'Done', onclick: () => s.close() })]),

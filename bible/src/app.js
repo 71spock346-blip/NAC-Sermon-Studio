@@ -7,7 +7,7 @@
  * button therefore works as people expect, and a link to a verse can be
  * shared.
  */
-import { $, $$, applyTheme, syncThemeColor } from './ui.js';
+import { $, $$, applyTheme, applyRead, syncThemeColor } from './ui.js';
 import { load, state } from './store.js';
 import * as Reader from './reader.js';
 import * as Notes from './notes.js';
@@ -62,6 +62,7 @@ function tabKeys(e) {
 async function start() {
   await load();
   applyTheme(state.settings.theme || 'system');
+  applyRead(state.settings.readMode || 'book');
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeColor);
   Cat.load().catch(() => {});
   for (const b of $$('.tabs button')) b.addEventListener('click', () => { location.hash = '#' + b.dataset.tab; });

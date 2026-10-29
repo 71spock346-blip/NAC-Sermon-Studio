@@ -19,6 +19,14 @@
  * not time out. What is sent (the Guide, the Catechism sections, the text and
  * the person's notes) is processed by Anthropic to answer; nothing of it goes
  * onto the public site.
+ *
+ * The suggestions are shaped for the minister and the people in front of him:
+ * every answer comes in short sentences and everyday words (he reads it on a
+ * phone and preaches freely), the age group and a line about the congregation
+ * on the preparation steer the pictures and the application, humour is
+ * offered to the degree he chose (never at a funeral or a service for the
+ * departed), and his own note on how he preaches (Settings → AI helper) is
+ * followed. Each preparation can also pick its own language.
  */
 import { state } from './store.js';
 import { parseRef, formatRef } from './books.js';
@@ -34,6 +42,51 @@ export const MODELS = [
   { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5', note: 'quicker and about half the price', input: 2, output: 10 },
 ];
 export const LANGS = [['en', 'English'], ['af', 'Afrikaans']];
+
+/* Who is listening: the age groups a preparation can name. '' is an ordinary mixed congregation. */
+export const AUDIENCES = [
+  ['', 'All ages together'],
+  ['children', 'Children'],
+  ['youth', 'Young people (teens)'],
+  ['young-adults', 'Young adults'],
+  ['families', 'Families with children'],
+  ['older', 'Mostly older members'],
+];
+/* How much humour the suggestions may carry. The standing choice is in Settings; a preparation can differ. */
+export const HUMOUR = [
+  ['none', 'None'],
+  ['some', 'A little, where it fits'],
+  ['more', 'A bit more'],
+];
+const AUDIENCE_LABEL = Object.fromEntries(AUDIENCES);
+const HUMOUR_LABEL = Object.fromEntries(HUMOUR);
+
+/** The language the suggestions for this preparation come in: its own choice, else the setting. */
+export function langOf(s) {
+  const own = s && s.lang;
+  if (own === 'en' || own === 'af') return own;
+  return state.settings.aiLang === 'af' ? 'af' : 'en';
+}
+
+/** The age group a preparation speaks to: its own choice, else what the occasion says. */
+export function audienceOf(s) {
+  if (s && s.audience && AUDIENCE_LABEL[s.audience] !== undefined) return s.audience;
+  const occ = (s && s.occasion) || '';
+  if (/youth|jeug/i.test(occ)) return 'youth';
+  if (/children|kinder/i.test(occ)) return 'children';
+  return '';
+}
+
+export function audienceLabel(id) { return AUDIENCE_LABEL[id] || AUDIENCES[0][1]; }
+
+/** How much humour this preparation may carry: none at a funeral or a service for the departed, else its own choice, else the setting. */
+export function humourOf(s) {
+  if (/departed|funeral|ontslapene|begrafnis/i.test((s && s.occasion) || '')) return 'none';
+  if (s && s.humour && HUMOUR_LABEL[s.humour]) return s.humour;
+  return HUMOUR_LABEL[state.settings.aiHumour] ? state.settings.aiHumour : 'some';
+}
+
+export function humourLabel(id) { return HUMOUR_LABEL[id] || HUMOUR_LABEL.some; }
 
 export function ready() { return !!(state.settings.aiKey || '').trim(); }
 
@@ -301,23 +354,70 @@ const SUGGEST_SCHEMA = {
     },
     points: {
       type: 'array', description: 'Two or three possible main points for the sermon',
-      items: { type: 'object', additionalProperties: false, required: ['heading', 'body'], properties: { heading: { type: 'string' }, body: { type: 'string', description: 'Two or three sentences' } } },
+      items: { type: 'object', additionalProperties: false, required: ['heading', 'body'], properties: { heading: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'Two or three short sentences' } } },
     },
-    application: { type: 'string', description: 'A short application for the congregation: what the text asks of them this week' },
+    application: { type: 'string', description: 'A short application for the congregation: what the text asks of them this week, in two or three short sentences' },
     note: { type: 'string', description: 'Anything the minister should know about these suggestions, e.g. where the Catechism does not speak to this text; else empty' },
   },
 };
+
+/* ------------------------------------------------- how the answers are written */
+
+/**
+ * How every answer is written. The minister reads it on a phone, preaches
+ * freely in everyday words, did not study theology, and wants text he can
+ * take in at a glance and say out loud as it stands.
+ */
+function voiceRules(lang) {
+  return `How to write, always:
+- Short sentences, one thought each. Everyday words, the kind people use at the kitchen table. No long paragraphs: three or four sentences, then a break.
+- Write it so the minister could say it out loud as it stands, in his own voice.
+- He did not study theology and keeps his words simple. When a Bible or Church word is the right one (covenant, justification, sacrament), use it and say in a few plain words what it means here. Never use a hard word to sound learned.
+- Put the main thing first. Start a line with its key word. Leave out what does not help this sermon. Nothing padded, nothing repeated.
+- Where the content is a list, make it a list: one short line per item.
+- No names of theologians, movements or Hebrew and Greek words, unless one word truly opens the text; then give it with its plain meaning.
+- Answer in ${lang === 'af' ? 'Afrikaans: plain, everyday Afrikaans as it is spoken in the congregation, not stiff or bookish' : 'English: plain, everyday English as it is spoken in South Africa'}.`;
+}
+
+/** Who is listening shapes the words, the pictures, the examples and the application. */
+function peopleRules() {
+  return `Who is listening shapes the words, the pictures, the examples and the application:
+- Children: very simple words, one clear picture or a short story they can see, a question they can answer, and only one thing to take home.
+- Young people: their world (school, friends, phones, pressure, choices, standing for their faith among friends who do not believe). Honest and direct, never talking down, no forced slang.
+- Young adults: work, money, relationships, young families, finding one's place, keeping faith in a busy life.
+- Families with children: pictures from family life; a word the children catch and a word for the parents.
+- Older members: respect for a long life of faith; memory, loss, loneliness, health, children and grandchildren, the hope of the Lord's return. Nothing hurried.
+- All ages together: a picture everyone understands, and now and then a word for the young and a word for the old.
+Where the minister describes the people (their work, language, what they are going through), take the examples and the application from their life, not from a life they do not know.`;
+}
+
+/** How much humour the sermon may carry, for the level chosen for this preparation. */
+function humourRules(level) {
+  const how = level === 'none'
+    ? 'None in this service: no humour at all.'
+    : level === 'more'
+      ? 'A bit more: two or three light, warm moments, still gentle, for the introduction and an illustration or a main point.'
+      : 'A little, where it fits: where the text and the people allow it, one light, warm moment, such as a familiar situation everyone recognises or a gentle word about our own ways. A smile, not a joke. If nothing fits naturally, leave it out.';
+  return `Humour: the minister likes to bring a smile where it fits, and the people know him for it. For this service: ${how}
+- Never at the cost of a person or a group, never about Scripture itself, sin, suffering or the sacraments, never sarcasm. Humour opens the door; it never carries the message.
+- In a funeral or a divine service for the departed there is no humour.`;
+}
 
 function suggestSystem(lang) {
   return `You help a minister of the New Apostolic Church prepare an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to give the minister input for his own preparation, not to write the sermon: answer the context questions about the text, explain the key words, point to the Catechism sections that belong with the text and the message, suggest other Bible passages in line with the message, and offer a few sermon thoughts he can make his own.
 
 Rules:
-- Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Lean on the Catechism text given below where it speaks to the matter. Cite Catechism sections only by numbers that appear in the index given below, and never state what a section says unless its text is given.
+- Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Lean on the Catechism text given below where it speaks to the matter. Cite Catechism sections only by numbers that appear in the index given below, and never state what a section says unless its text is given. Where you draw on a section, say what it says in plain words.
 - The message of the service gives the direction. The suggestions serve that message and do not pull the text elsewhere.
-- Be concrete and brief: short sentences, plain words, nothing padded. The minister reads this on a phone.
 - Cross references: five to eight passages that genuinely shed light on the text or the message, each with one line on how it connects. Give each reference with the English book name, chapter and verse(s). Do not quote the verse.
-- Sermon thoughts: two or three possible main points, each a heading and two or three sentences drawn from the text and the message, and one short application for the congregation. They are starting points, not a finished sermon.
-- Answer in ${lang === 'af' ? 'Afrikaans' : 'English'}. Put nothing outside the JSON fields.`;
+- Sermon thoughts: two or three possible main points, each a heading of a few words and two or three short sentences drawn from the text and the message, and one short application for the congregation. They are starting points, not a finished sermon. Shape them for the people who will be listening (see below).
+- Answer the context questions in two to four short sentences each.
+
+${voiceRules(lang)}
+
+${peopleRules()}
+
+Put nothing outside the JSON fields.`;
 }
 
 /**
@@ -326,8 +426,8 @@ Rules:
  * when, which model and roughly what it cost.
  */
 export async function suggest(s, { service = null, guideTitle = '', signal, onProgress } = {}) {
-  const lang = state.settings.aiLang === 'af' ? 'af' : 'en';
-  const parts = [servicePart(s)];
+  const lang = langOf(s);
+  const parts = [servicePart(s), peoplePart(s, lang), preacherPart()].filter(Boolean);
   if (s.text) parts.push(`THE TEXT\n${s.text}`);
   const chapter = await chapterPart(s);
   if (chapter) parts.push(chapter);
@@ -339,20 +439,35 @@ export async function suggest(s, { service = null, guideTitle = '', signal, onPr
   parts.push(await catechismPart(s, service));
 
   const qs = QUESTIONS[lang];
-  parts.push(`THE CONTEXT QUESTIONS to answer, in this order, each in two to four sentences:\n` + qs.map((q, i) => `${i + 1}. ${q}`).join('\n'));
+  parts.push(`THE CONTEXT QUESTIONS to answer, in this order, each in two to four short sentences:\n` + qs.map((q, i) => `${i + 1}. ${q}`).join('\n'));
 
   const r = await run({
     system: suggestSystem(lang),
     content: [{ type: 'text', text: parts.join('\n\n\n') }],
     schema: SUGGEST_SCHEMA, effort: 'high', maxTokens: 16000, signal, onProgress,
   });
-  return tidySuggestions(r, lang, qs);
+  return { ...tidySuggestions(r, lang, qs), audience: audienceOf(s) };
 }
 
 /** The service in a few lines: date, occasion, congregation, text word. */
 function servicePart(s) {
   const ref = s.ref ? formatRef(s.ref, 'en') : (s.refText || '');
   return `THE SERVICE\nDate: ${s.date || '–'}\nOccasion: ${s.occasion || '–'}\nCongregation: ${s.congregation || '–'}\nText word: ${ref || '(no reference given)'}${s.translation ? ` (${s.translation})` : ''}`;
+}
+
+/** Who is listening: the age group, the minister's line about the people, and the language they will hear. */
+function peoplePart(s, lang) {
+  const a = audienceOf(s);
+  const lines = ['WHO IS LISTENING', `Age group: ${audienceLabel(a)}${a ? '' : ' (an ordinary mixed congregation)'}`];
+  if ((s.people || '').trim()) lines.push(`About the people, in the minister's words: ${s.people.trim()}`);
+  lines.push(`The sermon is preached in ${lang === 'af' ? 'Afrikaans' : 'English'}.`);
+  return lines.join('\n');
+}
+
+/** What the minister wrote in Settings about how he preaches; '' when nothing. */
+function preacherPart() {
+  const style = (state.settings.aiStyle || '').trim();
+  return style ? `HOW THE MINISTER PREACHES, in his own words (follow it)\n${style}` : '';
 }
 
 /** The whole chapter of the text word (World English Bible, bundled), for the context; '' when there is none. */
@@ -459,37 +574,49 @@ function tidySuggestions(r, lang, qs) {
 
 const OUTLINE_SCHEMA = {
   type: 'object', additionalProperties: false,
-  required: ['intro', 'points', 'application', 'conclusion', 'illustrations', 'note'],
+  required: ['intro', 'points', 'application', 'conclusion', 'illustrations', 'lighter', 'note'],
   properties: {
     intro: {
       type: 'object', additionalProperties: false, required: ['text', 'why'], description: 'The introduction: how the sermon opens',
-      properties: { text: { type: 'string', description: 'Three to five sentences, as the minister could speak them' }, why: { type: 'string', description: 'One line on why this opening works for this text and message' } },
+      properties: { text: { type: 'string', description: 'Three to five short sentences, as the minister could speak them' }, why: { type: 'string', description: 'One short line on why this opening works for this text, this message and these people' } },
     },
     points: {
       type: 'array', description: 'Two or three main points, in the order to preach them',
-      items: { type: 'object', additionalProperties: false, required: ['heading', 'body', 'why'], properties: { heading: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'Three to six sentences: what the text says, what it means, what it asks of us' }, why: { type: 'string', description: 'One line on what this point does for the message' } } },
+      items: { type: 'object', additionalProperties: false, required: ['heading', 'body', 'why'], properties: { heading: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'Three to six short sentences: what the text says, what it means, what it asks of us' }, why: { type: 'string', description: 'One short line on what this point does for the message' } } },
     },
-    application: { type: 'string', description: 'The application for the congregation: what the text asks of them this week, named for the people in front of the minister; two to four sentences' },
-    conclusion: { type: 'string', description: 'The conclusion: gathers the thoughts and leads to the altar; two to four sentences' },
+    application: { type: 'string', description: 'The application for the congregation: what the text asks of them this week, named for the people in front of the minister; two to four short sentences' },
+    conclusion: { type: 'string', description: 'The conclusion: gathers the thoughts and leads to the altar; two to four short sentences' },
     illustrations: {
-      type: 'array', description: 'One to three pictures, stories or examples that make a point visible',
-      items: { type: 'object', additionalProperties: false, required: ['title', 'body', 'serves'], properties: { title: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'The picture or story in two to five sentences' }, serves: { type: 'string', description: 'The part of the sermon it serves, e.g. "the introduction" or "main point 2"' } } },
+      type: 'array', description: 'One to three pictures, stories or examples that make a point visible, from the world of the people who are listening',
+      items: { type: 'object', additionalProperties: false, required: ['title', 'body', 'serves'], properties: { title: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'The picture or story in two to five short sentences' }, serves: { type: 'string', description: 'The part of the sermon it serves, e.g. "the introduction" or "main point 2"' } } },
+    },
+    lighter: {
+      type: 'object', additionalProperties: false, required: ['text', 'where'], description: 'A lighter moment: one warm touch of humour that fits this text and these people, in the minister\'s own voice. Both fields empty when the humour level is none or nothing fits naturally.',
+      properties: { text: { type: 'string', description: 'The light moment in one to three short sentences, as he could say it' }, where: { type: 'string', description: 'Where it belongs, e.g. "the introduction" or "main point 1"' } },
     },
     note: { type: 'string', description: 'Anything the minister should know about this outline, e.g. a choice made between two directions; else empty' },
   },
 };
 
-function outlineSystem(lang) {
-  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to propose how the sermon is best built from them: an introduction that opens the door, two or three main points that each stand on the text, an application for the congregation, a conclusion that leads to the altar, and a few illustrations. For each part say in one line why it works here. The minister decides; he takes what serves him.
+function outlineSystem(lang, humour) {
+  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to propose how the sermon is best built from them: an introduction that opens the door, two or three main points that each stand on the text, an application for the congregation, a conclusion that leads to the altar, and a few illustrations. For each part say in one short line why it works here. The minister decides; he takes what serves him.
 
 Rules:
-- Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Where the Catechism text given below speaks to the matter, let it shape the points. Do not state what a Catechism section says unless its text is given.
+- Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Where the Catechism text given below speaks to the matter, let it shape the points. Do not state what a Catechism section says unless its text is given; where you draw on it, say it in plain words.
 - The message of the service gives the direction: the whole outline serves it and does not pull the text elsewhere. The Guide's article, where given, is the first source for the points.
-- A New Apostolic sermon is preached freely, lasts about twenty to thirty minutes, and leads the congregation to the forgiveness of sins and Holy Communion: the conclusion ends there. In a divine service for the departed, the departed are included in the hope and the intercession. A youth service speaks to young people in their world; a children's service speaks simply.
-- Write every part so the minister could speak it as it stands: in the voice of a minister speaking to his congregation, "we" and "us", plain words, short sentences, nothing padded, no headings inside the text. Each main point has a heading of a few words and three to six sentences.
+- A New Apostolic sermon is preached freely, lasts about twenty to thirty minutes, and leads the congregation to the forgiveness of sins and Holy Communion: the conclusion ends there. In a divine service for the departed, the departed are included in the hope and the intercession.
+- Write every part so the minister could speak it as it stands: in the voice of a minister speaking to his congregation, "we" and "us", no headings inside the text. Each main point has a heading of a few words and three to six short sentences.
 - Build on what the minister has written already: keep his direction and wording where he has one, fill what is empty, and offer an alternative only where his draft is thin. Do not repeat his text back to him.
-- Illustrations: a picture from daily life, a true-to-life example or a Bible story that makes a point visible. When one of the minister's own notes fits, use that one and say so ("from your notes: …") rather than inventing another.
-- Answer in ${lang === 'af' ? 'Afrikaans' : 'English'}. Put nothing outside the JSON fields.`;
+- Illustrations: a picture from daily life, a true-to-life example or a Bible story that makes a point visible, taken from the world of the people who are listening. When one of the minister's own notes fits, use that one and say so ("from your notes: …") rather than inventing another.
+- The lighter moment: fill it only when the humour level below allows it and something fits naturally; otherwise leave both fields empty. It may also be woven into the introduction or an illustration.
+
+${voiceRules(lang)}
+
+${peopleRules()}
+
+${humourRules(humour)}
+
+Put nothing outside the JSON fields.`;
 }
 
 /**
@@ -500,8 +627,9 @@ Rules:
  * the minister's experience and illustration notes.
  */
 export async function outline(s, { service = null, guideTitle = '', signal, onProgress } = {}) {
-  const lang = state.settings.aiLang === 'af' ? 'af' : 'en';
-  const parts = [servicePart(s)];
+  const lang = langOf(s);
+  const humour = humourOf(s);
+  const parts = [servicePart(s), peoplePart(s, lang), preacherPart()].filter(Boolean);
   if (s.text) parts.push(`THE TEXT\n${s.text}`);
   const chapter = await chapterPart(s);
   if (chapter) parts.push(chapter);
@@ -536,22 +664,23 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   }
 
   const r = await run({
-    system: outlineSystem(lang),
+    system: outlineSystem(lang, humour),
     content: [{ type: 'text', text: parts.join('\n\n\n') }],
     schema: OUTLINE_SCHEMA, effort: 'high', maxTokens: 12000, signal, onProgress,
   });
-  return tidyOutline(r, lang);
+  return { ...tidyOutline(r, lang, humour), audience: audienceOf(s) };
 }
 
-function tidyOutline(r, lang) {
+function tidyOutline(r, lang, humour) {
   const d = r.data || {};
   const list = v => (Array.isArray(v) ? v.filter(Boolean) : []);
   const intro = d.intro && typeof d.intro === 'object' ? { text: str(d.intro.text), why: str(d.intro.why) } : { text: str(d.intro), why: '' };
   const points = list(d.points).map(p => ({ heading: str(p.heading), body: str(p.body), why: str(p.why) })).filter(p => p.heading || p.body);
   const illustrations = list(d.illustrations).map(x => ({ title: str(x.title), body: str(x.body), serves: str(x.serves) })).filter(x => x.body);
+  const lighter = humour !== 'none' && d.lighter && typeof d.lighter === 'object' && str(d.lighter.text) ? { text: str(d.lighter.text), where: str(d.lighter.where) } : null;
   return {
-    at: new Date().toISOString(), model: r.model, lang,
+    at: new Date().toISOString(), model: r.model, lang, humour,
     cost: cost(r.usage, r.model),
-    intro, points, application: str(d.application), conclusion: str(d.conclusion), illustrations, note: str(d.note),
+    intro, points, application: str(d.application), conclusion: str(d.conclusion), illustrations, lighter, note: str(d.note),
   };
 }
