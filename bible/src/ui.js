@@ -1,3 +1,4 @@
+import { t, locale } from './i18n.js';
 /*
  * Small DOM helpers shared by every tab. No framework: the app is a few
  * screens, and plain functions are easier for the next person to follow.
@@ -43,15 +44,15 @@ export function isTouch() {
 let toastTimer;
 /** A short message at the bottom; with `undo` (a function) it carries an Undo button and stays a little longer. */
 export function toast(msg, isError, undo) {
-  const t = $('#toast');
-  if (!t) return;
-  t.textContent = msg;
+  const box = $('#toast');
+  if (!box) return;
+  box.textContent = msg;
   if (typeof undo === 'function') {
-    t.append(el('button', { class: 'toast-undo', type: 'button', text: 'Undo', onclick: () => { t.className = 'toast'; undo(); } }));
+    box.append(el('button', { class: 'toast-undo', type: 'button', text: t('Undo'), onclick: () => { box.className = 'toast'; undo(); } }));
   }
-  t.className = 'toast show' + (isError ? ' error' : '') + (typeof undo === 'function' ? ' action' : '');
+  box.className = 'toast show' + (isError ? ' error' : '') + (typeof undo === 'function' ? ' action' : '');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.className = 'toast'; }, isError ? 5000 : typeof undo === 'function' ? 8000 : 3000);
+  toastTimer = setTimeout(() => { box.className = 'toast'; }, isError ? 5000 : typeof undo === 'function' ? 8000 : 3000);
 }
 
 export function debounce(fn, ms) {
@@ -69,7 +70,7 @@ export function fmtDate(iso, withWeekday) {
   if (isNaN(d)) return iso;
   const opts = { day: 'numeric', month: 'short', year: 'numeric' };
   if (withWeekday) opts.weekday = 'short';
-  return d.toLocaleDateString('en-ZA', opts);
+  return d.toLocaleDateString(locale(), opts);
 }
 
 export function today() {
@@ -133,7 +134,7 @@ export function seg(options, value, onChange, opts = {}) {
   const draw = (current) => {
     clear(box);
     for (const [v, label] of options) {
-      box.append(el('button', { type: 'button', class: v === current ? 'on' : '', 'aria-pressed': v === current ? 'true' : 'false', text: label, onclick: () => { draw(v); onChange(v); } }));
+      box.append(el('button', { type: 'button', class: v === current ? 'on' : '', 'aria-pressed': v === current ? 'true' : 'false', text: t(label), onclick: () => { draw(v); onChange(v); } }));
     }
   };
   draw(value);
@@ -154,7 +155,7 @@ export function sheet(title, opts = {}) {
   const opener = document.activeElement;
   const titleId = 'sheet-' + Math.random().toString(36).slice(2, 8);
   const body = el('div', { class: 'sheet-body' });
-  const closeBtn = el('button', { class: 'icon', type: 'button', 'aria-label': 'Close', text: '✕', onclick: () => close() });
+  const closeBtn = el('button', { class: 'icon', type: 'button', 'aria-label': t('Close'), text: '✕', onclick: () => close() });
   const head = el('div', { class: 'sheet-head' }, [el('h2', { text: title, id: titleId }), closeBtn]);
   const card = el('div', { class: 'sheet-card' + (opts.wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId, tabindex: '-1' }, [head, body]);
   const root = el('div', { class: 'overlay' }, card);
@@ -188,12 +189,12 @@ export function sheet(title, opts = {}) {
 /** A yes/no question. Resolves true when the person taps the action. */
 export function confirmBox(message, action, danger) {
   return new Promise(resolve => {
-    const s = sheet('Please confirm', { onclose: () => resolve(false), sticky: true });
+    const s = sheet(t('Please confirm'), { onclose: () => resolve(false), sticky: true });
     const ok = el('button', { class: 'btn' + (danger ? ' danger' : ''), type: 'button', text: action || 'OK', onclick: () => { resolve(true); s.close(true); } });
     s.body.append(
       el('p', { text: message }),
       el('div', { class: 'row end' }, [
-        el('button', { class: 'btn ghost', type: 'button', text: 'Cancel', onclick: () => s.close() }),
+        el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => s.close() }),
         ok,
       ]));
     setTimeout(() => ok.focus(), 30);
@@ -210,7 +211,7 @@ export function busy(title, onCancel) {
   const s = sheet(title, { sticky: true, onclose: () => { if (!finished && onCancel) onCancel(); } });
   const text = el('p', { class: 'busy-text', role: 'status' });
   const spin = el('span', { class: 'spin', 'aria-hidden': 'true' });
-  const cancel = el('button', { class: 'btn ghost', type: 'button', text: 'Cancel', onclick: () => s.close() });
+  const cancel = el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => s.close() });
   s.body.append(el('div', { class: 'busy' }, [spin, text]), el('div', { class: 'row end' }, [cancel]));
   return {
     say(msg) { text.textContent = msg; },
@@ -220,7 +221,7 @@ export function busy(title, onCancel) {
       spin.remove();
       text.textContent = msg;
       text.classList.add('error');
-      cancel.textContent = 'Close';
+      cancel.textContent = t('Close');
     },
   };
 }

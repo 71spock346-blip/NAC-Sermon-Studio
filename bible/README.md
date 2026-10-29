@@ -21,6 +21,24 @@ sans for everything else. Under 760px the tabs are a bar under the thumb and the
 runs full width; from 760px they are a side menu and each screen is a page on the paper.
 The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
 
+## Two languages
+
+The interface speaks English or Afrikaans: the EN / AF switch is in the header on a
+phone and at the foot of the side menu on a PC, and the same choice is under
+Settings → Language and in the reader's "Aa" sheet. `src/i18n.js` is the layer: every
+text the app shows goes through `t('English text')` (`tn()` for a count, `data-t`
+attributes in `index.html`), with the English as the key, and `src/af.js` maps each
+key to its Afrikaans, in the Church's own words from the Afrikaans Divine Service
+Guide (godsdiens, Boodskap, Kategismus, preeknotas). A key without an entry falls back
+to the English, so a new text never breaks the app; `python3 tools/check_i18n.py`
+(from `bible/`) lists the texts without an Afrikaans entry and the entries no longer
+used, so run it after adding a text or a line to `af.js`. Switching sets `uiLang` and
+with it the book names (`bookLang`) and the language of Claude's suggestions
+(`aiLang`), each still changeable on its own in Settings; the choice is mirrored to
+localStorage (`sb-lang`) so the page paints in the right language before the database
+is open, and `help.html` carries both languages and opens in the app's. The Bible text
+stays in whichever translation is chosen; the Catechism's text and index are English.
+
 ## How it works
 
 - **Texts.** Two public-domain translations are bundled as JSON in `data/`: the King
@@ -72,6 +90,7 @@ The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
 - `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#notes`,
   `#prepare/<id>`, `#catechism/3.4.1`, `#settings`)
 - `src/books.js` – the 80 books, English and Afrikaans names, reference parsing
+- `src/i18n.js`, `src/af.js` – the language of the interface: `t()` and the Afrikaans table
 - `src/store.js` – IndexedDB, in-memory state, backup
 - `src/bible.js` – bundled texts, API.Bible client and cache, links out
 - `src/catechism.js` – Catechism index and tab
@@ -82,7 +101,7 @@ The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
 - `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)
 - `vendor/fonts/` – Literata (SIL OFL 1.1), Latin and Latin-extended subsets
-- `tools/` – the scripts that generate `data/` (see below)
+- `tools/` – the scripts that generate `data/` (see below) and `check_i18n.py`, which lists the texts still without Afrikaans
 
 ## Rebuilding the data
 
@@ -108,7 +127,8 @@ python3 build_catechism.py /path/to/catechism.txt catechism-toc.txt --text /path
 ## Releasing a change
 
 Bump `VERSION` in `sw.js` so phones pick up the new build, and the `?v=` on
-`styles.css` and `src/app.js` in `index.html` when those change. The Vercel
+`styles.css` and `src/app.js` in `index.html` (and `styles.css` in `help.html`) when
+those change. Run `python3 tools/check_i18n.py` so every new text has its Afrikaans. The Vercel
 project for this app has its root directory set to `bible`.
 
 ## Licences

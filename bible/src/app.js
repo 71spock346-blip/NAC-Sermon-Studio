@@ -6,9 +6,14 @@
  * #catechism/3.4.1 opens a Catechism section, #settings is settings. The back
  * button therefore works as people expect, and a link to a verse can be
  * shared.
+ *
+ * The interface speaks English or Afrikaans (i18n.js). The switch sits in the
+ * header on a phone and in the side menu on a PC, and under Settings; a change
+ * redraws the open screen in the other language.
  */
-import { $, $$, applyTheme, applyRead, syncThemeColor } from './ui.js';
-import { load, state } from './store.js';
+import { $, $$, applyTheme, applyRead, syncThemeColor, toast } from './ui.js';
+import { load, state, saveSetting } from './store.js';
+import { t, lang, setLang, translatePage } from './i18n.js';
 import * as Reader from './reader.js';
 import * as Notes from './notes.js';
 import * as Prepare from './prepare.js';
@@ -39,7 +44,7 @@ function route() {
   try {
     TABS[tab](container, parts.length ? parts : [tab]);
   } catch (e) {
-    container.textContent = 'Something went wrong on this screen: ' + (e.message || e);
+    container.textContent = t('Something went wrong on this screen: {error}', { error: e.message || e });
     console.error(e);
   }
   if (parts[0] !== 'read' || parts.length <= 2) window.scrollTo(0, 0);
@@ -59,6 +64,38 @@ function tabKeys(e) {
   location.hash = '#' + ORDER[next];
 }
 
+/* ---------------------------------------------------------------- language */
+
+/** Puts the page's own words (tabs, header, menu) in the chosen language and marks the switch. */
+function applyLang(l) {
+  setLang(l);
+  document.title = t('NAC Study Bible');
+  translatePage();
+  const v = $('#nav-version');
+  if (v) v.textContent = t('Version {v}', { v: Settings.VERSION });
+  for (const b of $$('.lang-switch button')) {
+    const on = b.dataset.lang === lang();
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+}
+
+/**
+ * Switches the whole app to English or Afrikaans and redraws the open screen.
+ * The book names and the language of Claude's suggestions follow, so one tap
+ * sets all three; Settings can still set either of them apart afterwards.
+ */
+export async function switchLang(l) {
+  const to = l === 'af' ? 'af' : 'en';
+  if (to === lang()) return;
+  await saveSetting('uiLang', to);
+  await saveSetting('bookLang', to);
+  await saveSetting('aiLang', to);
+  applyLang(to);
+  route();
+  toast(t('The app is now in English: the screens, the book names and Claude\'s suggestions.'));
+}
+
 async function start() {
   await load();
   applyTheme(state.settings.theme || 'system');
@@ -68,8 +105,8 @@ async function start() {
   for (const b of $$('.tabs button')) b.addEventListener('click', () => { location.hash = '#' + b.dataset.tab; });
   $('.tabs').addEventListener('keydown', tabKeys);
   $('.skip').addEventListener('click', e => { e.preventDefault(); $('#content').focus(); });
-  const v = $('#nav-version');
-  if (v) v.textContent = 'Version ' + Settings.VERSION;
+  for (const b of $$('.lang-switch button')) b.addEventListener('click', () => switchLang(b.dataset.lang));
+  applyLang(state.settings.uiLang || 'en');
   window.addEventListener('hashchange', route);
   route();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
@@ -78,6 +115,6 @@ async function start() {
 }
 
 start().catch(e => {
-  document.body.insertAdjacentHTML('afterbegin', `<p class="error" style="padding:12px">The app could not start: ${e.message || e}</p>`);
+  document.body.insertAdjacentHTML('afterbegin', `<p class="error" style="padding:12px">${t('The app could not start: {error}', { error: e.message || e })}</p>`);
   console.error(e);
 });

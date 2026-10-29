@@ -29,6 +29,7 @@
  * followed. Each preparation can also pick its own language.
  */
 import { state } from './store.js';
+import { t } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
@@ -101,7 +102,7 @@ export function modelLabel(id) {
 
 function headers() {
   const key = (state.settings.aiKey || '').trim();
-  if (!key) throw new Error('Add your Anthropic key under Settings → AI helper first.');
+  if (!key) throw new Error(t('Add your Anthropic key under Settings → AI helper first.'));
   return {
     'content-type': 'application/json',
     'x-api-key': key,
@@ -115,12 +116,12 @@ function headers() {
 function apiError(status, text) {
   let msg = '';
   try { msg = JSON.parse(text).error.message || ''; } catch (e) { msg = ''; }
-  if (status === 401) return new Error('Anthropic did not accept the key. Check it under Settings → AI helper.');
-  if (status === 403) return new Error('This key is not allowed to do that. Make a new key at console.anthropic.com.');
-  if (status === 429) return new Error('Anthropic is busy or your limit is reached for now. Wait a minute and try again.');
-  if (status === 529 || /overloaded/i.test(msg)) return new Error('Anthropic is overloaded right now. Try again in a minute.');
-  if (/credit|balance|billing/i.test(msg)) return new Error('Your Anthropic account has no credit left. Add credit under Billing at console.anthropic.com.');
-  return new Error(msg ? `Anthropic: ${msg}` : `Anthropic error ${status}`);
+  if (status === 401) return new Error(t('Anthropic did not accept the key. Check it under Settings → AI helper.'));
+  if (status === 403) return new Error(t('This key is not allowed to do that. Make a new key at console.anthropic.com.'));
+  if (status === 429) return new Error(t('Anthropic is busy or your limit is reached for now. Wait a minute and try again.'));
+  if (status === 529 || /overloaded/i.test(msg)) return new Error(t('Anthropic is overloaded right now. Try again in a minute.'));
+  if (/credit|balance|billing/i.test(msg)) return new Error(t('Your Anthropic account has no credit left. Add credit under Billing at console.anthropic.com.'));
+  return new Error(msg ? `Anthropic: ${msg}` : t('Anthropic error {status}', { status }));
 }
 
 /** Roughly what a finished request cost, in US dollars, from the usage the API reports. */
@@ -133,14 +134,14 @@ export function cost(usage, modelId) {
 
 export function fmtCost(c) {
   if (!c) return '';
-  return c < 0.01 ? 'under 1 US cent' : `about $${c.toFixed(2)}`;
+  return c < 0.01 ? t('under 1 US cent') : t('about ${amount}', { amount: c.toFixed(2) });
 }
 
 /** Does the key work? Lists the models it may use. */
 export async function checkKey() {
   let r;
   try { r = await fetch(`${API}/models?limit=5`, { headers: headers() }); }
-  catch (e) { throw new Error('No connection to Anthropic. Check your network and try again.'); }
+  catch (e) { throw new Error(t('No connection to Anthropic. Check your network and try again.')); }
   if (!r.ok) throw apiError(r.status, await r.text());
   return true;
 }
@@ -166,7 +167,7 @@ export async function run({ system, content, schema, effort = 'medium', maxToken
     r = await fetch(`${API}/messages`, { method: 'POST', headers: headers(), body: JSON.stringify(body), signal });
   } catch (e) {
     if (e && e.name === 'AbortError') throw e;
-    throw new Error('No connection to Anthropic. Check your network and try again.');
+    throw new Error(t('No connection to Anthropic. Check your network and try again.'));
   }
   if (!r.ok) throw apiError(r.status, await r.text());
 
@@ -196,11 +197,11 @@ export async function run({ system, content, schema, effort = 'medium', maxToken
       }
     }
   }
-  if (failure) throw new Error(failure.message ? `Anthropic: ${failure.message}` : 'Anthropic stopped the answer.');
-  if (stop === 'refusal') throw new Error('Claude declined to answer this. Try again, or change the wording of your notes.');
-  if (stop === 'max_tokens') throw new Error('The answer was cut off because it grew too long. Try again.');
+  if (failure) throw new Error(failure.message ? `Anthropic: ${failure.message}` : t('Anthropic stopped the answer.'));
+  if (stop === 'refusal') throw new Error(t('Claude declined to answer this. Try again, or change the wording of your notes.'));
+  if (stop === 'max_tokens') throw new Error(t('The answer was cut off because it grew too long. Try again.'));
   let data;
-  try { data = JSON.parse(text); } catch (e) { throw new Error('Claude sent an answer the app could not read. Try again.'); }
+  try { data = JSON.parse(text); } catch (e) { throw new Error(t('Claude sent an answer the app could not read. Try again.')); }
   return { data, usage, model: served || model().id };
 }
 
@@ -262,8 +263,8 @@ Leave out the cover, the list of contents, the foreword, the page that advertise
 
 /** Reads a Guide PDF into {title, month, year, language, services, fileName, model, usage, cost}. */
 export async function readGuide(file, { signal, onProgress } = {}) {
-  if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') throw new Error('Choose the Guide as a PDF file.');
-  if (file.size > 25 * 1024 * 1024) throw new Error('That PDF is larger than 25 MB; the Guide is usually under 1 MB.');
+  if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') throw new Error(t('Choose the Guide as a PDF file.'));
+  if (file.size > 25 * 1024 * 1024) throw new Error(t('That PDF is larger than 25 MB; the Guide is usually under 1 MB.'));
   const data = await fileToBase64(file);
   const r = await run({
     system: GUIDE_SYSTEM,
@@ -274,7 +275,7 @@ export async function readGuide(file, { signal, onProgress } = {}) {
     schema: GUIDE_SCHEMA, effort: 'medium', maxTokens: 32000, signal, onProgress,
   });
   const g = tidyGuide(r.data);
-  if (!g.services.length) throw new Error('No divine service articles were found in that PDF. Is it the monthly Guide?');
+  if (!g.services.length) throw new Error(t('No divine service articles were found in that PDF. Is it the monthly Guide?'));
   return { ...g, fileName: file.name, model: r.model, usage: r.usage, cost: cost(r.usage, r.model) };
 }
 

@@ -14,6 +14,7 @@
  * the sermon notes; without it the app links to the section at nak.org.
  */
 import { el, clear } from './ui.js';
+import { t } from './i18n.js';
 import { keyToRef, formatRef } from './books.js';
 import { state, getCatechismText } from './store.js';
 
@@ -131,21 +132,21 @@ function withLinks(s) {
 
 /** The text of one section as DOM: the book's summary, the paragraphs, the footnotes. */
 export function renderText(n, opts = {}) {
-  const t = textOf(n);
+  const tx = textOf(n);
   const box = el('div', { class: 'cat-text' });
-  if (!t) return box;
-  if (!opts.noSummary && t.summary && t.summary.length) {
-    box.append(el('div', { class: 'cat-sum' }, [el('b', { text: 'In short' }), ...t.summary.map(p => el('p', {}, withLinks(p)))]));
+  if (!tx) return box;
+  if (!opts.noSummary && tx.summary && tx.summary.length) {
+    box.append(el('div', { class: 'cat-sum' }, [el('b', { text: t('In short') }), ...tx.summary.map(p => el('p', {}, withLinks(p)))]));
   }
-  for (const b of t.blocks || []) {
+  for (const b of tx.blocks || []) {
     if (typeof b === 'string') box.append(el('p', {}, withLinks(b)));
     else if (b.h) box.append(el('h4', { text: b.h }));
     else if (b.l) box.append(b.l.length === 1 ? el('p', { class: 'cat-def' }, withLinks(b.l[0])) : el('ul', {}, b.l.map(it => el('li', {}, withLinks(it)))));
     else if (b.v) box.append(el('p', { class: 'cat-verse' }, b.v.flatMap((line, i) => i ? [el('br'), line] : [line])));
     else if (b.table) box.append(renderTable(b.table));
   }
-  if (t.notes && t.notes.length) {
-    box.append(el('div', { class: 'cat-notes small muted' }, t.notes.map(nt => el('p', {}, [el('sup', { text: nt.n }), ' ', ...withLinks(nt.t)]))));
+  if (tx.notes && tx.notes.length) {
+    box.append(el('div', { class: 'cat-notes small muted' }, tx.notes.map(nt => el('p', {}, [el('sup', { text: nt.n }), ' ', ...withLinks(nt.t)]))));
   }
   if (!opts.noCredit) box.append(el('p', { class: 'cat-credit muted small', text: credit() }));
   return box;
@@ -164,7 +165,7 @@ function renderTable(t) {
 
 export function credit() {
   const m = state.catechism;
-  return (m && m.edition ? m.edition : 'Catechism of the New Apostolic Church') + ' © New Apostolic Church International, Zurich. Loaded on this device for personal study.';
+  return (m && m.edition ? m.edition : t('Catechism of the New Apostolic Church')) + ' ' + t('© New Apostolic Church International, Zurich. Loaded on this device for personal study.');
 }
 
 /* ---------------------------------------------------------------- references */
@@ -252,13 +253,13 @@ export function search(q) {
 export function render(container, route) {
   clear(container);
   if (!data) {
-    container.append(el('p', { class: 'muted', text: 'Loading the Catechism index…' }));
+    container.append(el('p', { class: 'muted', text: t('Loading the Catechism index…') }));
     load().then(() => render(container, route));
     return;
   }
   if (hasText() && !text) {
     loadText().then(() => render(container, route));
-    container.append(el('p', { class: 'muted', text: 'Loading the Catechism…' }));
+    container.append(el('p', { class: 'muted', text: t('Loading the Catechism…') }));
     return;
   }
   const n = route[1] ? decodeURIComponent(route[1]) : null;
@@ -267,13 +268,13 @@ export function render(container, route) {
 }
 
 function renderIndex(container, q) {
-  const input = el('input', { type: 'search', 'aria-label': 'Search the Catechism', autocomplete: 'off', placeholder: text ? 'Search by number, title or a word in the text: "baptism", 8.1, "forgive"…' : 'Search by number or title: "baptism" or 8.1…', value: q });
+  const input = el('input', { type: 'search', 'aria-label': t('Search the Catechism'), autocomplete: 'off', placeholder: text ? t('Search by number, title or a word in the text: "baptism", 8.1, "forgive"…') : t('Search by number or title: "baptism" or 8.1…'), value: q });
   const results = el('div', { class: 'list' });
   function show() {
     clear(results);
     const q = input.value.trim();
     const hits = q ? search(q) : data.sections.filter(s => parts(s.n).length <= 2).map(s => ({ section: s }));
-    if (!hits.length) results.append(el('p', { class: 'muted', text: 'Nothing found. Try one word, such as "sacrament".' }));
+    if (!hits.length) results.append(el('p', { class: 'muted', text: t('Nothing found. Try one word, such as "sacrament".') }));
     for (const h of hits.slice(0, 200)) {
       const s = h.section;
       const depth = parts(s.n).length;
@@ -281,17 +282,17 @@ function renderIndex(container, q) {
       results.append(el('a', { class: 'item cat depth' + Math.min(q ? 1 : depth, 4), href: `#catechism/${encodeURIComponent(s.n)}` }, [
         el('span', { class: 'num', text: s.n === 'Intro' ? '' : s.n }),
         el('span', { class: 'grow' }, [s.title, h.snippet ? el('span', { class: 'snippet muted small', text: h.snippet }) : null]),
-        el('span', { class: 'count muted', text: refs ? `${refs} refs` : '' }),
+        el('span', { class: 'count muted', text: refs ? t('{n} refs', { n: refs }) : '' }),
       ]));
     }
-    if (hits.length > 200) results.append(el('p', { class: 'muted small', text: `Showing 200 of ${hits.length}. Add a word to narrow it.` }));
+    if (hits.length > 200) results.append(el('p', { class: 'muted small', text: t('Showing 200 of {total}. Add a word to narrow it.', { total: hits.length }) }));
   }
   input.addEventListener('input', show);
   container.append(
-    el('div', { class: 'docbar' }, [el('h2', { text: 'Catechism of the New Apostolic Church' })]),
+    el('div', { class: 'docbar' }, [el('h2', { text: t('Catechism of the New Apostolic Church') })]),
     text
-      ? el('p', { class: 'muted small', text: 'Open a chapter to read its sections, see which Bible verses each one quotes, and search the whole text by word. The reader marks every verse the Catechism refers to with a "C".' })
-      : el('p', { class: 'muted small' }, ['The chapters below are an index. Open a section to see which Bible verses it quotes and to read the section itself at nak.org. To read the sections here and print them in your sermon notes, load the Catechism text under ', el('a', { href: '#settings', text: 'Settings' }), '.']),
+      ? el('p', { class: 'muted small', text: t('Open a chapter to read its sections, see which Bible verses each one quotes, and search the whole text by word. The reader marks every verse the Catechism refers to with a "C".') })
+      : el('p', { class: 'muted small' }, [t('The chapters below are an index. Open a section to see which Bible verses it quotes and to read the section itself at nak.org. To read the sections here and print them in your sermon notes, load the Catechism text under '), el('a', { href: '#settings', text: t('Settings') }), '.']),
     input, results);
   show();
 }
@@ -300,10 +301,10 @@ function renderSection(container, s) {
   const children = data.sections.filter(x => x.n !== s.n && x.n.startsWith(s.n + '.') && parts(x.n).length === parts(s.n).length + 1);
   const parentN = parts(s.n).length > 1 ? s.n.split('.').slice(0, -1).join('.') : null;
   const verses = versesOf(s.n);
-  const t = textOf(s.n);
+  const tx = textOf(s.n);
   container.append(
     el('div', { class: 'crumbs' }, [
-      el('a', { href: '#catechism', text: 'Catechism' }),
+      el('a', { href: '#catechism', text: t('Catechism') }),
       parentN && data.byN[parentN] ? [' › ', el('a', { href: `#catechism/${encodeURIComponent(parentN)}`, text: parentN })] : null,
     ].flat()),
     el('div', { class: 'docbar' }, [
@@ -312,20 +313,20 @@ function renderSection(container, s) {
       el('a', { class: 'btn small ghost', href: url(s), target: '_blank', rel: 'noopener', text: 'nak.org ↗' }),
     ]),
   );
-  if (t && (t.blocks.length || (t.summary || []).length)) {
+  if (tx && (tx.blocks.length || (tx.summary || []).length)) {
     container.append(el('div', { class: 'page' }, [
       renderText(s.n, { noCredit: true }),
-      el('p', { class: 'muted small', text: `Printed edition page ${s.page || '–'}. ${credit()}` }),
+      el('p', { class: 'muted small', text: t('Printed edition page {page}.', { page: s.page || '–' }) + ' ' + credit() }),
     ]));
   } else if (text) {
-    container.append(el('p', { class: 'muted small', text: `This heading has no text of its own; its sections below carry it. Printed edition page ${s.page || '–'}.` }));
+    container.append(el('p', { class: 'muted small', text: t('This heading has no text of its own; its sections below carry it.') + ' ' + t('Printed edition page {page}.', { page: s.page || '–' }) }));
   } else {
     container.append(el('p', { class: 'muted small' }, [
-      `Printed edition page ${s.page || '–'}. The text of this section is read at nak.org, or here once the Catechism text is loaded under `, el('a', { href: '#settings', text: 'Settings' }), '.',
+      t('Printed edition page {page}.', { page: s.page || '–' }) + ' ' + t('The text of this section is read at nak.org, or here once the Catechism text is loaded under '), el('a', { href: '#settings', text: t('Settings') }), '.',
     ]));
   }
   if (children.length) {
-    container.append(el('h3', { class: 'sub', text: 'In this section' }));
+    container.append(el('h3', { class: 'sub', text: t('In this section') }));
     const list = el('div', { class: 'list' });
     for (const c of children) {
       list.append(el('a', { class: 'item cat', href: `#catechism/${encodeURIComponent(c.n)}` }, [
@@ -334,9 +335,9 @@ function renderSection(container, s) {
     }
     container.append(list);
   }
-  container.append(el('h3', { class: 'sub', text: verses.length ? `Bible references (${verses.length})` : 'Bible references' }));
+  container.append(el('h3', { class: 'sub', text: verses.length ? t('Bible references ({n})', { n: verses.length }) : t('Bible references') }));
   if (!verses.length) {
-    container.append(el('p', { class: 'muted small', text: 'No Bible references were read for this heading. Its subsections may carry them.' }));
+    container.append(el('p', { class: 'muted small', text: t('No Bible references were read for this heading. Its subsections may carry them.') }));
   } else {
     const list = el('div', { class: 'pills big' });
     for (const v of verses) {
