@@ -431,6 +431,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .step-n { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
 .step-n.small { width: 26px; height: 26px; font-size: 12px; background: var(--accent-soft); color: var(--accent-text); }
 .points .point { border-radius: var(--radius-s); padding: 10px; margin: 10px 0; background: var(--surface-2); }
+.pill.guide { flex: 0 0 auto; color: var(--accent-text); background: var(--accent-soft); border-color: transparent; }   /* a main point from the Guide */
 .points .point > textarea { margin-top: 8px; }
 /* what is a title on the printed notes (the sermon title, the message, each main point) is bold while it is typed */
 #tab-prepare textarea.oneline { font-weight: 600; }

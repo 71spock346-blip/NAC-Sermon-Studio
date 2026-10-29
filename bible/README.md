@@ -73,7 +73,12 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   the text, key words, Catechism sections, cross references and sermon thoughts, each with
   a "Use" button; "Suggest the sermon" under step 4 returns the build itself (introduction,
   main points, application, conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works),
-  drawing on the minister's own draft and notes. Every answer is written in short sentences and everyday words, shaped
+  drawing on the minister's own draft and notes. The main points always come from the Guide: the parts of
+  its article, in its order, are main point 1, 2, 3 and so on (`guides.js mainPoints`); a preparation taken from the
+  Guide starts with them, `ai.js` gives the model that list as fixed and `alignPoints` holds the answer to it (a point
+  the model adds is left out, one it leaves out stays in the Guide's words), and without the article the model is told
+  to propose none and to say so, unless the minister wrote the points himself or the service is a funeral or a
+  wedding, which the Guide has no article for. Every answer is written in short sentences and everyday words, shaped
   for the people the preparation names (age group, a line about the congregation, its own language) with the humour
   level the person chose (none at a funeral or a service for the departed) and the person's own note on how they preach
   (Settings → AI helper). The Catechism sections' text and the Guide's article go along in the

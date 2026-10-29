@@ -146,7 +146,8 @@ export function sermonPdf(s) {
   if (s.intro) { w.heading(t('Introduction')); w.para(s.intro); }
   const points = (s.points || []).filter(p => p.heading || p.body);
   if (points.length) {
-    w.heading(t('Main points'));
+    // every point from the Guide: the heading says so, as the person's rule has it
+    w.heading(points.every(p => p.guide) ? t('Main points, from the Divine Service Guide') : t('Main points'));
     points.forEach((p, i) => {
       if (p.heading) w.para(`${i + 1}. ${p.heading}`, { style: 'bold', size: 11, after: 1 });
       if (p.body) w.para(p.body, { indent: 5 });

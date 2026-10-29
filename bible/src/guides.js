@@ -8,9 +8,14 @@
  * Catechism, so it is not in the backup file and never on the public site.
  *
  * From here the Prepare tab lists the services of the loaded Guides, starts a
- * preparation from one (text word, message and notes filled in), attaches a
- * service to a preparation made in the reader, and shows the article under
- * step 2 so the Guide is at hand while the sermon takes shape.
+ * preparation from one (text word, message, notes and main points filled in),
+ * attaches a service to a preparation made in the reader, and shows the
+ * article under step 2 so the Guide is at hand while the sermon takes shape.
+ *
+ * The main points of a sermon always come from the Guide: the parts of the
+ * article, each under its own heading, are main point 1, 2, 3 and so on, in
+ * the Guide's order. mainPoints() reads them off an article; prefill() puts
+ * them into a new preparation, and ai.js holds Claude to them.
  */
 import { el, clear, toast, sheet, confirmBox, fmtDate, busy } from './ui.js';
 import { t, tn } from './i18n.js';
@@ -75,11 +80,35 @@ function notesFrom(service) {
   return out.join('\n\n');
 }
 
+/* Headings of an article that are not a main point: the parts around the article's own parts. */
+const NOT_A_POINT = /^(introduction|inleiding|context|agtergrond|konteks|summary|samevatting|opsomming|thoughts from the chief apostle|gedagtes van die stamapostel|reading|voorlesing)\b/i;
+
+/**
+ * The main points of the sermon, as the Guide gives them: the parts of the
+ * article under their own headings, in the Guide's order, each with the
+ * Guide's words under it. An article without headed parts gives its Summary
+ * points instead. [{n, heading, body}], empty when the article has neither.
+ */
+export function mainPoints(service) {
+  if (!service) return [];
+  const parts = (service.sections || []).filter(x => x && (x.heading || '').trim() && !NOT_A_POINT.test(x.heading.trim()));
+  const list = parts.length
+    ? parts.map(x => ({ heading: x.heading.trim(), body: (x.body || '').trim() }))
+    : (service.summary || []).map(x => ({ heading: String(x || '').trim(), body: '' })).filter(x => x.heading);
+  return list.map((x, i) => ({ n: i + 1, ...x }));
+}
+
+/** The main points of a preparation as they stand, when none of them is written yet. */
+const pointsEmpty = s => !(s.points || []).some(p => p && ((p.heading || '').trim() || (p.body || '').trim()));
+
 /**
  * Fills a preparation from a service. Empty fields are filled; with `force`
  * the text word, title, message and notes are set even where something is
  * typed already; `fresh` says the preparation is new, so the service's date
- * and occasion are taken too. The Catechism sections the article cites are ticked.
+ * and occasion are taken too. The Catechism sections the article cites are
+ * ticked, and while no main point is written yet, the main points are the
+ * Guide's (see mainPoints): the person's own points under step 4 are never
+ * replaced here.
  */
 export function prefill(s, guide, i, { force = false, fresh = false } = {}) {
   const svc = guide.services[i];
@@ -103,6 +132,8 @@ export function prefill(s, guide, i, { force = false, fresh = false } = {}) {
     const sec = Cat.section(n);
     if (sec && !s.catechism.find(c => c.n === n)) s.catechism.push({ n, title: sec.title });
   }
+  const points = mainPoints(svc);
+  if (points.length && pointsEmpty(s)) s.points = points.map(p => ({ heading: p.heading, body: p.body, guide: p.n }));
   s.guideLink = { guideId: guide.id, i };
   return s;
 }
