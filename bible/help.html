@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body class="help">
 <header class="top">
@@ -108,7 +108,7 @@ from the message at the bottom for a few seconds. "Change" under step 2 picks an
 whether to replace the text word, title, message and notes; your own notes under the later steps stay.</p>
 
 <h2>Help from Claude (the AI helper)</h2>
-<p>Claude, the AI from Anthropic, can take two chores off the preparation. It needs a key of your own under
+<p>Claude, the AI from Anthropic, can take a few chores off the preparation. It needs a key of your own under
 Settings → AI helper (the steps are there): you pay Anthropic only for what you use, roughly R10 to read a month's
 Guide and a few rand for a set of suggestions, and the key stays on your device, out of any backup.</p>
 <ul>
@@ -119,6 +119,16 @@ Guide and a few rand for a set of suggestions, and the key stays on your device,
     ticked. Under step 2, <b>Read the article</b> shows the Guide's text while you work. A preparation started in the
     reader on a text the Guide covers picks up the article by itself; "Take the message from the Guide" attaches
     one by hand. Loaded Guides stay in this browser only and are not in the backup file.</li>
+  <li><b>Break down the article:</b> under step 2, once a preparation is linked to a service in the Guide, Claude
+    takes the Guide's article apart sentence by sentence (two or three sentences together where one alone is too
+    thin), under the Guide's own headings. For each piece it gives the Guide's words, what they say in plain words,
+    what they give the sermon, and, where one truly brings depth, a Bible passage or a Catechism section with a line on
+    what it adds. "The thread" at the top says what the whole article drives at. <b>Use</b> on a piece puts the plain
+    words and the insight into "Notes from the Guide" (with the Guide's sentence above them, so you find it in the
+    booklet); Use on a passage puts it into Cross references; Tick on a section ticks it under step 3, so it prints
+    with the sermon notes; Use on the thread puts it into Core thought. <b>Save as PDF</b> or <b>Print</b> gives the
+    whole breakdown as a study sheet of its own. The plain words and insights come in the language chosen for the
+    sermon, even when the Guide is in the other language.</li>
   <li><b>Suggest answers:</b> under step 3, Claude answers the questions about the text (who speaks to whom, why,
     what came before and after, the setting, the meaning), explains the key words, names the Catechism sections that
     belong with the text and the message, gives cross references in line with the message, and offers two or three
@@ -272,7 +282,7 @@ godsdiens uit die Handleiding en vra of die tekswoord, titel, boodskap en notas 
 die latere stappe bly.</p>
 
 <h2>Hulp van Claude (die KI-helper)</h2>
-<p>Claude, die KI van Anthropic, kan twee take van die voorbereiding oorneem. Dit het 'n sleutel van jou eie nodig
+<p>Claude, die KI van Anthropic, kan 'n paar take van die voorbereiding oorneem. Dit het 'n sleutel van jou eie nodig
 onder Instellings → KI-helper (die stappe is daar): jy betaal Anthropic net vir wat jy gebruik, omtrent R10 om 'n
 maand se Handleiding te lees en 'n paar rand vir 'n stel voorstelle, en die sleutel bly op jou toestel, buite enige
 rugsteun.</p>
@@ -285,6 +295,17 @@ rugsteun.</p>
     Handleiding se teks terwyl jy werk. 'n Voorbereiding wat in die leser begin is oor 'n teks wat die Handleiding
     dek, tel die artikel vanself op; "Neem die boodskap uit die Handleiding" heg een met die hand aan. Gelaaide
     Handleidings bly net in hierdie blaaier en is nie in die rugsteunlêer nie.</li>
+  <li><b>Ontleed die artikel:</b> onder stap 2, sodra 'n voorbereiding aan 'n godsdiens in die Handleiding gekoppel
+    is, ontleed Claude die Handleiding se artikel sin vir sin (twee of drie sinne saam waar een alleen te dun is),
+    onder die Handleiding se eie opskrifte. Vir elke stuk gee dit die Handleiding se woorde, wat hulle in eenvoudige
+    woorde sê, wat hulle vir die preek gee, en, waar een werklik diepte bring, 'n Bybelgedeelte of 'n
+    Kategismus-afdeling met 'n reël oor wat dit byvoeg. "Die rooi draad" bo-aan sê waarop die hele artikel afstuur.
+    <b>Gebruik</b> by 'n stuk sit die eenvoudige woorde en die insig in "Notas uit die Handleiding" (met die
+    Handleiding se sin daarbo, sodat jy dit in die boekie vind); Gebruik by 'n gedeelte sit dit in Kruisverwysings;
+    Merk by 'n afdeling merk dit onder stap 3, sodat dit saam met die preeknotas gedruk word; Gebruik by die rooi
+    draad sit dit in Kerngedagte. <b>Stoor as PDF</b> of <b>Druk</b> gee die hele ontleding as 'n studieblad op sy
+    eie. Die eenvoudige woorde en insigte kom in die taal wat vir die preek gekies is, selfs wanneer die Handleiding
+    in die ander taal is.</li>
   <li><b>Stel antwoorde voor:</b> onder stap 3 beantwoord Claude die vrae oor die teks (wie praat met wie, waarom,
     wat voor en ná gekom het, die agtergrond, die betekenis), verduidelik die sleutelwoorde, noem die
     Kategismus-afdelings wat by die teks en die boodskap hoort, gee kruisverwysings in lyn met die boodskap, en bied
