@@ -14,6 +14,18 @@
  *   outline(s, …)     for the same preparation: how the sermon is best built
  *                     from all of that: introduction, main points,
  *                     application, conclusion and illustrations
+ *
+ * One rule stands over both: the main points of the sermon come from the
+ * Divine Service Guide, never from Claude. The parts of the Guide's article,
+ * each under its own heading, are main point 1, 2, 3 and so on, in the
+ * Guide's order (guides.js mainPoints). suggest() and outline() give the model
+ * that list as fixed, tell it so, and alignPoints() holds the answer to it:
+ * a point the model adds is left out, one it leaves out is kept in the Guide's
+ * words. Without a linked article the model gets the minister's own points
+ * (his Guide, in his hand) or, failing those, is told to propose none and
+ * to say that the main points need the Guide. Only a funeral or a wedding,
+ * which the monthly Guide has no article for, lets it take the points from
+ * the text.
  *   breakdown(s, …)   the Guide's article for the service taken apart piece by
  *                     piece: what each sentence says in plain words, what it
  *                     gives the sermon, and the Bible passages and Catechism
@@ -37,6 +49,7 @@ import { t } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
+import { mainPoints } from './guides.js';
 
 const API = 'https://api.anthropic.com/v1';
 const API_VERSION = '2026-10-21';
@@ -358,8 +371,8 @@ const SUGGEST_SCHEMA = {
       items: { type: 'object', additionalProperties: false, required: ['reference', 'why'], properties: { reference: { type: 'string', description: 'English book name, chapter and verse(s), e.g. "Romans 8:28" or "1 Peter 3:18-20"' }, why: { type: 'string', description: 'One line on how it connects' } } },
     },
     points: {
-      type: 'array', description: 'Two or three possible main points for the sermon',
-      items: { type: 'object', additionalProperties: false, required: ['heading', 'body'], properties: { heading: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'Two or three short sentences' } } },
+      type: 'array', description: 'The main points of the sermon, as the rules on the main points say: the Guide\'s, in its order, and what the text gives each; empty when the rules say to propose none',
+      items: { type: 'object', additionalProperties: false, required: ['heading', 'body', 'source'], properties: { heading: { type: 'string', description: 'The heading of the point, in the language of the sermon: the Guide\'s heading, or the minister\'s' }, body: { type: 'string', description: 'Two or three short sentences: what the text word gives this point' }, source: { type: 'string', description: 'The heading this point comes from, word for word as given under THE MAIN POINTS; empty only when no Guide applies' } } },
     },
     application: { type: 'string', description: 'A short application for the congregation: what the text asks of them this week, in two or three short sentences' },
     note: { type: 'string', description: 'Anything the minister should know about these suggestions, e.g. where the Catechism does not speak to this text; else empty' },
@@ -408,14 +421,15 @@ function humourRules(level) {
 - In a funeral or a divine service for the departed there is no humour.`;
 }
 
-function suggestSystem(lang) {
-  return `You help a minister of the New Apostolic Church prepare an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to give the minister input for his own preparation, not to write the sermon: answer the context questions about the text, explain the key words, point to the Catechism sections that belong with the text and the message, suggest other Bible passages in line with the message, and offer a few sermon thoughts he can make his own.
+function suggestSystem(lang, where) {
+  return `You help a minister of the New Apostolic Church prepare an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to give the minister input for his own preparation, not to write the sermon: answer the context questions about the text, explain the key words, point to the Catechism sections that belong with the text and the message, suggest other Bible passages in line with the message, and show what the text gives each main point of the sermon.
 
 Rules:
 - Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Lean on the Catechism text given below where it speaks to the matter. Cite Catechism sections only by numbers that appear in the index given below, and never state what a section says unless its text is given. Where you draw on a section, say what it says in plain words.
 - The message of the service gives the direction. The suggestions serve that message and do not pull the text elsewhere.
 - Cross references: five to eight passages that genuinely shed light on the text or the message, each with one line on how it connects. Give each reference with the English book name, chapter and verse(s). Do not quote the verse.
-- Sermon thoughts: two or three possible main points, each a heading of a few words and two or three short sentences drawn from the text and the message, and one short application for the congregation. They are starting points, not a finished sermon. Shape them for the people who will be listening (see below).
+${pointsRule(where.mode, 'suggest')}
+- The application: one short application for the congregation, drawn from the main points and the message, shaped for the people who will be listening (see below).
 - Answer the context questions in two to four short sentences each.
 
 ${voiceRules(lang)}
@@ -432,13 +446,17 @@ Put nothing outside the JSON fields.`;
  */
 export async function suggest(s, { service = null, guideTitle = '', signal, onProgress } = {}) {
   const lang = langOf(s);
+  const where = pointAnchors(s, service);
   const parts = [servicePart(s), peoplePart(s, lang), preacherPart()].filter(Boolean);
   if (s.text) parts.push(`THE TEXT\n${s.text}`);
   const chapter = await chapterPart(s);
   if (chapter) parts.push(chapter);
   parts.push(messagePart(s, service, guideTitle));
+  const broken = breakdownPart(s);
+  if (broken) parts.push(broken);
+  parts.push(pointsPart(where));
 
-  const own = [s.context ? `Context: ${s.context}` : '', s.keywords ? `Key words: ${s.keywords}` : '', s.crossRefs ? `Cross references: ${s.crossRefs}` : '', (s.points || []).some(p => p.heading || p.body) ? 'Main points so far: ' + s.points.filter(p => p.heading || p.body).map(p => `${p.heading}${p.body ? ' – ' + p.body : ''}`).join(' | ') : ''].filter(Boolean);
+  const own = [s.context ? `Context: ${s.context}` : '', s.keywords ? `Key words: ${s.keywords}` : '', s.crossRefs ? `Cross references: ${s.crossRefs}` : '', where.mode === 'guide' ? ownPointsLine(s, where) : ''].filter(Boolean);
   if (own.length) parts.push('THE MINISTER\'S OWN NOTES SO FAR (build on them; do not repeat them)\n' + own.join('\n'));
 
   parts.push(await catechismPart(s, service));
@@ -447,11 +465,11 @@ export async function suggest(s, { service = null, guideTitle = '', signal, onPr
   parts.push(`THE CONTEXT QUESTIONS to answer, in this order, each in two to four short sentences:\n` + qs.map((q, i) => `${i + 1}. ${q}`).join('\n'));
 
   const r = await run({
-    system: suggestSystem(lang),
+    system: suggestSystem(lang, where),
     content: [{ type: 'text', text: parts.join('\n\n\n') }],
     schema: SUGGEST_SCHEMA, effort: 'high', maxTokens: 16000, signal, onProgress,
   });
-  return { ...tidySuggestions(r, lang, qs), audience: audienceOf(s) };
+  return { ...tidySuggestions(r, lang, qs, where, service), audience: audienceOf(s) };
 }
 
 /** The service in a few lines: date, occasion, congregation, text word. */
@@ -506,6 +524,137 @@ function messagePart(s, service, guideTitle) {
     return ['THE MESSAGE OF THE SERVICE, as the minister noted it from the Divine Service Guide', s.theme ? `Message: ${s.theme}` : '', s.core ? `Core thought: ${s.core}` : '', s.guide ? `Notes from the Guide: ${s.guide}` : ''].filter(Boolean).join('\n');
   }
   return 'THE MESSAGE OF THE SERVICE\nNot given: take the direction from the text itself.';
+}
+
+/* ------------------------------------------------- the main points, from the Guide */
+
+/* Occasions the monthly Guide has no article for; there the main points may come from the text. */
+const NO_GUIDE_OCCASION = /funeral|begrafnis|wedding|huwelik|troue/i;
+
+/** Text as a key for matching: letters and digits only, lower case, one space between words. */
+const norm = v => str(v).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+
+/**
+ * Where the main points of this preparation come from, and what they are:
+ *   guide    the Guide's article is linked: its parts, in its order, are the points
+ *   own      no article (or one without headed parts), but the minister wrote his
+ *            main points under step 4: the Guide's, in his hand
+ *   article  the article is linked but has neither headed parts nor a Summary:
+ *            Claude takes the points from its paragraphs, in order
+ *   free     a funeral or a wedding, which the Guide has no article for, and
+ *            nothing written: Claude may propose the points from the text
+ *   none     no article and nothing written: Claude must propose none
+ * Gives {mode, anchors: [{n, heading, body, from}]}; the anchors are the fixed
+ * list the model is held to, empty for article, free and none.
+ */
+export function pointAnchors(s, service) {
+  if (service) {
+    const pts = mainPoints(service);
+    if (pts.length) return { mode: 'guide', anchors: pts.map(p => ({ ...p, from: 'guide' })) };
+  }
+  const own = (s.points || []).filter(p => p && (p.heading || '').trim()).map((p, i) => ({ n: i + 1, heading: p.heading.trim(), body: (p.body || '').trim(), from: 'own' }));
+  if (own.length) return { mode: 'own', anchors: own };
+  if (service) return { mode: 'article', anchors: [] };
+  if (NO_GUIDE_OCCASION.test(s.occasion || '')) return { mode: 'free', anchors: [] };
+  return { mode: 'none', anchors: [] };
+}
+
+/** The rule on the main points for the system prompt; `job` is 'suggest' or 'outline'. */
+function pointsRule(mode, job) {
+  const body = job === 'outline'
+    ? 'Write the body of each point from what the Guide says under that heading: three to six short sentences in plain words, as the minister could say them, with what the text word says there and what it asks of the people.'
+    : 'For each point, say in two or three short sentences what the text word gives it: which words of the text carry it, and what it means for the people.';
+  const never = 'The main points of the sermon come from the Church\'s Divine Service Guide, never from you.';
+  switch (mode) {
+    case 'guide':
+      return `- ${never} The parts of the Guide's article, each under its own heading, are the main points, in the Guide's order: main point 1 is the first part, main point 2 the second, and so on. They stand under THE MAIN POINTS, FROM THE GUIDE below. Keep that number and that order. The heading of a point is the Guide's heading, in the language of the sermon; put the Guide's own words in "source". ${body} Add no point of your own and leave none out. Where the minister has written a point in his own words, keep his wording.`;
+    case 'own':
+      return `- ${never} The Guide's article is not given here with its parts, but the minister has written the main points under step 4 from his Guide; they stand under THE MAIN POINTS below. Keep them: that number, that order, his headings (put his heading in "source"). ${body} Add no point of your own and leave none out.`;
+    case 'article':
+      return `- ${never} The Guide's article is given below, but without headings over its parts: take the main points from its paragraphs, in the Guide's order, one point for each paragraph that carries a thought of its own, with a heading of a few words from that paragraph. Put the first sentence of that paragraph, word for word, in "source". ${body} Add no point of your own.`;
+    case 'free':
+      return `- This service has no article in the Divine Service Guide (a funeral or a wedding), so the main points come from the text word and the message: propose two or three, each with a heading of a few words, and leave "source" empty. ${body}`;
+    default:
+      return `- ${never} The Guide's article is not given here, and the minister has not written the main points. So propose no main points: leave "points" empty, and say in "note", in one or two plain sentences, that the main points need the Guide: take the message from the Guide under step 2, or write the Guide's main points under step 4, then ask again. ${job === 'outline' ? 'Still propose the introduction, the application, the conclusion and the illustrations from the text and the message.' : 'Still answer the rest.'}`;
+  }
+}
+
+/** The fixed list of main points for the user turn, as pointAnchors found them. */
+function pointsPart({ mode, anchors }) {
+  if (mode === 'guide') return 'THE MAIN POINTS, FROM THE GUIDE (fixed: this number, this order, these headings)\n' + anchors.map(a => `${a.n}. ${a.heading}${a.body ? '\n' + a.body : ''}`).join('\n\n');
+  if (mode === 'own') return 'THE MAIN POINTS, AS THE MINISTER WROTE THEM FROM THE GUIDE (fixed: this number, this order, his headings)\n' + anchors.map(a => `${a.n}. ${a.heading}${a.body ? ' – ' + a.body : ''}`).join('\n');
+  if (mode === 'article') return 'THE MAIN POINTS\nThe article above has no headings over its parts: take the main points from its paragraphs, in order, as the rules say.';
+  if (mode === 'free') return 'THE MAIN POINTS\nThis service has no article in the Guide: propose them from the text and the message, as the rules say.';
+  return 'THE MAIN POINTS\nNone are given: the Guide\'s article is not linked and the minister has not written them. Propose none, and say in the note that they need the Guide.';
+}
+
+/**
+ * The minister's own main points when the Guide's are the anchors: his
+ * wording for a Guide point is kept; a point of his that is not in the Guide
+ * is named as such. '' when he has written none, or only the Guide's own words.
+ */
+function ownPointsLine(s, { anchors }) {
+  const own = (s.points || []).filter(p => p && ((p.heading || '').trim() || (p.body || '').trim()));
+  const lines = own.map((p, i) => {
+    const a = anchors.find(x => x.n === p.guide) || anchors.find(x => norm(x.heading) === norm(p.heading));
+    const untouched = a && norm(p.heading) === norm(a.heading) && norm(p.body) === norm(a.body);
+    if (untouched) return '';   // still the Guide's own words, as prefilled
+    return `Main point ${i + 1}: ${p.heading || ''}${p.body ? ' – ' + p.body : ''}${a ? ` (his words for the Guide's point ${a.n}: keep his wording)` : ' (not in the Guide: not a main point; say so in the note)'}`;
+  }).filter(Boolean);
+  return lines.length ? 'His main points so far, where he has changed them from the Guide\'s:\n' + lines.join('\n') : '';
+}
+
+/** The article as Claude broke it down earlier (step 2), by heading: the plain words and the insight of each piece; '' when there is none. */
+function breakdownPart(s) {
+  const b = s.breakdown;
+  if (!b || !(b.parts || []).length) return '';
+  const lines = ['THE ARTICLE BROKEN DOWN EARLIER (what each piece says in plain words and gives the sermon, under the Guide\'s headings; draw on it for the main point under that heading)'];
+  let heading = null;
+  for (const p of b.parts) {
+    if ((p.heading || '') !== heading) { heading = p.heading || ''; if (heading) lines.push(`[${heading}]`); }
+    const said = [p.said, p.insight].filter(Boolean).join(' ');
+    if (said) lines.push(`- ${said}`);
+  }
+  if (b.thread) lines.push(`The thread: ${b.thread}`);
+  return lines.join('\n');
+}
+
+/**
+ * The model's main points held to the anchors: each anchor gets the model's
+ * point for it (matched by "source" or heading, then by place when one is
+ * left for each hole), else the anchor's own words; points that match no
+ * anchor are left out and counted. Without anchors: free points as given;
+ * article points only when their "source" is in the article's text.
+ */
+function alignPoints(items, { mode, anchors }, service) {
+  const given = (Array.isArray(items) ? items : []).filter(Boolean).map(p => ({ heading: str(p.heading), body: str(p.body), why: str(p.why), source: str(p.source) })).filter(p => p.heading || p.body);
+  if (mode === 'free') return { points: given.map((p, i) => ({ ...p, n: i + 1, source: '', from: '' })), dropped: 0 };
+  if (mode === 'article') {
+    const text = norm([service && service.introduction, ...((service && service.sections) || []).map(x => `${x.heading}\n${x.body}`), service && service.context].filter(Boolean).join('\n'));
+    const kept = given.filter(p => p.source && norm(p.source).length >= 8 && text.includes(norm(p.source)));
+    return { points: kept.map((p, i) => ({ ...p, n: i + 1, from: 'guide' })), dropped: given.length - kept.length };
+  }
+  if (!anchors.length) return { points: [], dropped: given.length };
+  const slots = anchors.map(() => null);
+  const fits = (p, a, loose) => {
+    const ak = norm(a.heading);
+    return [norm(p.source), norm(p.heading)].filter(Boolean).some(k => k === ak || (loose && k.length >= 8 && ak.length >= 8 && (k.includes(ak) || ak.includes(k))));
+  };
+  for (const loose of [false, true]) {
+    for (const p of given) {
+      if (slots.includes(p)) continue;
+      const i = anchors.findIndex((a, j) => !slots[j] && fits(p, a, loose));
+      if (i >= 0) slots[i] = p;
+    }
+  }
+  const left = given.filter(p => !slots.includes(p));
+  const holes = slots.map((p, i) => (p ? -1 : i)).filter(i => i >= 0);
+  if (left.length && left.length === holes.length) { holes.forEach((i, k) => { slots[i] = left[k]; }); left.length = 0; }
+  const points = anchors.map((a, i) => {
+    const p = slots[i];
+    return { n: a.n, heading: (p && p.heading) || a.heading, body: p ? p.body : a.body, why: p ? p.why : '', source: a.heading, from: a.from, asGiven: !p };
+  });
+  return { points, dropped: left.length };
 }
 
 /**
@@ -570,18 +719,18 @@ function tidyBibleRefs(items) {
   }).filter(x => x.reference);
 }
 
-function tidySuggestions(r, lang, qs) {
+function tidySuggestions(r, lang, qs, where, service) {
   const d = r.data || {};
   const list = v => (Array.isArray(v) ? v.filter(Boolean) : []);
   const context = list(d.context).map((c, i) => ({ question: str(c.question) || qs[i] || '', answer: str(c.answer) })).filter(c => c.answer);
   const keywords = list(d.keywords).map(k => ({ word: str(k.word), meaning: str(k.meaning) })).filter(k => k.word);
   const catechism = tidyCatRefs(d.catechism);
   const crossRefs = tidyBibleRefs(d.crossRefs);
-  const points = list(d.points).map(p => ({ heading: str(p.heading), body: str(p.body) })).filter(p => p.heading || p.body);
+  const { points, dropped } = alignPoints(d.points, where, service);
   return {
     at: new Date().toISOString(), model: r.model, lang,
     cost: cost(r.usage, r.model),
-    context, keywords, catechism, crossRefs, points,
+    context, keywords, catechism, crossRefs, points, pointsFrom: where.mode, dropped,
     application: str(d.application), note: str(d.note),
   };
 }
@@ -597,8 +746,8 @@ const OUTLINE_SCHEMA = {
       properties: { text: { type: 'string', description: 'Three to five short sentences, as the minister could speak them' }, why: { type: 'string', description: 'One short line on why this opening works for this text, this message and these people' } },
     },
     points: {
-      type: 'array', description: 'Two or three main points, in the order to preach them',
-      items: { type: 'object', additionalProperties: false, required: ['heading', 'body', 'why'], properties: { heading: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'Three to six short sentences: what the text says, what it means, what it asks of us' }, why: { type: 'string', description: 'One short line on what this point does for the message' } } },
+      type: 'array', description: 'The main points, as the rules on the main points say: the Guide\'s, in its order; empty when the rules say to propose none',
+      items: { type: 'object', additionalProperties: false, required: ['heading', 'body', 'why', 'source'], properties: { heading: { type: 'string', description: 'The heading of the point, in the language of the sermon: the Guide\'s heading, or the minister\'s' }, body: { type: 'string', description: 'Three to six short sentences: what the Guide says under this heading, what the text says there, what it asks of us' }, why: { type: 'string', description: 'One short line on what this point does for the message' }, source: { type: 'string', description: 'The heading this point comes from, word for word as given under THE MAIN POINTS; empty only when no Guide applies' } } },
     },
     application: { type: 'string', description: 'The application for the congregation: what the text asks of them this week, named for the people in front of the minister; two to four short sentences' },
     conclusion: { type: 'string', description: 'The conclusion: gathers the thoughts and leads to the altar; two to four short sentences' },
@@ -614,15 +763,17 @@ const OUTLINE_SCHEMA = {
   },
 };
 
-function outlineSystem(lang, humour) {
-  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to propose how the sermon is best built from them: an introduction that opens the door, two or three main points that each stand on the text, an application for the congregation, a conclusion that leads to the altar, and a few illustrations. For each part say in one short line why it works here. The minister decides; he takes what serves him.
+function outlineSystem(lang, humour, where) {
+  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to propose how the sermon is best built from them: an introduction that opens the door, the main points as the Guide gives them, each standing on the text, an application for the congregation, a conclusion that leads to the altar, and a few illustrations. For each part say in one short line why it works here. The minister decides; he takes what serves him.
 
 Rules:
-- Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Where the Catechism text given below speaks to the matter, let it shape the points. Do not state what a Catechism section says unless its text is given; where you draw on it, say it in plain words.
-- The message of the service gives the direction: the whole outline serves it and does not pull the text elsewhere. The Guide's article, where given, is the first source for the points.
-- A New Apostolic sermon is preached freely, lasts about twenty to thirty minutes, and leads the congregation to the forgiveness of sins and Holy Communion: the conclusion ends there. In a divine service for the departed, the departed are included in the hope and the intercession.
-- Write every part so the minister could speak it as it stands: in the voice of a minister speaking to his congregation, "we" and "us", no headings inside the text. Each main point has a heading of a few words and three to six short sentences.
-- Build on what the minister has written already: keep his direction and wording where he has one, fill what is empty, and offer an alternative only where his draft is thin. Do not repeat his text back to him.
+${pointsRule(where.mode, 'outline')}
+- The introduction, the application, the conclusion and the illustrations are yours to propose, but each stands on those main points and on the message: the introduction opens the door to the first point, the application and the conclusion gather the points up, and every illustration serves one of them. Nothing pulls away from them.
+- Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Where the Catechism text given below speaks to the matter, let it shape the body of the points. Do not state what a Catechism section says unless its text is given; where you draw on it, say it in plain words.
+- The message of the service gives the direction: the whole outline serves it and does not pull the text elsewhere.
+- A New Apostolic sermon is preached freely, lasts fifteen to twenty minutes at most, and leads the congregation to the forgiveness of sins and Holy Communion: the conclusion ends there. In a divine service for the departed, the departed are included in the hope and the intercession.
+- Write every part so the minister could speak it as it stands: in the voice of a minister speaking to his congregation, "we" and "us", no headings inside the text.
+- Build on what the minister has written already: keep his direction and wording where he has one, fill what is empty, and offer an alternative only where his draft is thin. Do not repeat his text back to him. Where a main point still carries the Guide's own words, as it was filled in, write it in plain words for these people.
 - Illustrations: a picture from daily life, a true-to-life example or a Bible story that makes a point visible, taken from the world of the people who are listening. When one of the minister's own notes fits, use that one and say so ("from your notes: …") rather than inventing another.
 - The lighter moment: fill it only when the humour level below allows it and something fits naturally; otherwise leave both fields empty. It may also be woven into the introduction or an illustration.
 
@@ -645,11 +796,15 @@ Put nothing outside the JSON fields.`;
 export async function outline(s, { service = null, guideTitle = '', signal, onProgress } = {}) {
   const lang = langOf(s);
   const humour = humourOf(s);
+  const where = pointAnchors(s, service);
   const parts = [servicePart(s), peoplePart(s, lang), preacherPart()].filter(Boolean);
   if (s.text) parts.push(`THE TEXT\n${s.text}`);
   const chapter = await chapterPart(s);
   if (chapter) parts.push(chapter);
   parts.push(messagePart(s, service, guideTitle));
+  const broken = breakdownPart(s);
+  if (broken) parts.push(broken);
+  parts.push(pointsPart(where));
 
   const seen = [s.context ? `Context: ${s.context}` : '', s.keywords ? `Key words: ${s.keywords}` : '', s.crossRefs ? `Cross references: ${s.crossRefs}` : ''].filter(Boolean);
   if (seen.length) parts.push('THE MINISTER\'S UNDERSTANDING OF THE TEXT (his notes under step 3)\n' + seen.join('\n'));
@@ -659,10 +814,10 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
       + (s.ai.application ? `\n- Application: ${s.ai.application}` : ''));
   }
 
-  const points = (s.points || []).filter(p => p.heading || p.body);
+  const points = where.mode === 'own' ? [] : (s.points || []).filter(p => p.heading || p.body);   // his own points are the anchors already
   const draft = [
     s.intro ? `Introduction: ${s.intro}` : '',
-    ...points.map((p, i) => `Main point ${i + 1}: ${p.heading}${p.body ? ' – ' + p.body : ''}`),
+    where.mode === 'guide' ? ownPointsLine(s, where) : points.map((p, i) => `Main point ${i + 1}: ${p.heading}${p.body ? ' – ' + p.body : ''}`).join('\n'),
     s.application ? `Application: ${s.application}` : '',
     s.conclusion ? `Conclusion: ${s.conclusion}` : '',
     s.illustrations ? `Illustrations: ${s.illustrations}` : '',
@@ -680,24 +835,24 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   }
 
   const r = await run({
-    system: outlineSystem(lang, humour),
+    system: outlineSystem(lang, humour, where),
     content: [{ type: 'text', text: parts.join('\n\n\n') }],
     schema: OUTLINE_SCHEMA, effort: 'high', maxTokens: 12000, signal, onProgress,
   });
-  return { ...tidyOutline(r, lang, humour), audience: audienceOf(s) };
+  return { ...tidyOutline(r, lang, humour, where, service), audience: audienceOf(s) };
 }
 
-function tidyOutline(r, lang, humour) {
+function tidyOutline(r, lang, humour, where, service) {
   const d = r.data || {};
   const list = v => (Array.isArray(v) ? v.filter(Boolean) : []);
   const intro = d.intro && typeof d.intro === 'object' ? { text: str(d.intro.text), why: str(d.intro.why) } : { text: str(d.intro), why: '' };
-  const points = list(d.points).map(p => ({ heading: str(p.heading), body: str(p.body), why: str(p.why) })).filter(p => p.heading || p.body);
+  const { points, dropped } = alignPoints(d.points, where, service);
   const illustrations = list(d.illustrations).map(x => ({ title: str(x.title), body: str(x.body), serves: str(x.serves) })).filter(x => x.body);
   const lighter = humour !== 'none' && d.lighter && typeof d.lighter === 'object' && str(d.lighter.text) ? { text: str(d.lighter.text), where: str(d.lighter.where) } : null;
   return {
     at: new Date().toISOString(), model: r.model, lang, humour,
     cost: cost(r.usage, r.model),
-    intro, points, application: str(d.application), conclusion: str(d.conclusion), illustrations, lighter, note: str(d.note),
+    intro, points, pointsFrom: where.mode, dropped, application: str(d.application), conclusion: str(d.conclusion), illustrations, lighter, note: str(d.note),
   };
 }
 

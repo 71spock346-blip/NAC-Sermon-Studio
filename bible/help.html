@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=19">
+<link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body class="help">
 <header class="top">
@@ -97,7 +97,10 @@ links to the same text at nak.org. The Catechism's text and index are in English
     the text: context, key words, the Catechism sections that quote it, cross references. Tick the Catechism sections
     to keep and choose what the sermon notes should carry for them: the full text of each section, the Catechism's own
     summary, or the number and title only.</li>
-  <li>Build the sermon: introduction, main points, application for the congregation, conclusion, illustrations.</li>
+  <li>Build the sermon: introduction, main points, application for the congregation, conclusion, illustrations. The main
+    points always come from the Divine Service Guide: the parts of its article, in its order, are main point 1, 2, 3 and
+    so on. A preparation taken from the Guide starts with them (each marked "Guide"), and <b>Take the main points from
+    the Guide</b> under step 4 fetches them again.</li>
   <li>Save or print the <b>sermon notes</b> (everything, A4) or the <b>cue card</b> (one A5 page in large type).
     On a phone, "Share" sends the PDF to WhatsApp or e-mail. The headings on the notes follow the language of the app.</li>
   <li>After the service, add a short reflection. It is saved with the preparation.</li>
@@ -135,13 +138,22 @@ Guide and a few rand for a set of suggestions, and the key stays on your device,
     sermon thoughts with an application. It reads the text and its chapter, the Guide's article when one is attached,
     and the Catechism sections (their text, when it is loaded on this device). Every suggestion has a <b>Use</b>
     button that adds it to the matching box; nothing goes into your notes until you tap it. The suggestions are kept
-    with the preparation, so they do not cost again when you open it later; "Ask again" does.</li>
-  <li><b>Suggest the sermon:</b> under step 4, Claude proposes how the sermon is best built: an introduction, two or
-    three main points, the application, the conclusion that leads to the altar, and illustrations, each with a line on
-    why it works for this text and message. It builds on what you have written already under steps 2 to 5, on the
-    Guide's article, the ticked Catechism sections and your own experience and illustration notes, and writes each
-    part as you could speak it. <b>Use</b> puts a part into its box (the illustrations go under step 5); "Use all"
-    fills the main points in order.</li>
+    with the preparation, so they do not cost again when you open it later; "Ask again" does. Where the Guide's
+    article is attached, the "sermon thoughts" are the Guide's own main points, in its order, each with what the text
+    gives it; Claude adds no point of its own.</li>
+  <li><b>Suggest the sermon:</b> under step 4, Claude proposes how the sermon is best built: an introduction, the
+    main points, the application, the conclusion that leads to the altar, and illustrations, each with a line on
+    why it works for this text and message. The main points are the Guide's: the parts of the attached article, in
+    the Guide's order and under its headings (shown under each point when Claude puts the heading in the sermon's
+    language), written out in plain words for your people; a point Claude adds of its own is left out and the panel
+    says so, and a point it leaves out stays in the Guide's words. The introduction, application, conclusion and
+    illustrations are Claude's, but each stands on those points. It builds on what you have written already under
+    steps 2 to 5, on the article and its breakdown, the ticked Catechism sections and your own experience and
+    illustration notes, and writes each part as you could speak it. <b>Use</b> puts a part into its box (the
+    illustrations go under step 5); on a main point it fills the box of that point, with Undo; "Use all" fills all
+    the points in the Guide's order, asking first when yours are not empty. Without the Guide's article Claude
+    proposes no main points and says they need the Guide, unless you have written them yourself (then it fills them
+    out) or the service is a funeral or a wedding, which the Guide has no article for.</li>
   <li><b>For the people in front of you:</b> at the top of a preparation, under the date and the congregation,
     you say <b>who is listening</b>: the age group (all ages, children, young people, young adults, families, mostly
     older members), a line about the people (their work, their language, what they are going through, how many), how
@@ -270,7 +282,10 @@ soek dus daarin met Engelse woorde.</p>
     die teks: konteks, sleutelwoorde, die Kategismus-afdelings wat dit aanhaal, kruisverwysings. Merk die
     Kategismus-afdelings wat jy wil hou en kies wat die preeknotas vir hulle moet dra: die volledige teks van elke
     afdeling, die Kategismus se eie samevatting, of net die nommer en titel.</li>
-  <li>Bou die preek: inleiding, hoofpunte, toepassing vir die gemeente, slot, illustrasies.</li>
+  <li>Bou die preek: inleiding, hoofpunte, toepassing vir die gemeente, slot, illustrasies. Die hoofpunte kom altyd
+    uit die Handleiding vir Godsdienste: die dele van sy artikel, in sy volgorde, is hoofpunt 1, 2, 3 en so aan. 'n
+    Voorbereiding wat uit die Handleiding geneem is, begin met hulle (elk gemerk "Handleiding"), en <b>Neem die
+    hoofpunte uit die Handleiding</b> onder stap 4 haal hulle weer.</li>
   <li>Stoor of druk die <b>preeknotas</b> (alles, A4) of die <b>preekkaart</b> (een A5-bladsy in groot letters).
     Op 'n foon stuur "Deel" die PDF na WhatsApp of e-pos. Die opskrifte op die notas volg die taal van die app.</li>
   <li>Voeg ná die godsdiens 'n kort terugblik by. Dit word saam met die voorbereiding gestoor.</li>
@@ -313,13 +328,22 @@ rugsteun.</p>
     een aangeheg is, en die Kategismus-afdelings (hul teks, wanneer dit op hierdie toestel gelaai is). Elke voorstel
     het 'n <b>Gebruik</b>-knoppie wat dit by die passende boks voeg; niks gaan in jou notas in voordat jy daarop tik
     nie. Die voorstelle word saam met die voorbereiding gehou, dus kos hulle nie weer wanneer jy dit later oopmaak nie;
-    "Vra weer" wel.</li>
+    "Vra weer" wel. Waar die Handleiding se artikel aangeheg is, is die "preekgedagtes" die Handleiding se eie
+    hoofpunte, in sy volgorde, elk met wat die teks daarvoor gee; Claude voeg geen punt van sy eie by nie.</li>
   <li><b>Stel die preek voor:</b> onder stap 4 stel Claude voor hoe die preek die beste gebou word: 'n inleiding,
-    twee of drie hoofpunte, die toepassing, die slot wat na die altaar lei, en illustrasies, elk met 'n reël oor
-    waarom dit vir hierdie teks en boodskap werk. Dit bou op wat jy reeds onder stappe 2 tot 5 geskryf het, op die
-    Handleiding se artikel, die gemerkte Kategismus-afdelings en jou eie ervaring- en illustrasienotas, en skryf elke
-    deel soos jy dit sou kon sê. <b>Gebruik</b> sit 'n deel in sy boks (die illustrasies gaan onder stap 5);
-    "Gebruik almal" vul die hoofpunte in volgorde in.</li>
+    die hoofpunte, die toepassing, die slot wat na die altaar lei, en illustrasies, elk met 'n reël oor waarom dit
+    vir hierdie teks en boodskap werk. Die hoofpunte is die Handleiding s'n: die dele van die aangehegte artikel, in
+    die Handleiding se volgorde en onder sy opskrifte (onder elke punt gewys wanneer Claude die opskrif in die preek
+    se taal sit), in eenvoudige woorde vir jou mense uitgeskryf; 'n punt wat Claude van sy eie byvoeg, word weggelaat
+    en die paneel sê so, en 'n punt wat dit weglaat, bly in die Handleiding se woorde. Die inleiding, toepassing,
+    slot en illustrasies is Claude s'n, maar elkeen staan op daardie punte. Dit bou op wat jy reeds onder stappe 2 tot
+    5 geskryf het, op die artikel en sy ontleding, die gemerkte Kategismus-afdelings en jou eie ervaring- en
+    illustrasienotas, en skryf elke deel soos jy dit sou kon sê. <b>Gebruik</b> sit 'n deel in sy boks (die
+    illustrasies gaan onder stap 5); by 'n hoofpunt vul dit daardie punt se boks in, met Ontdoen; "Gebruik almal"
+    vul al die punte in die Handleiding se volgorde in, en vra eers wanneer joune nie leeg is nie. Sonder die
+    Handleiding se artikel stel Claude geen hoofpunte voor nie en sê dat hulle die Handleiding nodig het, tensy jy
+    hulle self geskryf het (dan vul dit hulle uit) of die diens 'n begrafnis of 'n troue is, waarvoor die Handleiding
+    geen artikel het nie.</li>
   <li><b>Vir die mense voor jou:</b> bo-aan 'n voorbereiding, onder die datum en die gemeente, sê jy
     <b>wie luister</b>: die ouderdomsgroep (alle ouderdomme, kinders, jongmense, jong volwassenes, gesinne, meestal
     ouer lidmate), 'n reël oor die mense (hul werk, hul taal, wat hulle deurmaak, hoeveel), hoeveel <b>humor</b> die

@@ -14,13 +14,19 @@
  * in plain words, what it gives the sermon, and the Bible passages and
  * Catechism sections that bring depth to it. "Suggest answers" under step 3
  * asks for the context of the text, key words, Catechism sections, cross
- * references and sermon thoughts; "Suggest the sermon" under step 4 asks for
- * the build itself: introduction, main points, application, conclusion and
- * illustrations. Each suggestion comes with a "Use" button, so nothing lands
- * in the notes that the person did not choose.
+ * references and what the text gives each main point; "Suggest the sermon"
+ * under step 4 asks for the build itself: introduction, main points,
+ * application, conclusion and illustrations. Each suggestion comes with a
+ * "Use" button, so nothing lands in the notes that the person did not choose.
+ *
+ * The main points always come from the Guide (guides.js mainPoints): a
+ * preparation taken from a service starts with them, "Take the main points
+ * from the Guide" under step 4 fetches them again, and Claude's points are
+ * the Guide's in plain words, each going into its own box. A point from the
+ * Guide carries a small "Guide" mark.
  */
 import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox, busy } from './ui.js';
-import { t } from './i18n.js';
+import { t, tn } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveSermon, deleteSermon } from './store.js';
 import * as Bible from './bible.js';
@@ -40,6 +46,10 @@ let headCount = 0;   // ids for the titles of the boxes (aria-labelledby)
 const xrLine = x => `${x.reference}${x.why ? ' – ' + x.why : ''}`;
 /** A piece of the Guide's breakdown as it goes into "Notes from the Guide": the Guide's words, then the plain words and the insight. */
 const pieceLine = p => `“${p.quote}”\n${[p.said, p.insight].filter(Boolean).join(' ')}`;
+/** Text as a key for matching headings: letters and digits only, lower case. */
+const norm = v => String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+/** A main point with nothing in it yet. */
+const emptyPoint = x => !(x.heading || '').trim() && !(x.body || '').trim();
 
 const STATUS = [['draft', 'Draft'], ['ready', 'Ready'], ['held', 'Held']];
 const STATUS_LABEL = Object.fromEntries(STATUS);
@@ -605,16 +615,68 @@ function renderEditor(root, s) {
     for (const b of root.querySelectorAll('button[data-cat]')) b.textContent = (s.catechism || []).some(x => x.n === b.dataset.cat) ? t('Ticked') : t('Tick');
   }
   function item(title, body, onUse, extra, why) {
+    const whys = [].concat(why || []).filter(Boolean);   // one or more muted lines under the text
     return el('div', { class: 'ai-item' }, [
-      el('div', { class: 'ai-text' }, [title ? el('b', { text: title }) : null, title && body ? ' ' : null, body || null, why ? el('div', { class: 'ai-why muted small', text: why }) : null]),
+      el('div', { class: 'ai-text' }, [title ? el('b', { text: title }) : null, title && body ? ' ' : null, body || null, ...whys.map(w => el('div', { class: 'ai-why muted small', text: w }))]),
       el('div', { class: 'ai-actions' }, [extra || null, onUse ? el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), onclick: onUse }) : null]),
     ]);
   }
-  /** A suggested main point goes into the next empty point, or a new one. */
+  /**
+   * A main point from Claude goes into its own box: the box that holds that
+   * point of the Guide or the same heading (its body is replaced, undoable),
+   * else the box with its number when that one is empty, else the next empty
+   * box, else a new one. The heading stays as the person wrote it unless it is
+   * still the Guide's own words.
+   */
   function usePoint(p) {
-    const slot = s.points.find(x => !x.heading && !x.body) || (s.points.push({ heading: '', body: '' }), s.points[s.points.length - 1]);
+    s.points = s.points && s.points.length ? s.points : [];
+    const pts = s.points;
+    const same = x => (p.from === 'guide' && x.guide === p.n) || [p.heading, p.source].filter(Boolean).some(h => norm(h) === norm(x.heading));
+    let slot = pts.find(same);
+    if (slot) {
+      const old = { ...slot };
+      if (!(slot.heading || '').trim() || norm(slot.heading) === norm(p.source)) slot.heading = p.heading;
+      slot.body = p.body;
+      if (p.from === 'guide') slot.guide = p.n;
+      touch(); renderPoints();
+      toast(t('Main point {n} filled in.', { n: pts.indexOf(slot) + 1 }), false, () => { Object.assign(slot, old); touch(); renderPoints(); });
+      return;
+    }
+    slot = (p.from === 'guide' && pts[p.n - 1] && emptyPoint(pts[p.n - 1])) ? pts[p.n - 1] : pts.find(emptyPoint);
+    if (!slot) { slot = { heading: '', body: '' }; pts.push(slot); }
     slot.heading = p.heading; slot.body = p.body;
+    if (p.from === 'guide') slot.guide = p.n; else delete slot.guide;
     touch(); renderPoints();
+    toast(t('Added as main point {n}.', { n: pts.indexOf(slot) + 1 }));
+  }
+  /** All the main points at once, in their order: into empty boxes as they are, otherwise, after asking, in place of what is there (undoable). */
+  async function usePoints(list, done) {
+    const have = (s.points || []).filter(x => !emptyPoint(x));
+    if (have.length && !await confirmBox(tn(have.length, 'Replace the main point you have with these {k}? You can undo it straight after.', 'Replace the {n} main points you have with these {k}? You can undo it straight after.', { k: list.length }), t('Replace'), true)) return;
+    const old = s.points;
+    s.points = list.map(p => ({ heading: p.heading, body: p.body, ...(p.from === 'guide' ? { guide: p.n } : {}) }));
+    touch(); renderPoints();
+    toast(done || t('All main points added.'), false, have.length ? () => { s.points = old; touch(); renderPoints(); } : null);
+  }
+  /** The main points Claude gave, each with its why-line and, where the heading was put into the sermon's language, the Guide's words. */
+  function pointItems(a) {
+    return (a.points || []).map(p => item(`${p.n}. ${p.heading}`, p.body, () => usePoint(p), null,
+      [p.why, p.source && norm(p.source) !== norm(p.heading) ? t('From the Guide: ') + p.source : '']));
+  }
+  /** What to know about the main points Claude gave: that there are none without the Guide, and how many of its own were left out. */
+  function pointNotes(a) {
+    const out = [];
+    if (!(a.points || []).length && ['none', 'guide', 'own', 'article'].includes(a.pointsFrom)) out.push(el('p', { class: 'small ai-note', text: t('No main points yet: they come from the Guide. Take the message from the Guide under step 2, or write the Guide\'s main points under step 4, then ask again.') }));
+    if (a.dropped) out.push(el('p', { class: 'small ai-note', text: tn(a.dropped, '{n} point Claude added was left out: it is not in the Guide.', '{n} points Claude added were left out: they are not in the Guide.') }));
+    return out;
+  }
+  /** The line under the heading of the main points: where they come from and where "Use" puts them. */
+  function pointsHint(a, below) {
+    if (!(a.points || []).length) return '';   // nothing to put anywhere: the note says why
+    const box = below ? t('Each goes into its own box below.') : t('Each goes into its own box under step 4.');
+    if (a.pointsFrom === 'guide' || a.pointsFrom === 'article') return t('The Guide\'s main points, in its order.') + ' ' + box;
+    if (a.pointsFrom === 'own') return t('Your main points, filled in.') + ' ' + box;
+    return below ? t('Each goes into the next empty main point.') : t('Each goes into the next empty main point under step 4.');
   }
   function group(title, items, onUseAll, hint) {
     if (!items.length) return null;
@@ -633,7 +695,7 @@ function renderEditor(root, s) {
     } }) : null;
     aiBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
       ? t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
-      : t('Claude answers the questions above from the text, the Guide\'s article and the Catechism, and suggests cross references and sermon thoughts, in short plain sentences and with the people above in mind. You choose what to keep.') })]));
+      : t('Claude answers the questions above from the text, the Guide\'s article and the Catechism, suggests cross references, and shows what the text gives each main point of the Guide, in short plain sentences and with the people above in mind. You choose what to keep.') })]));
     if (!a) return;
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The suggestions') }));
@@ -651,16 +713,18 @@ function renderEditor(root, s) {
     panel.append(group(t('Cross references'), (a.crossRefs || []).map(x => item(x.reference, x.why, () => { add('crossRefs', xrLine(x), '\n'); toast(t('Added to Cross references.')); },
       x.ref ? el('a', { class: 'btn small ghost', href: `#read/${x.ref.book}/${x.ref.chapter}${x.ref.verse ? '/' + x.ref.verse : ''}`, text: t('Read') }) : null)),
       () => { add('crossRefs', a.crossRefs.map(xrLine).join('\n'), '\n'); toast(t('All cross references added.')); }));
-    panel.append(group(t('Sermon thoughts'), [
-      ...(a.points || []).map(p => item(p.heading, p.body, () => { usePoint(p); toast(t('Added as a main point.')); })),
+    const fixed = ['guide', 'own', 'article'].includes(a.pointsFrom);   // the Guide's points, not thoughts of Claude's own
+    panel.append(group(fixed ? t('Main points') : t('Sermon thoughts'), [
+      ...pointNotes(a),
+      ...pointItems(a),
       a.application ? item(t('Application'), a.application, () => { add('application', a.application); toast(t('Added to Application.')); }) : null,
-    ].filter(Boolean), null, t('Each goes into the next empty main point under step 4.')));
+    ].filter(Boolean), (a.points || []).length > 1 ? () => usePoints(a.points) : null, pointsHint(a, false)));
     aiBox.append(panel);
   }
   renderAi();
 
   // ---- 4. build
-  container.append(step(4, t('Build the sermon'), t('An introduction that opens the door, two or three main points that each stand on the text, and a conclusion that leads to the altar. Plain words, short sentences.'),
+  container.append(step(4, t('Build the sermon'), t('An introduction that opens the door, the main points as the Guide gives them, each standing on the text, and a conclusion that leads to the altar. Plain words, short sentences.'),
     () => clearStep(4, t('building the sermon'), ['intro', 'application', 'conclusion'], {
       clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
       restore: kept => { s.points = kept; renderPoints(); },
@@ -672,7 +736,7 @@ function renderEditor(root, s) {
     if (!s.ref && !(s.text || '').trim()) { toast(t('Give the text word first: a reference or the text itself.'), true); return; }
     const ctrl = new AbortController();
     const b = busy(t('Asking Claude'), () => ctrl.abort());
-    b.say(t('Claude is building the sermon from the text, the message, your notes and the Catechism sections, for {who}. This takes about a minute.', { who: t(AI.audienceLabel(AI.audienceOf(s))).toLowerCase() }));
+    b.say(t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}. This takes about a minute.', { who: t(AI.audienceLabel(AI.audienceOf(s))).toLowerCase() }));
     try {
       const link = Guides.findService(s);
       const out = await AI.outline(s, {
@@ -699,7 +763,7 @@ function renderEditor(root, s) {
     } }) : null;
     buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
       ? t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
-      : t('Claude proposes how to build this sermon from the text, the message and your notes, for the people above and in your way: an introduction, the main points, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') })]));
+      : t('Claude proposes how to build this sermon from the text, the message and your notes, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') })]));
     if (!a) return;
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The outline') }));
@@ -707,8 +771,7 @@ function renderEditor(root, s) {
     if (a.intro && a.intro.text) {
       panel.append(group(t('Introduction'), [item('', a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, a.intro.why)]));
     }
-    panel.append(group(t('Main points'), (a.points || []).map((p, i) => item(`${i + 1}. ${p.heading}`, p.body, () => { usePoint(p); toast(t('Added as a main point.')); }, null, p.why)),
-      (a.points || []).length > 1 ? () => { a.points.forEach(usePoint); toast(t('All main points added.')); } : null, t('Each goes into the next empty main point.')));
+    panel.append(group(t('Main points'), [...pointNotes(a), ...pointItems(a)], (a.points || []).length > 1 ? () => usePoints(a.points) : null, pointsHint(a, true)));
     panel.append(group(t('Application and conclusion'), [
       a.application ? item(t('Application'), a.application, () => { add('application', a.application); toast(t('Added to Application.')); }) : null,
       a.conclusion ? item(t('Conclusion'), a.conclusion, () => { add('conclusion', a.conclusion); toast(t('Added to Conclusion.')); }) : null,
@@ -734,17 +797,27 @@ function renderEditor(root, s) {
     s.points = s.points && s.points.length ? s.points : [{ heading: '', body: '' }];
     s.points.forEach((p, i) => {
       const head = lineBox({ value: p.heading || '', placeholder: t('Main point {n}', { n: i + 1 }) });
-      head.addEventListener('input', () => { p.heading = head.value; touch(); });
       const body = el('textarea', { rows: 4, placeholder: t('What the text says, what it means, what it asks of us') });
       body.value = p.body || '';
-      body.addEventListener('input', () => { p.body = body.value; touch(); });
+      // a point from the Guide carries a mark; it goes when the point is emptied
+      const mark = p.guide ? el('span', { class: 'pill guide', text: t('Guide'), title: t('From the Divine Service Guide') }) : null;
+      const emptied = () => { if (mark && emptyPoint(p)) { delete p.guide; mark.remove(); } };
+      head.addEventListener('input', () => { p.heading = head.value; emptied(); touch(); });
+      body.addEventListener('input', () => { p.body = body.value; emptied(); touch(); });
       pointsBox.append(el('div', { class: 'point' }, [
-        el('div', { class: 'row line' }, [el('span', { class: 'step-n small', text: i + 1 }), head,
+        el('div', { class: 'row line' }, [el('span', { class: 'step-n small', text: i + 1 }), head, mark,
           el('button', { class: 'icon del', type: 'button', 'aria-label': t('Remove this point'), text: '✕', onclick: () => { s.points.splice(i, 1); touch(); renderPoints(); } })]),
         body,
       ]));
     });
-    pointsBox.append(el('div', { class: 'row' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Add a point'), onclick: () => { s.points.push({ heading: '', body: '' }); touch(); renderPoints(); } })]));
+    // the Guide's main points, straight from its article, no Claude needed
+    const link = Guides.findService(s);
+    const fromGuide = link ? Guides.mainPoints(link.service) : [];
+    pointsBox.append(el('div', { class: 'row' }, [
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Add a point'), onclick: () => { s.points.push({ heading: '', body: '' }); touch(); renderPoints(); } }),
+      fromGuide.length ? el('button', { class: 'btn small ghost', type: 'button', text: t('Take the main points from the Guide'), onclick: () => usePoints(fromGuide.map(p => ({ ...p, from: 'guide' })), t('Main points taken from the Guide.')) }) : null,
+      fromGuide.length ? el('span', { class: 'muted small', text: tn(fromGuide.length, 'The Guide\'s article has {n} main point.', 'The Guide\'s article has {n} main points.') }) : null,
+    ]));
   }
   renderPoints();
   container.append(
