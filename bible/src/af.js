@@ -349,6 +349,8 @@ export const AF = {
   "Outline removed.": "Preekskets verwyder.",
   "Use": "Gebruik",
   "Use all": "Gebruik almal",
+  "Heading": "Opskrif",
+  "Tap a suggestion, or its pencil, to change its words first. \"Use\" then puts in your words.": "Tik op 'n voorstel, of op sy potlood, om eers sy woorde te verander. \"Gebruik\" sit dan jou woorde in.",
   "For {part}.": "Vir {part}.",
   "the message": "die boodskap",
   "understanding the text": "begrip van die teks",

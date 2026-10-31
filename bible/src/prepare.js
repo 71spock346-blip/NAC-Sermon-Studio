@@ -17,7 +17,12 @@
  * references and what the text gives each main point; "Suggest the sermon"
  * under step 4 asks for the build itself: introduction, main points,
  * application, conclusion and illustrations. Each suggestion comes with a
- * "Use" button, so nothing lands in the notes that the person did not choose.
+ * "Use" button, so nothing lands in the notes that the person did not choose,
+ * and any suggestion can first be put into the person's own words in place:
+ * a tap on its text (or its pencil) opens its words in growing boxes, what is
+ * typed goes into the saved suggestion itself, so Use, "Use all" and the
+ * study-sheet PDF carry the changed words, and it is kept with the
+ * preparation (item() and piece() below).
  *
  * The main points always come from the Guide (guides.js mainPoints): a
  * preparation taken from a service starts with them, "Take the main points
@@ -25,7 +30,7 @@
  * the Guide's in plain words, each going into its own box. A point from the
  * Guide carries a small "Guide" mark.
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox, busy } from './ui.js';
+import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox, busy, isTouch } from './ui.js';
 import { t, tn } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveSermon, deleteSermon } from './store.js';
@@ -50,6 +55,16 @@ const pieceLine = p => `“${p.quote}”\n${[p.said, p.insight].filter(Boolean).
 const norm = v => String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 /** A main point with nothing in it yet. */
 const emptyPoint = x => !(x.heading || '').trim() && !(x.body || '').trim();
+/**
+ * Every suggested main point carries its number (1, 2, 3 …). Suggestions kept
+ * before the numbers came (October 2026) have none and read "undefined.", so
+ * a missing number is taken from the point's place, once, and saved along.
+ */
+const numberPoints = a => { ((a && a.points) || []).forEach((p, i) => { if (p && !p.n) p.n = i + 1; }); return a; };
+/** The "Read" button to a reference in the reader; null when the app did not understand the reference. */
+const readLink = ref => (ref ? el('a', { class: 'btn small ghost', href: `#read/${ref.book}/${ref.chapter}${ref.verse ? '/' + ref.verse : ''}`, text: t('Read') }) : null);
+/** The line under a panel's heading that says a suggestion can be changed before it is used. */
+const howEdit = () => t('Tap a suggestion, or its pencil, to change its words first. "Use" then puts in your words.');
 
 const STATUS = [['draft', 'Draft'], ['ready', 'Ready'], ['held', 'Held']];
 const STATUS_LABEL = Object.fromEntries(STATUS);
@@ -443,7 +458,7 @@ function renderEditor(root, s) {
       refs.push(el('div', { class: 'bd-ref' }, [
         el('span', { class: 'grow' }, [el('b', { text: x.reference }), x.why ? ' – ' + x.why : null]),
         el('span', { class: 'bd-ref-actions' }, [
-          x.ref ? el('a', { class: 'btn small ghost', href: `#read/${x.ref.book}/${x.ref.chapter}${x.ref.verse ? '/' + x.ref.verse : ''}`, text: t('Read') }) : null,
+          readLink(x.ref),
           el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), onclick: () => { add('crossRefs', xrLine(x), '\n'); toast(t('Added to Cross references.')); } }),
         ]),
       ]));
@@ -454,15 +469,39 @@ function renderEditor(root, s) {
         el('span', { class: 'bd-ref-actions' }, [catTick(c)]),
       ]));
     }
-    return el('div', { class: 'ai-item bd-item' }, [
-      el('div', { class: 'ai-text' }, [
+    // the Guide's words stay as they are; the plain words and the insight can be put into the person's own
+    const node = el('div', { class: 'ai-item bd-item editable' });
+    const use = after => el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), onclick: () => { add('guide', pieceLine(p)); toast(t('Added to Notes from the Guide.')); if (after) after(); } });
+    const refBox = () => (refs.length ? el('div', { class: 'bd-refs' }, refs) : null);
+    function show() {
+      clear(node);
+      node.classList.remove('editing');
+      const text = el('div', { class: 'ai-text' }, [
         el('div', { class: 'bd-quote', text: p.quote }),
         p.said ? el('div', { class: 'bd-line' }, [el('b', { text: t('In plain words: ') }), p.said]) : null,
         p.insight ? el('div', { class: 'bd-line' }, [el('b', { text: t('For the sermon: ') }), p.insight]) : null,
-        refs.length ? el('div', { class: 'bd-refs' }, refs) : null,
-      ]),
-      el('div', { class: 'ai-actions' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), onclick: () => { add('guide', pieceLine(p)); toast(t('Added to Notes from the Guide.')); } })]),
-    ]);
+        refBox(),
+      ]);
+      // a tap on the text opens the boxes, unless it is on a button or text is being selected; on a phone the keyboard waits for a tap in a box
+      text.addEventListener('click', e => { if (e.target.closest('a, button') || String(getSelection()).length) return; open(!isTouch()); });
+      node.append(text, el('div', { class: 'ai-actions' }, [pencil(() => open(true)), use()]));
+    }
+    function open(focus) {
+      clear(node);
+      node.classList.add('editing');
+      const said = editBox(p, 'said');
+      const wrap = el('div', { class: 'ai-edit' }, [
+        el('div', { class: 'bd-quote', text: p.quote }),
+        el('label', { class: 'ai-field' }, [el('span', { class: 'ai-label', text: t('In plain words: ').trim() }), said]),
+        el('label', { class: 'ai-field' }, [el('span', { class: 'ai-label', text: t('For the sermon: ').trim() }), editBox(p, 'insight')]),
+        refBox(),
+      ]);
+      wrap.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); show(); } });
+      node.append(wrap, el('div', { class: 'ai-actions' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Done'), onclick: show }), use(show)]));
+      if (focus) toEnd(said);
+    }
+    show();
+    return node;
   }
   function renderBreak() {
     clear(breakBox);
@@ -483,8 +522,8 @@ function renderEditor(root, s) {
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The article, piece by piece') }));
     if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
-    panel.append(el('p', { class: 'muted small bd-how', text: t('"Use" puts a piece into Notes from the Guide; the passages go to Cross references; ticked sections print.') }));
-    if (a.thread) panel.append(group(t('The thread'), [item('', a.thread, () => { add('core', a.thread); toast(t('Added to Core thought.')); })], null, t('What the whole article drives at.')));
+    panel.append(el('p', { class: 'muted small ai-how', text: t('"Use" puts a piece into Notes from the Guide; the passages go to Cross references; ticked sections print.') + ' ' + howEdit() }));
+    if (a.thread) panel.append(group(t('The thread'), [item('', () => a.thread, () => { add('core', a.thread); toast(t('Added to Core thought.')); }, null, null, { on: a, body: 'thread' })], null, t('What the whole article drives at.')));
     // the pieces, under the Guide's own headings
     const groups = [];
     for (const p of a.parts || []) {
@@ -614,12 +653,64 @@ function renderEditor(root, s) {
   function renderTicks() {
     for (const b of root.querySelectorAll('button[data-cat]')) b.textContent = (s.catechism || []).some(x => x.n === b.dataset.cat) ? t('Ticked') : t('Tick');
   }
-  function item(title, body, onUse, extra, why) {
-    const whys = [].concat(why || []).filter(Boolean);   // one or more muted lines under the text
-    return el('div', { class: 'ai-item' }, [
-      el('div', { class: 'ai-text' }, [title ? el('b', { text: title }) : null, title && body ? ' ' : null, body || null, ...whys.map(w => el('div', { class: 'ai-why muted small', text: w }))]),
-      el('div', { class: 'ai-actions' }, [extra || null, onUse ? el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), onclick: onUse }) : null]),
-    ]);
+  /** The pencil that opens a suggestion for changing its words. */
+  function pencil(onclick) {
+    return el('button', { class: 'icon pen', type: 'button', 'aria-label': t('Edit'), title: t('Edit'), onclick }, pen());
+  }
+  /**
+   * A box in which a suggestion's words are changed: a one-line box for a
+   * heading (`line`), else a growing box. What is typed goes straight into
+   * the suggestion (`on[key]`), so Use inserts it, and is saved with the
+   * preparation; `after` runs after each change.
+   */
+  function editBox(on, key, { line = false, aria = '', after = null } = {}) {
+    const ta = line ? lineBox({ 'aria-label': aria || null, placeholder: t('Heading') }) : el('textarea', { rows: 2, 'aria-label': aria || null });
+    ta.value = on[key] || '';
+    ta.addEventListener('input', () => { on[key] = ta.value; if (after) after(); touch(); });
+    return ta;
+  }
+  /** Focus at the end of a box's text. */
+  function toEnd(ta) {
+    ta.focus();
+    try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) { /* not every box has a caret */ }
+  }
+  /**
+   * One suggestion with its Use button. `title`, `body`, `why` (one or more
+   * muted lines under the text) and `extra` (a button beside Use) may be
+   * functions, read again each time the item is drawn. With `edit` the item
+   * can be put into the person's own words in place: {on, title, body} name
+   * the object the words live in and its fields (`prefix` stands before the
+   * heading box, `after` runs after a change); a tap on the text or the
+   * pencil opens the boxes, what is typed goes into that object, so Use and
+   * "Use all" insert the changed words, and Done or Use closes them.
+   */
+  function item(title, body, onUse, extra, why, edit) {
+    const val = v => (typeof v === 'function' ? v() : v);
+    const node = el('div', { class: 'ai-item' + (edit ? ' editable' : '') });
+    const whys = () => [].concat(val(why) || []).filter(Boolean).map(w => el('div', { class: 'ai-why muted small', text: w }));
+    const use = after => (onUse ? el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), onclick: () => { onUse(); if (after) after(); } }) : null);
+    function show() {
+      clear(node);
+      node.classList.remove('editing');
+      const ti = val(title), bo = val(body);
+      const text = el('div', { class: 'ai-text' }, [ti ? el('b', { text: ti }) : null, ti && bo ? ' ' : null, bo || null, ...whys()]);
+      // a tap on the text opens the boxes, unless text is being selected; on a phone the keyboard waits for a tap in a box
+      if (edit) text.addEventListener('click', () => { if (String(getSelection()).length) return; open(!isTouch()); });
+      node.append(text, el('div', { class: 'ai-actions' }, [edit ? pencil(() => open(true)) : null, val(extra) || null, use()]));
+    }
+    function open(focus) {
+      clear(node);
+      node.classList.add('editing');
+      const boxes = [];
+      if (edit.title) boxes.push(el('div', { class: 'ai-edit-title' }, [edit.prefix ? el('span', { class: 'ai-n', text: edit.prefix }) : null, editBox(edit.on, edit.title, { line: true, aria: t('Heading'), after: edit.after })]));
+      if (edit.body) boxes.push(editBox(edit.on, edit.body, { aria: t('Text'), after: edit.after }));
+      const wrap = el('div', { class: 'ai-edit' }, [...boxes, ...whys()]);
+      wrap.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); show(); } });
+      node.append(wrap, el('div', { class: 'ai-actions' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Done'), onclick: show }), val(extra) || null, use(show)]));
+      if (focus) { const ta = wrap.querySelector(edit.body ? 'textarea:not(.oneline)' : 'textarea'); if (ta) toEnd(ta); }
+    }
+    show();
+    return node;
   }
   /**
    * A main point from Claude goes into its own box: the box that holds that
@@ -660,8 +751,9 @@ function renderEditor(root, s) {
   }
   /** The main points Claude gave, each with its why-line and, where the heading was put into the sermon's language, the Guide's words. */
   function pointItems(a) {
-    return (a.points || []).map(p => item(`${p.n}. ${p.heading}`, p.body, () => usePoint(p), null,
-      [p.why, p.source && norm(p.source) !== norm(p.heading) ? t('From the Guide: ') + p.source : '']));
+    return (numberPoints(a).points || []).map(p => item(() => `${p.n}. ${p.heading}`, () => p.body, () => usePoint(p), null,
+      () => [p.why, p.source && norm(p.source) !== norm(p.heading) ? t('From the Guide: ') + p.source : ''],
+      { on: p, title: 'heading', body: 'body', prefix: `${p.n}.` }));
   }
   /** What to know about the main points Claude gave: that there are none without the Guide, and how many of its own were left out. */
   function pointNotes(a) {
@@ -679,7 +771,7 @@ function renderEditor(root, s) {
     return below ? t('Each goes into the next empty main point.') : t('Each goes into the next empty main point under step 4.');
   }
   function group(title, items, onUseAll, hint) {
-    if (!items.length) return null;
+    if (!items.length) return document.createDocumentFragment();   // nothing to show, and nothing appended (null would print as "null")
     return el('div', { class: 'ai-sec' }, [
       el('div', { class: 'row line ai-sec-head' }, [el('h4', { text: title }), hint ? el('span', { class: 'muted small grow', text: hint }) : el('span', { class: 'grow' }), onUseAll ? el('button', { class: 'btn small ghost', type: 'button', text: t('Use all'), onclick: onUseAll }) : null]),
       ...items,
@@ -700,24 +792,25 @@ function renderEditor(root, s) {
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The suggestions') }));
     if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
+    panel.append(el('p', { class: 'muted small ai-how', text: howEdit() }));
     const ctxLine = c => `${c.question}\n${c.answer}`;
-    panel.append(group(t('Understanding the text'), (a.context || []).map(c => item(c.question, c.answer, () => { add('context', ctxLine(c)); toast(t('Added to Context.')); })),
+    panel.append(group(t('Understanding the text'), (a.context || []).map(c => item(() => c.question, () => c.answer, () => { add('context', ctxLine(c)); toast(t('Added to Context.')); }, null, null, { on: c, title: 'question', body: 'answer' })),
       () => { add('context', a.context.map(ctxLine).join('\n\n')); toast(t('All answers added to Context.')); }));
     const kwLine = k => `${k.word} – ${k.meaning}`;
-    panel.append(group(t('Key words'), (a.keywords || []).map(k => item(k.word, k.meaning, () => { add('keywords', kwLine(k), '\n'); toast(t('Added to Key words.')); })),
+    panel.append(group(t('Key words'), (a.keywords || []).map(k => item(() => k.word, () => k.meaning, () => { add('keywords', kwLine(k), '\n'); toast(t('Added to Key words.')); }, null, null, { on: k, title: 'word', body: 'meaning' })),
       () => { add('keywords', a.keywords.map(kwLine).join('\n'), '\n'); toast(t('All key words added.')); }));
     panel.append(group(t('Catechism'), (a.catechism || []).map(c => el('div', { class: 'ai-item' }, [
       el('div', { class: 'ai-text' }, [el('a', { href: `#catechism/${encodeURIComponent(c.n)}`, class: 'num', text: c.n }), ' ', el('b', { text: c.title }), c.why ? ' ' + c.why : null]),
       el('div', { class: 'ai-actions' }, [catTick(c)]),
     ])), null, t('Ticked sections print in the sermon notes.')));
-    panel.append(group(t('Cross references'), (a.crossRefs || []).map(x => item(x.reference, x.why, () => { add('crossRefs', xrLine(x), '\n'); toast(t('Added to Cross references.')); },
-      x.ref ? el('a', { class: 'btn small ghost', href: `#read/${x.ref.book}/${x.ref.chapter}${x.ref.verse ? '/' + x.ref.verse : ''}`, text: t('Read') }) : null)),
+    panel.append(group(t('Cross references'), (a.crossRefs || []).map(x => item(() => x.reference, () => x.why, () => { add('crossRefs', xrLine(x), '\n'); toast(t('Added to Cross references.')); },
+      () => readLink(x.ref), null, { on: x, title: 'reference', body: 'why', after: () => { x.ref = parseRef(String(x.reference || '').replace(/[–—]/g, '-')); } })),
       () => { add('crossRefs', a.crossRefs.map(xrLine).join('\n'), '\n'); toast(t('All cross references added.')); }));
     const fixed = ['guide', 'own', 'article'].includes(a.pointsFrom);   // the Guide's points, not thoughts of Claude's own
     panel.append(group(fixed ? t('Main points') : t('Sermon thoughts'), [
       ...pointNotes(a),
       ...pointItems(a),
-      a.application ? item(t('Application'), a.application, () => { add('application', a.application); toast(t('Added to Application.')); }) : null,
+      a.application ? item(t('Application'), () => a.application, () => { add('application', a.application); toast(t('Added to Application.')); }, null, null, { on: a, body: 'application' }) : null,
     ].filter(Boolean), (a.points || []).length > 1 ? () => usePoints(a.points) : null, pointsHint(a, false)));
     aiBox.append(panel);
   }
@@ -768,23 +861,24 @@ function renderEditor(root, s) {
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The outline') }));
     if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
+    panel.append(el('p', { class: 'muted small ai-how', text: howEdit() }));
     if (a.intro && a.intro.text) {
-      panel.append(group(t('Introduction'), [item('', a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, a.intro.why)]));
+      panel.append(group(t('Introduction'), [item('', () => a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, a.intro.why, { on: a.intro, body: 'text' })]));
     }
     panel.append(group(t('Main points'), [...pointNotes(a), ...pointItems(a)], (a.points || []).length > 1 ? () => usePoints(a.points) : null, pointsHint(a, true)));
     panel.append(group(t('Application and conclusion'), [
-      a.application ? item(t('Application'), a.application, () => { add('application', a.application); toast(t('Added to Application.')); }) : null,
-      a.conclusion ? item(t('Conclusion'), a.conclusion, () => { add('conclusion', a.conclusion); toast(t('Added to Conclusion.')); }) : null,
+      a.application ? item(t('Application'), () => a.application, () => { add('application', a.application); toast(t('Added to Application.')); }, null, null, { on: a, body: 'application' }) : null,
+      a.conclusion ? item(t('Conclusion'), () => a.conclusion, () => { add('conclusion', a.conclusion); toast(t('Added to Conclusion.')); }, null, null, { on: a, body: 'conclusion' }) : null,
     ].filter(Boolean)));
     const illLine = x => `${x.title ? x.title + ': ' : ''}${x.body}`;
-    panel.append(group(t('Illustrations'), (a.illustrations || []).map(x => item(x.title, x.body, () => { add('illustrations', illLine(x)); toast(t('Added to Illustrations under step 5.')); }, null, x.serves ? t('For {part}.', { part: x.serves }) : '')),
+    panel.append(group(t('Illustrations'), (a.illustrations || []).map(x => item(() => x.title, () => x.body, () => { add('illustrations', illLine(x)); toast(t('Added to Illustrations under step 5.')); }, null, x.serves ? t('For {part}.', { part: x.serves }) : '', { on: x, title: 'title', body: 'body' })),
       (a.illustrations || []).length > 1 ? () => { add('illustrations', a.illustrations.map(illLine).join('\n\n')); toast(t('All illustrations added under step 5.')); } : null, t('They go into the Illustrations box under step 5.')));
     if (a.lighter && a.lighter.text) {
       // the light moment goes where Claude placed it: the introduction, the conclusion, or else among the illustrations
       const where = a.lighter.where || '';
       const key = /intro|inleiding|open/i.test(where) ? 'intro' : /conclu|slot|close|end/i.test(where) ? 'conclusion' : 'illustrations';
       const box = { intro: t('Introduction'), conclusion: t('Conclusion'), illustrations: t('Illustrations under step 5') }[key];
-      panel.append(group(t('A lighter moment'), [item('', a.lighter.text, () => { add(key, a.lighter.text); toast(t('Added to {box}.', { box })); }, null, where ? t('For {part}.', { part: where }) : '')],
+      panel.append(group(t('A lighter moment'), [item('', () => a.lighter.text, () => { add(key, a.lighter.text); toast(t('Added to {box}.', { box })); }, null, where ? t('For {part}.', { part: where }) : '', { on: a.lighter, body: 'text' })],
         null, t('A smile where it fits. Yours to use or to leave.')));
     }
     buildBox.append(panel);
@@ -875,6 +969,13 @@ function renderEditor(root, s) {
       }
     } }),
   ]));
+}
+
+/** The pencil on the button that opens a suggestion for changing its words (the Notes tab's pen). */
+function pen() {
+  const span = el('span', { class: 'pen-ico', 'aria-hidden': 'true' });
+  span.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+  return span;
 }
 
 /** The small mark on the button that asks Claude. */
