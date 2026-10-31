@@ -81,7 +81,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   wedding, which the Guide has no article for. Every answer is written in short sentences and everyday words, shaped
   for the people the preparation names (age group, a line about the congregation, its own language) with the humour
   level the person chose (none at a funeral or a service for the departed) and the person's own note on how they preach
-  (Settings → AI helper). The Catechism sections' text and the Guide's article go along in the
+  (Settings → AI helper). Any suggestion can first be put into the person's own words in place: a tap on its
+  text or its pencil opens its words in growing boxes, the change lives in the saved suggestion itself (so Use,
+  "Use all", the study sheet and the next request carry it) and is kept with the preparation; the Guide's own
+  words in the breakdown stay as they are. The Catechism sections' text and the Guide's article go along in the
   request when they are on the device; the Guide, like the Catechism, is the Church's text
   and stays out of the repository and the backup.
 - **Storage.** Notes, preparations and settings live in IndexedDB on the device
