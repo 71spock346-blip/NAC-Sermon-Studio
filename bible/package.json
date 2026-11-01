@@ -1,0 +1,9 @@
+{
+  "name": "nac-study-bible",
+  "private": true,
+  "description": "The NAC Study Bible: a static app, plus the one function in api/ that stores the locked sync parts in Vercel Blob.",
+  "type": "module",
+  "dependencies": {
+    "@vercel/blob": "^2.8.2"
+  }
+}

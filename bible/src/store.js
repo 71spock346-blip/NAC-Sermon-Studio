@@ -4,11 +4,19 @@ import { t } from './i18n.js';
  * notes, service preparations, settings, and a cache of chapters fetched
  * from API.Bible. On start the small stores are loaded into memory, and
  * every change is written through, so the rest of the app can treat the
- * arrays as the truth. Export/Import moves the lot between devices.
+ * arrays as the truth. Export/Import moves the lot between devices by file;
+ * sync.js keeps the person's devices the same over the app's own server.
+ *
+ * For sync, every write here does two more things: it tells the listeners
+ * (onChange) which part of the data changed, so the change is sent on, and a
+ * deletion leaves a small marker (the id and the time, in state.deleted) so
+ * the other device deletes the same thing instead of bringing it back.
+ * Rows that arrive from another device are written with applyRemote(),
+ * which tells nobody, so they are not sent back again.
  */
 const DB_NAME = 'nac-study-bible';
-const DB_VERSION = 4;
-const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides'];
+const DB_VERSION = 5;
+const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync'];
 
 let dbPromise = null;
 
@@ -25,6 +33,7 @@ function openDb() {
       if (!db.objectStoreNames.contains('texts')) db.createObjectStore('texts', { keyPath: 'key' });
       if (!db.objectStoreNames.contains('catechism')) db.createObjectStore('catechism', { keyPath: 'key' });
       if (!db.objectStoreNames.contains('guides')) db.createObjectStore('guides', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('sync')) db.createObjectStore('sync', { keyPath: 'key' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -80,20 +89,70 @@ export const DEFAULT_SETTINGS = {
   lastRef: 'PSA.23',
 };
 
+/** The keys never leave the device in a backup file. Sync carries them only when the person ticks "Carry my keys" (locked with the code). */
+export const SECRET = new Set(['apiKey', 'yvKey', 'aiKey']);
+
+/** Settings that belong to this screen rather than to the person: a phone and a PC may well differ. Sync leaves them alone. */
+export const DEVICE_ONLY = new Set(['theme', 'fontSize']);
+
+/** Settings that may change often and matter little: sent on with the next sync rather than at once. */
+const LAZY = new Set(['lastRef']);
+
 /** In-memory state, filled by load(). */
 export const state = {
   notes: [],
   sermons: [],
   settings: { ...DEFAULT_SETTINGS },
+  settingsAt: {},         // key -> when it was last set (ISO), so two devices can tell whose setting is newer
   texts: {},              // version -> Set of 'BOOK.chapter' pasted in (the text itself stays in the database)
   catechism: null,        // {edition, sections, builtAt, loadedAt} when the Catechism text is loaded on this device
   guides: [],             // Divine Service Guides read by the AI helper, each with its services (device only, see guides.js)
+  deleted: { notes: {}, sermons: {}, texts: {}, guides: {}, catechism: '' },   // id -> when it was deleted here (ISO), kept so sync can pass the deletion on
 };
 
+/* ---- who wants to know about a change (sync.js) ---- */
+const listeners = new Set();
+
+/** fn(part, {lazy}) is called after every write the person makes; part is 'notes', 'sermons', 'settings', 'texts', 'catechism' or 'guides'. */
+export function onChange(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+function changed(part, opts) {
+  for (const fn of listeners) {
+    try { fn(part, opts || {}); } catch (e) { console.error(e); }
+  }
+}
+
+/** The deletion markers, as a row of the sync store. Markers older than half a year are dropped: every device has long seen them. */
+const KEEP_DELETED_DAYS = 183;
+
+async function markDeleted(part, id) {
+  state.deleted[part][id] = new Date().toISOString();
+  await saveDeleted();
+}
+
+async function saveDeleted() {
+  await db.put('sync', { key: 'deleted', value: state.deleted });
+}
+
+function pruneDeleted(deleted) {
+  const d = { notes: {}, sermons: {}, texts: {}, guides: {}, catechism: '', ...(deleted || {}) };
+  const cutoff = new Date(Date.now() - KEEP_DELETED_DAYS * 86400000).toISOString();
+  for (const part of ['notes', 'sermons', 'texts', 'guides']) {
+    const m = d[part] && typeof d[part] === 'object' ? d[part] : {};
+    d[part] = Object.fromEntries(Object.entries(m).filter(([, at]) => typeof at === 'string' && at > cutoff));
+  }
+  if (typeof d.catechism !== 'string' || d.catechism <= cutoff) d.catechism = '';
+  return d;
+}
+
 export async function load() {
-  const [notes, sermons, settings, textKeys, catMeta, guides] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta'), db.all('guides')]);
+  const [notes, sermons, settings, textKeys, catMeta, guides, deleted] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta'), db.all('guides'), db.get('sync', 'deleted')]);
   state.catechism = catMeta ? catMeta.value : null;
   state.guides = guides;
+  state.deleted = pruneDeleted(deleted && deleted.value);
   state.texts = {};
   for (const k of textKeys) {
     const [version, ref] = String(k).split(':');
@@ -103,13 +162,17 @@ export async function load() {
   state.notes = notes.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
   state.sermons = sermons.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   state.settings = { ...DEFAULT_SETTINGS };
-  for (const row of settings) state.settings[row.key] = row.value;
+  state.settingsAt = {};
+  for (const row of settings) { state.settings[row.key] = row.value; state.settingsAt[row.key] = row.at || ''; }
   return state;
 }
 
 export async function saveSetting(key, value) {
+  const at = new Date().toISOString();
   state.settings[key] = value;
-  await db.put('settings', { key, value });
+  state.settingsAt[key] = at;
+  await db.put('settings', { key, value, at });
+  if (!DEVICE_ONLY.has(key)) changed('settings', { lazy: LAZY.has(key) });
 }
 
 export async function saveNote(note) {
@@ -119,12 +182,15 @@ export async function saveNote(note) {
   const i = state.notes.findIndex(n => n.id === note.id);
   if (i >= 0) state.notes[i] = note; else state.notes.unshift(note);
   await db.put('notes', note);
+  changed('notes');
   return note;
 }
 
 export async function deleteNote(id) {
   state.notes = state.notes.filter(n => n.id !== id);
   await db.del('notes', id);
+  await markDeleted('notes', id);
+  changed('notes');
 }
 
 export async function saveSermon(sermon) {
@@ -135,12 +201,15 @@ export async function saveSermon(sermon) {
   if (i >= 0) state.sermons[i] = sermon; else state.sermons.unshift(sermon);
   state.sermons.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   await db.put('sermons', sermon);
+  changed('sermons');
   return sermon;
 }
 
 export async function deleteSermon(id) {
   state.sermons = state.sermons.filter(s => s.id !== id);
   await db.del('sermons', id);
+  await markDeleted('sermons', id);
+  changed('sermons');
 }
 
 /* ---- chapter cache for texts fetched from API.Bible (kept 30 days, as its terms ask) ---- */
@@ -181,14 +250,28 @@ export async function getText(version, book, chapter) {
 export async function saveText(version, book, chapter, verses, title) {
   const row = { key: textKey(version, book, chapter), version, book, chapter, verses, title: title || '', at: new Date().toISOString() };
   await db.put('texts', row);
-  if (!state.texts[version]) state.texts[version] = new Set();
-  state.texts[version].add(`${book}.${chapter}`);
+  indexText(row);
+  changed('texts');
   return row;
 }
 
+/** Puts a pasted chapter into the in-memory index (the text itself stays in the database). */
+function indexText(row) {
+  if (!state.texts[row.version]) state.texts[row.version] = new Set();
+  state.texts[row.version].add(`${row.book}.${row.chapter}`);
+}
+
+function unindexText(key) {
+  const [version, ref] = String(key).split(':');
+  if (state.texts[version]) state.texts[version].delete(ref);
+}
+
 export async function deleteText(version, book, chapter) {
-  await db.del('texts', textKey(version, book, chapter));
-  if (state.texts[version]) state.texts[version].delete(`${book}.${chapter}`);
+  const key = textKey(version, book, chapter);
+  await db.del('texts', key);
+  unindexText(key);
+  await markDeleted('texts', key);
+  changed('texts');
 }
 
 export async function exportTexts() {
@@ -203,15 +286,24 @@ export async function importTexts(data) {
     if (!t || !t.version || !t.book || !t.chapter || !Array.isArray(t.verses)) continue;
     const mine = await getText(t.version, t.book, t.chapter);
     if (mine && (mine.at || '') >= (t.at || '')) continue;
-    await saveText(t.version, t.book, t.chapter, t.verses, t.title);
+    // the chapter keeps the time it was pasted, so the newest copy wins on every device
+    const row = { key: textKey(t.version, t.book, t.chapter), version: t.version, book: t.book, chapter: t.chapter, verses: t.verses, title: t.title || '', at: t.at || new Date().toISOString() };
+    await db.put('texts', row);
+    indexText(row);
     n++;
   }
+  if (n) changed('texts');
   return n;
 }
 
 export async function wipeTexts() {
+  const keys = await db.keys('texts');
   await db.clear('texts');
   state.texts = {};
+  const at = new Date().toISOString();
+  for (const k of keys) state.deleted.texts[k] = at;
+  await saveDeleted();
+  changed('texts');
 }
 
 /* ---- the text of the Catechism, loaded from the file the build script makes ----
@@ -226,6 +318,9 @@ export async function saveCatechismText(data) {
   await db.put('catechism', { key: 'text', value: sections });
   await db.put('catechism', { key: 'meta', value: meta });
   state.catechism = meta;
+  state.deleted.catechism = '';
+  await saveDeleted();
+  changed('catechism');
   return meta;
 }
 
@@ -237,21 +332,28 @@ export async function getCatechismText() {
 export async function deleteCatechismText() {
   await db.clear('catechism');
   state.catechism = null;
+  state.deleted.catechism = new Date().toISOString();
+  await saveDeleted();
+  changed('catechism');
 }
 
 /* ---- the Divine Service Guides the AI helper has read ----
    The Church's text again, so: on this device only, not in the backup. */
 export async function saveGuide(guide) {
   if (!guide.id) guide.id = uid();
+  if (!guide.loadedAt) guide.loadedAt = new Date().toISOString();
   const i = state.guides.findIndex(g => g.id === guide.id);
   if (i >= 0) state.guides[i] = guide; else state.guides.push(guide);
   await db.put('guides', guide);
+  changed('guides');
   return guide;
 }
 
 export async function deleteGuide(id) {
   state.guides = state.guides.filter(g => g.id !== id);
   await db.del('guides', id);
+  await markDeleted('guides', id);
+  changed('guides');
 }
 
 /* ---- backup (pasted text and the Catechism text are not in it: see exportTexts) ---- */
@@ -265,9 +367,6 @@ export async function exportAll() {
     settings: Object.fromEntries(Object.entries(state.settings).filter(([k]) => !SECRET.has(k))),
   };
 }
-
-/** The keys never leave the device: not in a backup, not taken from one. */
-const SECRET = new Set(['apiKey', 'yvKey', 'aiKey']);
 
 /** Merge a backup in: newer copies win, nothing is deleted. Returns counts. */
 export async function importAll(data) {
@@ -296,15 +395,82 @@ export async function importAll(data) {
   }
   state.notes.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
   state.sermons.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (notes) changed('notes');
+  if (sermons) changed('sermons');
   return { notes, sermons };
 }
 
+/** Erases this device only: no deletion markers, so the other devices and the copy on the server keep everything. */
 export async function wipeAll() {
   for (const s of STORES) await db.clear(s);
   state.notes = [];
   state.sermons = [];
   state.settings = { ...DEFAULT_SETTINGS };
+  state.settingsAt = {};
   state.texts = {};
   state.catechism = null;
   state.guides = [];
+  state.deleted = { notes: {}, sermons: {}, texts: {}, guides: {}, catechism: '' };
 }
+
+/* ---- what came from another device (sync.js) ----
+   Written straight into the database and the in-memory state, without a
+   change event, so it is not sent back. Rows the other device deleted are
+   removed here too; the markers for them are kept in state.deleted. */
+
+/** Settings rows [{key, value, at}] from the other device: each one is newer than ours (sync.js decided). */
+export async function applyRemoteSettings(rows) {
+  for (const r of rows) {
+    if (!(r.key in DEFAULT_SETTINGS)) continue;
+    state.settings[r.key] = r.value;
+    state.settingsAt[r.key] = r.at || '';
+    await db.put('settings', { key: r.key, value: r.value, at: r.at || '' });
+  }
+}
+
+/** Notes or preparations: `put` rows replace ours (in place, so an open screen keeps its object), `remove` ids go. */
+export async function applyRemoteList(part, put, remove, deleted) {
+  const list = state[part];
+  for (const row of put) {
+    const mine = list.find(x => x.id === row.id);
+    if (mine) { for (const k of Object.keys(mine)) if (!(k in row)) delete mine[k]; Object.assign(mine, row); }
+    else list.push(row);
+    await db.put(part, mine || row);
+  }
+  for (const id of remove) {
+    const i = list.findIndex(x => x.id === id);
+    if (i >= 0) list.splice(i, 1);
+    await db.del(part, id);
+  }
+  if (part === 'notes') list.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
+  if (part === 'sermons') list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (part === 'guides') list.sort((a, b) => (a.loadedAt || '').localeCompare(b.loadedAt || ''));
+  if (deleted) { state.deleted[part] = deleted; await saveDeleted(); }
+}
+
+/** Pasted chapters from the other device. */
+export async function applyRemoteTexts(put, remove, deleted) {
+  for (const row of put) { await db.put('texts', row); indexText(row); }
+  for (const key of remove) { await db.del('texts', key); unindexText(key); }
+  if (deleted) { state.deleted.texts = deleted; await saveDeleted(); }
+}
+
+/** The Catechism text as the other device has it: loaded (meta and sections) or removed (null, with the time it was removed). */
+export async function applyRemoteCatechism(meta, sections, removedAt) {
+  if (meta && sections) {
+    await db.put('catechism', { key: 'text', value: sections });
+    await db.put('catechism', { key: 'meta', value: meta });
+    state.catechism = meta;
+    state.deleted.catechism = '';
+  } else {
+    await db.clear('catechism');
+    state.catechism = null;
+    state.deleted.catechism = removedAt || '';
+  }
+  await saveDeleted();
+}
+
+/** The sync store holds this device's sync settings (the code, what was last sent and seen) beside the deletion markers. */
+export function syncGet(key) { return db.get('sync', key).then(r => (r ? r.value : undefined)); }
+export function syncPut(key, value) { return db.put('sync', { key, value }); }
+export function syncDel(key) { return db.del('sync', key); }

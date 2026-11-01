@@ -10,6 +10,11 @@
  * The interface speaks English or Afrikaans (i18n.js). The switch sits in the
  * header on a phone and in the side menu on a PC, and under Settings; a change
  * redraws the open screen in the other language.
+ *
+ * #sync/<code> is the link a sync QR code or "Copy link" carries: it opens
+ * Settings and offers to join with that code (sync.js keeps the devices the
+ * same from then on). When a sync brings changes from another device, the
+ * open screen is redrawn, unless the person is typing in it.
  */
 import { $, $$, applyTheme, applyRead, syncThemeColor, toast } from './ui.js';
 import { load, state, saveSetting } from './store.js';
@@ -19,6 +24,7 @@ import * as Notes from './notes.js';
 import * as Prepare from './prepare.js';
 import * as Cat from './catechism.js';
 import * as Settings from './settings.js';
+import * as Sync from './sync.js';
 
 const TABS = {
   read: Reader.render,
@@ -31,6 +37,14 @@ const ORDER = Object.keys(TABS);
 
 function route() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  if (parts[0] === 'sync') {
+    // a scanned or pasted sync link: the code must not stay in the address bar or the history
+    const code = parts[1] || '';
+    history.replaceState(null, '', '#settings');
+    route();
+    if (code) Settings.joinSheet(code);
+    return;
+  }
   const tab = TABS[parts[0]] ? parts[0] : 'read';
   for (const b of $$('.tabs button')) {
     const on = b.dataset.tab === tab;
@@ -96,8 +110,28 @@ export async function switchLang(l) {
   toast(t('The app is now in English: the screens, the book names and Claude\'s suggestions.'));
 }
 
+/** Another device's changes have arrived: redraw the open screen, unless the person is in the middle of typing or of a preparation. */
+function onSynced(e) {
+  const parts = e.detail.parts || [];
+  if (parts.includes('settings')) {
+    applyRead(state.settings.readMode || 'book');
+    if ((state.settings.uiLang || 'en') !== lang()) applyLang(state.settings.uiLang || 'en');
+  }
+  const hash = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  const tab = TABS[hash[0]] ? hash[0] : 'read';
+  const typing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+  if (typing || $('.overlay')) return;
+  if (tab === 'read') return;                               // the reader keeps its place; the notes show on the next chapter
+  if (tab === 'prepare' && hash.length > 1) return;         // an open preparation is not pulled from under the person
+  if (tab === 'notes' && !parts.includes('notes')) return;
+  if (tab === 'catechism' && !parts.includes('catechism')) return;
+  if (tab === 'prepare' && !parts.some(p => p === 'sermons' || p === 'guides' || p === 'settings')) return;
+  route();
+}
+
 async function start() {
   await load();
+  await Sync.init();
   applyTheme(state.settings.theme || 'system');
   applyRead(state.settings.readMode || 'book');
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeColor);
@@ -109,6 +143,8 @@ async function start() {
   applyLang(state.settings.uiLang || 'en');
   window.addEventListener('hashchange', route);
   route();
+  document.addEventListener('sb-sync', onSynced);
+  Sync.start();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }

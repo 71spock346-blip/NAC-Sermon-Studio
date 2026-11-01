@@ -7,16 +7,18 @@
  * icons are fetched cache-first, since they are large and change rarely; the
  * Settings tab can fetch all of the texts once so the whole Bible is on the
  * device. Requests to API.Bible are not touched here: bible.js keeps those
- * chapters in IndexedDB for 30 days.
+ * chapters in IndexedDB for 30 days. Nor is the app's own sync server
+ * (/api/sync): its answers must always be fresh, so the browser goes to the
+ * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-10-31a';
+var VERSION = 'bible-2026-11-01a';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=21',
-  'src/app.js?v=21',
+  'styles.css?v=22',
+  'src/app.js?v=22',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -32,7 +34,10 @@ var SHELL = [
   'src/settings.js',
   'src/ai.js',
   'src/guides.js',
+  'src/sync.js',
+  'src/merge.js',
   'vendor/jspdf.umd.min.js?v=1',
+  'vendor/qrcode.mjs',
   'vendor/fonts/literata-latin-normal.woff2',
   'vendor/fonts/literata-latin-ext-normal.woff2',
   'data/kjv/index.json',
@@ -82,7 +87,9 @@ function store(req, res) {
 self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
-  if (new URL(req.url).origin !== self.location.origin) return;
+  var url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  if (/\/api\//.test(url.pathname)) return;
 
   if (CACHE_FIRST.test(req.url)) {
     e.respondWith(
