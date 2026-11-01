@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=24">
+<link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body class="help">
 <header class="top">
@@ -102,7 +102,9 @@ side by side: the Bible text, the title and message, the introduction, the main 
     yours.</li>
   <li><b>Step 4, main points:</b> the main points always come from the Divine Service Guide: the parts of its article,
     in its order, are main point 1, 2, 3 and so on. A preparation taken from the Guide starts with them (each marked
-    "Guide"), and <b>Take the main points from the Guide</b> fetches them again.</li>
+    "Guide"), and <b>Take the main points from the Guide</b> fetches them again. Under each point there is a box for
+    <b>your own thought</b> on it: a story, a picture, a question, something that struck you. Claude weaves it into
+    the sermon when it builds it (see "Suggest the sermon" below) and asks you first when something is unclear.</li>
   <li><b>Step 5, context:</b> like the Guide's Context box, the setting of the text, with the key words, the Catechism
     sections that quote the text, and cross references. Tick the Catechism sections to keep and choose what the sermon
     notes should carry for them: the full text of each section, the Catechism's own summary, or the number and title
@@ -110,9 +112,11 @@ side by side: the Bible text, the title and message, the introduction, the main 
   <li><b>Step 6, summary and conclusion:</b> the Guide's summary in a few short lines, what it asks of the
     congregation this week (the application), and the conclusion that leads to the altar.</li>
   <li><b>Step 7, illustrations and experiences:</b> a true experience, brought in from your notes or written here.</li>
-  <li>Save or print the <b>sermon notes</b> (everything, A4, in the same order as the steps) or the <b>cue card</b>
-    (one A5 page in large type). On a phone, "Share" sends the PDF to WhatsApp or e-mail. The headings on the notes
-    follow the language of the app.</li>
+  <li>Save or print the <b>sermon notes</b> (everything, A4, in the same order as the steps), <b>the sermon</b>
+    itself (the text alone, in reading order and in large clear type: the text word, the introduction, the main
+    points, the summary, the application and the conclusion, with the illustrations) or the <b>cue card</b> (one A5
+    page in large type). On a phone, "Share" sends the PDF to WhatsApp or e-mail. The headings on the notes follow
+    the language of the app.</li>
   <li><b>Step 8, after the service:</b> a short reflection. It is saved with the preparation.</li>
 </ol>
 <p>Everything saves as you type. Use the status (Draft, Ready, Held) to keep the list tidy. To start a part again,
@@ -164,7 +168,15 @@ Guide and a few rand for a set of suggestions, and the key stays on your device,
     illustrations go under step 7); on a main point it fills the box of that point, with Undo; "Use all" fills all
     the points in the Guide's order, asking first when yours are not empty. Without the Guide's article Claude
     proposes no main points and says they need the Guide, unless you have written them yourself (then it fills them
-    out) or the service is a funeral or a wedding, which the Guide has no article for.</li>
+    out) or the service is a funeral or a wedding, which the Guide has no article for.
+    <b>Your own thoughts:</b> where you have written a thought under a main point, Claude reads your thoughts
+    first, before it builds anything, to see where each one fits. Where a thought is unclear, or could go two ways,
+    or Claude needs a detail to use it well, it asks you in a short sheet; answer in a few words and tap "Build the
+    sermon", or "Not now" to answer later (the question stays under the point, with a box for your answer). The
+    sermon is then built with every thought woven in, in your words where they are good, and the outline says under
+    "Your thoughts" where each one went and how. Your answers are kept with the preparation, so a thought is only
+    read again when you change it or answer something. <b>Save as PDF</b> and <b>Print</b> beside "Suggest again"
+    give the whole outline as one sermon to read, with each illustration under the point it serves.</li>
   <li><b>Change the words first:</b> tap any suggestion (a piece of the breakdown, an answer, a part of the
     outline), or the pencil beside it, and its words open in a box to change. <b>Use</b> then puts in your words,
     and "Done" closes the box. What you change is kept with the preparation and goes into the study sheet and the
@@ -320,7 +332,10 @@ samevatting.</p>
     joune.</li>
   <li><b>Stap 4, hoofpunte:</b> die hoofpunte kom altyd uit die Handleiding vir Godsdienste: die dele van sy
     artikel, in sy volgorde, is hoofpunt 1, 2, 3 en so aan. 'n Voorbereiding wat uit die Handleiding geneem is, begin
-    met hulle (elk gemerk "Handleiding"), en <b>Neem die hoofpunte uit die Handleiding</b> haal hulle weer.</li>
+    met hulle (elk gemerk "Handleiding"), en <b>Neem die hoofpunte uit die Handleiding</b> haal hulle weer. Onder elke
+    punt is 'n boks vir <b>jou eie gedagte</b> daaroor: 'n verhaal, 'n beeld, 'n vraag, iets wat jou getref het.
+    Claude weef dit in die preek in wanneer dit die preek bou (sien "Stel die preek voor" hieronder) en vra jou eers
+    wanneer iets onduidelik is.</li>
   <li><b>Stap 5, agtergrond:</b> soos die Handleiding se Agtergrond-boks, die agtergrond van die teks, met die
     sleutelwoorde, die Kategismus-afdelings wat die teks aanhaal, en kruisverwysings. Merk die Kategismus-afdelings
     wat jy wil hou en kies wat die preeknotas vir hulle moet dra: die volledige teks van elke afdeling, die Kategismus
@@ -328,9 +343,11 @@ samevatting.</p>
   <li><b>Stap 6, samevatting en slot:</b> die Handleiding se samevatting in 'n paar kort reëls, wat dit hierdie week
     van die gemeente vra (die toepassing), en die slot wat na die altaar lei.</li>
   <li><b>Stap 7, illustrasies en ervarings:</b> 'n ware ervaring, uit jou notas ingebring of hier geskryf.</li>
-  <li>Stoor of druk die <b>preeknotas</b> (alles, A4, in dieselfde volgorde as die stappe) of die <b>preekkaart</b>
-    (een A5-bladsy in groot letters). Op 'n foon stuur "Deel" die PDF na WhatsApp of e-pos. Die opskrifte op die notas
-    volg die taal van die app.</li>
+  <li>Stoor of druk die <b>preeknotas</b> (alles, A4, in dieselfde volgorde as die stappe), <b>die preek</b> self
+    (net die teks, in leesvolgorde en in groot duidelike letters: die tekswoord, die inleiding, die hoofpunte, die
+    samevatting, die toepassing en die slot, met die illustrasies) of die <b>preekkaart</b> (een A5-bladsy in groot
+    letters). Op 'n foon stuur "Deel" die PDF na WhatsApp of e-pos. Die opskrifte op die notas volg die taal van die
+    app.</li>
   <li><b>Stap 8, ná die godsdiens:</b> 'n kort terugblik. Dit word saam met die voorbereiding gestoor.</li>
 </ol>
 <p>Alles stoor terwyl jy tik. Gebruik die status (Konsep, Gereed, Gehou) om die lys netjies te hou. Om 'n deel weer te
@@ -386,7 +403,16 @@ rugsteun.</p>
     vul al die punte in die Handleiding se volgorde in, en vra eers wanneer joune nie leeg is nie. Sonder die
     Handleiding se artikel stel Claude geen hoofpunte voor nie en sê dat hulle die Handleiding nodig het, tensy jy
     hulle self geskryf het (dan vul dit hulle uit) of die diens 'n begrafnis of 'n troue is, waarvoor die Handleiding
-    geen artikel het nie.</li>
+    geen artikel het nie.
+    <b>Jou eie gedagtes:</b> waar jy 'n gedagte onder 'n hoofpunt geskryf het, lees Claude eers jou gedagtes,
+    voordat dit enigiets bou, om te sien waar elkeen pas. Waar 'n gedagte onduidelik is, of twee kante toe kan gaan,
+    of Claude 'n besonderheid nodig het om dit goed te gebruik, vra dit jou in 'n kort blad; antwoord in 'n paar
+    woorde en tik op "Bou die preek", of op "Nie nou nie" om later te antwoord (die vraag bly onder die punt, met 'n
+    boks vir jou antwoord). Die preek word dan gebou met elke gedagte ingeweef, in jou woorde waar hulle goed is, en
+    die preekskets sê onder "Jou gedagtes" waar elkeen heen is en hoe. Jou antwoorde word saam met die voorbereiding
+    gehou, dus word 'n gedagte net weer gelees wanneer jy dit verander of iets antwoord. <b>Stoor as PDF</b> en
+    <b>Druk</b> langs "Stel weer voor" gee die hele preekskets as een preek om te lees, met elke illustrasie onder
+    die punt wat dit dien.</li>
   <li><b>Verander eers die woorde:</b> tik op enige voorstel ('n stuk van die ontleding, 'n antwoord, 'n deel van
     die preekskets), of op die potlood langsaan, en sy woorde maak in 'n boks oop om te verander. <b>Gebruik</b> sit
     dan jou woorde in, en "Klaar" maak die boks toe. Wat jy verander, word saam met die voorbereiding gehou en gaan in
