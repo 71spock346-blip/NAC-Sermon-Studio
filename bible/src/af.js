@@ -343,7 +343,7 @@ export const AF = {
 
   // printing
   "Print or save": "Druk of stoor",
-  "The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue card is one page in large type for the pulpit.": "Die preeknotas dra alles hierbo, in die volgorde van die stappe. Die preek is net die teks, in leesvolgorde en in groot duidelike letters: die tekswoord, die inleiding, die hoofpunte, die samevatting, die toepassing en die slot, met die illustrasies. Die preekkaart is een bladsy in groot letters vir die kansel.",
+  "The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue cards are for the pulpit, in large type: each main point with its main thoughts under it, and your own thought on the point in blue.": "Die preeknotas dra alles hierbo, in die volgorde van die stappe. Die preek is net die teks, in leesvolgorde en in groot duidelike letters: die tekswoord, die inleiding, die hoofpunte, die samevatting, die toepassing en die slot, met die illustrasies. Die preekkaarte is vir die kansel, in groot letters: elke hoofpunt met sy hoofgedagtes daaronder, en jou eie gedagte oor die punt in blou.",
   // the sermon itself as a PDF (pdf.js sermonTextPdf)
   "There is nothing to print yet: write the introduction, the main points, the application or the conclusion first.": "Daar is nog niks om te druk nie: skryf eers die inleiding, die hoofpunte, die toepassing of die slot.",
   "Illustration: ": "Illustrasie: ",
@@ -410,6 +410,7 @@ export const AF = {
   // ---- the printed notes (pdf.js)
   "Sermon notes": "Preeknotas",
   "Cue card": "Preekkaart",
+  "Cue cards": "Preekkaarte",
   "Main points, from the Divine Service Guide": "Hoofpunte, uit die Handleiding vir Godsdienste",
   "From the Divine Service Guide": "Uit die Handleiding vir Godsdienste",
   "In short: ": "Kortliks: ",

@@ -10,7 +10,7 @@
  * application, the conclusion); then the person's own 7 illustrations and
  * experiences, and 8 a reflection after the service. Everything saves as it
  * is typed. Two printed outputs come from it, in the same order: the full
- * sermon notes and a one-page cue card.
+ * sermon notes and cue cards for the pulpit.
  *
  * Helpers sit alongside the form. A loaded Divine Service Guide (guides.js)
  * fills each step from its part of the article in one tap and keeps the
@@ -42,7 +42,7 @@
  * outline says where each one went.
  *
  * Three printed outputs come from a preparation (pdf.js): the sermon notes
- * (everything, in the order of the steps), the cue card, and the sermon
+ * (everything, in the order of the steps), the cue cards, and the sermon
  * itself in reading order, either as it stands in the boxes or, from the
  * outline's panel, as Claude built it.
  */
@@ -1104,7 +1104,7 @@ function renderEditor(root, s) {
   ]));
 
   // ---- output
-  container.append(step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue card is one page in large type for the pulpit.')));
+  container.append(step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue cards are for the pulpit, in large type: each main point with its main thoughts under it, and your own thought on the point in blue.')));
   async function run(make, how) {
     try {
       await Cat.loadText().catch(() => false);
@@ -1124,7 +1124,7 @@ function renderEditor(root, s) {
   container.append(el('div', { class: 'outputs' }, [
     outRow(t('Sermon notes'), Pdf.sermonPdf, true),
     outRow(t('The sermon'), Pdf.sermonTextPdf, true),
-    outRow(t('Cue card'), Pdf.cueCardPdf, false),
+    outRow(t('Cue cards'), Pdf.cueCardPdf, false),
   ]));
 
   // ---- 8. reflection

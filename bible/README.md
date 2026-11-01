@@ -135,8 +135,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   `guides.js upgrade` moves the Summary and Context of a preparation made before
   November 2026 out of "Notes from the Guide" into steps 6 and 5 while those notes are
   still the Guide's own words.
-- **PDF.** `src/pdf.js` draws the sermon notes (A4, in the order of the steps) and the
-  cue card (A5 landscape) with the vendored jsPDF.
+- **PDF.** `src/pdf.js` draws the sermon notes (A4, in the order of the steps), the sermon
+  itself and the cue cards (A5 landscape: each main point with its main thoughts under it, picked
+  by `mainThoughts`, and the minister's own thought in blue; a point never splits over two cards)
+  with the vendored jsPDF.
 
 ## Files
 
