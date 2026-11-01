@@ -721,6 +721,7 @@ export const AF = {
   "Catechism text|part": "Kategismus-teks",
   "Guides|part": "Handleidings",
   "Another device kept writing at the same time. Try again in a moment.": "'n Ander toestel het terselfdertyd aanhou skryf. Probeer oor 'n oomblik weer.",
+  "The server sent a copy without saying which one it is. Try again in a moment.": "Die bediener het 'n kopie gestuur sonder om te sê watter een dit is. Probeer oor 'n oomblik weer.",
   "No connection. The app syncs when it is back.": "Geen verbinding. Die app sinkroniseer wanneer dit terug is.",
   "The copy on the server was deleted from another device, so sync is off here. Everything on this device stays.": "Die kopie op die bediener is van 'n ander toestel af geskrap, dus is sinkronisasie hier af. Alles op hierdie toestel bly.",
 
