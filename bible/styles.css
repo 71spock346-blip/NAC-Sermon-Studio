@@ -446,6 +446,12 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .talk-where { margin: 0 0 2px; }
 .talk-thought { font-family: var(--serif); font-style: italic; font-size: 15.5px; color: var(--ink-2); margin: 0 0 6px; }
 .talk-ask textarea { margin-top: 6px; }
+/* one thought into its own point (prepare.js weave, weavePanel): the button under the thought, the new text under it */
+.points .point .weave-row { margin-top: 8px; }
+.ai-panel.weave { margin-top: 8px; padding: 2px 12px 8px; background: var(--surface); }
+.ai-panel.weave .ai-sec { margin: 6px 0 0; }
+.weave-stale { margin: 2px 0 4px; }
+.weave-meta { margin: 4px 0 0; }
 /* what is a title on the printed notes (the sermon title, the message, each main point) is bold while it is typed */
 #tab-prepare textarea.oneline { font-weight: 600; }
 #tab-prepare label.people textarea.oneline { font-weight: 400; }   /* the line about the people is not a title */

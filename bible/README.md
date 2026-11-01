@@ -79,7 +79,9 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   (`points[i].thought`); before the build, `readThoughts` has Claude read those thoughts and ask, in a sheet, about any
   that is unclear (the questions and answers stay under the point as `talk`, and `read` marks what Claude has seen, so
   only a changed thought is read again), then the outline weaves every thought in and reports where each went
-  (`thoughts`). `pdf.js sermonTextPdf` prints the sermon itself in reading order, from the preparation's boxes or from
+  (`thoughts`). "Weave my thought into this point" under a point asks `weaveThought` for that point alone: its text
+  comes back with the thought in it (or a question first, kept in `talk`), waits under the point as `weave` and goes
+  in with "Use" (undoable); the rest of the sermon is left alone. `pdf.js sermonTextPdf` prints the sermon itself in reading order, from the preparation's boxes or from
   the outline (each illustration under the point it serves), beside the sermon notes and the cue card.
   The main points always come from the Guide: the parts of
   its article, in its order, are main point 1, 2, 3 and so on (`guides.js mainPoints`); a preparation taken from the

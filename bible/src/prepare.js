@@ -39,7 +39,10 @@
  * Claude reads those thoughts (ai.js readThoughts) and, where one is unclear,
  * asks about it in a sheet; the questions and answers stay under the point
  * (p.talk), the sermon is then built with every thought woven in, and the
- * outline says where each one went.
+ * outline says where each one went. "Weave my thought into this point"
+ * under a point does the same for that point alone (ai.js weaveThought): the
+ * point's text comes back with the thought in it, under the point, and "Use"
+ * puts it in place of what is there (undoable); the rest of the sermon stays.
  *
  * Three printed outputs come from a preparation (pdf.js): the sermon notes
  * (everything, in the order of the steps), the cue cards, and the sermon
@@ -586,7 +589,7 @@ function renderEditor(root, s) {
   container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }));
 
   // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
-  container.append(step(4, t('Main points'), t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it: Claude weaves it into the sermon when it builds it, and asks you first when something is unclear.'),
+  container.append(step(4, t('Main points'), t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear.'),
     () => clearStep(4, t('the main points'), [], {
       clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
       restore: kept => { s.points = kept; renderPoints(); },
@@ -665,11 +668,17 @@ function renderEditor(root, s) {
     if (!go) toast(t('The questions are kept under the main points. Answer them when you like, then tap "Suggest the sermon" again.'));
     return go;
   }
-  /** The sheet with Claude's questions about the thoughts, each with a box for the answer. Resolves true to build the sermon now. */
-  function askThoughts(asks) {
+  /**
+   * The sheet with Claude's questions about the thoughts, each with a box for
+   * the answer. Resolves true to go on now: to build the sermon, or with
+   * `one`, to weave the one thought into its point.
+   */
+  function askThoughts(asks, { one = false } = {}) {
     return new Promise(resolve => {
-      const sh = sheet(t('Claude asks about your thoughts'), { sticky: true, onclose: () => resolve(false) });
-      sh.body.append(el('p', { class: 'small', text: t('Answer in a few words, as you would say it to a friend. Claude then builds the sermon with your thoughts in it. A question you leave open stays under its main point.') }));
+      const sh = sheet(one ? t('Claude asks about your thought') : t('Claude asks about your thoughts'), { sticky: true, onclose: () => resolve(false) });
+      sh.body.append(el('p', { class: 'small', text: one
+        ? t('Answer in a few words, as you would say it to a friend. Claude then weaves your thought into this point. A question you leave open stays under the point.')
+        : t('Answer in a few words, as you would say it to a friend. Claude then builds the sermon with your thoughts in it. A question you leave open stays under its main point.') }));
       for (const { p, i, e } of asks) {
         const box = el('textarea', { rows: 2, placeholder: t('Your answer'), 'aria-label': t('Your answer') });
         box.value = e.a || '';
@@ -683,7 +692,7 @@ function renderEditor(root, s) {
       }
       sh.body.append(el('div', { class: 'row end' }, [
         el('button', { class: 'btn ghost', type: 'button', text: t('Not now'), onclick: () => sh.close() }),
-        el('button', { class: 'btn', type: 'button', text: t('Build the sermon'), onclick: () => { resolve(true); sh.close(true); } }),
+        el('button', { class: 'btn', type: 'button', text: one ? t('Weave it in') : t('Build the sermon'), onclick: () => { resolve(true); sh.close(true); } }),
       ]));
       const first = sh.body.querySelector('textarea');
       if (first && !isTouch()) setTimeout(() => first.focus(), 30);
@@ -767,12 +776,18 @@ function renderEditor(root, s) {
       const talk = el('div', { class: 'talk' });
       const drawTalk = () => { clear(talk); for (const e of p.talk || []) if (e && e.q) talk.append(talkRow(p, e, drawTalk)); };
       drawTalk();
+      // this thought into this point only, by Claude; what comes back waits under the point for "Use"
+      const weaveBtn = el('button', { class: 'btn small ghost ai-btn weave-btn', type: 'button', onclick: () => weave(p, thought) }, [sparkle(), p.weave ? t('Weave again') : t('Weave my thought into this point')]);
+      const woven = p.weave ? weavePanel(p, i) : null;
+      if (woven) thought.addEventListener('input', woven.stale);
       pointsBox.append(el('div', { class: 'point' }, [
         el('div', { class: 'row line' }, [el('span', { class: 'step-n small', text: i + 1 }), head, mark,
           el('button', { class: 'icon del', type: 'button', 'aria-label': t('Remove this point'), text: '✕', onclick: () => { s.points.splice(i, 1); touch(); renderPoints(); } })]),
         body,
         el('label', { class: 'f thought' }, [title(t('My thought on this point')), thought]),
         talk,
+        el('div', { class: 'row weave-row' }, [weaveBtn]),
+        woven ? woven.node : null,
       ]));
     });
     // the Guide's main points, straight from its article, no Claude needed
@@ -786,6 +801,88 @@ function renderEditor(root, s) {
   }
   renderPoints();
   container.append(pointsBox);
+  /**
+   * Claude weaves the person's thought on one main point into that point
+   * only (ai.js weaveThought). Where the thought is unclear, Claude asks
+   * first, in the same sheet as for the whole sermon; the answer is kept
+   * under the point and the weave runs again with it. What comes back waits
+   * under the point (p.weave) until "Use" or "Remove". `box` is the
+   * thought's box, focused when it is still empty.
+   */
+  async function weave(p, box) {
+    const i = s.points.indexOf(p);
+    if (i < 0) return;
+    if (!(p.thought || '').trim()) { toast(t('Write your thought on this point first.'), true); if (box) toEnd(box); return; }
+    if (!AI.ready()) { Guides.noKey(); return; }
+    const link = Guides.findService(s);
+    const from = { service: link ? link.service : null, guideTitle: link ? link.guide.title : '' };
+    const ctrl = new AbortController();
+    const b = busy(t('Asking Claude'), () => ctrl.abort());
+    b.say(t('Claude is weaving your thought into main point {n}. Only this point is written again. About half a minute.', { n: i + 1 }));
+    let r;
+    try {
+      r = await AI.weaveThought(s, i, { ...from, signal: ctrl.signal });
+    } catch (e) {
+      if (e && e.name === 'AbortError') { b.done(); return; }
+      b.fail(e.message || t('Claude could not answer.'));
+      return;
+    }
+    if (!r.clear && !r.question) { b.fail(t('Claude could not answer.')); return; }
+    b.done();
+    p.talk = (p.talk || []).filter(e => e && (e.a || '').trim());   // an open question is Claude's to ask again, or to let go
+    if (!r.clear) {
+      const e = { q: r.question, a: '' };
+      p.talk.push(e);
+      p.read = thoughtKey(p);
+      await saveSermon(s);
+      renderPoints();
+      const go = await askThoughts([{ p, i, e }], { one: true });
+      p.read = thoughtKey(p);
+      await saveSermon(s);
+      renderPoints();
+      if (go) { weave(p); return; }
+      toast(t('The question is kept under the point. Answer it when you like, then tap "Weave my thought into this point" again.'));
+      return;
+    }
+    p.weave = { at: r.at, model: r.model, cost: r.cost, body: r.body, how: r.how, note: r.note, thought: norm(p.thought) };
+    p.read = thoughtKey(p);   // Claude has seen this thought, so "Suggest the sermon" does not read it again
+    await saveSermon(s);
+    renderPoints();
+    toast(t('Your thought is woven into main point {n}. Read it under the point, and tap "Use" to put it in.', { n: i + 1 }));
+  }
+  /**
+   * What Claude made of the thought on point i: the point's text with the
+   * thought in it (editable in place, like every suggestion), where the
+   * thought went, Use and Remove. `stale` shows a line when the thought has
+   * changed since; it runs as the thought is typed.
+   */
+  function weavePanel(p, i) {
+    const w = p.weave;
+    const remove = el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => {
+      delete p.weave; touch(); renderPoints();
+      toast(t('Suggestion removed.'), false, () => { p.weave = w; touch(); renderPoints(); });
+    } });
+    const changed = el('p', { class: 'small ai-note weave-stale', text: t('Your thought has changed since. Tap "Weave again" to weave in the new words.') });
+    const stale = () => { changed.hidden = norm(p.thought) === w.thought; };
+    stale();
+    const node = el('div', { class: 'ai-panel weave' }, [el('div', { class: 'ai-sec' }, [
+      el('div', { class: 'row line ai-sec-head' }, [el('h4', { text: t('Main point {n} with your thought', { n: i + 1 }) }), el('span', { class: 'grow' }), remove]),
+      changed,
+      w.note ? el('p', { class: 'small ai-note', text: w.note }) : null,
+      item('', () => w.body, () => useWeave(p), null, () => (w.how ? t('Where it went: ') + w.how : ''), { on: w, body: 'body' }),
+      el('p', { class: 'muted small weave-meta', text: t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(w.at), model: AI.modelLabel(w.model), who: '', cost: w.cost ? ', ' + AI.fmtCost(w.cost) : '' }) }),
+    ])]);
+    return { node, stale };
+  }
+  /** The woven point in place of the point's text; Undo brings both back. */
+  function useWeave(p) {
+    const w = p.weave, old = p.body;
+    if (!w) return;
+    p.body = w.body;
+    delete p.weave;
+    touch(); renderPoints();
+    toast(t('Main point {n} now carries your thought.', { n: s.points.indexOf(p) + 1 }), false, () => { p.body = old; p.weave = w; touch(); renderPoints(); });
+  }
   /** One question Claude asked about a thought, with the box for the answer; the answer is kept with the thought and goes along to the next request. */
   function talkRow(p, e, redraw) {
     const ans = el('textarea', { rows: 1, placeholder: t('Your answer'), 'aria-label': t('Your answer') });

@@ -271,7 +271,7 @@ export const AF = {
 
   // step 4: the main points
   "Main points": "Hoofpunte",
-  "The parts of the Guide's article, each under its own heading, are main point 1, 2, 3, in the Guide's order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it: Claude weaves it into the sermon when it builds it, and asks you first when something is unclear.": "Die dele van die Handleiding se artikel, elk onder sy eie opskrif, is hoofpunt 1, 2, 3, in die Handleiding se volgorde. Elke punt staan op die teks. Eenvoudige woorde, kort sinne. Onder elke punt kan jy jou eie gedagte daaroor skryf: Claude weef dit in die preek in wanneer dit die preek bou, en vra jou eers wanneer iets onduidelik is.",
+  "The parts of the Guide's article, each under its own heading, are main point 1, 2, 3, in the Guide's order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. \"Weave my thought into this point\" puts it into that point only and leaves the rest as it is; \"Suggest the sermon\" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear.": "Die dele van die Handleiding se artikel, elk onder sy eie opskrif, is hoofpunt 1, 2, 3, in die Handleiding se volgorde. Elke punt staan op die teks. Eenvoudige woorde, kort sinne. Onder elke punt kan jy jou eie gedagte daaroor skryf. \"Weef my gedagte in hierdie punt in\" sit dit net in daardie punt en laat die res soos dit is; \"Stel die preek voor\" weef al jou gedagtes in die hele preek in. Claude vra jou eers wanneer iets onduidelik is.",
   // the person's own thought on a point, and Claude's questions about it (prepare.js talkRow, askThoughts; ai.js readThoughts)
   "My thought on this point": "My gedagte oor hierdie punt",
   "A story, a picture, a question, something that struck you. Claude weaves it into the sermon, and asks if something is unclear.": "'n Verhaal, 'n beeld, 'n vraag, iets wat jou getref het. Claude weef dit in die preek in, en vra as iets onduidelik is.",
@@ -285,6 +285,20 @@ export const AF = {
   "Claude asks: ": "Claude vra: ",
   "Not now": "Nie nou nie",
   "Build the sermon": "Bou die preek",
+  // one thought into its own point only (prepare.js weave, weavePanel; ai.js weaveThought)
+  "Weave my thought into this point": "Weef my gedagte in hierdie punt in",
+  "Weave again": "Weef weer in",
+  "Write your thought on this point first.": "Skryf eers jou gedagte oor hierdie punt.",
+  "Claude is weaving your thought into main point {n}. Only this point is written again. About half a minute.": "Claude weef jou gedagte in hoofpunt {n} in. Net hierdie punt word oorgeskryf. Omtrent 'n halwe minuut.",
+  "Claude asks about your thought": "Claude vra oor jou gedagte",
+  "Answer in a few words, as you would say it to a friend. Claude then weaves your thought into this point. A question you leave open stays under the point.": "Antwoord in 'n paar woorde, soos jy dit vir 'n vriend sou sê. Claude weef dan jou gedagte in hierdie punt in. 'n Vraag wat jy oop laat, bly onder die punt.",
+  "Weave it in": "Weef dit in",
+  "The question is kept under the point. Answer it when you like, then tap \"Weave my thought into this point\" again.": "Die vraag word onder die punt gehou. Antwoord dit wanneer jy wil, en tik dan weer op \"Weef my gedagte in hierdie punt in\".",
+  "Your thought is woven into main point {n}. Read it under the point, and tap \"Use\" to put it in.": "Jou gedagte is in hoofpunt {n} ingeweef. Lees dit onder die punt, en tik op \"Gebruik\" om dit in te sit.",
+  "Main point {n} with your thought": "Hoofpunt {n} met jou gedagte",
+  "Your thought has changed since. Tap \"Weave again\" to weave in the new words.": "Jou gedagte het intussen verander. Tik op \"Weef weer in\" om die nuwe woorde in te weef.",
+  "Main point {n} now carries your thought.": "Hoofpunt {n} dra nou jou gedagte.",
+  "Suggestion removed.": "Voorstel verwyder.",
   "The questions are kept under the main points. Answer them when you like, then tap \"Suggest the sermon\" again.": "Die vrae word onder die hoofpunte gehou. Antwoord hulle wanneer jy wil, en tik dan weer op \"Stel die preek voor\".",
   "Claude is building the sermon from the text, the message, the Guide's main points, your notes and the Catechism sections, for {who}, with your thoughts on the main points woven in. This takes about a minute.": "Claude bou die preek uit die teks, die boodskap, die Handleiding se hoofpunte, jou notas en die Kategismus-afdelings, vir {who}, met jou gedagtes oor die hoofpunte ingeweef. Dit neem omtrent 'n minuut.",
   "The outline is ready, with your thoughts woven in. Tap \"Use\" on the parts to keep.": "Die preekskets is gereed, met jou gedagtes ingeweef. Tik op \"Gebruik\" by die dele wat jy wil hou.",

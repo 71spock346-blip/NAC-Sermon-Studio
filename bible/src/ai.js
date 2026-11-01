@@ -18,6 +18,9 @@
  *   readThoughts(s, …) before the sermon is built: Claude reads those
  *                     thoughts, says where each would go, and asks the
  *                     minister where one is unclear
+ *   weaveThought(s, i, …) one thought into its own main point only: that
+ *                     point's text again with the thought in it, or first a
+ *                     question when the thought is unclear
  *
  * One rule stands over both: the main points of the sermon come from the
  * Divine Service Guide, never from Claude. The parts of the Guide's article,
@@ -997,6 +1000,95 @@ function tidyThoughts(items, list, pick) {
     out.push({ i: th.i, n: th.i + 1, heading: str(th.p.heading), thought: str(th.p.thought), ...pick(x) });
   }
   return out.sort((a, b) => a.i - b.i);
+}
+
+/* ------------------------------------------------- one thought into its own main point */
+
+const WEAVE_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['clear', 'question', 'body', 'how', 'note'],
+  properties: {
+    clear: { type: 'boolean', description: 'True when the thought is clear enough to weave in well; false when a question must come first' },
+    question: { type: 'string', description: 'When "clear" is false: one short, plain question to the minister, the one that matters most; else empty' },
+    body: { type: 'string', description: 'When "clear" is true: the text of this main point with his thought woven in, ready to speak, without the heading; else empty' },
+    how: { type: 'string', description: 'When "clear" is true: where in the point his thought now stands and how, in one or two plain sentences; else empty' },
+    note: { type: 'string', description: 'Anything else the minister should know; else empty' },
+  },
+};
+
+function weaveSystem(lang, humour) {
+  return `You help a minister of the New Apostolic Church prepare an unscripted sermon for a divine service. He has written his own thought on one of the main points, and he wants it woven into that point. Only that point is written now: the rest of the sermon stays as he has it.
+
+Rules:
+- Write the text of THIS MAIN POINT again, with his thought (under HIS THOUGHT ON THIS POINT) woven in where it serves the point best: as the picture that opens it, as the example that makes it visible, as what it asks of us. Use his own words where they are good.
+- Keep his direction and his wording: what he has written under the point stays, unless a sentence must change for the thought to fit. Where the point still carries the Guide's own words, as it was filled in, write it in plain words for these people. Where nothing is written under it yet, write it in three to six short sentences: what the Guide says under this heading, what the text says there, what it asks of us, with his thought in it.
+- The heading stays as it is: the main points come from the Church's Divine Service Guide, and a thought enriches a point, it does not replace one. Write only the text under the heading, with no heading inside it.
+- Stay on this point. The other main points are given so you see the whole: do not take in what belongs to them, and do not write the introduction, the application or the conclusion.
+- Stay faithful to the Bible text, to the message of the service and to the doctrine of the New Apostolic Church.
+- Tell his story only as he told it: add no names, places, words or endings he did not give. Where you need such a detail to use the thought well, or the thought could go two ways that would change the point, set "clear" to false, ask him one short, plain question (the one that matters most) and leave "body" and "how" empty. Where he has answered a question of yours, build on his answer and do not ask it again. Most thoughts are clear: then set "clear" to true and write the point.
+- In "how", say in one or two plain sentences where in the point his thought now stands and how, so he finds it.
+- Never judge his thought or his wording; he knows his people.
+- Write so he could speak it as it stands: in the voice of a minister speaking to his congregation, "we" and "us". About as long as the point was, a little longer for the thought; never a whole sermon.
+
+${voiceRules(lang)}
+
+${peopleRules()}
+
+${humourRules(humour)}
+
+Put nothing outside the JSON fields.`;
+}
+
+/**
+ * The minister's thought on one main point (s.points[i].thought), with what
+ * Claude asked about it and his answers, woven into that point only: the
+ * other points, the introduction, the application and the conclusion are
+ * given for the whole picture and left alone. Resolves to {clear, body, how,
+ * question, note, …}: with `clear` the point's new text and where the thought
+ * went; else one question to ask him first.
+ */
+export async function weaveThought(s, i, { service = null, guideTitle = '', signal, onProgress } = {}) {
+  const lang = langOf(s);
+  const humour = humourOf(s);
+  const p = (s.points || [])[i];
+  if (!p || !str(p.thought)) throw new Error(t('Write your thought on this point first.'));
+  const where = pointAnchors(s, service);
+  const anchor = where.anchors.find(x => x.n === p.guide) || where.anchors.find(x => norm(x.heading) && norm(x.heading) === norm(p.heading)) || null;
+  const parts = [servicePart(s), peoplePart(s, lang), preacherPart()].filter(Boolean);
+  if (s.text) parts.push(`THE TEXT\n${s.text}`);
+  parts.push(messagePart(s, service, guideTitle));
+  parts.push(pointsPart(where));
+  // the rest of the sermon as he has it, so this point does not take what belongs elsewhere
+  const clip = v => (str(v).length > 400 ? str(v).slice(0, 400) + ' …' : str(v));
+  const others = (s.points || []).map((x, k) => (k === i || !x || !(str(x.heading) || str(x.body)) ? '' : `Main point ${k + 1}: ${str(x.heading)}${str(x.body) ? ' – ' + clip(x.body) : ''}`)).filter(Boolean);
+  const draft = [s.intro ? `Introduction: ${clip(s.intro)}` : '', ...others, s.application ? `Application: ${clip(s.application)}` : '', s.conclusion ? `Conclusion: ${clip(s.conclusion)}` : ''].filter(Boolean);
+  if (draft.length) parts.push('THE REST OF HIS SERMON AS HE HAS IT (for the whole picture; leave it alone)\n' + draft.join('\n'));
+  const untouched = anchor && str(p.body) && norm(p.body) === norm(anchor.body);
+  const on = anchor ? `main point ${anchor.n}, "${anchor.heading}"` : `his main point ${i + 1}${str(p.heading) ? `, "${str(p.heading)}"` : ''}`;
+  parts.push(`THIS MAIN POINT (${on}; the only part you write now)\nHeading: ${str(p.heading) || (anchor ? anchor.heading : '')}\n`
+    + (str(p.body) ? `What he has under it${untouched ? ' (still the Guide\'s own words, as it was filled in)' : ''}:\n${str(p.body)}` : 'Nothing is written under it yet.'));
+  const talk = [];
+  for (const e of p.talk || []) {
+    if (!e || !str(e.q)) continue;
+    talk.push(`You asked him: ${str(e.q)}`, str(e.a) ? `He answered: ${str(e.a)}` : 'He has not answered that yet.');
+  }
+  parts.push(`HIS THOUGHT ON THIS POINT\n${str(p.thought)}${talk.length ? '\n' + talk.join('\n') : ''}`);
+  parts.push('THE TASK\nWeave his thought into this main point, as the rules say. Only this point.');
+
+  const r = await run({
+    system: weaveSystem(lang, humour),
+    content: [{ type: 'text', text: parts.join('\n\n\n') }],
+    schema: WEAVE_SCHEMA, effort: 'medium', maxTokens: 4000, signal, onProgress,
+  });
+  const d = r.data || {};
+  const body = str(d.body);
+  const clear = d.clear !== false && !!body;
+  return {
+    at: new Date().toISOString(), model: r.model, lang,
+    cost: cost(r.usage, r.model),
+    clear, body: clear ? body : '', how: clear ? str(d.how) : '',
+    question: clear ? '' : str(d.question), note: str(d.note),
+  };
 }
 
 /* ---------------------------------------------------------------- the Guide, piece by piece */
