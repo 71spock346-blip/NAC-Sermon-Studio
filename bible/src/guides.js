@@ -8,9 +8,13 @@
  * Catechism, so it is not in the backup file and never on the public site.
  *
  * From here the Prepare tab lists the services of the loaded Guides, starts a
- * preparation from one (text word, message, notes and main points filled in),
- * attaches a service to a preparation made in the reader, and shows the
- * article under step 2 so the Guide is at hand while the sermon takes shape.
+ * preparation from one, attaches a service to a preparation made in the
+ * reader, and shows the article under step 2 so the Guide is at hand while the
+ * sermon takes shape. The steps of a preparation follow the article's own
+ * order, and each part of the article fills its own step: the Bible text
+ * step 1, the title and message step 2, the main points step 4, the Context
+ * box step 5 and the Summary step 6 (the introduction is shown under step 3
+ * to read beside the person's own).
  *
  * The main points of a sermon always come from the Guide: the parts of the
  * article, each under its own heading, are main point 1, 2, 3 and so on, in
@@ -72,12 +76,41 @@ export function preparationsFor(guide, i) {
   return state.sermons.filter(s => s.guideLink && s.guideLink.guideId === guide.id && s.guideLink.i === i);
 }
 
-/** What goes into "Notes from the Guide": the Summary points and the Context box. */
-function notesFrom(service) {
+/** The Guide's Summary as it goes into the Summary box under step 6: one point per line. */
+export function summaryText(service) {
+  return ((service && service.summary) || []).map(x => `• ${x}`).join('\n');
+}
+
+/**
+ * What "Notes from the Guide" held before the Context box and the Summary had
+ * steps of their own (November 2026): the Summary points, then the Context box.
+ */
+function oldNotes(service) {
   const out = [];
-  if ((service.summary || []).length) out.push(service.summary.map(x => `• ${x}`).join('\n'));
+  if (summaryText(service)) out.push(summaryText(service));
   if (service.context) out.push(service.context);
   return out.join('\n\n');
+}
+
+/**
+ * A preparation taken from the Guide before November 2026 kept the Guide's
+ * Summary and Context box in "Notes from the Guide" under step 2. While those
+ * notes are still exactly the Guide's words, they move to their own steps,
+ * the Context box to step 5 and the Summary to step 6, so the preparation
+ * reads in the Guide's order like a new one. Once the person has written in
+ * those notes, they stay where they are. Returns true when something moved.
+ */
+export function upgrade(s) {
+  const link = findService(s);
+  if (!link || (s.summary || '').trim()) return false;
+  const old = oldNotes(link.service);
+  if (!old || (s.guide || '').trim() !== old.trim()) return false;
+  const ctx = (link.service.context || '').trim();
+  const mine = (s.context || '').trim();
+  if (ctx && !mine.includes(ctx)) s.context = mine ? `${ctx}\n\n${mine}` : ctx;
+  s.summary = summaryText(link.service);
+  s.guide = '';
+  return true;
 }
 
 /* Headings of an article that are not a main point: the parts around the article's own parts. */
@@ -102,18 +135,27 @@ export function mainPoints(service) {
 const pointsEmpty = s => !(s.points || []).some(p => p && ((p.heading || '').trim() || (p.body || '').trim()));
 
 /**
- * Fills a preparation from a service. Empty fields are filled; with `force`
- * the text word, title, message and notes are set even where something is
- * typed already; `fresh` says the preparation is new, so the service's date
- * and occasion are taken too. The Catechism sections the article cites are
- * ticked, and while no main point is written yet, the main points are the
- * Guide's (see mainPoints): the person's own points under step 4 are never
- * replaced here.
+ * Fills a preparation from a service, each part of the article into its own
+ * step. Empty fields are filled; with `force` the text word, title and
+ * message are set even where something is typed already, and the Context and
+ * Summary boxes take this service's words where they are empty or still hold
+ * the words of the service linked before (what the person wrote stays);
+ * `fresh` says the preparation is new, so the service's date and occasion are
+ * taken too. The Catechism sections the article cites are ticked, and while
+ * no main point is written yet, the main points are the Guide's (see
+ * mainPoints): the person's own points under step 4 are never replaced here.
  */
 export function prefill(s, guide, i, { force = false, fresh = false } = {}) {
   const svc = guide.services[i];
   const ref = refOf(svc);
+  const before = findService(s);   // the service linked until now, if any
   const set = (key, value) => { if (value && (force || !s[key])) s[key] = value; };
+  // the Guide's own boxes: swapped only while they hold the Guide's words, never the person's
+  const box = (key, value, was) => {
+    const now = (s[key] || '').trim();
+    if (!now) { if (value) s[key] = value; return; }
+    if (force && was && now === was.trim()) s[key] = value || '';
+  };
   if (ref && (force || !s.ref)) { s.ref = ref; s.refText = formatRef(ref, state.settings.bookLang); }
   else if (!s.ref && !s.refText) s.refText = svc.reference;
   if (svc.bibleText && (force || !s.text)) {
@@ -125,7 +167,8 @@ export function prefill(s, guide, i, { force = false, fresh = false } = {}) {
   if (force || fresh || !s.occasion || s.occasion === 'Sunday divine service') s.occasion = occasionFor(svc);
   set('title', svc.title);
   set('theme', svc.message);
-  set('guide', notesFrom(svc));
+  box('context', svc.context, before && before.service.context);
+  box('summary', summaryText(svc), before && summaryText(before.service));
   if (svc.reading && !(s.crossRefs || '').includes(svc.reading)) s.crossRefs = (s.crossRefs ? s.crossRefs.trim() + '\n' : '') + t('{reading} – reading suggested in the Guide', { reading: svc.reading });
   s.catechism = s.catechism || [];
   for (const n of svc.catechismRefs || []) {
@@ -171,6 +214,14 @@ export function article(service, guide) {
   }
   box.append(el('p', { class: 'muted small', text: t('Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }));
   return box;
+}
+
+/** One part of the article on its own, as it reads in the booklet: the Guide's introduction under step 3. */
+export function articlePart(text) {
+  return el('div', { class: 'guide-article' }, [
+    ...paras(text),
+    el('p', { class: 'muted small', text: t('Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }),
+  ]);
 }
 
 /* ---------------------------------------------------------------- loading a Guide */

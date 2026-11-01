@@ -1,7 +1,8 @@
 /*
  * The printed outputs of a service preparation, drawn with jsPDF:
  *
- *   Sermon notes   A4 portrait, the whole preparation in reading order
+ *   Sermon notes   A4 portrait, the whole preparation in the order of its
+ *                  steps, which is the order of the Guide's article
  *   Cue card       A5 landscape, large type: text word, theme, main points
  *   Guide breakdown  A4 portrait, the Guide's article piece by piece as
  *                  Claude broke it down: a study sheet to read beside the booklet
@@ -115,35 +116,31 @@ export function sermonPdf(s) {
   w.font(9, 'normal', MUTED);
   if (serviceLine(s)) { doc.text(serviceLine(s), w.m, w.y); w.y += 6; }
   if ((s.people || '').trim()) w.para(t('Who is listening: ') + s.people.trim(), { size: 9, color: MUTED, after: 1 });
-  w.font(18, 'bold', INK);
-  const title = s.title || s.theme || ref || t('Sermon notes');
-  for (const line of doc.splitTextToSize(title, w.width)) { doc.text(line, w.m, w.y + 5); w.y += 8; }
-  w.y += 2;
+  // as the Guide prints it: the Bible text, then the title (step 1, then step 2)
   if (ref) {
     w.font(12, 'bold', BLUE);
     doc.text(ref + (s.translation ? `  (${s.translation})` : ''), w.m, w.y + 3);
     w.y += 7;
   }
   if (s.text) w.para(s.text, { serif: true, style: 'italic', size: 11.5, after: 3 });
+  const title = s.title || s.theme || ref || t('Sermon notes');
+  if (s.title || s.theme || !ref) {
+    w.font(18, 'bold', INK);
+    for (const line of doc.splitTextToSize(title, w.width)) { w.ensure(8); doc.text(line, w.m, w.y + 5); w.y += 8; }
+    w.y += 2;
+  }
   w.rule();
 
+  // 2. the message
   if (s.theme || s.core) {
     w.heading(t('Message of the service'));
     if (s.theme) w.para(s.theme, { style: 'bold' });
     if (s.core) w.para(s.core);
   }
   if (s.guide) { w.heading(t('From the Divine Service Guide')); w.para(s.guide); }
-  if (s.context || s.keywords) {
-    w.heading(t('Understanding the text'));
-    if (s.context) w.para(s.context);
-    if (s.keywords) { w.para(t('Key words'), { style: 'bold', size: 10, after: 0.5 }); w.para(s.keywords); }
-  }
-  if ((s.catechism || []).length) {
-    w.heading(t('Catechism'));
-    catechismNotes(w, s);
-  }
-  if (s.crossRefs) { w.heading(t('Cross references')); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); }
+  // 3. the introduction
   if (s.intro) { w.heading(t('Introduction')); w.para(s.intro); }
+  // 4. the main points
   const points = (s.points || []).filter(p => p.heading || p.body);
   if (points.length) {
     // every point from the Guide: the heading says so, as the person's rule has it
@@ -153,9 +150,23 @@ export function sermonPdf(s) {
       if (p.body) w.para(p.body, { indent: 5 });
     });
   }
+  // 5. the context: the setting of the text, the key words, the Catechism, the cross references
+  if (s.context || s.keywords) {
+    w.heading(t('Context'));
+    if (s.context) w.para(s.context);
+    if (s.keywords) { w.para(t('Key words'), { style: 'bold', size: 10, after: 0.5 }); w.para(s.keywords); }
+  }
+  if ((s.catechism || []).length) {
+    w.heading(t('Catechism'));
+    catechismNotes(w, s);
+  }
+  if (s.crossRefs) { w.heading(t('Cross references')); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); }
+  // 6. the summary and conclusion
+  if (s.summary) { w.heading(t('Summary')); w.para(s.summary); }
   if (s.application) { w.heading(t('Application for the congregation')); w.para(s.application); }
-  if (s.illustrations) { w.heading(t('Illustrations and experiences')); w.para(s.illustrations); }
   if (s.conclusion) { w.heading(t('Conclusion')); w.para(s.conclusion); }
+  // 7. and 8. the person's own
+  if (s.illustrations) { w.heading(t('Illustrations and experiences')); w.para(s.illustrations); }
   if (s.reflection) { w.heading(t('After the service')); w.para(s.reflection); }
 
   const who = [state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  ·  ');

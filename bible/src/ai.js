@@ -790,8 +790,10 @@ Put nothing outside the JSON fields.`;
  * How the sermon is best built for one preparation: introduction, main
  * points, application, conclusion and illustrations, each with a line on why
  * it works. Draws on the text and its chapter, the Guide's article, the
- * minister's own notes under steps 2 to 5, the ticked Catechism sections and
- * the minister's experience and illustration notes.
+ * minister's own notes in the other steps (his draft of the introduction,
+ * main points, summary, application and conclusion, his understanding of the
+ * text under step 5), the ticked Catechism sections and the minister's
+ * experience and illustration notes.
  */
 export async function outline(s, { service = null, guideTitle = '', signal, onProgress } = {}) {
   const lang = langOf(s);
@@ -807,7 +809,7 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   parts.push(pointsPart(where));
 
   const seen = [s.context ? `Context: ${s.context}` : '', s.keywords ? `Key words: ${s.keywords}` : '', s.crossRefs ? `Cross references: ${s.crossRefs}` : ''].filter(Boolean);
-  if (seen.length) parts.push('THE MINISTER\'S UNDERSTANDING OF THE TEXT (his notes under step 3)\n' + seen.join('\n'));
+  if (seen.length) parts.push('THE MINISTER\'S UNDERSTANDING OF THE TEXT (his notes under step 5, the context)\n' + seen.join('\n'));
   if (s.ai && ((s.ai.points || []).length || s.ai.application)) {
     parts.push('SERMON THOUGHTS SUGGESTED EARLIER (build on them where they serve; do not repeat them unchanged)\n'
       + (s.ai.points || []).map(p => `- ${p.heading}${p.body ? ': ' + p.body : ''}`).join('\n')
@@ -818,6 +820,7 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   const draft = [
     s.intro ? `Introduction: ${s.intro}` : '',
     where.mode === 'guide' ? ownPointsLine(s, where) : points.map((p, i) => `Main point ${i + 1}: ${p.heading}${p.body ? ' – ' + p.body : ''}`).join('\n'),
+    s.summary ? `Summary: ${s.summary}` : '',
     s.application ? `Application: ${s.application}` : '',
     s.conclusion ? `Conclusion: ${s.conclusion}` : '',
     s.illustrations ? `Illustrations: ${s.illustrations}` : '',
