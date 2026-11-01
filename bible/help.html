@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=26">
+<link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body class="help">
 <header class="top">
@@ -138,6 +138,15 @@ Guide and a few rand for a set of suggestions, and the key stays on your device,
     each in its own step, and the Catechism sections ticked. Under step 2, <b>Read the article</b> shows the Guide's
     text while you work. A preparation started in the reader on a text the Guide covers picks up the article by
     itself; "Take the message from the Guide" attaches one by hand. Loaded Guides stay in this browser only and are not in the backup file.</li>
+  <li><b>The Guide in English and in Afrikaans:</b> you can load the same month's Guide in both languages. Load one,
+    then tap <b>Load the Afrikaans Guide (PDF)</b> (or the English one) on the Guide's card. The app links the two:
+    each service to the same service in the other language. The card then has a switch, <b>English | Afrikaans</b>,
+    to show either list, and a preparation shows in both. A preparation follows the Guide you start it from, and its
+    sermon is in that language, so Claude's suggestions come in that language too (you can change it at the top of
+    the preparation). Under step 2, <b>The Guide in</b> moves a preparation to the other language: wherever a box
+    still holds the Guide's own words (the text, title, message, main points, context and summary), the other
+    language's words come in, and what you wrote yourself stays. <b>Read it in Afrikaans</b> (or English) under the
+    article shows the other Guide's words, to compare.</li>
   <li><b>Break down the article:</b> under step 2, once a preparation is linked to a service in the Guide, Claude
     takes the Guide's article apart sentence by sentence (two or three sentences together where one alone is too
     thin), under the Guide's own headings. For each piece it gives the Guide's words, what they say in plain words,
@@ -372,6 +381,16 @@ rugsteun.</p>
     Onder stap 2 wys <b>Lees die artikel</b> die Handleiding se teks terwyl jy werk. 'n Voorbereiding wat in die leser begin is oor 'n teks wat die Handleiding
     dek, tel die artikel vanself op; "Neem die boodskap uit die Handleiding" heg een met die hand aan. Gelaaide
     Handleidings bly net in hierdie blaaier en is nie in die rugsteunlêer nie.</li>
+  <li><b>Die Handleiding in Engels en in Afrikaans:</b> jy kan dieselfde maand se Handleiding in albei tale laai.
+    Laai een, en tik dan op <b>Laai die Afrikaanse Handleiding (PDF)</b> (of die Engelse een) op die Handleiding se
+    kaart. Die app koppel die twee: elke godsdiens aan dieselfde godsdiens in die ander taal. Die kaart het dan 'n
+    skakelaar, <b>Engels | Afrikaans</b>, om enige van die twee lyste te wys, en 'n voorbereiding wys in albei. 'n
+    Voorbereiding volg die Handleiding waaruit jy dit begin, en sy preek is in daardie taal, so Claude se voorstelle
+    kom ook in daardie taal (jy kan dit bo-aan die voorbereiding verander). Onder stap 2 skuif <b>Die Handleiding
+    in</b> 'n voorbereiding na die ander taal: oral waar 'n boks nog die Handleiding se eie woorde bevat (die teks,
+    titel, boodskap, hoofpunte, agtergrond en samevatting), kom die ander taal se woorde in, en wat jy self geskryf
+    het, bly. <b>Lees dit in Engels</b> (of Afrikaans) onder die artikel wys die ander Handleiding se woorde, om te
+    vergelyk.</li>
   <li><b>Ontleed die artikel:</b> onder stap 2, sodra 'n voorbereiding aan 'n godsdiens in die Handleiding gekoppel
     is, ontleed Claude die Handleiding se artikel sin vir sin (twee of drie sinne saam waar een alleen te dun is),
     onder die Handleiding se eie opskrifte. Vir elke stuk gee dit die Handleiding se woorde, wat hulle in eenvoudige

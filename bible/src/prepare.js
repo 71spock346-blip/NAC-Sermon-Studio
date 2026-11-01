@@ -14,10 +14,14 @@
  *
  * Helpers sit alongside the form. A loaded Divine Service Guide (guides.js)
  * fills each step from its part of the article in one tap and keeps the
- * article at hand under step 2, where "Break down the article" asks Claude
- * (ai.js) to take it apart sentence by sentence: what each one says in plain
- * words, what it gives the sermon, and the Bible passages and Catechism
- * sections that bring depth to it. The Guide's introduction can be read
+ * article at hand under step 2. When the Guide is loaded in English and in
+ * Afrikaans, step 2 also says which of the two the preparation follows and
+ * moves it to the other (guides.js switchEdition), and the article can be
+ * read in the other language to compare. Under step 2, "Break down the
+ * article" asks Claude (ai.js) to take the article apart sentence by
+ * sentence: what each one says in plain words, what it gives the sermon,
+ * and the Bible passages and Catechism sections that bring depth to it.
+ * The Guide's introduction can be read
  * under step 3, beside the person's own. "Suggest the sermon" under step 4
  * asks for the build itself: introduction, main points, application,
  * conclusion and illustrations; "Suggest answers" under step 5 asks for the
@@ -46,7 +50,7 @@
  * itself in reading order, either as it stands in the boxes or, from the
  * outline's panel, as Claude built it.
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox, busy, isTouch } from './ui.js';
+import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox, busy, isTouch, seg } from './ui.js';
 import { t, tn } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveSermon, deleteSermon } from './store.js';
@@ -121,18 +125,18 @@ export async function newFromText(ref, text, translationShort) {
     text: text || '',
     catechism: sectionsForRef(ref).slice(0, 12).map(c => ({ n: c.n, title: c.title })),
   };
-  // the Guide has an article on this text: its message and notes come along
-  const m = Guides.matchService(ref);
+  // the Guide has an article on this text: its message and notes come along (from the Guide in the usual language, when both are loaded)
+  const m = Guides.matchService(ref, AI.langOf(null));
   if (m) Guides.prefill(s, m.guide, m.i, { fresh: true });
   await saveSermon(s);
   location.hash = `#prepare/${s.id}`;
 }
 
-/** A preparation started from a service in a loaded Guide. */
+/** A preparation started from a service in a loaded Guide; the sermon is in the Guide's language. */
 export async function newFromService(guide, i) {
   await Cat.load().catch(() => {});
   const s = blank();
-  Guides.prefill(s, guide, i, { force: true, fresh: true });
+  Guides.prefill(s, guide, i, { force: true, fresh: true, lang: true });
   for (const c of sectionsForRef(s.ref).slice(0, 12)) if (!s.catechism.find(x => x.n === c.n)) s.catechism.push({ n: c.n, title: c.title });
   await saveSermon(s);
   location.hash = `#prepare/${s.id}`;
@@ -423,24 +427,55 @@ function renderEditor(root, s) {
     const pick = () => Guides.picker(s, async (guide, i) => {
       const filled = !!((s.theme || '').trim() || (s.guide || '').trim() || (s.text || '').trim() || (s.title || '').trim());
       const replace = !filled || await confirmBox(t('Replace the text word, title and message with this service\'s? Its context and summary come in too, where you have not changed them. Your other notes stay as they are.'), t('Replace'), true);
-      Guides.prefill(s, guide, i, { force: replace });
+      Guides.prefill(s, guide, i, { force: replace, lang: replace });
       await saveSermon(s);
       toast(replace ? t('Taken from the Guide.') : t('Linked to the Guide; what you had written was kept.'));
       render(clear(root), ['prepare', s.id]);
     });
     if (link) {
+      // the same service in the Guide's other language (English or Afrikaans), when that Guide is loaded too
+      const twin = Guides.partnerOf(link.guide, link.i);
       const art = el('div', { class: 'guide-art', hidden: true });
+      let reading = link;   // the Guide the article is read in: this preparation's, or the other language's to compare
+      const drawArt = () => {
+        clear(art);
+        art.append(Guides.article(reading.service, reading.guide));
+        if (!twin) return;
+        const other = reading === link ? twin : link;
+        art.append(el('div', { class: 'row guide-other' }, [el('button', { class: 'btn small ghost', type: 'button', text: other.guide.language === 'af' ? t('Read it in Afrikaans') : t('Read it in English'), onclick: () => { reading = other; drawArt(); } })]));
+      };
       const readBtn = el('button', { class: 'btn small ghost', type: 'button', text: t('Read the article'), 'aria-expanded': 'false', onclick: () => {
-        if (art.hidden) { if (!art.firstChild) art.append(Guides.article(link.service, link.guide)); art.hidden = false; readBtn.textContent = t('Hide the article'); readBtn.setAttribute('aria-expanded', 'true'); }
+        if (art.hidden) { if (!art.firstChild) drawArt(); art.hidden = false; readBtn.textContent = t('Hide the article'); readBtn.setAttribute('aria-expanded', 'true'); }
         else { art.hidden = true; readBtn.textContent = t('Read the article'); readBtn.setAttribute('aria-expanded', 'false'); }
       } });
-      guideBox.append(
-        el('div', { class: 'row line guide-link' }, [
+      /** This preparation follows the other language's Guide from now on (Guides.switchEdition), after asking. */
+      async function follow() {
+        const af = twin.guide.language === 'af';
+        const ok = await confirmBox(af
+          ? t('Use the Afrikaans Guide for this preparation? Where a box still holds the Guide\'s own words, the Afrikaans words come in: the text, title, message, main points, context and summary. What you wrote yourself stays. The sermon becomes Afrikaans, so Claude\'s suggestions come in Afrikaans.')
+          : t('Use the English Guide for this preparation? Where a box still holds the Guide\'s own words, the English words come in: the text, title, message, main points, context and summary. What you wrote yourself stays. The sermon becomes English, so Claude\'s suggestions come in English.'),
+        af ? t('Use the Afrikaans Guide') : t('Use the English Guide'));
+        if (!ok) { renderGuide(); return; }   // the switch goes back to the Guide followed now
+        const r = Guides.switchEdition(s);
+        if (!r) { toast(t('This service was not found in the other Guide.'), true); renderGuide(); return; }
+        await saveSermon(s);
+        toast((af ? t('This preparation now follows the Afrikaans Guide.') : t('This preparation now follows the English Guide.'))
+          + (r.points ? '' : ' ' + t('The main points stay as they were: the two Guides do not have the same parts.')));
+        render(clear(root), ['prepare', s.id]);
+      }
+      const both = twin ? [link, twin].sort((a, b) => (a.guide.language === 'en' ? 0 : 1) - (b.guide.language === 'en' ? 0 : 1)) : [];
+      guideBox.append(...[
+        el('div', { class: 'row line guide-link guide-from' }, [
           el('span', { class: 'small grow' }, [el('b', { text: t('From the Guide: ') }), `${link.service.dateText || fmtDate(link.service.date)} · ${link.service.title || link.service.label}`]),
           readBtn,
           el('button', { class: 'btn small ghost', type: 'button', text: t('Change'), onclick: pick }),
         ]),
-        art);
+        twin ? el('div', { class: 'row line guide-lang' }, [
+          el('span', { class: 'small', text: t('The Guide in:') }),
+          seg(both.map(x => [x.guide.id, Guides.editionLabel(x.guide)]), link.guide.id, id => { if (id !== link.guide.id) follow(); }, { label: t('Language of the Guide') }),
+        ]) : null,
+        art,
+      ].filter(Boolean));
     } else if (Guides.all().length) {
       guideBox.append(el('div', { class: 'row' }, [
         el('button', { class: 'btn small ghost', type: 'button', text: t('Take the message from the Guide'), onclick: pick }),
