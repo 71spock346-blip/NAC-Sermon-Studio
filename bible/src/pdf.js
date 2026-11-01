@@ -7,7 +7,9 @@
  *                  reading order, from the boxes of the preparation or from
  *                  the outline Claude built, with each illustration under
  *                  the point it serves
- *   Cue card       A5 landscape, large type: text word, theme, main points
+ *   Cue cards      A5 landscape, large type: text word, theme, and each main
+ *                  point with its main thoughts under it and the minister's
+ *                  own thought on it; a point is never split over two cards
  *   Guide breakdown  A4 portrait, the Guide's article piece by piece as
  *                  Claude broke it down: a study sheet to read beside the booklet
  *
@@ -23,6 +25,7 @@ import { audienceOf, audienceLabel, modelLabel } from './ai.js';
 const BLUE = [31, 78, 140];      // the Church's blue, the same as --accent on screen
 const INK = [31, 41, 55];
 const MUTED = [107, 114, 128];
+const HANG = 4.5;                // mm between a bullet and its text
 
 function jsPDF() {
   const lib = window.jspdf && window.jspdf.jsPDF;
@@ -58,19 +61,29 @@ class Writer {
     this.doc.text(text, this.m, this.y + this.lead * 0.75);
     this.y += this.lead + 1.5;
   }
-  para(text, opts = {}) {
-    if (!text) return;
+  /** Sets the font of a paragraph and breaks its text into the lines that fit (a bullet hangs in front of them). */
+  wrap(text, opts = {}) {
     this.font(opts.size || 10.5, opts.style || 'normal', opts.color);
     if (opts.serif) this.doc.setFont('times', opts.style || 'normal');
     if (opts.leading) this.lead = (opts.size || 10.5) * 0.3528 * opts.leading;   // more room between the lines, for reading aloud
+    return this.doc.splitTextToSize(String(text).replace(/\r/g, ''), this.width - (opts.indent || 0) - (opts.bullet ? HANG : 0));
+  }
+  para(text, opts = {}) {
+    if (!text) return;
+    const lines = this.wrap(text, opts);
     const x = this.m + (opts.indent || 0);
-    const lines = this.doc.splitTextToSize(String(text).replace(/\r/g, ''), this.width - (opts.indent || 0));
-    for (const line of lines) {
+    lines.forEach((line, i) => {
       this.ensure(this.lead);
-      this.doc.text(line, x, this.y + this.lead * 0.75);
+      if (opts.bullet && i === 0) this.doc.text(opts.bullet, x, this.y + this.lead * 0.75);
+      this.doc.text(line, x + (opts.bullet ? HANG : 0), this.y + this.lead * 0.75);
       this.y += this.lead;
-    }
+    });
     this.y += opts.after == null ? 2 : opts.after;
+  }
+  /** Starts a new page unless the paragraphs [text, opts] fit below, when they fit on one page at all: a block stays together. */
+  keep(parts) {
+    const height = parts.reduce((sum, [text, opts = {}]) => sum + this.wrap(text, opts).length * this.lead + (opts.after == null ? 2 : opts.after), 0);
+    if (this.y + height > this.h - this.m && height <= this.h - 2 * this.m) { this.doc.addPage(); this.y = this.m; }
   }
   rule() {
     this.ensure(4);
@@ -322,6 +335,11 @@ function catechismNotes(w, s) {
   w.space(1);
 }
 
+/**
+ * The cue cards for the pulpit: the text word, the message, and each main
+ * point with its main thoughts under it (see mainThoughts) and the minister's
+ * own thought on it in blue. A point stays on one card; the cards are numbered.
+ */
 export function cueCardPdf(s) {
   const doc = new (jsPDF())({ unit: 'mm', format: 'a5', orientation: 'landscape' });
   const w = new Writer(doc, 14);
@@ -336,10 +354,25 @@ export function cueCardPdf(s) {
   if (s.core) w.para(s.core, { size: 12, after: 3 });
   const points = (s.points || []).filter(p => p.heading || p.body);
   points.forEach((p, i) => {
-    w.para(`${i + 1}. ${p.heading || firstLine(p.body)}`, { style: 'bold', size: 13, after: 1 });
+    // a point without a heading is headed by its first line, as before
+    let heading = (p.heading || '').trim(), body = p.body || '';
+    if (!heading) { const l = lines(body); heading = l[0] || ''; body = l.slice(1).join('\n'); }
+    const mine = shorten(lines(p.thought).join(' '), 30);
+    const parts = [
+      [`${i + 1}. ${heading}`, { style: 'bold', size: 13, after: 1.5 }],
+      ...mainThoughts(body).map(x => [x, { size: 12, indent: 6, bullet: '\u2022', after: 1 }]),
+      mine ? [t('My thought: ') + mine, { size: 12, indent: 6, color: BLUE, after: 1 }] : null,
+    ].filter(Boolean);
+    w.keep(parts);
+    for (const [text, opts] of parts) w.para(text, opts);
+    w.space(2.5);
   });
-  if (s.application) { w.space(2); w.para(t('Apply: ') + firstLine(s.application), { size: 12, after: 1 }); }
-  if (s.conclusion) { w.para(t('Close: ') + firstLine(s.conclusion), { size: 12, style: 'italic' }); }
+  // the application and the close stay together on one card
+  const end = [
+    s.application ? [t('Apply: ') + firstLine(s.application), { size: 12, after: 1 }] : null,
+    s.conclusion ? [t('Close: ') + firstLine(s.conclusion), { size: 12, style: 'italic' }] : null,
+  ].filter(Boolean);
+  if (end.length) { w.space(2); w.keep(end); for (const [text, opts] of end) w.para(text, opts); }
   w.footer(s.title || '');
   return { blob: doc.output('blob'), name: fileName(s, '-cue-card'), title: ref };
 }
@@ -347,6 +380,58 @@ export function cueCardPdf(s) {
 function firstLine(text) {
   const l = lines(text);
   return l.length ? l[0] : '';
+}
+
+/*
+ * The main thoughts of a main point, for the cue cards: of a point written in
+ * paragraphs or lines, the first sentence of each (so a list the minister
+ * typed comes through whole); of a point written as one paragraph, its first,
+ * middle and last sentence. Each is kept short enough to take in at a glance.
+ */
+function mainThoughts(body) {
+  const paras = lines(body).map(l => l.replace(LIST_MARK, '').trim()).filter(Boolean);
+  const picked = paras.length > 1 ? paras.map(p => sentences(p)[0]) : spread(sentences(paras[0] || ''), 3);
+  return picked.filter(Boolean).map(x => shorten(x, 20));
+}
+
+const LIST_MARK = /^(?:[-\u2013\u2014\u2022*\u00b7]|\d{1,2}[.)]|[a-z][.)])\s+/i;
+// words before a full stop that do not end a sentence: Bible books and short forms, in English and Afrikaans
+const SHORT_FORMS = new Set(('cf e.g i.e etc vs v vv ch st mr mrs dr no nr bv nl ens vgl d.w.s ds ap ' +
+  'gen ex exod lev num deut josh judg sam kgs chr neh esth ps prov eccl isa jer lam ezek dan hos obad mic nah hab zeph hag zech mal ' +
+  'matt mt mk lk jn rom cor gal eph phil col thess tim tit philem heb jas pet rev ' +
+  'eks spr pred jes eseg joh hand kor ef fil kol tess filem jak op').split(' '));
+
+/** A paragraph in its sentences. A full stop after a short form ("Rom.", "e.g.", "bv.") or an initial does not end one. */
+function sentences(text) {
+  const out = [];
+  const end = /([.!?\u2026])["'\u201d\u2019)\]]*\s+(?=["'\u201c\u2018(]?(?:\p{Lu}|['\u2019]n\s))/gu;
+  let from = 0, m;
+  while ((m = end.exec(text))) {
+    if (m[1] === '.') {
+      const word = ((text.slice(from, m.index).match(/(\S+)$/) || [])[1] || '').replace(/^["'\u201c\u2018(]+/, '').toLowerCase();
+      if (SHORT_FORMS.has(word) || /^\p{L}$/u.test(word) || /^(?:\p{L}\.)+\p{L}$/u.test(word)) continue;
+    }
+    out.push(text.slice(from, m.index + m[0].length).trim());
+    from = m.index + m[0].length;
+  }
+  const rest = text.slice(from).trim();
+  if (rest) out.push(rest);
+  return out;
+}
+
+/** k items spread evenly over a list, the first and the last always among them, in their order. */
+function spread(list, k) {
+  if (list.length <= k) return list;
+  const at = new Set();
+  for (let i = 0; i < k; i++) at.add(Math.round(i * (list.length - 1) / (k - 1)));
+  return [...at].sort((a, b) => a - b).map(i => list[i]);
+}
+
+/** A line of at most `max` words; a longer one is cut a few words earlier and ends in an ellipsis. */
+function shorten(text, max) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  if (words.length <= max) return words.join(' ');
+  return words.slice(0, max - 4).join(' ').replace(/[,;:\u2013\u2014-]+$/, '') + ' \u2026';
 }
 
 /**
