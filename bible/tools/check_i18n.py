@@ -27,8 +27,10 @@ HTML_PATTERNS = [re.compile(r'data-t(?:-aria|-title)?="([^"]*)"')]
 
 # Labels that reach t() through a variable rather than a literal: the choices
 # in ui.js (themes, sizes, letters), notes.js (kinds), prepare.js (status,
-# occasions, the humour and language choices of a preparation) and ai.js (the
-# note on each model, who is listening, humour). Keep this list in step with those.
+# occasions, the humour and language choices of a preparation), ai.js (the
+# note on each model, who is listening, humour) and the language names on the
+# switches (i18n.js and ai.js LANGS, guides.js editionLabel). Keep this list
+# in step with those.
 INDIRECT = [
     'System', 'Paper', 'White', 'Dark', 'Small', 'Normal', 'Large', 'Pulpit', 'Book', 'Easy-read',
     'Thought', 'Experience', 'Doctrine', 'Illustration', 'Sermon idea', 'Question',
@@ -38,6 +40,7 @@ INDIRECT = [
     'the most capable; the default', 'quicker and about half the price',
     'All ages together', 'Children', 'Young people (teens)', 'Young adults', 'Families with children', 'Mostly older members',
     'None', 'A little, where it fits', 'A bit more', 'None in this service',
+    'English', 'Afrikaans',
 ]
 
 
