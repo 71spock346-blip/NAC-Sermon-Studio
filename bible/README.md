@@ -71,7 +71,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   preparation; "Break down the article" under step 2 takes that article apart sentence by
   sentence (the Guide's words, the plain words, what it gives the sermon, and a Bible passage or
   Catechism section where one brings depth, each with a Use button, plus a study-sheet PDF);
-  "Suggest answers" under step 3 of a preparation returns the context of
+  "Suggest answers" under step 5 of a preparation returns the context of
   the text, key words, Catechism sections, cross references and sermon thoughts, each with
   a "Use" button; "Suggest the sermon" under step 4 returns the build itself (introduction,
   main points, application, conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works),
@@ -118,8 +118,19 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   storage still has to be switched on.
 - **Offline.** `sw.js` serves the shell network-first and the texts, library and
   icons cache-first. Settings → Offline fetches all texts once.
-- **PDF.** `src/pdf.js` draws the sermon notes (A4) and the cue card (A5 landscape)
-  with the vendored jsPDF.
+- **Preparing a service.** `src/prepare.js` walks one divine service in the order of
+  the Divine Service Guide's article, so the booklet and the form can be read side by
+  side: 1 the text word (the Guide's Bible text), 2 title and message, 3 introduction
+  (the Guide's own introduction can be opened beside the person's), 4 main points,
+  5 context (the Guide's Context box, with key words, Catechism sections and cross
+  references), 6 summary and conclusion (the Guide's Summary, the application, the
+  conclusion), then the person's own 7 illustrations and 8 reflection after the
+  service. `guides.js prefill` puts each part of the article into its own step;
+  `guides.js upgrade` moves the Summary and Context of a preparation made before
+  November 2026 out of "Notes from the Guide" into steps 6 and 5 while those notes are
+  still the Guide's own words.
+- **PDF.** `src/pdf.js` draws the sermon notes (A4, in the order of the steps) and the
+  cue card (A5 landscape) with the vendored jsPDF.
 
 ## Files
 

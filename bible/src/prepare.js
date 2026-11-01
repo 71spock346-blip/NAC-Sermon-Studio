@@ -1,22 +1,28 @@
 /*
  * Prepare: a guided path from a Bible text to a divine service.
  *
- * One preparation is one service. The form walks the usual order of work:
- * the text word and the message from the Divine Service Guide, understanding
- * the text, building the sermon, illustrations from the person's own notes,
- * and a reflection afterwards. Everything saves as it is typed. Two printed
- * outputs come from it: the full sermon notes and a one-page cue card.
+ * One preparation is one service. Its steps follow the order of the Divine
+ * Service Guide's article, so the person can go through the booklet and the
+ * form side by side: 1 the text word (the Guide's Bible text), 2 the title
+ * and message, 3 the introduction, 4 the main points, 5 the context (the
+ * Guide's Context box, with the key words, the Catechism and the cross
+ * references), 6 the summary and conclusion (the Guide's Summary, the
+ * application, the conclusion); then the person's own 7 illustrations and
+ * experiences, and 8 a reflection after the service. Everything saves as it
+ * is typed. Two printed outputs come from it, in the same order: the full
+ * sermon notes and a one-page cue card.
  *
  * Helpers sit alongside the form. A loaded Divine Service Guide (guides.js)
- * fills the text word, message and notes of a service in one tap and keeps
- * the article at hand under step 2, where "Break down the article" asks
- * Claude (ai.js) to take it apart sentence by sentence: what each one says
- * in plain words, what it gives the sermon, and the Bible passages and
- * Catechism sections that bring depth to it. "Suggest answers" under step 3
- * asks for the context of the text, key words, Catechism sections, cross
- * references and what the text gives each main point; "Suggest the sermon"
- * under step 4 asks for the build itself: introduction, main points,
- * application, conclusion and illustrations. Each suggestion comes with a
+ * fills each step from its part of the article in one tap and keeps the
+ * article at hand under step 2, where "Break down the article" asks Claude
+ * (ai.js) to take it apart sentence by sentence: what each one says in plain
+ * words, what it gives the sermon, and the Bible passages and Catechism
+ * sections that bring depth to it. The Guide's introduction can be read
+ * under step 3, beside the person's own. "Suggest the sermon" under step 4
+ * asks for the build itself: introduction, main points, application,
+ * conclusion and illustrations; "Suggest answers" under step 5 asks for the
+ * context of the text, key words, Catechism sections, cross references and
+ * what the text gives each main point. Each suggestion comes with a
  * "Use" button, so nothing lands in the notes that the person did not choose,
  * and any suggestion can first be put into the person's own words in place:
  * a tap on its text (or its pencil) opens its words in growing boxes, what is
@@ -79,7 +85,7 @@ function blank() {
     ref: null, refText: '', translation: Bible.source(state.settings.translation)?.short || 'KJV', translationId: state.settings.translation, text: '',
     theme: '', core: '', guide: '', context: '', keywords: '', catechism: [], catechismText: 'full', crossRefs: '', intro: '',
     points: [{ heading: '', body: '' }, { heading: '', body: '' }, { heading: '', body: '' }],
-    application: '', illustrations: '', conclusion: '', reflection: '', status: 'draft',
+    summary: '', application: '', illustrations: '', conclusion: '', reflection: '', status: 'draft',
   };
 }
 
@@ -130,7 +136,10 @@ export function render(container, route) {
   clear(container);
   if (route[1]) {
     const s = state.sermons.find(x => x.id === route[1]);
-    if (s) return renderEditor(container, s);
+    if (s) {
+      if (Guides.upgrade(s)) saveSermon(s).catch(() => {});   // made before the Guide's Context and Summary had steps of their own
+      return renderEditor(container, s);
+    }
     toast(t('That preparation was not found.'), true);
     location.hash = '#prepare';
     return;
@@ -286,7 +295,6 @@ function renderEditor(root, s) {
     field(t('Date'), 'date', { type: 'date', noClear: true }),
     field(t('Congregation'), 'congregation', { placeholder: t('e.g. Phumolong') }),
     el('label', { class: 'f wide' }, [title(t('Occasion')), occSel]),
-    field(t('Sermon title (optional)'), 'title', { cls: 'full', line: true, placeholder: t('A heading for your notes') }),
   ]));
 
   // ---- who is listening: Claude shapes its suggestions for these people (see ai.js); the line about them also heads the sermon notes
@@ -388,9 +396,9 @@ function renderEditor(root, s) {
       el('a', { class: 'btn small ghost', href: '#read', text: t('Open in the reader'), onclick: e => { if (s.ref) { e.preventDefault(); location.hash = `#read/${s.ref.book}/${s.ref.chapter}${s.ref.verse ? '/' + s.ref.verse : ''}`; } } }),
     ]));
 
-  // ---- 2. the Guide
-  container.append(step(2, t('The message from the Divine Service Guide'), t('Write the message and core thought of the Guide in your own words first. The Guide gives the direction; the sermon is how it reaches this congregation.'),
-    () => clearStep(2, t('the message'), ['theme', 'core', 'guide'])));
+  // ---- 2. the title and message, as the Guide prints them under its Bible text; the Guide's article is at hand here
+  container.append(step(2, t('Title and message'), t('As the Guide gives them: first the title, then the message. Then write the core thought in your own words. The Guide gives the direction; the sermon is how it reaches this congregation.'),
+    () => clearStep(2, t('the title and message'), ['title', 'theme', 'core', 'guide'])));
   const guideBox = el('div', { class: 'guide-row' });
   container.append(guideBox);
   function renderGuide() {
@@ -398,7 +406,7 @@ function renderEditor(root, s) {
     const link = Guides.findService(s);
     const pick = () => Guides.picker(s, async (guide, i) => {
       const filled = !!((s.theme || '').trim() || (s.guide || '').trim() || (s.text || '').trim() || (s.title || '').trim());
-      const replace = !filled || await confirmBox(t('Replace the text word, title, message and notes with this service\'s? Your own notes under steps 3 to 6 stay as they are.'), t('Replace'), true);
+      const replace = !filled || await confirmBox(t('Replace the text word, title and message with this service\'s? Its context and summary come in too, where you have not changed them. Your other notes stay as they are.'), t('Replace'), true);
       Guides.prefill(s, guide, i, { force: replace });
       await saveSermon(s);
       toast(replace ? t('Taken from the Guide.') : t('Linked to the Guide; what you had written was kept.'));
@@ -420,7 +428,7 @@ function renderEditor(root, s) {
     } else if (Guides.all().length) {
       guideBox.append(el('div', { class: 'row' }, [
         el('button', { class: 'btn small ghost', type: 'button', text: t('Take the message from the Guide'), onclick: pick }),
-        el('span', { class: 'muted small', text: t('Fills the title, message and notes from the loaded Guide\'s article.') }),
+        el('span', { class: 'muted small', text: t('Fills the text word, title, message, main points, context and summary from the loaded Guide\'s article.') }),
       ]));
     }
   }
@@ -537,14 +545,132 @@ function renderEditor(root, s) {
   renderBreak();
 
   container.append(
+    field(t('Sermon title (optional)'), 'title', { line: true, placeholder: t('A heading for your notes') }),
     field(t('Message of the service'), 'theme', { line: true, placeholder: t('The theme in one sentence') }),
     field(t('Core thought'), 'core', { rows: 2, placeholder: t('The one thing the congregation should take home') }),
     field(t('Notes from the Guide'), 'guide', { rows: 5, placeholder: t('Key thoughts from the Guide, in your own words. Which sentences struck you? What should be kept?') }),
   );
 
-  // ---- 3. understand
-  container.append(step(3, t('Understand the text'), t('Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'),
-    () => clearStep(3, t('understanding the text'), ['context', 'keywords', 'crossRefs'], {
+  // ---- 3. the introduction: the sermon opens as the Guide's article does; the Guide's own introduction can be read beside it
+  container.append(step(3, t('Introduction'), t('As in the Guide, the sermon opens with an introduction. Make the people feel welcome and open the door to the text.'),
+    () => clearStep(3, t('the introduction'), ['intro'])));
+  const introLink = Guides.findService(s);
+  const guideIntro = introLink ? (introLink.service.introduction || '').trim() : '';
+  if (guideIntro) {
+    const art = el('div', { class: 'guide-art', hidden: true });
+    const readBtn = el('button', { class: 'btn small ghost', type: 'button', text: t('Read'), 'aria-expanded': 'false', onclick: () => {
+      if (art.hidden) { if (!art.firstChild) art.append(Guides.articlePart(guideIntro)); art.hidden = false; readBtn.textContent = t('Hide'); readBtn.setAttribute('aria-expanded', 'true'); }
+      else { art.hidden = true; readBtn.textContent = t('Read'); readBtn.setAttribute('aria-expanded', 'false'); }
+    } });
+    container.append(el('div', { class: 'guide-row' }, [
+      el('div', { class: 'row line guide-link' }, [el('span', { class: 'small grow' }, [el('b', { text: t('The Guide\'s introduction') })]), readBtn]),
+      art,
+    ]));
+  }
+  container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }));
+
+  // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
+  container.append(step(4, t('Main points'), t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences.'),
+    () => clearStep(4, t('the main points'), [], {
+      clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
+      restore: kept => { s.points = kept; renderPoints(); },
+    })));
+  const buildBox = el('div', { class: 'ai-box build-box' });
+  container.append(buildBox);
+  async function askBuild() {
+    if (!AI.ready()) { Guides.noKey(); return; }
+    if (!s.ref && !(s.text || '').trim()) { toast(t('Give the text word first: a reference or the text itself.'), true); return; }
+    const ctrl = new AbortController();
+    const b = busy(t('Asking Claude'), () => ctrl.abort());
+    b.say(t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}. This takes about a minute.', { who: t(AI.audienceLabel(AI.audienceOf(s))).toLowerCase() }));
+    try {
+      const link = Guides.findService(s);
+      const out = await AI.outline(s, {
+        service: link ? link.service : null, guideTitle: link ? link.guide.title : '',
+        signal: ctrl.signal, onProgress: n => b.say(t('Writing the outline… {k}k letters so far.', { k: Math.round(n / 100) / 10 })),
+      });
+      s.build = out;
+      await saveSermon(s);
+      b.done();
+      renderBuild();
+      toast(t('The outline is ready. Tap "Use" on the parts to keep.'));
+    } catch (e) {
+      if (e && e.name === 'AbortError') { b.done(); return; }
+      b.fail(e.message || t('Claude could not answer.'));
+    }
+  }
+  function renderBuild() {
+    clear(buildBox);
+    const a = s.build;
+    const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askBuild }, [sparkle(), a ? t('Suggest again') : t('Suggest the sermon')]);
+    const drop = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => {
+      s.build = null; touch(); renderBuild();
+      toast(t('Outline removed.'), false, () => { s.build = a; touch(); renderBuild(); });
+    } }) : null;
+    buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
+      ? t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
+      : t('Claude proposes how to build this sermon from the text, the message and your notes, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') })]));
+    if (!a) return;
+    const panel = el('details', { class: 'ai-panel', open: true });
+    panel.append(el('summary', { text: t('The outline') }));
+    if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
+    panel.append(el('p', { class: 'muted small ai-how', text: howEdit() }));
+    if (a.intro && a.intro.text) {
+      panel.append(group(t('Introduction'), [item('', () => a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, a.intro.why, { on: a.intro, body: 'text' })]));
+    }
+    panel.append(group(t('Main points'), [...pointNotes(a), ...pointItems(a)], (a.points || []).length > 1 ? () => usePoints(a.points) : null, pointsHint(a, true)));
+    panel.append(group(t('Application and conclusion'), [
+      a.application ? item(t('Application'), () => a.application, () => { add('application', a.application); toast(t('Added to Application.')); }, null, null, { on: a, body: 'application' }) : null,
+      a.conclusion ? item(t('Conclusion'), () => a.conclusion, () => { add('conclusion', a.conclusion); toast(t('Added to Conclusion.')); }, null, null, { on: a, body: 'conclusion' }) : null,
+    ].filter(Boolean)));
+    const illLine = x => `${x.title ? x.title + ': ' : ''}${x.body}`;
+    panel.append(group(t('Illustrations'), (a.illustrations || []).map(x => item(() => x.title, () => x.body, () => { add('illustrations', illLine(x)); toast(t('Added to Illustrations under step 7.')); }, null, x.serves ? t('For {part}.', { part: x.serves }) : '', { on: x, title: 'title', body: 'body' })),
+      (a.illustrations || []).length > 1 ? () => { add('illustrations', a.illustrations.map(illLine).join('\n\n')); toast(t('All illustrations added under step 7.')); } : null, t('They go into the Illustrations box under step 7.')));
+    if (a.lighter && a.lighter.text) {
+      // the light moment goes where Claude placed it: the introduction, the conclusion, or else among the illustrations
+      const where = a.lighter.where || '';
+      const key = /intro|inleiding|open/i.test(where) ? 'intro' : /conclu|slot|close|end/i.test(where) ? 'conclusion' : 'illustrations';
+      const box = { intro: t('Introduction'), conclusion: t('Conclusion'), illustrations: t('Illustrations under step 7') }[key];
+      panel.append(group(t('A lighter moment'), [item('', () => a.lighter.text, () => { add(key, a.lighter.text); toast(t('Added to {box}.', { box })); }, null, where ? t('For {part}.', { part: where }) : '', { on: a.lighter, body: 'text' })],
+        null, t('A smile where it fits. Yours to use or to leave.')));
+    }
+    buildBox.append(panel);
+  }
+  renderBuild();
+  const pointsBox = el('div', { class: 'points' });
+  function renderPoints() {
+    clear(pointsBox);
+    s.points = s.points && s.points.length ? s.points : [{ heading: '', body: '' }];
+    s.points.forEach((p, i) => {
+      const head = lineBox({ value: p.heading || '', placeholder: t('Main point {n}', { n: i + 1 }) });
+      const body = el('textarea', { rows: 4, placeholder: t('What the text says, what it means, what it asks of us') });
+      body.value = p.body || '';
+      // a point from the Guide carries a mark; it goes when the point is emptied
+      const mark = p.guide ? el('span', { class: 'pill guide', text: t('Guide'), title: t('From the Divine Service Guide') }) : null;
+      const emptied = () => { if (mark && emptyPoint(p)) { delete p.guide; mark.remove(); } };
+      head.addEventListener('input', () => { p.heading = head.value; emptied(); touch(); });
+      body.addEventListener('input', () => { p.body = body.value; emptied(); touch(); });
+      pointsBox.append(el('div', { class: 'point' }, [
+        el('div', { class: 'row line' }, [el('span', { class: 'step-n small', text: i + 1 }), head, mark,
+          el('button', { class: 'icon del', type: 'button', 'aria-label': t('Remove this point'), text: '✕', onclick: () => { s.points.splice(i, 1); touch(); renderPoints(); } })]),
+        body,
+      ]));
+    });
+    // the Guide's main points, straight from its article, no Claude needed
+    const link = Guides.findService(s);
+    const fromGuide = link ? Guides.mainPoints(link.service) : [];
+    pointsBox.append(el('div', { class: 'row' }, [
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Add a point'), onclick: () => { s.points.push({ heading: '', body: '' }); touch(); renderPoints(); } }),
+      fromGuide.length ? el('button', { class: 'btn small ghost', type: 'button', text: t('Take the main points from the Guide'), onclick: () => usePoints(fromGuide.map(p => ({ ...p, from: 'guide' })), t('Main points taken from the Guide.')) }) : null,
+      fromGuide.length ? el('span', { class: 'muted small', text: tn(fromGuide.length, 'The Guide\'s article has {n} main point.', 'The Guide\'s article has {n} main points.') }) : null,
+    ]));
+  }
+  renderPoints();
+  container.append(pointsBox);
+
+  // ---- 5. the context: the setting of the text, as the Guide's Context box gives it, with the key words, the Catechism and cross references
+  container.append(step(5, t('Context: understand the text'), t('Like the Guide\'s Context box: the setting of the text. Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'),
+    () => clearStep(5, t('the context'), ['context', 'keywords', 'crossRefs'], {
       clear: () => { const kept = s.catechism || []; s.catechism = []; renderCatechism(); renderTicks(); return kept; },
       restore: kept => { s.catechism = kept; renderCatechism(); renderTicks(); },
     })));
@@ -636,7 +762,7 @@ function renderEditor(root, s) {
       b.fail(e.message || t('Claude could not answer.'));
     }
   }
-  /** The Tick/Ticked button of a suggested Catechism section: it joins or leaves the ticked sections under step 3. */
+  /** The Tick/Ticked button of a suggested Catechism section: it joins or leaves the ticked sections under step 5. */
   function catTick(c) {
     const on = () => (s.catechism || []).some(x => x.n === c.n);
     const tick = el('button', { class: 'btn small ghost', type: 'button', text: on() ? t('Ticked') : t('Tick'), onclick: () => {
@@ -816,113 +942,18 @@ function renderEditor(root, s) {
   }
   renderAi();
 
-  // ---- 4. build
-  container.append(step(4, t('Build the sermon'), t('An introduction that opens the door, the main points as the Guide gives them, each standing on the text, and a conclusion that leads to the altar. Plain words, short sentences.'),
-    () => clearStep(4, t('building the sermon'), ['intro', 'application', 'conclusion'], {
-      clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
-      restore: kept => { s.points = kept; renderPoints(); },
-    })));
-  const buildBox = el('div', { class: 'ai-box build-box' });
-  container.append(buildBox);
-  async function askBuild() {
-    if (!AI.ready()) { Guides.noKey(); return; }
-    if (!s.ref && !(s.text || '').trim()) { toast(t('Give the text word first: a reference or the text itself.'), true); return; }
-    const ctrl = new AbortController();
-    const b = busy(t('Asking Claude'), () => ctrl.abort());
-    b.say(t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}. This takes about a minute.', { who: t(AI.audienceLabel(AI.audienceOf(s))).toLowerCase() }));
-    try {
-      const link = Guides.findService(s);
-      const out = await AI.outline(s, {
-        service: link ? link.service : null, guideTitle: link ? link.guide.title : '',
-        signal: ctrl.signal, onProgress: n => b.say(t('Writing the outline… {k}k letters so far.', { k: Math.round(n / 100) / 10 })),
-      });
-      s.build = out;
-      await saveSermon(s);
-      b.done();
-      renderBuild();
-      toast(t('The outline is ready. Tap "Use" on the parts to keep.'));
-    } catch (e) {
-      if (e && e.name === 'AbortError') { b.done(); return; }
-      b.fail(e.message || t('Claude could not answer.'));
-    }
-  }
-  function renderBuild() {
-    clear(buildBox);
-    const a = s.build;
-    const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askBuild }, [sparkle(), a ? t('Suggest again') : t('Suggest the sermon')]);
-    const drop = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => {
-      s.build = null; touch(); renderBuild();
-      toast(t('Outline removed.'), false, () => { s.build = a; touch(); renderBuild(); });
-    } }) : null;
-    buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
-      ? t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
-      : t('Claude proposes how to build this sermon from the text, the message and your notes, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') })]));
-    if (!a) return;
-    const panel = el('details', { class: 'ai-panel', open: true });
-    panel.append(el('summary', { text: t('The outline') }));
-    if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
-    panel.append(el('p', { class: 'muted small ai-how', text: howEdit() }));
-    if (a.intro && a.intro.text) {
-      panel.append(group(t('Introduction'), [item('', () => a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, a.intro.why, { on: a.intro, body: 'text' })]));
-    }
-    panel.append(group(t('Main points'), [...pointNotes(a), ...pointItems(a)], (a.points || []).length > 1 ? () => usePoints(a.points) : null, pointsHint(a, true)));
-    panel.append(group(t('Application and conclusion'), [
-      a.application ? item(t('Application'), () => a.application, () => { add('application', a.application); toast(t('Added to Application.')); }, null, null, { on: a, body: 'application' }) : null,
-      a.conclusion ? item(t('Conclusion'), () => a.conclusion, () => { add('conclusion', a.conclusion); toast(t('Added to Conclusion.')); }, null, null, { on: a, body: 'conclusion' }) : null,
-    ].filter(Boolean)));
-    const illLine = x => `${x.title ? x.title + ': ' : ''}${x.body}`;
-    panel.append(group(t('Illustrations'), (a.illustrations || []).map(x => item(() => x.title, () => x.body, () => { add('illustrations', illLine(x)); toast(t('Added to Illustrations under step 5.')); }, null, x.serves ? t('For {part}.', { part: x.serves }) : '', { on: x, title: 'title', body: 'body' })),
-      (a.illustrations || []).length > 1 ? () => { add('illustrations', a.illustrations.map(illLine).join('\n\n')); toast(t('All illustrations added under step 5.')); } : null, t('They go into the Illustrations box under step 5.')));
-    if (a.lighter && a.lighter.text) {
-      // the light moment goes where Claude placed it: the introduction, the conclusion, or else among the illustrations
-      const where = a.lighter.where || '';
-      const key = /intro|inleiding|open/i.test(where) ? 'intro' : /conclu|slot|close|end/i.test(where) ? 'conclusion' : 'illustrations';
-      const box = { intro: t('Introduction'), conclusion: t('Conclusion'), illustrations: t('Illustrations under step 5') }[key];
-      panel.append(group(t('A lighter moment'), [item('', () => a.lighter.text, () => { add(key, a.lighter.text); toast(t('Added to {box}.', { box })); }, null, where ? t('For {part}.', { part: where }) : '', { on: a.lighter, body: 'text' })],
-        null, t('A smile where it fits. Yours to use or to leave.')));
-    }
-    buildBox.append(panel);
-  }
-  renderBuild();
-  container.append(field(t('Introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }));
-  const pointsBox = el('div', { class: 'points' });
-  function renderPoints() {
-    clear(pointsBox);
-    s.points = s.points && s.points.length ? s.points : [{ heading: '', body: '' }];
-    s.points.forEach((p, i) => {
-      const head = lineBox({ value: p.heading || '', placeholder: t('Main point {n}', { n: i + 1 }) });
-      const body = el('textarea', { rows: 4, placeholder: t('What the text says, what it means, what it asks of us') });
-      body.value = p.body || '';
-      // a point from the Guide carries a mark; it goes when the point is emptied
-      const mark = p.guide ? el('span', { class: 'pill guide', text: t('Guide'), title: t('From the Divine Service Guide') }) : null;
-      const emptied = () => { if (mark && emptyPoint(p)) { delete p.guide; mark.remove(); } };
-      head.addEventListener('input', () => { p.heading = head.value; emptied(); touch(); });
-      body.addEventListener('input', () => { p.body = body.value; emptied(); touch(); });
-      pointsBox.append(el('div', { class: 'point' }, [
-        el('div', { class: 'row line' }, [el('span', { class: 'step-n small', text: i + 1 }), head, mark,
-          el('button', { class: 'icon del', type: 'button', 'aria-label': t('Remove this point'), text: '✕', onclick: () => { s.points.splice(i, 1); touch(); renderPoints(); } })]),
-        body,
-      ]));
-    });
-    // the Guide's main points, straight from its article, no Claude needed
-    const link = Guides.findService(s);
-    const fromGuide = link ? Guides.mainPoints(link.service) : [];
-    pointsBox.append(el('div', { class: 'row' }, [
-      el('button', { class: 'btn small ghost', type: 'button', text: t('Add a point'), onclick: () => { s.points.push({ heading: '', body: '' }); touch(); renderPoints(); } }),
-      fromGuide.length ? el('button', { class: 'btn small ghost', type: 'button', text: t('Take the main points from the Guide'), onclick: () => usePoints(fromGuide.map(p => ({ ...p, from: 'guide' })), t('Main points taken from the Guide.')) }) : null,
-      fromGuide.length ? el('span', { class: 'muted small', text: tn(fromGuide.length, 'The Guide\'s article has {n} main point.', 'The Guide\'s article has {n} main points.') }) : null,
-    ]));
-  }
-  renderPoints();
+  // ---- 6. the summary and conclusion: the Guide ends with its Summary; the sermon gathers its points up and leads to the altar
+  container.append(step(6, t('Summary and conclusion'), t('The Guide ends with a summary. Gather the main points up in a few short lines, say what they ask of us this week, and lead to the altar.'),
+    () => clearStep(6, t('the summary and conclusion'), ['summary', 'application', 'conclusion'])));
   container.append(
-    pointsBox,
+    field(t('Summary'), 'summary', { rows: 3, placeholder: t('The main points in a few short lines, to gather them up at the end') }),
     field(t('Application for the congregation'), 'application', { rows: 4, placeholder: t('What does this ask of us this week? Name it for the people in front of you.') }),
     field(t('Conclusion'), 'conclusion', { rows: 3, placeholder: t('Gather the thoughts and lead to the altar: forgiveness, Holy Communion, the hope we share') }),
   );
 
-  // ---- 5. illustrations
-  container.append(step(5, t('Illustrations and experiences'), t('A true experience says more than an explanation. Bring one in from your notes, or write it here.'),
-    () => clearStep(5, t('illustrations'), ['illustrations'])));
+  // ---- 7. illustrations: the person's own experiences, which the Guide leaves to the minister
+  container.append(step(7, t('Illustrations and experiences'), t('A true experience says more than an explanation. Bring one in from your notes, or write it here.'),
+    () => clearStep(7, t('illustrations'), ['illustrations'])));
   const illus = field(t('Illustrations'), 'illustrations', { rows: 5, placeholder: t('A story, an experience, a picture that makes the point visible') });
   const illusArea = illus.querySelector('textarea');
   container.append(illus, el('div', { class: 'row' }, [
@@ -955,9 +986,9 @@ function renderEditor(root, s) {
   ]);
   container.append(out);
 
-  // ---- 6. reflection
-  container.append(step(6, t('After the service'), t('A few honest lines while it is fresh. They make the next preparation better.'),
-    () => clearStep(6, t('after the service'), ['reflection'])));
+  // ---- 8. reflection
+  container.append(step(8, t('After the service'), t('A few honest lines while it is fresh. They make the next preparation better.'),
+    () => clearStep(8, t('after the service'), ['reflection'])));
   container.append(field(t('Reflection'), 'reflection', { rows: 4, placeholder: t('What spoke? What would you do differently? What did the congregation give back?') }));
 
   container.append(el('div', { class: 'row end' }, [

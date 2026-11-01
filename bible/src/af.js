@@ -215,31 +215,31 @@ export const AF = {
   "That translation does not contain this book.": "Daardie vertaling bevat nie hierdie boek nie.",
   "Open in the reader": "Maak oop in die leser",
 
-  // step 2
+  // step 2: the title and message (the steps follow the order of the Guide's article)
+  "Title and message": "Titel en boodskap",
+  "As the Guide gives them: first the title, then the message. Then write the core thought in your own words. The Guide gives the direction; the sermon is how it reaches this congregation.": "Soos die Handleiding hulle gee: eers die titel, dan die boodskap. Skryf dan die kerngedagte in jou eie woorde. Die Handleiding gee die rigting; die preek is hoe dit hierdie gemeente bereik.",
   "Message of the service": "Boodskap van die godsdiens",
-  "Write the message and core thought of the Guide in your own words first. The Guide gives the direction; the sermon is how it reaches this congregation.": "Skryf eers die boodskap en kerngedagte van die Handleiding in jou eie woorde. Die Handleiding gee die rigting; die preek is hoe dit hierdie gemeente bereik.",
-  "The message from the Divine Service Guide": "Die boodskap uit die Handleiding vir Godsdienste",
   "The theme in one sentence": "Die tema in een sin",
   "Core thought": "Kerngedagte",
   "The one thing the congregation should take home": "Die een ding wat die gemeente moet saamneem huis toe",
   "Notes from the Guide": "Notas uit die Handleiding",
   "Key thoughts from the Guide, in your own words. Which sentences struck you? What should be kept?": "Kerngedagtes uit die Handleiding, in jou eie woorde. Watter sinne het jou getref? Wat moet behou word?",
   "Take the message from the Guide": "Neem die boodskap uit die Handleiding",
-  "Fills the title, message and notes from the loaded Guide's article.": "Vul die titel, boodskap en notas uit die gelaaide Handleiding se artikel in.",
+  "Fills the text word, title, message, main points, context and summary from the loaded Guide's article.": "Vul die tekswoord, titel, boodskap, hoofpunte, agtergrond en samevatting uit die gelaaide Handleiding se artikel in.",
   "Taken from the Guide.": "Uit die Handleiding geneem.",
   "From the Guide: ": "Uit die Handleiding: ",
   "Read the article": "Lees die artikel",
   "Hide the article": "Verberg die artikel",
   "Change": "Verander",
   "Replace": "Vervang",
-  "Replace the text word, title, message and notes with this service's? Your own notes under steps 3 to 6 stay as they are.": "Vervang die tekswoord, titel, boodskap en notas met dié van hierdie godsdiens? Jou eie notas onder stappe 3 tot 6 bly soos hulle is.",
+  "Replace the text word, title and message with this service's? Its context and summary come in too, where you have not changed them. Your other notes stay as they are.": "Vervang die tekswoord, titel en boodskap met dié van hierdie godsdiens? Sy agtergrond en samevatting kom ook in, waar jy hulle nie verander het nie. Jou ander notas bly soos hulle is.",
   "Linked to the Guide; what you had written was kept.": "Aan die Handleiding gekoppel; wat jy geskryf het, is behou.",
 
-  // step 3
-  "Understand the text": "Verstaan die teks",
+  // step 5: the context, like the Guide's Context box, which the Afrikaans Guide calls "Agtergrond"
+  "Context: understand the text": "Agtergrond: verstaan die teks",
   "Understanding the text": "Begrip van die teks",
-  "Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.": "Wie praat, met wie, en waarom? Wat het voor en ná gekom? Watter woorde dra die gewig? Die Kategismus-afdelings hieronder haal juis hierdie teks aan: merk dié wat jy wil hou, en maak een oop om dit hier te lees.",
-  "Context": "Konteks",
+  "Like the Guide's Context box: the setting of the text. Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.": "Soos die Handleiding se Agtergrond-boks: die agtergrond van die teks. Wie praat, met wie, en waarom? Wat het voor en ná gekom? Watter woorde dra die gewig? Die Kategismus-afdelings hieronder haal juis hierdie teks aan: merk dié wat jy wil hou, en maak een oop om dit hier te lees.",
+  "Context": "Agtergrond",
   "The setting of the text: the people, the situation, the surrounding chapters": "Die agtergrond van die teks: die mense, die situasie, die omringende hoofstukke",
   "Key words": "Sleutelwoorde",
   "Key words and their meaning": "Sleutelwoorde en hul betekenis",
@@ -262,12 +262,16 @@ export const AF = {
   "Hide": "Verberg",
   "The text of the Catechism is not loaded on this device, so the notes list the ticked sections by number and title. Load it under Settings → Catechism to read the sections here and print them.": "Die teks van die Kategismus is nie op hierdie toestel gelaai nie, dus lys die notas die gemerkte afdelings volgens nommer en titel. Laai dit onder Instellings → Kategismus om die afdelings hier te lees en te druk.",
 
-  // step 4
-  "Build the sermon": "Bou die preek",
-  "An introduction that opens the door, the main points as the Guide gives them, each standing on the text, and a conclusion that leads to the altar. Plain words, short sentences.": "'n Inleiding wat die deur oopmaak, die hoofpunte soos die Handleiding hulle gee, elk op die teks gegrond, en 'n slot wat na die altaar lei. Eenvoudige woorde, kort sinne.",
+  // step 3: the introduction
   "Introduction": "Inleiding",
+  "As in the Guide, the sermon opens with an introduction. Make the people feel welcome and open the door to the text.": "Soos in die Handleiding begin die preek met 'n inleiding. Laat die mense welkom voel en maak die deur na die teks oop.",
+  "The Guide's introduction": "Die Handleiding se inleiding",
+  "Your introduction": "Jou inleiding",
   "How you will begin: a question, a picture from daily life, the setting of the text": "Hoe jy gaan begin: 'n vraag, 'n beeld uit die daaglikse lewe, die agtergrond van die teks",
+
+  // step 4: the main points
   "Main points": "Hoofpunte",
+  "The parts of the Guide's article, each under its own heading, are main point 1, 2, 3, in the Guide's order. Each point stands on the text. Plain words, short sentences.": "Die dele van die Handleiding se artikel, elk onder sy eie opskrif, is hoofpunt 1, 2, 3, in die Handleiding se volgorde. Elke punt staan op die teks. Eenvoudige woorde, kort sinne.",
   "Main point {n}": "Hoofpunt {n}",
   "Add a point": "Voeg 'n punt by",
   "Remove this point": "Verwyder hierdie punt",
@@ -289,7 +293,7 @@ export const AF = {
   "{n} point Claude added was left out: it is not in the Guide.": "{n} punt wat Claude bygevoeg het, is weggelaat: dit is nie in die Handleiding nie.",
   "{n} points Claude added were left out: they are not in the Guide.": "{n} punte wat Claude bygevoeg het, is weggelaat: hulle is nie in die Handleiding nie.",
 
-  // step 5
+  // step 7: illustrations
   "Illustrations and experiences": "Illustrasies en ervarings",
   "Illustrations": "Illustrasies",
   "A true experience says more than an explanation. Bring one in from your notes, or write it here.": "'n Ware ervaring sê meer as 'n verduideliking. Bring een uit jou notas in, of skryf dit hier.",
@@ -298,7 +302,10 @@ export const AF = {
   "Insert a note": "Voeg 'n nota in",
   "You have no notes yet. Write them in the reader: tap a verse, then \"Note\".": "Jy het nog geen notas nie. Skryf hulle in die leser: tik op 'n vers, dan op \"Nota\".",
 
-  // step 6
+  // step 6: the summary and conclusion
+  "Summary and conclusion": "Samevatting en slot",
+  "The Guide ends with a summary. Gather the main points up in a few short lines, say what they ask of us this week, and lead to the altar.": "Die Handleiding eindig met 'n samevatting. Bring die hoofpunte in 'n paar kort reëls bymekaar, sê wat hulle hierdie week van ons vra, en lei na die altaar.",
+  "The main points in a few short lines, to gather them up at the end": "Die hoofpunte in 'n paar kort reëls, om hulle aan die einde bymekaar te bring",
   "Application and conclusion": "Toepassing en slot",
   "Application": "Toepassing",
   "Application for the congregation": "Toepassing vir die gemeente",
@@ -306,7 +313,7 @@ export const AF = {
   "Conclusion": "Slot",
   "Gather the thoughts and lead to the altar: forgiveness, Holy Communion, the hope we share": "Bring die gedagtes bymekaar en lei na die altaar: vergifnis, Heilige Nagmaal, die hoop wat ons deel",
 
-  // step 7
+  // step 8: after the service
   "After the service": "Ná die godsdiens",
   "A few honest lines while it is fresh. They make the next preparation better.": "'n Paar eerlike reëls terwyl dit vars is. Dit maak die volgende voorbereiding beter.",
   "Reflection": "Terugblik",
@@ -352,26 +359,28 @@ export const AF = {
   "Heading": "Opskrif",
   "Tap a suggestion, or its pencil, to change its words first. \"Use\" then puts in your words.": "Tik op 'n voorstel, of op sy potlood, om eers sy woorde te verander. \"Gebruik\" sit dan jou woorde in.",
   "For {part}.": "Vir {part}.",
-  "the message": "die boodskap",
-  "understanding the text": "begrip van die teks",
-  "building the sermon": "die bou van die preek",
+  "the title and message": "die titel en boodskap",
+  "the introduction": "die inleiding",
+  "the main points": "die hoofpunte",
+  "the context": "die agtergrond",
+  "the summary and conclusion": "die samevatting en slot",
   "illustrations": "illustrasies",
   "after the service": "ná die godsdiens",
-  "Added to Context.": "By Konteks gevoeg.",
+  "Added to Context.": "By Agtergrond gevoeg.",
   "Added to Key words.": "By Sleutelwoorde gevoeg.",
   "Added to Cross references.": "By Kruisverwysings gevoeg.",
   "Added to Introduction.": "By Inleiding gevoeg.",
   "Added to Application.": "By Toepassing gevoeg.",
   "Added to Conclusion.": "By Slot gevoeg.",
-  "Added to Illustrations under step 5.": "By Illustrasies onder stap 5 gevoeg.",
-  "All answers added to Context.": "Al die antwoorde by Konteks gevoeg.",
+  "Added to Illustrations under step 7.": "By Illustrasies onder stap 7 gevoeg.",
+  "All answers added to Context.": "Al die antwoorde by Agtergrond gevoeg.",
   "All key words added.": "Al die sleutelwoorde bygevoeg.",
   "All cross references added.": "Al die kruisverwysings bygevoeg.",
   "All main points added.": "Al die hoofpunte bygevoeg.",
-  "All illustrations added under step 5.": "Al die illustrasies onder stap 5 bygevoeg.",
+  "All illustrations added under step 7.": "Al die illustrasies onder stap 7 bygevoeg.",
   "Each goes into the next empty main point under step 4.": "Elkeen gaan in die volgende leë hoofpunt onder stap 4.",
   "Each goes into the next empty main point.": "Elkeen gaan in die volgende leë hoofpunt.",
-  "They go into the Illustrations box under step 5.": "Hulle gaan in die Illustrasies-boks onder stap 5.",
+  "They go into the Illustrations box under step 7.": "Hulle gaan in die Illustrasies-boks onder stap 7.",
 
   // ---- the printed notes (pdf.js)
   "Sermon notes": "Preeknotas",
@@ -777,7 +786,7 @@ export const AF = {
   "None in a funeral or a service for the departed.": "Geen by 'n begrafnis of 'n godsdiens vir die ontslapenes nie.",
   "A lighter moment": "'n Ligter oomblik",
   "A smile where it fits. Yours to use or to leave.": "'n Glimlag waar dit pas. Joune om te gebruik of te laat.",
-  "Illustrations under step 5": "Illustrasies onder stap 5",
+  "Illustrations under step 7": "Illustrasies onder stap 7",
   "Added to {box}.": "By {box} gevoeg.",
   "Claude, the AI from Anthropic, can read the monthly Divine Service Guide into the Prepare tab and suggest answers for a preparation: the context of the text, key words, Catechism sections, cross references, sermon thoughts and the build of the sermon. It works with a key of your own, so you pay Anthropic only for what you use (roughly R10 to read a month's Guide and a few rand for a set of suggestions) and the key stays on this device, out of any backup.": "Claude, die KI van Anthropic, kan die maandelikse Handleiding vir Godsdienste in die Voorberei-oortjie inlees en antwoorde vir 'n voorbereiding voorstel: die konteks van die teks, sleutelwoorde, Kategismus-afdelings, kruisverwysings, preekgedagtes en die bou van die preek. Dit werk met 'n sleutel van jou eie, dus betaal jy Anthropic net vir wat jy gebruik (omtrent R10 om 'n maand se Handleiding te lees en 'n paar rand vir 'n stel voorstelle) en die sleutel bly op hierdie toestel, buite enige rugsteun.",
   "Suggestions will come in Afrikaans unless a preparation chooses otherwise.": "Voorstelle sal in Afrikaans kom, tensy 'n voorbereiding anders kies.",
