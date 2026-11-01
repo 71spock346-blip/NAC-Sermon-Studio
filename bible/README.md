@@ -6,7 +6,9 @@ the New Apostolic Church refers to each verse, and a guided path from a text wor
 a divine service with printable sermon notes and a cue card.
 
 Like the other apps in this repository it is a static site: no build step, no
-server, no login. It is built from the `bible/` folder as its own Vercel project.
+login. It is built from the `bible/` folder as its own Vercel project. The one
+piece of server code is `api/sync.js`, a Vercel function that stores the locked
+parts of the sync between the person's devices (see "Sync" below).
 On a phone, open the link and use "Add to Home Screen". The user manual is
 `help.html` (the Help button in the app).
 
@@ -89,6 +91,29 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   and stays out of the repository and the backup.
 - **Storage.** Notes, preparations and settings live in IndexedDB on the device
   (`src/store.js`). Settings → Backup exports and merges a JSON file.
+- **Sync.** Settings → "Sync between your devices" keeps a PC and a phone the same
+  without an account: the first device makes a code of 20 letters (100 bits), the
+  other joins by typing it or scanning its QR square (`vendor/qrcode.mjs`, MIT; the
+  square carries `#sync/<code>`, which `app.js` turns into the join sheet). The code
+  is the whole secret. `src/sync.js` derives a key from it (PBKDF2) and locks each of
+  six parts (notes, preparations, settings, pasted text, the Catechism text, the
+  Guides) with AES-GCM, gzip first, before sending it to `api/sync.js`, which keeps
+  the bytes as private blobs in Vercel Blob under `sync/<hash of the code>/<part>.bin`.
+  The server and the store never hold anything readable, so the Church's texts and
+  the person's keys travel too (the keys only while "Carry my keys" is ticked); the
+  look of the app (theme, text size) stays per device. Each part has an ETag: a sync
+  asks for each part with `If-None-Match`, merges a changed one with the device's rows
+  (`src/merge.js`: the newer row wins, a deletion leaves a dated marker in the `sync`
+  store so it is not undone by the other device, settings merge per key) and sends the
+  result back with `If-Match`, so two devices writing at once just merge again. It runs
+  at start, a few seconds after a change (a minute after a chapter turn), when the app
+  comes back to the front, and every five minutes; `sw.js` never caches `/api/`.
+  "Delete the copy on the server" leaves a marker that makes the other devices stop
+  (410). `node tools/test_merge.mjs` checks the merge rules; `node tools/dev_server.mjs`
+  (after `npm install` in `bible/`) serves the app with the function keeping the parts
+  in memory, for trying it with two browser windows. On Vercel the function needs a
+  Blob store connected to the project (`BLOB_READ_WRITE_TOKEN`); until then it answers
+  503 and the app says the storage still has to be switched on.
 - **Offline.** `sw.js` serves the shell network-first and the texts, library and
   icons cache-first. Settings → Offline fetches all texts once.
 - **PDF.** `src/pdf.js` draws the sermon notes (A4) and the cue card (A5 landscape)
@@ -97,12 +122,14 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 ## Files
 
 - `index.html`, `styles.css`, `help.html`, `manifest.json`, `sw.js` – the page
+- `api/sync.js` – the sync server (Vercel function, Vercel Blob); `package.json` holds its one dependency
 - `icons/` – the emblem (SVG and the PNG sizes a phone's home screen wants)
 - `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#notes`,
   `#prepare/<id>`, `#catechism/3.4.1`, `#settings`)
 - `src/books.js` – the 80 books, English and Afrikaans names, reference parsing
 - `src/i18n.js`, `src/af.js` – the language of the interface: `t()` and the Afrikaans table
-- `src/store.js` – IndexedDB, in-memory state, backup
+- `src/store.js` – IndexedDB, in-memory state, backup, change events and deletion markers for sync
+- `src/sync.js`, `src/merge.js` – sync between devices: the code, the locking, the server calls, the merge rules
 - `src/bible.js` – bundled texts, API.Bible client and cache, links out
 - `src/catechism.js` – Catechism index and tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
@@ -112,7 +139,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)
 - `vendor/fonts/` – Literata (SIL OFL 1.1), Latin and Latin-extended subsets
-- `tools/` – the scripts that generate `data/` (see below) and `check_i18n.py`, which lists the texts still without Afrikaans
+- `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
+- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `test_merge.mjs` and `dev_server.mjs` for sync
 
 ## Rebuilding the data
 

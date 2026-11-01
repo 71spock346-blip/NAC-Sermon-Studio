@@ -4,13 +4,14 @@
  * backup, offline texts, and the copyright notices the bundled texts and
  * API.Bible ask for.
  */
-import { el, clear, toast, confirmBox, download, today, sheet, fmtDate, seg, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
+import { el, clear, toast, confirmBox, download, today, sheet, busy, fmtDate, seg, copyText, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
 import { t, tn, LANGS } from './i18n.js';
 import { switchLang } from './app.js';
 import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts, saveCatechismText, deleteCatechismText } from './store.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
 import * as AI from './ai.js';
+import * as Sync from './sync.js';
 import { BOOKS } from './books.js';
 
 export const VERSION = '0.2.0';
@@ -45,6 +46,8 @@ export function render(container) {
       el('label', { class: 'f' }, [t('Congregation'), congInput]),
     ]),
   ]));
+
+  syncSection(container);
 
   // ---- appearance
   const themeSeg = seg(THEMES, S.theme || 'system', async v => { await saveSetting('theme', v); applyTheme(v); }, { block: true, label: t('Look') });
@@ -125,7 +128,7 @@ export function render(container) {
     fileInput.value = '';
   });
   container.append(section(t('Backup'), [
-    el('p', { class: 'small', text: t('Everything you write stays in this browser on this device: {notes} and {sermons} right now. Save a backup file regularly and keep it in your Google Drive. Load it on another device to carry your notes across; newer copies win and nothing is deleted. Pasted Bible text is not in this file: it has its own save file under Translations.', { notes: tn(state.notes.length, '{n} note', '{n} notes'), sermons: tn(state.sermons.length, '{n} preparation', '{n} preparations') }) }),
+    el('p', { class: 'small', text: t('Everything you write stays in this browser on this device: {notes} and {sermons} right now. Save a backup file regularly and keep it in your Google Drive, even with sync on: it is your own copy, in a file you can see. Load it on another device to carry your notes across; newer copies win and nothing is deleted. Pasted Bible text is not in this file: it has its own save file under Translations.', { notes: tn(state.notes.length, '{n} note', '{n} notes'), sermons: tn(state.sermons.length, '{n} preparation', '{n} preparations') }) }),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small', type: 'button', text: t('Save backup file'), onclick: async () => {
         const data = await exportAll();
@@ -174,8 +177,9 @@ export function render(container) {
     ]),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small ghost danger', type: 'button', text: t('Erase everything on this device'), onclick: async () => {
-        if (await confirmBox(t('Erase all notes, preparations, settings and cached chapters from this device? Save a backup first. This cannot be undone.'), t('Erase everything'), true)) {
+        if (await confirmBox(Sync.isOn() ? t('Erase all notes, preparations, settings and cached chapters from this device? Save a backup first. This cannot be undone. The copy on the server and your other devices are left as they are; this device stops syncing.') : t('Erase all notes, preparations, settings and cached chapters from this device? Save a backup first. This cannot be undone.'), t('Erase everything'), true)) {
           await wipeAll();
+          await Sync.disable();   // the device is empty on purpose: it must not fill up again from the server
           toast(t('Everything was erased.'));
           render(root);
         }
@@ -221,7 +225,7 @@ function myTextsSection(container) {
       } }),
       el('button', { class: 'btn small ghost', type: 'button', text: t('Load a pasted-text file'), onclick: () => fileInput.click() }),
       el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove all pasted text'), onclick: async () => {
-        if (await confirmBox(t('Remove every pasted chapter from this device? Save them to a file first if you want them back.'), t('Remove'), true)) { await wipeTexts(); toast(t('Pasted text removed.')); render(root); }
+        if (await confirmBox(Sync.isOn() ? t('Remove every pasted chapter from this device and, through sync, from your other devices? Save them to a file first if you want them back.') : t('Remove every pasted chapter from this device? Save them to a file first if you want them back.'), t('Remove'), true)) { await wipeTexts(); toast(t('Pasted text removed.')); render(root); }
       } }),
       fileInput,
     ]),
@@ -251,7 +255,7 @@ function catechismSection(container) {
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small', type: 'button', text: meta ? t('Load a newer Catechism file') : t('Load the Catechism text file'), onclick: () => fileInput.click() }),
       meta ? el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove the Catechism text'), onclick: async () => {
-        if (await confirmBox(t('Remove the text of the Catechism from this device? The index stays, and you can load the file again later.'), t('Remove'), true)) {
+        if (await confirmBox(Sync.isOn() ? t('Remove the text of the Catechism from this device and, through sync, from your other devices? The index stays, and you can load the file again later.') : t('Remove the text of the Catechism from this device? The index stays, and you can load the file again later.'), t('Remove'), true)) {
           await deleteCatechismText();
           Cat.forgetText();
           toast(t('Catechism text removed.'));
@@ -319,7 +323,7 @@ async function licenceSheet(b) {
   let lic = null, problem = '';
   try { lic = await Bible.yvLicence(b.id); } catch (e) { problem = e.message; }
   clear(s.body);
-  s.body.append(
+  s.body.append(el('div', {}, [
     el('p', { text: t('{name} ({abbr}) is on YouVersion, but its text is not licensed to your app yet.', { name: b.name, abbr: b.abbreviation }) }),
     lic ? el('p', {}, [t('It is covered by the licence '), el('b', { text: lic.name }), ...(lic.uri ? [' (', el('a', { href: lic.uri, target: '_blank', rel: 'noopener', text: t('open the licence') }), ')'] : []), '.']) : null,
     problem ? el('p', { class: 'muted small', text: t('YouVersion gave no licence details ({problem}).', { problem }) }) : null,
@@ -329,7 +333,7 @@ async function licenceSheet(b) {
       el('a', { href: 'https://platform.youversion.com/support', target: '_blank', rel: 'noopener', text: 'platform.youversion.com/support' }),
       t('. Afterwards tap "Check key and list Bibles" again.'),
     ]),
-  );
+  ]));
 }
 
 /** One licensed service: key box, catalogue check, and the tick list of Bibles to show. */
@@ -406,4 +410,176 @@ function providerSection(container, o) {
     chosenNow, filter, bibleList,
     el('p', { class: 'muted small', text: o.note }),
   ].filter(Boolean));
+}
+
+/* ------------------------------------------------------------------ sync */
+
+let syncWatch = null;   // stops the status updates of the last drawn Sync section
+
+/** "Synced 3 minutes ago": the time of the last sync in words. */
+function ago(iso) {
+  if (!iso) return t('Not synced yet.');
+  const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
+  if (s < 60) return t('Synced just now.');
+  if (s < 3600) return t('Synced {ago}.', { ago: tn(Math.round(s / 60), '{n} minute ago', '{n} minutes ago') });
+  if (s < 86400) return t('Synced {ago}.', { ago: tn(Math.round(s / 3600), '{n} hour ago', '{n} hours ago') });
+  return t('Synced on {date}.', { date: fmtDate(iso, true) });
+}
+
+/** Keeping this device and the person's other devices the same, over the app's own server. */
+function syncSection(container) {
+  const box = section(t('Sync between your devices'), []);
+  const body = el('div');
+  box.append(body);
+  container.append(box);
+
+  const draw = st => {
+    clear(body);
+    if (!st.on) {
+      body.append(
+        el('p', { class: 'small', text: t('Keep your PC and phone the same. Turn sync on here; the app shows you a code. On your other device open Settings → Sync, tap "I have a code" and type that code in (or scan it). From then on the two keep each other up to date on their own: notes, preparations, settings, pasted text, the Catechism text and the Guides.') }),
+        el('p', { class: 'muted small', text: t('Everything is locked with your code before it leaves the device. The server keeps only the locked copy and cannot read it, and nobody can find or open it without the code, so keep the code where you keep passwords.') }),
+        el('div', { class: 'row' }, [
+          el('button', { class: 'btn small', type: 'button', text: t('Turn on sync'), onclick: turnOn }),
+          el('button', { class: 'btn small ghost', type: 'button', text: t('I have a code'), onclick: () => joinSheet() }),
+        ]),
+      );
+      return;
+    }
+    const n = Sync.summary();
+    const dot = el('span', { class: 'sync-dot' + (st.busy ? ' busy' : st.error ? ' error' : ''), 'aria-hidden': 'true' });
+    const line = el('span', { class: 'grow', role: 'status', text: st.busy ? t('Syncing…') : ago(st.lastAt) });
+    const syncBtn = el('button', { class: 'btn small ghost', type: 'button', text: t('Sync now'), disabled: st.busy, onclick: () => Sync.syncNow() });
+    const carry = el('input', { type: 'checkbox', checked: st.carryKeys });
+    carry.addEventListener('change', async () => { await Sync.setCarryKeys(carry.checked); toast(carry.checked ? t('Your keys travel with the sync from now on.') : t('Your keys stay on each device from now on.')); });
+    body.append(el('div', {}, [
+      el('div', { class: 'row sync-status' }, [dot, line, syncBtn]),
+      st.error ? el('p', { class: 'small error', text: st.error }) : null,
+      el('p', { class: 'small', text: t('This device shares with your other devices: {notes}, {sermons}, {texts}, {guides} and the Catechism text{cat}. A change here reaches the others within a few seconds of their opening the app.', {
+        notes: tn(n.notes, '{n} note', '{n} notes'), sermons: tn(n.sermons, '{n} preparation', '{n} preparations'),
+        texts: tn(n.texts, '{n} pasted chapter', '{n} pasted chapters'), guides: tn(n.guides, '{n} Guide', '{n} Guides'),
+        cat: n.catechism ? '' : t(' (not loaded here)'),
+      }) }),
+      el('div', { class: 'row' }, [
+        el('button', { class: 'btn small', type: 'button', text: t('Show the code'), onclick: () => codeSheet(st.code) }),
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Stop syncing on this device'), onclick: async () => {
+          if (await confirmBox(t('Stop syncing on this device? Everything stays on it, and the copy on the server stays for your other devices. You can join again later with the code.'), t('Stop syncing'))) {
+            await Sync.disable();
+            toast(t('Sync is off on this device.'));
+          }
+        } }),
+        el('button', { class: 'btn small ghost danger', type: 'button', text: t('Delete the copy on the server'), onclick: async () => {
+          if (await confirmBox(t('Delete the copy on the server? Your devices keep what they have, but they stop syncing until you turn sync on again, with a new code.'), t('Delete the copy'), true)) {
+            try { await Sync.deleteRemote(); toast(t('The copy on the server was deleted.')); }
+            catch (e) { toast(e.message, true); }
+          }
+        } }),
+      ]),
+      el('label', { class: 'check sync-keys' }, [carry, el('span', { class: 'grow', text: t('Carry my keys too (API.Bible, YouVersion and Anthropic), locked with the code, so I need not paste them again on the other device.') })]),
+    ]));
+  };
+
+  if (syncWatch) syncWatch();
+  syncWatch = Sync.onStatus(draw);
+  draw(Sync.getStatus());
+
+  async function turnOn() {
+    const code = Sync.newCode();
+    const b = busy(t('Turning sync on'));
+    b.say(t('Locking your notes and sending them to the server…'));
+    try {
+      await Sync.enable(code);
+      b.done();
+      codeSheet(code, true);
+    } catch (e) {
+      b.fail(e.message || t('Sync could not be turned on.'));
+    }
+  }
+}
+
+/** The code in large letters with its QR square, for the other device. */
+async function codeSheet(code, fresh) {
+  const s = sheet(t('Your sync code'));
+  const codeBox = el('div', { class: 'sync-code', text: Sync.formatCode(code), 'aria-label': t('Sync code') });
+  const qr = el('div', { class: 'sync-qr', 'aria-hidden': 'true' });
+  s.body.append(el('div', {}, [
+    fresh ? el('p', { text: t('Sync is on. Now join from your other device.') }) : null,
+    codeBox,
+    qr,
+    el('ol', { class: 'small' }, [
+      el('li', { text: t('On your other device, open the app and go to Settings → Sync between your devices.') }),
+      el('li', { text: t('Tap "I have a code" and type these letters, in any case, with or without the dashes.') }),
+      el('li', { text: t('Or point the phone\'s camera at the square: the link opens the app with the code filled in. If the app is on your home screen, open it from there and type the code instead, so that copy is the one that joins.') }),
+    ]),
+    el('p', { class: 'muted small', text: t('Keep the code where you keep passwords. It is the only key to the copy on the server: without it nobody can open it, not even the maker of the app. You can see it again here any time.') }),
+    el('div', { class: 'row' }, [
+      el('button', { class: 'btn small', type: 'button', text: t('Copy code'), onclick: async () => toast(await copyText(Sync.formatCode(code)) ? t('Code copied.') : t('Could not copy; please type it over.'), false) }),
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Copy link'), onclick: async () => toast(await copyText(Sync.linkFor(code)) ? t('Link copied. Send it to yourself and open it on the other device.') : t('Could not copy; please type it over.'), false) }),
+    ]),
+  ]));
+  try {
+    const { default: qrcode } = await import('../vendor/qrcode.mjs');
+    const q = qrcode(0, 'M');
+    q.addData(Sync.linkFor(code));
+    q.make();
+    const n = q.getModuleCount();
+    let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`;
+    qr.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges"><path d="${d}" fill="#000"/></svg>`;
+  } catch (e) {
+    qr.remove();
+  }
+}
+
+/** Typing (or pasting) another device's code. `prefill` comes from a scanned link. */
+export function joinSheet(prefill) {
+  if (Sync.isOn()) { toast(t('Sync is already on here. Stop it first to join with another code.'), true); return; }
+  const s = sheet(t('Join with a code'));
+  const input = el('input', { type: 'text', class: 'sync-input', placeholder: 'ABCDE-FGHJK-LMNPQ-RSTUV', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', inputmode: 'text', 'aria-label': t('Sync code') });
+  if (prefill) input.value = Sync.formatCode(prefill);
+  const hint = el('p', { class: 'hint small muted', text: t('The 20 letters and numbers shown under "Show the code" on the device that is already syncing.') });
+  const joinBtn = el('button', { class: 'btn', type: 'button', text: t('Join') });
+  input.addEventListener('input', () => {
+    const raw = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    input.value = raw.replace(/(.{5})(?=.)/g, '$1-');
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); joinBtn.click(); } });
+  joinBtn.addEventListener('click', async () => {
+    const code = Sync.parseCode(input.value);
+    if (!code) { hint.textContent = t('That is not a whole code: it has 20 letters and numbers, in four groups of five, and never 0, O, 1 or I.'); hint.classList.add('error'); input.focus(); return; }
+    joinBtn.disabled = true;
+    hint.classList.remove('error');
+    hint.textContent = t('Looking for the copy on the server…');
+    try {
+      const found = await Sync.probe(code);
+      if (!found) {
+        joinBtn.disabled = false;
+        hint.textContent = '';
+        if (!(await confirmBox(t('Nothing is on the server under this code yet. Check the letters, or turn sync on on your other device first. Start a new sync with this code anyway?'), t('Start anyway')))) return;
+      }
+      s.close();
+      const b = busy(t('Joining'));
+      b.say(t('Fetching your notes and preparations and merging them with this device…'));
+      try {
+        await Sync.enable(code);
+        b.done();
+        const n = Sync.summary();
+        toast(t('Joined. On this device now: {notes} and {sermons}.', { notes: tn(n.notes, '{n} note', '{n} notes'), sermons: tn(n.sermons, '{n} preparation', '{n} preparations') }));
+        if (root) render(root);
+      } catch (e) {
+        b.fail(e.message || t('Could not join.'));
+      }
+    } catch (e) {
+      joinBtn.disabled = false;
+      hint.textContent = e.message || t('Could not reach the server.');
+      hint.classList.add('error');
+    }
+  });
+  s.body.append(
+    el('p', { class: 'small', text: t('Everything already on this device is kept and merged with what is on the server; newer copies win.') }),
+    el('label', { class: 'f sync-join' }, [t('Sync code'), input]),
+    hint,
+    el('div', { class: 'row end' }, [el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => s.close() }), joinBtn]),
+  );
+  setTimeout(() => input.focus(), 30);
 }
