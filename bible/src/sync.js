@@ -130,21 +130,34 @@ async function serverError(r) {
   const code = body && body.error;
   if (r.status === 503 && code === 'no-store') return new Error(t('The server has no storage for sync yet. It is switched on once in Vercel (see the setup steps); until then nothing can be sent.'));
   if (r.status === 413) return new Error(t('One part of your data is too big to send.'));
-  return new Error(t('The server answered {status}.', { status: r.status + (body && body.message ? ' ' + body.message : '') }));
+  const e = new Error(t('The server answered {status}.', { status: r.status + (body && body.message ? ' ' + body.message : '') }));
+  e.retry = r.status >= 500;   // a hiccup on the server or in the store: worth another go in a moment
+  return e;
 }
 
 function partUrl(part) { return `${API}?id=${id}&part=${part}`; }
 
+/*
+ * Which copy of a part the server holds travels in X-Sync-Etag and goes back
+ * in X-Sync-If-Match / X-Sync-If-None-Match, headers of the app's own: Vercel's
+ * network may change a standard ETag on its way here, and a changed one never
+ * matches again, so every write was refused as a conflict.
+ */
+function bare(v) { return String(v || '').trim().replace(/^W\//, ''); }
+function etagOf(r) { return bare(r.headers.get('X-Sync-Etag') || r.headers.get('ETag')); }
+
 /** {unchanged} when the server copy is the one we saw, {missing} when there is none, else {etag, data}. */
 async function fetchPart(part) {
   const headers = {};
-  if (etags[part]) headers['If-None-Match'] = etags[part];
+  if (etags[part]) headers['X-Sync-If-None-Match'] = etags[part];
   const r = await fetch(partUrl(part), { cache: 'no-store', headers });
   if (r.status === 304) return { unchanged: true };
   if (r.status === 404) return { missing: true };
   if (r.status === 410) throw Object.assign(new Error('gone'), { gone: true });
   if (!r.ok) throw await serverError(r);
-  const etag = r.headers.get('ETag') || '';
+  const etag = etagOf(r);
+  // without it the next write could only be "create", which the server refuses for a part that exists, round after round
+  if (!etag) throw Object.assign(new Error(t('The server sent a copy without saying which one it is. Try again in a moment.')), { retry: true });
   const data = await open(part, new Uint8Array(await r.arrayBuffer()));
   return { etag, data };
 }
@@ -154,12 +167,12 @@ async function sendPart(part, obj, etag) {
   const body = await seal(part, obj);
   if (body.length > MAX_PART) throw new Error(t('Too big to sync: {part} ({mb} MB). It stays on this device.', { part: partName(part), mb: (body.length / 1048576).toFixed(1) }));
   const headers = { 'Content-Type': 'application/octet-stream' };
-  if (etag) headers['If-Match'] = etag; else headers['If-None-Match'] = '*';
+  if (etag) headers['X-Sync-If-Match'] = etag; else headers['X-Sync-If-None-Match'] = '*';
   const r = await fetch(partUrl(part), { method: 'PUT', cache: 'no-store', headers, body });
   if (r.status === 412 || r.status === 409) return null;
   if (!r.ok) throw await serverError(r);
-  const out = await r.json();
-  return out.etag || '';
+  const out = await r.json().catch(() => ({}));
+  return bare(out.etag) || etagOf(r);
 }
 
 function partName(part) {
@@ -259,9 +272,15 @@ async function syncPart(part) {
 }
 
 async function pass() {
-  const results = await Promise.all(PARTS.map(p => syncPart(p).catch(e => { e.part = p; throw e; })));
+  // every part finishes before the pass is judged, so no request of this run is still under way when the next one starts
+  const settled = await Promise.allSettled(PARTS.map(p => syncPart(p).catch(e => { if (e && typeof e === 'object') e.part = p; throw e; })));
+  const failed = settled.filter(s => s.status === 'rejected').map(s => s.reason);
+  if (failed.length) throw failed.find(e => e && e.gone) || failed.find(e => !(e && e.retry)) || failed[0];
+  const results = settled.map(s => s.value);
   return { conflict: results.includes('conflict'), changed: PARTS.filter((p, i) => results[i] === 'changed') };
 }
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
 
 async function run() {
   status.busy = true; status.error = '';
@@ -270,10 +289,17 @@ async function run() {
   try {
     if (!cryptoKey) await derive(config.code);
     for (let round = 0; round < 4; round++) {
-      const r = await pass();
+      let r;
+      try {
+        r = await pass();
+      } catch (e) {
+        if (e && e.retry && round < 3) { await wait(1000 * (round + 1)); continue; }   // a hiccup: try again in a moment
+        throw e;
+      }
       r.changed.forEach(p => changed.add(p));
       if (!r.conflict) break;
       if (round === 3) throw new Error(t('Another device kept writing at the same time. Try again in a moment.'));
+      await wait(300 + Math.random() * 700);   // two devices that collided do not go again in step
     }
     status.lastAt = new Date().toISOString();
     config.lastAt = status.lastAt;
