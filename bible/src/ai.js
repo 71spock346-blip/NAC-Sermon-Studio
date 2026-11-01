@@ -13,7 +13,11 @@
  *                     article and the Catechism
  *   outline(s, …)     for the same preparation: how the sermon is best built
  *                     from all of that: introduction, main points,
- *                     application, conclusion and illustrations
+ *                     application, conclusion and illustrations, with the
+ *                     minister's own thoughts on the main points woven in
+ *   readThoughts(s, …) before the sermon is built: Claude reads those
+ *                     thoughts, says where each would go, and asks the
+ *                     minister where one is unclear
  *
  * One rule stands over both: the main points of the sermon come from the
  * Divine Service Guide, never from Claude. The parts of the Guide's article,
@@ -739,7 +743,7 @@ function tidySuggestions(r, lang, qs, where, service) {
 
 const OUTLINE_SCHEMA = {
   type: 'object', additionalProperties: false,
-  required: ['intro', 'points', 'application', 'conclusion', 'illustrations', 'lighter', 'note'],
+  required: ['intro', 'points', 'application', 'conclusion', 'illustrations', 'lighter', 'thoughts', 'note'],
   properties: {
     intro: {
       type: 'object', additionalProperties: false, required: ['text', 'why'], description: 'The introduction: how the sermon opens',
@@ -759,11 +763,15 @@ const OUTLINE_SCHEMA = {
       type: 'object', additionalProperties: false, required: ['text', 'where'], description: 'A lighter moment: one warm touch of humour that fits this text and these people, in the minister\'s own voice. Both fields empty when the humour level is none or nothing fits naturally.',
       properties: { text: { type: 'string', description: 'The light moment in one to three short sentences, as he could say it' }, where: { type: 'string', description: 'Where it belongs, e.g. "the introduction" or "main point 1"' } },
     },
+    thoughts: {
+      type: 'array', description: 'One entry per thought of the minister\'s under THE MINISTER\'S OWN THOUGHTS, by its id; empty when there are none',
+      items: { type: 'object', additionalProperties: false, required: ['id', 'where', 'how', 'question'], properties: { id: { type: 'string', description: 'T1, T2 … as given' }, where: { type: 'string', description: 'The part of the sermon it went into, e.g. "main point 3" or "the introduction"' }, how: { type: 'string', description: 'How it was woven in, in one or two short sentences, so the minister finds it' }, question: { type: 'string', description: 'One short plain question to the minister when the thought is still too unclear to use well; else empty' } } },
+    },
     note: { type: 'string', description: 'Anything the minister should know about this outline, e.g. a choice made between two directions; else empty' },
   },
 };
 
-function outlineSystem(lang, humour, where) {
+function outlineSystem(lang, humour, where, thoughts) {
   return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to propose how the sermon is best built from them: an introduction that opens the door, the main points as the Guide gives them, each standing on the text, an application for the congregation, a conclusion that leads to the altar, and a few illustrations. For each part say in one short line why it works here. The minister decides; he takes what serves him.
 
 Rules:
@@ -774,7 +782,7 @@ ${pointsRule(where.mode, 'outline')}
 - A New Apostolic sermon is preached freely, lasts fifteen to twenty minutes at most, and leads the congregation to the forgiveness of sins and Holy Communion: the conclusion ends there. In a divine service for the departed, the departed are included in the hope and the intercession.
 - Write every part so the minister could speak it as it stands: in the voice of a minister speaking to his congregation, "we" and "us", no headings inside the text.
 - Build on what the minister has written already: keep his direction and wording where he has one, fill what is empty, and offer an alternative only where his draft is thin. Do not repeat his text back to him. Where a main point still carries the Guide's own words, as it was filled in, write it in plain words for these people.
-- Illustrations: a picture from daily life, a true-to-life example or a Bible story that makes a point visible, taken from the world of the people who are listening. When one of the minister's own notes fits, use that one and say so ("from your notes: …") rather than inventing another.
+${thoughts ? thoughtsRule() : ''}- Illustrations: a picture from daily life, a true-to-life example or a Bible story that makes a point visible, taken from the world of the people who are listening. When one of the minister's own notes fits, use that one and say so ("from your notes: …") rather than inventing another.
 - The lighter moment: fill it only when the humour level below allows it and something fits naturally; otherwise leave both fields empty. It may also be woven into the introduction or an illustration.
 
 ${voiceRules(lang)}
@@ -799,6 +807,7 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   const lang = langOf(s);
   const humour = humourOf(s);
   const where = pointAnchors(s, service);
+  const thoughts = pointThoughts(s, where);
   const parts = [servicePart(s), peoplePart(s, lang), preacherPart()].filter(Boolean);
   if (s.text) parts.push(`THE TEXT\n${s.text}`);
   const chapter = await chapterPart(s);
@@ -828,6 +837,7 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   parts.push(draft.length
     ? 'THE MINISTER\'S DRAFT OF THE SERMON SO FAR (keep his direction; fill what is missing; improve only what is thin)\n' + draft.join('\n')
     : 'THE MINISTER\'S DRAFT OF THE SERMON SO FAR\nNothing written yet: propose the whole build.');
+  if (thoughts.length) parts.push(thoughtsPart(thoughts, where.mode));
 
   parts.push(await catechismPart(s, service, { index: false }));
 
@@ -838,14 +848,14 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   }
 
   const r = await run({
-    system: outlineSystem(lang, humour, where),
+    system: outlineSystem(lang, humour, where, thoughts.length > 0),
     content: [{ type: 'text', text: parts.join('\n\n\n') }],
     schema: OUTLINE_SCHEMA, effort: 'high', maxTokens: 12000, signal, onProgress,
   });
-  return { ...tidyOutline(r, lang, humour, where, service), audience: audienceOf(s) };
+  return { ...tidyOutline(r, lang, humour, where, service, thoughts), audience: audienceOf(s) };
 }
 
-function tidyOutline(r, lang, humour, where, service) {
+function tidyOutline(r, lang, humour, where, service, thoughts) {
   const d = r.data || {};
   const list = v => (Array.isArray(v) ? v.filter(Boolean) : []);
   const intro = d.intro && typeof d.intro === 'object' ? { text: str(d.intro.text), why: str(d.intro.why) } : { text: str(d.intro), why: '' };
@@ -856,7 +866,137 @@ function tidyOutline(r, lang, humour, where, service) {
     at: new Date().toISOString(), model: r.model, lang, humour,
     cost: cost(r.usage, r.model),
     intro, points, pointsFrom: where.mode, dropped, application: str(d.application), conclusion: str(d.conclusion), illustrations, lighter, note: str(d.note),
+    thoughts: tidyThoughts(d.thoughts, thoughts, x => ({ where: str(x.where), how: str(x.how), question: str(x.question) })),
   };
+}
+
+/* ------------------------------------------------- the minister's own thoughts on the main points */
+
+/**
+ * The minister's own thoughts on the main points, as he wrote them under
+ * each point in step 4, with the questions Claude asked about each and his
+ * answers: [{id, i, p, anchor}], named T1, T2 … in the order of his points.
+ * `anchor` is the Guide's point the thought belongs to, when there is one.
+ */
+export function pointThoughts(s, where) {
+  const anchors = (where && where.anchors) || [];
+  const out = [];
+  (s.points || []).forEach((p, i) => {
+    if (!p || !str(p.thought)) return;
+    const anchor = anchors.find(x => x.n === p.guide) || anchors.find(x => norm(x.heading) && norm(x.heading) === norm(p.heading)) || null;
+    out.push({ id: `T${out.length + 1}`, i, p, anchor });
+  });
+  return out;
+}
+
+/** Those thoughts for the user turn, each under the point it stands on, with what was asked and answered about it. */
+function thoughtsPart(list, mode) {
+  const lines = ['THE MINISTER\'S OWN THOUGHTS ON THE MAIN POINTS (his input for this sermon, named T1, T2 …; see the rules)'];
+  for (const { id, i, p, anchor } of list) {
+    const on = anchor
+      ? `main point ${anchor.n}, "${anchor.heading}"`
+      : `his main point ${i + 1}${str(p.heading) ? `, "${str(p.heading)}"` : ''}${mode === 'guide' ? ' (not one of the Guide\'s points)' : ''}`;
+    lines.push(`${id}. On ${on}: ${str(p.thought)}`);
+    for (const e of p.talk || []) {
+      if (!e || !str(e.q)) continue;
+      lines.push(`   You asked him: ${str(e.q)}`);
+      lines.push(str(e.a) ? `   He answered: ${str(e.a)}` : '   He has not answered that yet.');
+    }
+  }
+  return lines.join('\n');
+}
+
+/** The rule on the thoughts for the outline's system prompt. */
+function thoughtsRule() {
+  return `- His own thoughts (under THE MINISTER'S OWN THOUGHTS, named T1, T2 …) are his input for this sermon and belong in it. Weave each one into the main point it stands under, where it serves that point best (as the picture that opens it, as what it asks of us, as the word that carries it), in his own words where they are good; where it serves better elsewhere (the introduction, an illustration, the application, the conclusion, another point), put it there. Leave none out, and do not also repeat it as a separate illustration. Where he answered a question of yours, build on his answer. In "thoughts" account for every one by its id: where it went and how, in one or two plain sentences, so he finds it. Where one is still too unclear to use well, use it as best you can and put one short question to him there; else leave "question" empty.
+`;
+}
+
+const THOUGHTS_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['thoughts', 'note'],
+  properties: {
+    thoughts: {
+      type: 'array', description: 'One entry per thought, by its id, in the order given',
+      items: {
+        type: 'object', additionalProperties: false, required: ['id', 'clear', 'plan', 'question'],
+        properties: {
+          id: { type: 'string', description: 'T1, T2 … as given' },
+          clear: { type: 'boolean', description: 'True when the thought is understood and its place in the sermon is clear' },
+          plan: { type: 'string', description: 'Where it would go and how, in one or two short sentences' },
+          question: { type: 'string', description: 'One short plain question to the minister when the thought is not clear; else empty' },
+        },
+      },
+    },
+    note: { type: 'string', description: 'Anything else the minister should know; else empty' },
+  },
+};
+
+function thoughtsSystem(lang) {
+  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The sermon is not being built yet. Before it is, the minister wants you to read the thoughts he has written on the main points, see where each one fits into the sermon, and ask him where something is unclear, so that the sermon can carry his thoughts well. That is the whole task now.
+
+For each thought (named T1, T2 … under THE MINISTER'S OWN THOUGHTS):
+- "plan": where it would go and how, in one or two short sentences: as the picture that opens its point, as what the point asks of us, as the word that carries it, in the introduction, as an illustration, in the conclusion. Where it serves better elsewhere than under the point he put it, say so; he decides.
+- "clear" is true when you understand the thought and can see where it fits. Then "question" is empty. Most thoughts are like that.
+- "clear" is false when you cannot tell what he means, when it could go two ways that would change the sermon, when it does not obviously fit its point or the Guide's message, or when you need a detail to use it well (what happened, who was there, how it ended, what he wants the people to take from it). Then "question" is one short, plain question to him: the one that matters most. One question per thought at most.
+- Where he has already answered a question of yours, build on his answer and do not ask it again; ask once more only if the answer still leaves the thought unclear. Where an earlier question is still unanswered and still stands, ask it again, better worded if you can; where the thought has become clear without it, let it go.
+- Never judge his thought or his wording; he knows his people. Do not write the sermon or the point now.
+- The main points of the sermon come from the Church's Divine Service Guide, never from you or from his thoughts: a thought enriches a point, it does not replace one.
+
+${voiceRules(lang)}
+
+Put nothing outside the JSON fields.`;
+}
+
+/**
+ * Before the sermon is built: Claude reads the minister's thoughts on the
+ * main points, says where each would go, and asks where one is unclear.
+ * Resolves to {thoughts: [{i, clear, plan, question}], note, …}, `i` being
+ * the place of the point under step 4; empty when he has written none.
+ */
+export async function readThoughts(s, { service = null, guideTitle = '', signal, onProgress } = {}) {
+  const lang = langOf(s);
+  const where = pointAnchors(s, service);
+  const list = pointThoughts(s, where);
+  if (!list.length) return { at: new Date().toISOString(), model: '', lang, cost: 0, thoughts: [], note: '' };
+  const parts = [servicePart(s), peoplePart(s, lang), preacherPart()].filter(Boolean);
+  if (s.text) parts.push(`THE TEXT\n${s.text}`);
+  const chapter = await chapterPart(s);
+  if (chapter) parts.push(chapter);
+  parts.push(messagePart(s, service, guideTitle));
+  parts.push(pointsPart(where));
+  const draft = [s.intro ? `Introduction: ${s.intro}` : '', s.application ? `Application: ${s.application}` : '', s.conclusion ? `Conclusion: ${s.conclusion}` : '', s.illustrations ? `Illustrations: ${s.illustrations}` : ''].filter(Boolean);
+  if (draft.length) parts.push('THE MINISTER\'S DRAFT OF THE SERMON SO FAR (so you see where things already are)\n' + draft.join('\n'));
+  parts.push(thoughtsPart(list, where.mode));
+  parts.push('THE TASK\nRead each thought under THE MINISTER\'S OWN THOUGHTS and answer for each one by its id, as the rules say. The sermon itself is not built now.');
+
+  const r = await run({
+    system: thoughtsSystem(lang),
+    content: [{ type: 'text', text: parts.join('\n\n\n') }],
+    schema: THOUGHTS_SCHEMA, effort: 'medium', maxTokens: 4000, signal, onProgress,
+  });
+  const d = r.data || {};
+  return {
+    at: new Date().toISOString(), model: r.model, lang,
+    cost: cost(r.usage, r.model),
+    thoughts: tidyThoughts(d.thoughts, list, x => ({ clear: x.clear !== false, plan: str(x.plan), question: str(x.question) })),
+    note: str(d.note),
+  };
+}
+
+/**
+ * The model's entries on the thoughts, by id, back onto the minister's
+ * points: [{i, n, heading, thought, …pick(entry)}], each thought once, in
+ * the order of his points; an id the model made up is left out.
+ */
+function tidyThoughts(items, list, pick) {
+  const out = [];
+  for (const x of (Array.isArray(items) ? items : []).filter(Boolean)) {
+    const th = list.find(y => y.id === str(x.id).toUpperCase());
+    if (!th || out.find(o => o.i === th.i)) continue;
+    out.push({ i: th.i, n: th.i + 1, heading: str(th.p.heading), thought: str(th.p.thought), ...pick(x) });
+  }
+  return out.sort((a, b) => a.i - b.i);
 }
 
 /* ---------------------------------------------------------------- the Guide, piece by piece */

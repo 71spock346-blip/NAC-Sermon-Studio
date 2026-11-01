@@ -3,6 +3,10 @@
  *
  *   Sermon notes   A4 portrait, the whole preparation in the order of its
  *                  steps, which is the order of the Guide's article
+ *   The sermon     A4 portrait, large clear type: the sermon itself in
+ *                  reading order, from the boxes of the preparation or from
+ *                  the outline Claude built, with each illustration under
+ *                  the point it serves
  *   Cue card       A5 landscape, large type: text word, theme, main points
  *   Guide breakdown  A4 portrait, the Guide's article piece by piece as
  *                  Claude broke it down: a study sheet to read beside the booklet
@@ -11,6 +15,7 @@
  */
 import { formatRef } from './books.js';
 import { t, locale } from './i18n.js';
+import { fmtDate } from './ui.js';
 import { state } from './store.js';
 import * as Cat from './catechism.js';
 import { audienceOf, audienceLabel, modelLabel } from './ai.js';
@@ -57,6 +62,7 @@ class Writer {
     if (!text) return;
     this.font(opts.size || 10.5, opts.style || 'normal', opts.color);
     if (opts.serif) this.doc.setFont('times', opts.style || 'normal');
+    if (opts.leading) this.lead = (opts.size || 10.5) * 0.3528 * opts.leading;   // more room between the lines, for reading aloud
     const x = this.m + (opts.indent || 0);
     const lines = this.doc.splitTextToSize(String(text).replace(/\r/g, ''), this.width - (opts.indent || 0));
     for (const line of lines) {
@@ -148,6 +154,7 @@ export function sermonPdf(s) {
     points.forEach((p, i) => {
       if (p.heading) w.para(`${i + 1}. ${p.heading}`, { style: 'bold', size: 11, after: 1 });
       if (p.body) w.para(p.body, { indent: 5 });
+      if ((p.thought || '').trim()) w.para(t('My thought: ') + p.thought.trim(), { indent: 5, style: 'italic', size: 10 });
     });
   }
   // 5. the context: the setting of the text, the key words, the Catechism, the cross references
@@ -172,6 +179,106 @@ export function sermonPdf(s) {
   const who = [state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  ·  ');
   w.footer(who);
   return { blob: doc.output('blob'), name: fileName(s, '-sermon'), title: title };
+}
+
+/* ---------------------------------------------------------------- the sermon itself */
+
+/** Where an illustration or a lighter moment belongs, from the words the outline gave ("main point 2", "the introduction", "hoofpunt 3"). */
+function placeOf(text) {
+  const v = String(text || '').toLowerCase();
+  const m = v.match(/(\d+)/);
+  if (m && /point|punt/.test(v)) return { kind: 'point', n: parseInt(m[1], 10) };
+  if (/intro|inleiding|open|begin/.test(v)) return { kind: 'intro' };
+  if (/conclu|slot|close|end|einde/.test(v)) return { kind: 'conclusion' };
+  if (/applic|toepassing/.test(v)) return { kind: 'application' };
+  if (m) return { kind: 'point', n: parseInt(m[1], 10) };
+  return { kind: '' };
+}
+
+/** The sermon as it stands in the boxes of the preparation; the illustrations box has no place of its own, so it follows the points. */
+function fromBoxes(s) {
+  const points = (s.points || []).filter(p => p && ((p.heading || '').trim() || (p.body || '').trim())).map((p, i) => ({ n: i + 1, heading: (p.heading || '').trim(), body: (p.body || '').trim(), extras: [] }));
+  const after = { intro: [], application: [], conclusion: [], loose: [] };
+  if ((s.illustrations || '').trim()) after.loose.push({ kind: 'text', body: s.illustrations.trim() });
+  return { intro: (s.intro || '').trim(), points, summary: (s.summary || '').trim(), application: (s.application || '').trim(), conclusion: (s.conclusion || '').trim(), after, thoughts: [], outline: null };
+}
+
+/** The sermon as Claude built it (s.build), with the person's changes: each illustration and the lighter moment under the part it serves. */
+function fromOutline(s, a) {
+  const points = (a.points || []).map((p, i) => ({ n: p.n || i + 1, heading: (p.heading || '').trim(), body: (p.body || '').trim(), extras: [] }));
+  const after = { intro: [], application: [], conclusion: [], loose: [] };
+  const put = (where, item) => {
+    const at = placeOf(where);
+    const pt = at.kind === 'point' ? points.find(p => p.n === at.n) : null;
+    if (pt) pt.extras.push(item); else if (after[at.kind]) after[at.kind].push(item); else after.loose.push(item);
+  };
+  for (const x of a.illustrations || []) if ((x.body || '').trim()) put(x.serves, { kind: 'illustration', title: (x.title || '').trim(), body: x.body.trim() });
+  if (a.lighter && (a.lighter.text || '').trim()) put(a.lighter.where, { kind: 'lighter', body: a.lighter.text.trim() });
+  return { intro: ((a.intro && a.intro.text) || '').trim(), points, summary: '', application: (a.application || '').trim(), conclusion: (a.conclusion || '').trim(), after, thoughts: a.thoughts || [], outline: a };
+}
+
+/**
+ * The sermon itself, in reading order and in large clear type, to read from:
+ * the text word, the introduction, the main points, the summary, the
+ * application and the conclusion, with each illustration under the part it
+ * serves. From the boxes of the preparation, or, with `outline`, as Claude
+ * built it (s.build, with the person's changes), with where the person's
+ * thoughts went at the end.
+ */
+export function sermonTextPdf(s, { outline = null } = {}) {
+  const c = outline ? fromOutline(s, outline) : fromBoxes(s);
+  if (!c.intro && !c.points.length && !c.application && !c.conclusion) throw new Error(t('There is nothing to print yet: write the introduction, the main points, the application or the conclusion first.'));
+  const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
+  const w = new Writer(doc, 22);
+  const ref = refLabel(s);
+  const read = { size: 12, leading: 1.5, after: 3 };   // the running text: large, with room between the lines
+  const extras = list => {
+    for (const x of list) {
+      if (x.kind === 'illustration') { w.para(t('Illustration: ') + (x.title || ''), { style: 'bold', size: 10.5, color: MUTED, after: 0.5 }); w.para(x.body, { ...read, indent: 5 }); }
+      else if (x.kind === 'lighter') { w.para(t('A lighter moment'), { style: 'bold', size: 10.5, color: MUTED, after: 0.5 }); w.para(x.body, { ...read, indent: 5 }); }
+      else w.para(x.body, read);
+    }
+  };
+
+  w.font(9, 'normal', MUTED);
+  if (serviceLine(s)) { doc.text(serviceLine(s), w.m, w.y); w.y += 6; }
+  if (ref) {
+    w.font(12, 'bold', BLUE);
+    doc.text(ref + (s.translation ? `  (${s.translation})` : ''), w.m, w.y + 3);
+    w.y += 7;
+  }
+  if (s.text) w.para(s.text, { serif: true, style: 'italic', size: 12, leading: 1.4, after: 3 });
+  const title = s.title || s.theme || ref || t('The sermon');
+  if (s.title || s.theme || !ref) {
+    w.font(18, 'bold', INK);
+    for (const line of doc.splitTextToSize(title, w.width)) { w.ensure(8); doc.text(line, w.m, w.y + 5); w.y += 8; }
+    w.y += 2;
+  }
+  w.rule();
+
+  if (c.intro) { w.heading(t('Introduction')); w.para(c.intro, read); extras(c.after.intro); }
+  for (const p of c.points) {
+    w.ensure(24);   // a point's heading and the start of its text stay on one page
+    w.heading(`${p.n}. ${p.heading}`.trim());
+    if (p.body) w.para(p.body, read);
+    extras(p.extras);
+  }
+  if (c.after.loose.length) { w.heading(t('Illustrations')); extras(c.after.loose); }
+  if (c.summary) { w.heading(t('Summary')); w.para(c.summary, read); }
+  if (c.application) { w.heading(t('Application for the congregation')); w.para(c.application, read); extras(c.after.application); }
+  if (c.conclusion) { w.heading(t('Conclusion')); w.para(c.conclusion, read); extras(c.after.conclusion); }
+  if (c.outline) {
+    w.space(2);
+    if (c.thoughts.length) {
+      w.heading(t('Where your thoughts went'), 10.5);
+      for (const x of c.thoughts) w.para(`${t('Main point {n}', { n: x.n })}: ${x.how || x.where}${x.question ? ' ' + t('Claude asks: ') + x.question : ''}`, { size: 9.5, color: MUTED, after: 1 });
+    }
+    w.para(t('Built by {model}, {date}. A starting point: the sermon is yours.', { model: modelLabel(c.outline.model), date: fmtDate(c.outline.at) }), { size: 8, color: MUTED, after: 1 });
+  }
+
+  const who = [state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  ·  ');
+  w.footer(who);
+  return { blob: doc.output('blob'), name: fileName(s, '-full-sermon'), title };
 }
 
 /** Superscript digits are not in the PDF's fonts: write them as [1]. */

@@ -75,7 +75,13 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   the text, key words, Catechism sections, cross references and sermon thoughts, each with
   a "Use" button; "Suggest the sermon" under step 4 returns the build itself (introduction,
   main points, application, conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works),
-  drawing on the minister's own draft and notes. The main points always come from the Guide: the parts of
+  drawing on the minister's own draft and notes. Under each main point the minister can write his own thought on it
+  (`points[i].thought`); before the build, `readThoughts` has Claude read those thoughts and ask, in a sheet, about any
+  that is unclear (the questions and answers stay under the point as `talk`, and `read` marks what Claude has seen, so
+  only a changed thought is read again), then the outline weaves every thought in and reports where each went
+  (`thoughts`). `pdf.js sermonTextPdf` prints the sermon itself in reading order, from the preparation's boxes or from
+  the outline (each illustration under the point it serves), beside the sermon notes and the cue card.
+  The main points always come from the Guide: the parts of
   its article, in its order, are main point 1, 2, 3 and so on (`guides.js mainPoints`); a preparation taken from the
   Guide starts with them, `ai.js` gives the model that list as fixed and `alignPoints` holds the answer to it (a point
   the model adds is left out, one it leaves out stays in the Guide's words), and without the article the model is told

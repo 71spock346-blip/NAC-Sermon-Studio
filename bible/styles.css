@@ -156,7 +156,7 @@
 [data-read="easy"] .cat-text p, [data-read="easy"] .guide-article p { margin-bottom: 16px; }
 [data-read="easy"] textarea.oneline { line-height: 1.5; }
 [data-read="easy"] .chap-head h2, [data-read="easy"] .docbar h2, [data-read="easy"] h2.title { letter-spacing: 0; }
-[data-read="easy"] .ai-why, [data-read="easy"] .guide-verse, [data-read="easy"] .bd-quote, [data-read="easy"] i, [data-read="easy"] em { font-style: normal; }
+[data-read="easy"] .ai-why, [data-read="easy"] .guide-verse, [data-read="easy"] .bd-quote, [data-read="easy"] .talk-thought, [data-read="easy"] i, [data-read="easy"] em { font-style: normal; }
 
 /* ------------------------------------------------------------ base */
 * { box-sizing: border-box; }
@@ -433,6 +433,19 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .points .point { border-radius: var(--radius-s); padding: 10px; margin: 10px 0; background: var(--surface-2); }
 .pill.guide { flex: 0 0 auto; color: var(--accent-text); background: var(--accent-soft); border-color: transparent; }   /* a main point from the Guide */
 .points .point > textarea { margin-top: 8px; }
+/* the person's own thought on a main point, and the questions Claude asked about it with the answers (prepare.js talkRow) */
+.points .point .thought { margin: 8px 0 0; }
+#tab-prepare .points .point .thought .f-title { font-size: 13px; }
+.talk { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.talk-item { padding: 8px 10px; border-radius: var(--radius-s); background: var(--surface); }
+.talk-q { font-size: 14px; line-height: 1.45; }
+.talk-q b { font-weight: 600; }
+.talk-item textarea { margin-top: 6px; }
+/* the sheet with Claude's questions about the thoughts (prepare.js askThoughts) */
+.talk-ask { padding: 10px 0 4px; border-top: 1px solid var(--line); }
+.talk-where { margin: 0 0 2px; }
+.talk-thought { font-family: var(--serif); font-style: italic; font-size: 15.5px; color: var(--ink-2); margin: 0 0 6px; }
+.talk-ask textarea { margin-top: 6px; }
 /* what is a title on the printed notes (the sermon title, the message, each main point) is bold while it is typed */
 #tab-prepare textarea.oneline { font-weight: 600; }
 #tab-prepare label.people textarea.oneline { font-weight: 400; }   /* the line about the people is not a title */
@@ -449,7 +462,11 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .cat-row { margin: 8px 0 0; }
 .row.line.cat-row select { flex: 0 1 auto; width: auto; }
 .cat-note { margin-top: 4px; }
-.outputs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+/* print or save: one row per output, its name first */
+.outputs { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.out-row { margin-top: 0; }
+.out-row .out-label { flex: 0 0 150px; font-weight: 600; color: var(--ink); }
+@media (max-width: 759.98px) { .out-row .out-label { flex: 1 0 100%; } }
 
 /* the text of a Catechism section */
 .cat-text { font-family: var(--serif); font-size: 17px; line-height: 1.6; max-width: 68ch; }
@@ -658,6 +675,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .ai-text b { color: var(--ink); }
 .ai-text .num { font-weight: 600; text-decoration: none; }
 .ai-why { margin-top: 3px; font-style: italic; }
+.ai-went { margin-top: 3px; }   /* where one of the person's thoughts went, in the outline */
 .ai-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 /* the Guide's article piece by piece (step 2): the Guide's words, then the plain words and the insight, then the passages and sections */
 .bd-item .ai-text { white-space: normal; }

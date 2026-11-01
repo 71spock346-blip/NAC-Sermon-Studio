@@ -34,7 +34,17 @@
  * preparation taken from a service starts with them, "Take the main points
  * from the Guide" under step 4 fetches them again, and Claude's points are
  * the Guide's in plain words, each going into its own box. A point from the
- * Guide carries a small "Guide" mark.
+ * Guide carries a small "Guide" mark. Under each point the person can write
+ * their own thought on it. Before "Suggest the sermon" builds anything,
+ * Claude reads those thoughts (ai.js readThoughts) and, where one is unclear,
+ * asks about it in a sheet; the questions and answers stay under the point
+ * (p.talk), the sermon is then built with every thought woven in, and the
+ * outline says where each one went.
+ *
+ * Three printed outputs come from a preparation (pdf.js): the sermon notes
+ * (everything, in the order of the steps), the cue card, and the sermon
+ * itself in reading order, either as it stands in the boxes or, from the
+ * outline's panel, as Claude built it.
  */
 import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, fit, lineBox, busy, isTouch } from './ui.js';
 import { t, tn } from './i18n.js';
@@ -71,6 +81,12 @@ const numberPoints = a => { ((a && a.points) || []).forEach((p, i) => { if (p &&
 const readLink = ref => (ref ? el('a', { class: 'btn small ghost', href: `#read/${ref.book}/${ref.chapter}${ref.verse ? '/' + ref.verse : ''}`, text: t('Read') }) : null);
 /** The line under a panel's heading that says a suggestion can be changed before it is used. */
 const howEdit = () => t('Tap a suggestion, or its pencil, to change its words first. "Use" then puts in your words.');
+/** A thought on a main point as Claude last read it: the thought with the questions and answers about it, as one key (p.read). */
+const thoughtKey = p => [norm(p.thought), ...(p.talk || []).map(e => `${norm(e && e.q)}>${norm(e && e.a)}`)].join('|');
+/** True while some thought on a main point is new, or changed since Claude last read it. */
+const unreadThoughts = s => (s.points || []).some(p => p && (p.thought || '').trim() && p.read !== thoughtKey(p));
+/** The first words of a thought, to name it. */
+const short = (text, n = 90) => { const v = String(text || '').trim().replace(/\s+/g, ' '); return v.length > n ? v.slice(0, n - 1).trimEnd() + '…' : v; };
 
 const STATUS = [['draft', 'Draft'], ['ready', 'Ready'], ['held', 'Held']];
 const STATUS_LABEL = Object.fromEntries(STATUS);
@@ -570,7 +586,7 @@ function renderEditor(root, s) {
   container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }));
 
   // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
-  container.append(step(4, t('Main points'), t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences.'),
+  container.append(step(4, t('Main points'), t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it: Claude weaves it into the sermon when it builds it, and asks you first when something is unclear.'),
     () => clearStep(4, t('the main points'), [], {
       clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
       restore: kept => { s.points = kept; renderPoints(); },
@@ -580,23 +596,106 @@ function renderEditor(root, s) {
   async function askBuild() {
     if (!AI.ready()) { Guides.noKey(); return; }
     if (!s.ref && !(s.text || '').trim()) { toast(t('Give the text word first: a reference or the text itself.'), true); return; }
+    const link = Guides.findService(s);
+    const from = { service: link ? link.service : null, guideTitle: link ? link.guide.title : '' };
+    // a thought on a main point that Claude has not read yet: it is read first, and asked about where it is unclear
+    if (unreadThoughts(s) && !await readThoughts(from)) return;
+    const thoughts = (s.points || []).some(p => p && (p.thought || '').trim());
+    const who = t(AI.audienceLabel(AI.audienceOf(s))).toLowerCase();
     const ctrl = new AbortController();
     const b = busy(t('Asking Claude'), () => ctrl.abort());
-    b.say(t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}. This takes about a minute.', { who: t(AI.audienceLabel(AI.audienceOf(s))).toLowerCase() }));
+    b.say(thoughts
+      ? t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}, with your thoughts on the main points woven in. This takes about a minute.', { who })
+      : t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}. This takes about a minute.', { who }));
     try {
-      const link = Guides.findService(s);
       const out = await AI.outline(s, {
-        service: link ? link.service : null, guideTitle: link ? link.guide.title : '',
+        ...from,
         signal: ctrl.signal, onProgress: n => b.say(t('Writing the outline… {k}k letters so far.', { k: Math.round(n / 100) / 10 })),
       });
       s.build = out;
+      keepQuestions(out.thoughts);
       await saveSermon(s);
       b.done();
       renderBuild();
-      toast(t('The outline is ready. Tap "Use" on the parts to keep.'));
+      renderPoints();
+      toast(thoughts ? t('The outline is ready, with your thoughts woven in. Tap "Use" on the parts to keep.') : t('The outline is ready. Tap "Use" on the parts to keep.'));
     } catch (e) {
       if (e && e.name === 'AbortError') { b.done(); return; }
       b.fail(e.message || t('Claude could not answer.'));
+    }
+  }
+  /**
+   * Claude reads the thoughts on the main points (ai.js readThoughts) and,
+   * where one is unclear, asks about it in a sheet. The questions go under
+   * their points, with the answers typed in the sheet, and each thought is
+   * marked as read with them (p.read), so the next "Suggest the sermon"
+   * reads only what has changed. Resolves false when the sermon should not
+   * be built now: the request failed or was cancelled, or the person chose
+   * to answer later.
+   */
+  async function readThoughts(from) {
+    const ctrl = new AbortController();
+    const b = busy(t('Asking Claude'), () => ctrl.abort());
+    b.say(t('Claude is reading your thoughts on the main points first, to see where each one fits. About half a minute.'));
+    let read;
+    try {
+      read = await AI.readThoughts(s, { ...from, signal: ctrl.signal });
+    } catch (e) {
+      if (e && e.name === 'AbortError') { b.done(); return false; }
+      b.fail(e.message || t('Claude could not answer.'));
+      return false;
+    }
+    b.done();
+    const asks = [];
+    for (const r of read.thoughts) {
+      const p = s.points[r.i];
+      if (!p) continue;
+      p.talk = (p.talk || []).filter(e => e && (e.a || '').trim());   // an open question is Claude's to ask again, or to let go
+      if (r.question) { const e = { q: r.question, a: '' }; p.talk.push(e); asks.push({ p, i: r.i, e }); }
+    }
+    const markRead = () => { for (const p of s.points) if (p && (p.thought || '').trim()) p.read = thoughtKey(p); };
+    markRead();
+    await saveSermon(s);
+    renderPoints();
+    if (!asks.length) return true;
+    const go = await askThoughts(asks);
+    markRead();   // the answers go along with the build; what Claude still asks comes back with the outline
+    await saveSermon(s);
+    renderPoints();
+    if (!go) toast(t('The questions are kept under the main points. Answer them when you like, then tap "Suggest the sermon" again.'));
+    return go;
+  }
+  /** The sheet with Claude's questions about the thoughts, each with a box for the answer. Resolves true to build the sermon now. */
+  function askThoughts(asks) {
+    return new Promise(resolve => {
+      const sh = sheet(t('Claude asks about your thoughts'), { sticky: true, onclose: () => resolve(false) });
+      sh.body.append(el('p', { class: 'small', text: t('Answer in a few words, as you would say it to a friend. Claude then builds the sermon with your thoughts in it. A question you leave open stays under its main point.') }));
+      for (const { p, i, e } of asks) {
+        const box = el('textarea', { rows: 2, placeholder: t('Your answer'), 'aria-label': t('Your answer') });
+        box.value = e.a || '';
+        box.addEventListener('input', () => { e.a = box.value; touch(); });
+        sh.body.append(el('div', { class: 'talk-ask' }, [
+          el('p', { class: 'muted small talk-where', text: t('Your thought on main point {n}{heading}:', { n: i + 1, heading: (p.heading || '').trim() ? ', ' + p.heading.trim() : '' }) }),
+          el('p', { class: 'talk-thought', text: p.thought.trim() }),
+          el('p', { class: 'talk-q' }, [el('b', { text: t('Claude asks: ') }), e.q]),
+          box,
+        ]));
+      }
+      sh.body.append(el('div', { class: 'row end' }, [
+        el('button', { class: 'btn ghost', type: 'button', text: t('Not now'), onclick: () => sh.close() }),
+        el('button', { class: 'btn', type: 'button', text: t('Build the sermon'), onclick: () => { resolve(true); sh.close(true); } }),
+      ]));
+      const first = sh.body.querySelector('textarea');
+      if (first && !isTouch()) setTimeout(() => first.focus(), 30);
+    });
+  }
+  /** A thought the outline still found unclear: Claude's question goes under that main point, for the next time. */
+  function keepQuestions(list) {
+    for (const r of list || []) {
+      const p = s.points[r.i];
+      if (!p || !r.question) continue;
+      p.talk = (p.talk || []).filter(e => e && (e.a || '').trim());
+      p.talk.push({ q: r.question, a: '' });
     }
   }
   function renderBuild() {
@@ -607,14 +706,25 @@ function renderEditor(root, s) {
       s.build = null; touch(); renderBuild();
       toast(t('Outline removed.'), false, () => { s.build = a; touch(); renderBuild(); });
     } }) : null;
-    buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
+    // the outline as one sermon to read, with the illustrations under the points they serve (pdf.js sermonTextPdf)
+    const pdf = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Save as PDF'), onclick: () => run(x => Pdf.sermonTextPdf(x, { outline: a }), 'download') }) : null;
+    const printBtn = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(x => Pdf.sermonTextPdf(x, { outline: a }), 'print') }) : null;
+    buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, pdf, printBtn, el('span', { class: 'muted small grow', text: a
       ? t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
-      : t('Claude proposes how to build this sermon from the text, the message and your notes, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') })]));
+      : t('Claude proposes how to build this sermon from the text, the message, your notes and your thoughts on the main points, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') })]));
     if (!a) return;
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The outline') }));
     if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
-    panel.append(el('p', { class: 'muted small ai-how', text: howEdit() }));
+    panel.append(el('p', { class: 'muted small ai-how', text: howEdit() + ' ' + t('"Save as PDF" and "Print" give the whole outline as one sermon to read.') }));
+    if ((a.thoughts || []).length) {
+      // where each of the person's thoughts went; a question still open is answered under the point itself
+      panel.append(group(t('Your thoughts'), a.thoughts.map(x => el('div', { class: 'ai-item' }, [el('div', { class: 'ai-text' }, [
+        el('b', { text: t('Your thought on main point {n}', { n: x.n }) + ': ' }), `“${short(x.thought)}”`,
+        el('div', { class: 'ai-went' }, [el('b', { text: t('Where it went: ') }), x.how || x.where]),
+        x.question ? el('div', { class: 'ai-went' }, [el('b', { text: t('Claude asks: ') }), x.question, ' ', el('span', { class: 'muted', text: t('Answer it under main point {n}, then tap "Suggest again".', { n: x.n }) })]) : null,
+      ])])), null, t('Where each of your thoughts went, and how.')));
+    }
     if (a.intro && a.intro.text) {
       panel.append(group(t('Introduction'), [item('', () => a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, a.intro.why, { on: a.intro, body: 'text' })]));
     }
@@ -650,10 +760,19 @@ function renderEditor(root, s) {
       const emptied = () => { if (mark && emptyPoint(p)) { delete p.guide; mark.remove(); } };
       head.addEventListener('input', () => { p.heading = head.value; emptied(); touch(); });
       body.addEventListener('input', () => { p.body = body.value; emptied(); touch(); });
+      // the person's own thought on this point: Claude weaves it into the sermon, and asks here when it is unclear
+      const thought = el('textarea', { rows: 1, placeholder: t('A story, a picture, a question, something that struck you. Claude weaves it into the sermon, and asks if something is unclear.') });
+      thought.value = p.thought || '';
+      thought.addEventListener('input', () => { p.thought = thought.value; touch(); });
+      const talk = el('div', { class: 'talk' });
+      const drawTalk = () => { clear(talk); for (const e of p.talk || []) if (e && e.q) talk.append(talkRow(p, e, drawTalk)); };
+      drawTalk();
       pointsBox.append(el('div', { class: 'point' }, [
         el('div', { class: 'row line' }, [el('span', { class: 'step-n small', text: i + 1 }), head, mark,
           el('button', { class: 'icon del', type: 'button', 'aria-label': t('Remove this point'), text: '✕', onclick: () => { s.points.splice(i, 1); touch(); renderPoints(); } })]),
         body,
+        el('label', { class: 'f thought' }, [title(t('My thought on this point')), thought]),
+        talk,
       ]));
     });
     // the Guide's main points, straight from its article, no Claude needed
@@ -667,6 +786,19 @@ function renderEditor(root, s) {
   }
   renderPoints();
   container.append(pointsBox);
+  /** One question Claude asked about a thought, with the box for the answer; the answer is kept with the thought and goes along to the next request. */
+  function talkRow(p, e, redraw) {
+    const ans = el('textarea', { rows: 1, placeholder: t('Your answer'), 'aria-label': t('Your answer') });
+    ans.value = e.a || '';
+    ans.addEventListener('input', () => { e.a = ans.value; touch(); });
+    return el('div', { class: 'talk-item' }, [
+      el('div', { class: 'row line talk-q' }, [
+        el('span', { class: 'grow' }, [el('b', { text: t('Claude asked: ') }), e.q]),
+        el('button', { class: 'icon del', type: 'button', 'aria-label': t('Remove this question'), text: '✕', onclick: () => { p.talk = (p.talk || []).filter(x => x !== e); touch(); redraw(); } }),
+      ]),
+      ans,
+    ]);
+  }
 
   // ---- 5. the context: the setting of the text, as the Guide's Context box gives it, with the key words, the Catechism and cross references
   container.append(step(5, t('Context: understand the text'), t('Like the Guide\'s Context box: the setting of the text. Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'),
@@ -871,7 +1003,12 @@ function renderEditor(root, s) {
     const have = (s.points || []).filter(x => !emptyPoint(x));
     if (have.length && !await confirmBox(tn(have.length, 'Replace the main point you have with these {k}? You can undo it straight after.', 'Replace the {n} main points you have with these {k}? You can undo it straight after.', { k: list.length }), t('Replace'), true)) return;
     const old = s.points;
-    s.points = list.map(p => ({ heading: p.heading, body: p.body, ...(p.from === 'guide' ? { guide: p.n } : {}) }));
+    // the thoughts stay with their points: by the Guide's number, the heading, or the place
+    const mine = (p, i) => (old || []).find(x => x && p.from === 'guide' && x.guide === p.n) || (old || []).find(x => x && norm(x.heading) && norm(x.heading) === norm(p.heading)) || (old || [])[i] || {};
+    s.points = list.map((p, i) => {
+      const was = mine(p, i);
+      return { heading: p.heading, body: p.body, ...(p.from === 'guide' ? { guide: p.n } : {}), ...(was.thought ? { thought: was.thought } : {}), ...(was.talk ? { talk: was.talk } : {}), ...(was.read ? { read: was.read } : {}) };
+    });
     touch(); renderPoints();
     toast(done || t('All main points added.'), false, have.length ? () => { s.points = old; touch(); renderPoints(); } : null);
   }
@@ -967,7 +1104,7 @@ function renderEditor(root, s) {
   ]));
 
   // ---- output
-  container.append(step('✓', t('Print or save'), t('The sermon notes carry everything above. The cue card is one page in large type for the pulpit.')));
+  container.append(step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue card is one page in large type for the pulpit.')));
   async function run(make, how) {
     try {
       await Cat.loadText().catch(() => false);
@@ -977,14 +1114,18 @@ function renderEditor(root, s) {
       else { Pdf.download(r); toast(t('Saved ') + r.name); }
     } catch (e) { toast(e.message || t('The PDF could not be built.'), true); }
   }
-  const out = el('div', { class: 'outputs' }, [
-    el('button', { class: 'btn small', type: 'button', text: t('Sermon notes PDF'), onclick: () => run(Pdf.sermonPdf, 'download') }),
-    el('button', { class: 'btn small', type: 'button', text: t('Cue card PDF'), onclick: () => run(Pdf.cueCardPdf, 'download') }),
-    el('button', { class: 'btn small ghost', type: 'button', text: t('Print notes'), onclick: () => run(Pdf.sermonPdf, 'print') }),
-    el('button', { class: 'btn small ghost', type: 'button', text: t('Print cue card'), onclick: () => run(Pdf.cueCardPdf, 'print') }),
-    Pdf.canShare() ? el('button', { class: 'btn small ghost', type: 'button', text: t('Share notes'), onclick: () => run(Pdf.sermonPdf, 'share') }) : null,
+  /** One printed output: its name, then Save as PDF, Print and, on a phone that can, Share. */
+  const outRow = (label, make, share) => el('div', { class: 'row out-row' }, [
+    el('span', { class: 'out-label', text: label }),
+    el('button', { class: 'btn small', type: 'button', text: t('Save as PDF'), onclick: () => run(make, 'download') }),
+    el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(make, 'print') }),
+    share && Pdf.canShare() ? el('button', { class: 'btn small ghost', type: 'button', text: t('Share'), onclick: () => run(make, 'share') }) : null,
   ]);
-  container.append(out);
+  container.append(el('div', { class: 'outputs' }, [
+    outRow(t('Sermon notes'), Pdf.sermonPdf, true),
+    outRow(t('The sermon'), Pdf.sermonTextPdf, true),
+    outRow(t('Cue card'), Pdf.cueCardPdf, false),
+  ]));
 
   // ---- 8. reflection
   container.append(step(8, t('After the service'), t('A few honest lines while it is fresh. They make the next preparation better.'),
