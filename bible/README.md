@@ -112,8 +112,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   (410). `node tools/test_merge.mjs` checks the merge rules; `node tools/dev_server.mjs`
   (after `npm install` in `bible/`) serves the app with the function keeping the parts
   in memory, for trying it with two browser windows. On Vercel the function needs a
-  Blob store connected to the project (`BLOB_READ_WRITE_TOKEN`); until then it answers
-  503 and the app says the storage still has to be switched on.
+  Blob store connected to the project: Vercel sets `BLOB_STORE_ID` and the function
+  signs in with the deployment's own OIDC token (an older connection sets
+  `BLOB_READ_WRITE_TOKEN` instead). Until then it answers 503 and the app says the
+  storage still has to be switched on.
 - **Offline.** `sw.js` serves the shell network-first and the texts, library and
   icons cache-first. Settings → Offline fetches all texts once.
 - **PDF.** `src/pdf.js` draws the sermon notes (A4) and the cue card (A5 landscape)
