@@ -17,11 +17,13 @@
  *                                          answers 410, so the other devices stop
  *                                          (a PUT with If-None-Match: * clears it)
  *
- * The store is Vercel Blob when BLOB_READ_WRITE_TOKEN is set (a Blob store
- * connected to the project puts it there); tools/dev_server.mjs sets
- * SYNC_MEMORY_STORE to keep the parts in memory for local tries. Without
- * either the function answers 503 {error: 'no-store'} and the app says the
- * storage still has to be switched on.
+ * The store is Vercel Blob when a Blob store is connected to the project.
+ * Vercel now connects a store by setting BLOB_STORE_ID, and the SDK signs
+ * each call with the deployment's own short-lived OIDC token; an older
+ * connection sets BLOB_READ_WRITE_TOKEN instead. Either is enough.
+ * tools/dev_server.mjs sets SYNC_MEMORY_STORE to keep the parts in memory for
+ * local tries. Without any of these the function answers 503
+ * {error: 'no-store'} and the app says the storage still has to be switched on.
  */
 import { put, get, del, list } from '@vercel/blob';
 
@@ -117,7 +119,7 @@ const memoryStore = {
 };
 
 function storeFor() {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return blobStore;
+  if (process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN) return blobStore;
   if (process.env.SYNC_MEMORY_STORE) return memoryStore;
   return null;
 }
