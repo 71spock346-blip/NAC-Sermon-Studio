@@ -20,9 +20,18 @@
  * article, each under its own heading, are main point 1, 2, 3 and so on, in
  * the Guide's order. mainPoints() reads them off an article; prefill() puts
  * them into a new preparation, and ai.js holds Claude to them.
+ *
+ * The Guide comes in English and in Afrikaans ("Handleiding vir
+ * Godsdienste"), the same booklet with the same services. Both can be loaded
+ * for a month: the card in the Prepare list then switches between the two,
+ * and each service is linked to the same service in the other language
+ * (partnerOf), so a preparation shows from either list. A preparation follows
+ * one of the two, the one it was started from, and its sermon is preached in
+ * that language; switchEdition() moves it to the other, putting the other
+ * language's words wherever the Guide's own words still stand.
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate, busy } from './ui.js';
-import { t, tn } from './i18n.js';
+import { el, clear, toast, sheet, confirmBox, fmtDate, busy, seg } from './ui.js';
+import { t, tn, locale } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveGuide, deleteGuide, uid } from './store.js';
 import * as AI from './ai.js';
@@ -31,6 +40,70 @@ import * as Cat from './catechism.js';
 /** Loaded Guides, newest month first. */
 export function all() {
   return state.guides.slice().sort((a, b) => (b.year - a.year) || (b.month - a.month) || (b.loadedAt || '').localeCompare(a.loadedAt || ''));
+}
+
+/* ---------------------------------------------------------------- one Guide, two languages */
+
+/* The languages the Guide comes in, as a switch names them (seg() puts them into the app's language). */
+const EDITIONS = { en: 'English', af: 'Afrikaans' };
+const RANK = { en: 0, af: 1 };
+
+/** The name of a Guide's language for a switch: "English" or "Afrikaans" (else the booklet's own title). */
+export function editionLabel(guide) {
+  return EDITIONS[guide && guide.language] || (guide && guide.title) || '';
+}
+
+/** The loaded Guides by month, newest first: [{year, month, editions}], the English Guide before the Afrikaans. */
+export function months() {
+  const out = [];
+  for (const g of all()) {
+    let m = out.find(x => x.year === g.year && x.month === g.month);
+    if (!m) out.push(m = { year: g.year, month: g.month, editions: [] });
+    m.editions.push(g);
+  }
+  for (const m of out) m.editions.sort((a, b) => (RANK[a.language] ?? 2) - (RANK[b.language] ?? 2));
+  return out;
+}
+
+/** The same month's Guide in the other language (the Afrikaans one for an English one, and the other way round), or null. */
+export function otherEdition(guide) {
+  const want = guide && { en: 'af', af: 'en' }[guide.language];
+  if (!want) return null;
+  return state.guides.find(g => g.id !== guide.id && g.year === guide.year && g.month === guide.month && g.language === want) || null;
+}
+
+/** Two references to the same verses. */
+const sameRef = (a, b) => !!(a && b) && a.book === b.book && a.chapter === b.chapter
+  && (a.verse || 0) === (b.verse || 0) && (a.verseEnd || a.verse || 0) === (b.verseEnd || b.verse || 0);
+
+/**
+ * The same service in the other language's Guide: {guide, service, i}, or
+ * null when that Guide is not loaded or has no such service. It is the same
+ * service when it has the same Bible text on the same day; failing that, the
+ * same day and kind of service; failing that, the same place in a booklet
+ * with as many services.
+ */
+export function partnerOf(guide, i) {
+  const other = otherEdition(guide);
+  const svc = guide && guide.services[i];
+  if (!other || !svc) return null;
+  const list = other.services;
+  const ref = refOf(svc);
+  let j = ref ? list.findIndex(x => sameRef(refOf(x), ref) && (!svc.date || !x.date || x.date === svc.date)) : -1;
+  if (j < 0 && svc.date) j = list.findIndex(x => x.date === svc.date && x.kind === svc.kind);
+  if (j < 0 && list.length === guide.services.length && list[i] && list[i].kind === svc.kind) j = i;
+  return j >= 0 ? { guide: other, service: list[j], i: j } : null;
+}
+
+/** The Guides in the order to search them: newest month first, and in each month the Guide in `lang` first. */
+function byPreference(lang) {
+  return all().sort((a, b) => (b.year - a.year) || (b.month - a.month) || ((a.language === lang ? 0 : 1) - (b.language === lang ? 0 : 1)));
+}
+
+/** Two texts alike but for spaces, punctuation and capitals: the Guide's words where they were filled in, still as they were. */
+function same(x, y) {
+  const k = v => String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  return !!k(x) && k(x) === k(y);
 }
 
 /** "Psalm 130:7 (excerpt)" → the parsed reference, or null. */
@@ -58,10 +131,10 @@ export function findService(s) {
   return service ? { guide, service, i: link.i } : null;
 }
 
-/** The first service in any loaded Guide whose text word covers this reference. */
-export function matchService(ref) {
+/** The first service in any loaded Guide whose text word covers this reference; with `lang`, the Guide in that language first. */
+export function matchService(ref, lang) {
   if (!ref) return null;
-  for (const guide of all()) {
+  for (const guide of byPreference(lang)) {
     for (let i = 0; i < guide.services.length; i++) {
       const r = refOf(guide.services[i]);
       if (!r || r.book !== ref.book || r.chapter !== ref.chapter) continue;
@@ -71,9 +144,11 @@ export function matchService(ref) {
   return null;
 }
 
-/** The preparations already started from a service: [{sermon}] */
+/** The preparations already started from a service, in this Guide or the same service in the other language's: [{sermon}] */
 export function preparationsFor(guide, i) {
-  return state.sermons.filter(s => s.guideLink && s.guideLink.guideId === guide.id && s.guideLink.i === i);
+  const twin = partnerOf(guide, i);
+  const from = (g, k) => s => s.guideLink && s.guideLink.guideId === g.id && s.guideLink.i === k;
+  return state.sermons.filter(s => from(guide, i)(s) || (twin && from(twin.guide, twin.i)(s)));
 }
 
 /** The Guide's Summary as it goes into the Summary box under step 6: one point per line. */
@@ -114,7 +189,7 @@ export function upgrade(s) {
 }
 
 /* Headings of an article that are not a main point: the parts around the article's own parts. */
-const NOT_A_POINT = /^(introduction|inleiding|context|agtergrond|konteks|summary|samevatting|opsomming|thoughts from the chief apostle|gedagtes van die stamapostel|reading|voorlesing)\b/i;
+const NOT_A_POINT = /^(introduction|inleiding|context|agtergrond|konteks|summary|samevatting|opsomming|thoughts from the chief apostle|gedagtes van(af)? die stamapostel|reading|voorlesing)\b/i;
 
 /**
  * The main points of the sermon, as the Guide gives them: the parts of the
@@ -144,8 +219,10 @@ const pointsEmpty = s => !(s.points || []).some(p => p && ((p.heading || '').tri
  * taken too. The Catechism sections the article cites are ticked, and while
  * no main point is written yet, the main points are the Guide's (see
  * mainPoints): the person's own points under step 4 are never replaced here.
+ * With `lang`, a preparation that has no language of its own yet is preached
+ * in the language of this Guide, so Claude answers in it.
  */
-export function prefill(s, guide, i, { force = false, fresh = false } = {}) {
+export function prefill(s, guide, i, { force = false, fresh = false, lang = false } = {}) {
   const svc = guide.services[i];
   const ref = refOf(svc);
   const before = findService(s);   // the service linked until now, if any
@@ -177,8 +254,58 @@ export function prefill(s, guide, i, { force = false, fresh = false } = {}) {
   }
   const points = mainPoints(svc);
   if (points.length && pointsEmpty(s)) s.points = points.map(p => ({ heading: p.heading, body: p.body, guide: p.n }));
+  if (lang && !s.lang && EDITIONS[guide.language]) s.lang = guide.language;
   s.guideLink = { guideId: guide.id, i };
   return s;
+}
+
+/**
+ * Moves a preparation to the same service in the other language's Guide
+ * (partnerOf). Whatever still holds the words of the Guide it followed until
+ * now takes the other Guide's words: the Bible text, the title, the message,
+ * the Context and Summary boxes, the reading among the cross references, and
+ * the heading and the words of each main point taken from the Guide, one by
+ * one. What the person wrote stays as it is, and so do their thoughts on the
+ * points. The sermon is then preached in the other language.
+ * Gives {to, points}, `points` false when the main points were left alone
+ * because the two Guides do not have the same parts; null when the other
+ * Guide has no such service.
+ */
+export function switchEdition(s) {
+  const from = findService(s);
+  const to = from && partnerOf(from.guide, from.i);
+  if (!to) return null;
+  const a = from.service, b = to.service;
+  const swap = (key, was, now) => { if (same(s[key], was)) s[key] = now || ''; };
+  if (same(s.text, a.bibleText) && b.bibleText) {
+    s.text = b.bibleText;
+    s.translationId = '';
+    s.translation = to.guide.language === 'af' ? 'AFR53' : 'NKJV';
+  }
+  swap('title', a.title, b.title);
+  swap('theme', a.message, b.message);
+  swap('context', a.context, b.context);
+  swap('summary', summaryText(a), summaryText(b));
+  if (a.reading && b.reading && (s.crossRefs || '').includes(a.reading)) s.crossRefs = s.crossRefs.replace(a.reading, b.reading);
+  const was = mainPoints(a), now = mainPoints(b);
+  const fits = was.length === now.length;
+  if (fits) {
+    for (const p of s.points || []) {
+      const x = p && p.guide ? was[p.guide - 1] : null;
+      const y = x ? now[p.guide - 1] : null;
+      if (!y) continue;
+      if (same(p.heading, x.heading)) p.heading = y.heading;
+      if (same(p.body, x.body)) p.body = y.body;
+    }
+  }
+  s.catechism = s.catechism || [];
+  for (const n of b.catechismRefs || []) {
+    const sec = Cat.section(n);
+    if (sec && !s.catechism.find(c => c.n === n)) s.catechism.push({ n, title: sec.title });
+  }
+  s.guideLink = { guideId: to.guide.id, i: to.i };
+  if (EDITIONS[to.guide.language]) s.lang = to.guide.language;
+  return { to, points: fits || !was.length };
 }
 
 /* ---------------------------------------------------------------- the article */
@@ -252,8 +379,11 @@ async function read(file) {
     const older = state.guides.find(x => x.year === g.year && x.month === g.month && x.language === g.language);
     const guide = { ...g, id: older ? older.id : uid(), loadedAt: new Date().toISOString() };
     await saveGuide(guide);
+    shown = { year: guide.year, month: guide.month, language: guide.language, usual: AI.langOf(null) };   // the card opens on the Guide just read
     b.done();
-    toast(`${guide.title}: ` + tn(guide.services.length, '{n} service read', '{n} services read') + (older ? ' ' + t('(the earlier copy was replaced)') : '') + '. ' + (AI.fmtCost(guide.cost) ? t('This cost {cost}.', { cost: AI.fmtCost(guide.cost) }) : ''));
+    const twin = otherEdition(guide);
+    const linked = !twin ? '' : twin.language === 'en' ? t('Linked to the English Guide of the same month.') : t('Linked to the Afrikaans Guide of the same month.');
+    toast(`${guide.title}: ` + tn(guide.services.length, '{n} service read', '{n} services read') + (older ? ' ' + t('(the earlier copy was replaced)') : '') + '. ' + (linked ? linked + ' ' : '') + (AI.fmtCost(guide.cost) ? t('This cost {cost}.', { cost: AI.fmtCost(guide.cost) }) : ''));
     return guide;
   } catch (e) {
     if (e && e.name === 'AbortError') { b.done(); return null; }
@@ -292,34 +422,66 @@ function serviceRow(guide, i, onPrepare) {
   return row;
 }
 
+/* The month and language the card shows while the app is open: the last chosen on the card, or the Guide just
+   read. A language chosen there holds until the app's own language changes, so the EN/AF switch is followed. */
+let shown = null;
+
+/** "November 2026", in the language of the app. */
+function monthName(m) {
+  return new Date(m.year, m.month - 1, 15).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
+}
+
 /**
  * The Guides in the Prepare list: the services of the chosen month, one tap
- * to start its preparation, and the buttons to load or remove a Guide.
+ * to start its preparation, and the buttons to load or remove a Guide. When
+ * the month's Guide is loaded in English and in Afrikaans, a switch shows
+ * either; when only one is, a button loads the other.
  * onPrepare(guide, i) starts a preparation; onChange() redraws the tab.
  */
 export function card({ onPrepare, onChange }) {
-  const guides = all();
+  const groups = months();
   const wrap = el('details', { class: 'guide-card', open: true });
-  if (!guides.length) {
+  if (!groups.length) {
     wrap.append(
       el('summary', { text: t('Divine Service Guide') }),
-      el('p', { class: 'small muted', text: t('Load this month\'s Guide (the PDF) and Claude reads every service out of it: date, text word, message, the article and its Catechism references. A preparation then starts with all of that filled in.') }),
+      el('p', { class: 'small muted', text: t('Load this month\'s Guide (the PDF), in English or in Afrikaans, and Claude reads every service out of it: date, text word, message, the article and its Catechism references. A preparation then starts with all of that filled in. You can load the Guide in both languages.') }),
       el('div', { class: 'row' }, [el('button', { class: 'btn small', type: 'button', text: t('Load a Guide (PDF)'), onclick: async () => { if (await load()) onChange(); } })]),
     );
     return wrap;
   }
-  let current = guides[0];
+  // the month and the language shown: as chosen last, else the newest month in the language the person usually preaches in
+  const usual = AI.langOf(null);
+  let keep = shown && shown.usual === usual ? shown.language : null;
+  const editionOf = m => (keep && m.editions.find(g => g.language === keep)) || m.editions.find(g => g.language === usual) || m.editions[0];
+  let month = (shown && groups.find(m => m.year === shown.year && m.month === shown.month)) || groups[0];
+  let current = editionOf(month);
+  const remember = () => { shown = { year: month.year, month: month.month, language: keep, usual }; };
+  const heading = el('span');
+  const count = el('span', { class: 'muted small' });
   const body = el('div');
-  const choose = guides.length > 1 ? el('select', { class: 'small', 'aria-label': t('Which Guide') }, guides.map(g => el('option', { value: g.id, text: `${g.title}${g.language === 'af' ? ' (Afrikaans)' : g.language === 'en' ? ' (English)' : ''}` }))) : null;
-  if (choose) choose.addEventListener('change', () => { current = guides.find(g => g.id === choose.value) || guides[0]; draw(); });
+  const choose = groups.length > 1 ? el('select', { class: 'small', 'aria-label': t('Which month') }, groups.map((m, k) => el('option', { value: String(k), text: monthName(m), selected: m === month }))) : null;
+  if (choose) choose.addEventListener('change', () => { month = groups[Number(choose.value)] || groups[0]; current = editionOf(month); remember(); draw(); });
+  const loadOne = async () => { if (await load()) onChange(); };
   function draw() {
+    heading.textContent = /guide|gids|handleiding/i.test(current.title) ? current.title : t('Divine Service Guide: {title}', { title: current.title });
+    const both = month.editions.some(g => g.language === 'en') && month.editions.some(g => g.language === 'af');
+    count.textContent = ' · ' + tn(current.services.length, '{n} service', '{n} services') + (both ? ' · ' + t('English and Afrikaans') : '');
+    // the same Guide in the other language, not loaded yet: the button to load it
+    const missing = !otherEdition(current) && { en: 'af', af: 'en' }[current.language];
     clear(body);
-    const list = el('div', { class: 'list' }, current.services.map((_, i) => serviceRow(current, i, onPrepare)));
-    body.append(
+    body.append(...[
+      month.editions.length > 1 ? el('div', { class: 'row line guide-langs' }, [
+        el('span', { class: 'small', text: t('The Guide in:') }),
+        seg(month.editions.map(g => [g.id, editionLabel(g)]), current.id, id => { current = month.editions.find(g => g.id === id) || current; keep = current.language; remember(); draw(); }, { label: t('Language of the Guide') }),
+      ]) : null,
       el('p', { class: 'small muted', text: t('Tap a service to start its preparation, or to open the one already started. Loaded {date} from "{file}".', { date: fmtDate(current.loadedAt), file: current.fileName || t('a PDF') }) }),
-      list,
+      el('div', { class: 'list' }, current.services.map((_, i) => serviceRow(current, i, onPrepare))),
+      missing ? el('p', { class: 'small guide-twin', text: missing === 'af'
+        ? t('Do you have this Guide in Afrikaans too? Load it as well. Each service is then linked to the same one in English, and each preparation can follow either language.')
+        : t('Do you have this Guide in English too? Load it as well. Each service is then linked to the same one in Afrikaans, and each preparation can follow either language.') }) : null,
       el('div', { class: 'row' }, [
-        el('button', { class: 'btn small ghost', type: 'button', text: t('Load another Guide'), onclick: async () => { if (await load()) onChange(); } }),
+        missing ? el('button', { class: 'btn small', type: 'button', text: missing === 'af' ? t('Load the Afrikaans Guide (PDF)') : t('Load the English Guide (PDF)'), onclick: loadOne }) : null,
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Load another Guide'), onclick: loadOne }),
         el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove this Guide'), onclick: async () => {
           if (await confirmBox(t('Remove "{title}" from this device? Preparations made from it keep their text; you can load the PDF again later.', { title: current.title }), t('Remove'), true)) {
             await deleteGuide(current.id);
@@ -328,11 +490,10 @@ export function card({ onPrepare, onChange }) {
           }
         } }),
       ]),
-    );
+    ].filter(Boolean));
   }
   draw();
-  const title = /guide|gids|handleiding/i.test(current.title) ? current.title : t('Divine Service Guide: {title}', { title: current.title });
-  wrap.append(el('summary', {}, [title, el('span', { class: 'muted small', text: ' · ' + tn(current.services.length, '{n} service', '{n} services') })]));
+  wrap.append(el('summary', {}, [heading, count]));
   if (choose) wrap.append(el('div', { class: 'row line guide-choose' }, [el('span', { class: 'small', text: t('Month:') }), choose]));
   wrap.append(body);
   return wrap;
@@ -348,11 +509,12 @@ export function picker(s, onPick) {
     sh.body.append(el('p', { class: 'muted', text: t('No Guide is loaded on this device yet. Load the month\'s PDF in the Prepare list first.') }));
     return;
   }
-  const match = s.ref ? matchService(s.ref) : null;
+  const prefer = AI.langOf(s);   // the Guide in the language of this sermon comes first
+  const match = s.ref ? matchService(s.ref, prefer) : null;
   if (match) sh.body.append(el('p', { class: 'small', text: t('The {title} has a service on {reference}: it is listed first.', { title: match.guide.title, reference: match.service.reference }) }));
   const list = el('div', { class: 'list' });
   const rows = [];
-  for (const guide of guides) guide.services.forEach((svc, i) => rows.push({ guide, i, svc }));
+  for (const guide of byPreference(prefer)) guide.services.forEach((svc, i) => rows.push({ guide, i, svc }));
   if (match) rows.sort((a, b) => ((b.guide === match.guide && b.i === match.i) - (a.guide === match.guide && a.i === match.i)));
   for (const { guide, i, svc } of rows) {
     const ref = refOf(svc);

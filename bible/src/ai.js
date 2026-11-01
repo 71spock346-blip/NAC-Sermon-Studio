@@ -246,7 +246,7 @@ const GUIDE_SCHEMA = {
     title: { type: 'string', description: 'The booklet, e.g. "Divine Service Guide November 2026"' },
     month: { type: 'integer', description: 'The month the booklet is for, 1 to 12' },
     year: { type: 'integer' },
-    language: { type: 'string', enum: ['en', 'af', 'other'], description: 'The language of the booklet' },
+    language: { type: 'string', enum: ['en', 'af', 'other'], description: 'The language of the booklet: "af" for the Afrikaans edition ("Handleiding vir Godsdienste")' },
     services: {
       type: 'array',
       description: 'One entry per divine service article, in the order of the booklet',
@@ -254,21 +254,21 @@ const GUIDE_SCHEMA = {
         type: 'object', additionalProperties: false,
         required: ['date', 'dateText', 'kind', 'label', 'reference', 'bibleText', 'title', 'message', 'introduction', 'sections', 'context', 'summary', 'catechismRefs', 'reading'],
         properties: {
-          date: { type: 'string', description: 'The date of the service as yyyy-mm-dd. A midweek service printed as "4/5 November" takes the first day. Empty when no date is printed.' },
+          date: { type: 'string', description: 'The date of the service as yyyy-mm-dd. A midweek service printed as "4/5 November" takes the first day. Empty when no day is printed (e.g. only "November 2026").' },
           dateText: { type: 'string', description: 'The date as printed at the foot of the article, e.g. "1 November 2026" or "4/5 November 2026"' },
-          kind: { type: 'string', enum: ['sunday', 'midweek', 'youth', 'children', 'other'] },
-          label: { type: 'string', description: 'The heading above the article, e.g. "First Sunday | Divine service for the departed", "Midweek", "Youth"' },
+          kind: { type: 'string', enum: ['sunday', 'midweek', 'youth', 'children', 'other'], description: 'Midweek ("Weekdiens" in Afrikaans) is midweek; Youth ("Jongmense") is youth' },
+          label: { type: 'string', description: 'The heading above the article, e.g. "First Sunday | Divine service for the departed", "Midweek", "Youth"; in Afrikaans e.g. "Eerste Sondag | Godsdiens vir die ontslapenes", "Weekdiens", "Jongmense"' },
           reference: { type: 'string', description: 'The Bible reference exactly as printed, e.g. "Psalm 130:7 (excerpt)" or "Philippians 3:20–21"' },
           bibleText: { type: 'string', description: 'The Bible text quoted at the top of the article, word for word' },
           title: { type: 'string', description: 'The title of the article, printed above "Message"' },
-          message: { type: 'string', description: 'The sentence(s) under "Message"' },
-          introduction: { type: 'string', description: 'The paragraph(s) under "Introduction", word for word' },
+          message: { type: 'string', description: 'The sentence(s) under "Message" ("Boodskap" in Afrikaans)' },
+          introduction: { type: 'string', description: 'The paragraph(s) under "Introduction" ("Inleiding"), word for word' },
           sections: {
             type: 'array', description: 'Every further subheading of the article with its paragraphs, word for word, in order',
             items: { type: 'object', additionalProperties: false, required: ['heading', 'body'], properties: { heading: { type: 'string' }, body: { type: 'string', description: 'The paragraphs under the heading; bullet points as lines starting with "- "' } } },
           },
-          context: { type: 'string', description: 'The text of the "Context" box, word for word' },
-          summary: { type: 'array', items: { type: 'string' }, description: 'The bullet points of the "Summary" box, one string each' },
+          context: { type: 'string', description: 'The text of the "Context" box ("Agtergrond" in Afrikaans), word for word' },
+          summary: { type: 'array', items: { type: 'string' }, description: 'The bullet points of the "Summary" box ("Samevatting"), one string each' },
           catechismRefs: { type: 'array', items: { type: 'string' }, description: 'The Catechism sections the article cites as CNAC, as bare numbers such as "9.6.3"' },
           reading: { type: 'string', description: 'A reading the article suggests for the service (e.g. "Matthew 25:1–13"), else empty' },
         },
@@ -279,11 +279,11 @@ const GUIDE_SCHEMA = {
 
 const GUIDE_SYSTEM = 'You transcribe the monthly Divine Service Guide of the New Apostolic Church into a fixed JSON shape for one minister\'s own sermon preparation. You copy; you do not summarise, shorten, translate or add.';
 
-const GUIDE_TASK = `This PDF is one month's Divine Service Guide. Put every divine service article in it into the JSON shape, one entry per article, in the booklet's order: the Sunday services, the midweek services, the youth service and any other service that has its own article.
+const GUIDE_TASK = `This PDF is one month's Divine Service Guide, in English or in Afrikaans (the Afrikaans edition is called "Handleiding vir Godsdienste"). Put every divine service article in it into the JSON shape, one entry per article, in the booklet's order: the Sunday services, the midweek services, the youth service and any other service that has its own article.
 
-Copy the text of each article word for word in the language of the booklet. Join words that are hyphenated across a line, and separate paragraphs with a blank line inside a field. Keep the booklet's own headings as the "sections" headings. Where a box of bullet points sits in the running text, write each point as a line starting with "- ". The "Context" box and the "Summary" bullets stand beside or below the article; they belong to that article. "Thoughts from the Chief Apostle" is a heading with no text: leave it out. Write Catechism citations such as "(CNAC 9.6.3)" where they stand in the text, and also list the bare numbers in catechismRefs.
+Copy the text of each article word for word in the language of the booklet: an Afrikaans booklet stays in Afrikaans, with its own spelling and its Bible quotations as printed. Never translate. Join words that are hyphenated across a line, and separate paragraphs with a blank line inside a field. Keep the booklet's own headings as the "sections" headings. Where a box of bullet points sits in the running text, write each point as a line starting with "- ". The "Context" box ("Agtergrond" in Afrikaans) and the "Summary" bullets ("Samevatting") stand beside or below the article; they belong to that article. "Thoughts from the Chief Apostle" ("Gedagtes vanaf die Stamapostel") is a heading with no text: leave it out. Write Catechism citations such as "(CNAC 9.6.3)" where they stand in the text, and also list the bare numbers in catechismRefs.
 
-Leave out the cover, the list of contents, the foreword, the page that advertises other publications, the "Notes" pages, the calendar at the back and the publisher's page. A "Reading" page that prints a Bible passage for the youth service belongs to the youth service as its "reading" (the reference only). The date of a service stands at the foot of its article; the booklet's month and year give the rest of the date.`;
+Leave out the cover, the list of contents, the foreword ("Voorwoord"), the page that advertises other publications, the "Notes" pages ("Aantekeninge"), the calendar at the back and the publisher's page. A "Reading" page ("Voorlesing") that prints a Bible passage for the youth service belongs to the youth service as its "reading" (the reference only). The date of a service stands at the foot of its article; the booklet's month and year give the rest of the date.`;
 
 /** Reads a Guide PDF into {title, month, year, language, services, fileName, model, usage, cost}. */
 export async function readGuide(file, { signal, onProgress } = {}) {
@@ -328,11 +328,11 @@ function tidyGuide(d) {
   return { title: str(d.title) || `Divine Service Guide ${month}/${year}`, month, year, language: ['en', 'af'].includes(d.language) ? d.language : 'other', services };
 }
 
-/** A sound yyyy-mm-dd, from the model's date or from the day printed in the text. */
+/** A sound yyyy-mm-dd, from the model's date or from the day printed in the text ("November 2026" alone has none). */
 function isoDate(date, dateText, month, year) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(new Date(date + 'T12:00:00'))) return date;
-  const m = dateText.match(/(\d{1,2})/);
-  if (!m || !month) return '';
+  const m = dateText.match(/(?:^|\D)(\d{1,2})(?!\d)/);   // a day, not the first figures of the year
+  if (!m || !month || parseInt(m[1], 10) > 31) return '';
   return `${year}-${String(month).padStart(2, '0')}-${String(parseInt(m[1], 10)).padStart(2, '0')}`;
 }
 

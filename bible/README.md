@@ -68,7 +68,11 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   and with the answer held to a JSON schema. Two jobs: a monthly Divine Service Guide
   (PDF, sent as a document block) comes back as one entry per service, which `src/guides.js`
   keeps in the `guides` store on the device, lists in the Prepare tab and uses to fill a
-  preparation; "Break down the article" under step 2 takes that article apart sentence by
+  preparation. A month's Guide can be loaded in English and in Afrikaans: `partnerOf` links each
+  service to the same service in the other language (same text on the same day), the card switches
+  between the two lists, a preparation follows the Guide it was started from and is preached in its
+  language, and `switchEdition` moves it to the other one, changing only what still holds the Guide's
+  own words; "Break down the article" under step 2 takes that article apart sentence by
   sentence (the Guide's words, the plain words, what it gives the sermon, and a Bible passage or
   Catechism section where one brings depth, each with a Use button, plus a study-sheet PDF);
   "Suggest answers" under step 5 of a preparation returns the context of

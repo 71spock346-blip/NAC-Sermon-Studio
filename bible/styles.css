@@ -648,8 +648,16 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .guide-choose { margin: 6px 0 2px; }
 .row.line.guide-choose select { flex: 0 1 auto; width: auto; }
 .guide-row { margin: 6px 0 2px; }
+/* the Guide in English and in Afrikaans (guides.js card, prepare.js renderGuide): the switch between the two, "Read it in …" under the article */
+.row.line.guide-langs { gap: 10px; margin: 8px 0 6px; }
+.row.line.guide-lang { gap: 10px; margin: 6px 0 0; }
+.guide-langs .seg, .guide-lang .seg { flex: 0 0 auto; }
+.row.guide-other { margin: 0 0 10px; }
+.guide-twin { margin: 12px 0 0; color: var(--ink-2); }
 .guide-link { padding: 8px 12px; border-radius: var(--radius-s); background: var(--accent-soft); }
 .guide-link .grow { line-height: 1.35; }
+.row.line.guide-from { flex-wrap: wrap; }            /* on a phone the buttons go under the words, not beside them */
+.guide-from .grow { flex: 1 1 240px; }
 .guide-art { margin: 8px 0 4px; padding: 4px 14px 2px; border-left: 3px solid var(--accent); }
 .guide-article { font-family: var(--serif); font-size: 16.5px; line-height: 1.6; max-width: 68ch; }
 .guide-article p { margin: 0 0 10px; }
