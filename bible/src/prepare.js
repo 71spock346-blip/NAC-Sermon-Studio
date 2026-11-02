@@ -193,6 +193,7 @@ function renderList(container) {
           el('div', { class: 'ref', text: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || t('No text word yet')) }),
           el('div', { class: 'muted small', text: s.title || s.theme || '' }),
         ]),
+        Reflect.hasSlides(s) ? el('span', { class: 'pill kind slides', text: t('Slides') }) : null,
         el('span', { class: 'pill status ' + (s.status || 'draft'), text: t(STATUS_LABEL[s.status] || 'Draft') }),
       ]));
     }
@@ -247,6 +248,7 @@ function reflectSheet() {
         el('div', { class: 'ref', text: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || t('No text word yet')) }),
         el('div', { class: 'muted small', text: s.title || s.theme || '' }),
       ]),
+      Reflect.hasSlides(s) ? el('span', { class: 'pill kind slides', text: t('Slides') }) : null,
     ]));
   }
   sh.body.append(list);
@@ -1365,7 +1367,7 @@ function renderEditor(root, s) {
 
   // ---- 9. the reflection evening: the congregation looks back on this service, with slides (reflect.js)
   container.append(step(9, t('Reflection evening'), t('An evening when the congregation looks back on this service and talks about it. The slides show the sermon, its text word, the main points from the Guide and the questions, one at a time.')));
-  const made = !!s.reflect && Object.keys(s.reflect).length > 0;   // opening the screen alone changes nothing
+  const made = Reflect.hasSlides(s);
   container.append(el('div', { class: 'row' }, [
     el('a', { class: 'btn small', href: `#prepare/${s.id}/reflect`, text: made ? t('Open the slides') : t('Make the slides') }),
     s.reflect && s.reflect.from ? el('span', { class: 'muted small', text: t('With the questions from the reflection guide.') }) : null,

@@ -153,7 +153,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   guide (PDF)" sends the Church's one-page discussion guide to Claude (`ai.js
   readReflection`), which copies its title, Bible text and questions word for word;
   `prepare.js newFromReflection` finds the service among the preparations or adds it as
-  held. The main points on the slide are always the headings of the Guide's article
+  held. "Delete these slides" removes `s.reflect` (with Undo) and leaves the preparation;
+  cards with slides show a "Slides" mark in the list. The main points on the slide are always the headings of the Guide's article
   (`guides.js mainPoints`), in the language of the slides when the Guide is loaded in
   both. `src/slides.js` has no DOM: `deck()` lays every slide out as boxes on a
   13.33 × 7.5 inch page in the standard theme (blue #0168B5 opening and closing slides

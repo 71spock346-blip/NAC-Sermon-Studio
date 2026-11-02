@@ -966,4 +966,9 @@ export const AF = {
   "Choose the reflection guide as a PDF file.": "Kies die besinningsgids as 'n PDF-lêer.",
   "That PDF is larger than 25 MB; the reflection guide is one page.": "Daardie PDF is groter as 25 MB; die besinningsgids is een bladsy.",
   "No questions were found in that PDF. Is it the reflection guide?": "Geen vrae is in daardie PDF gevind nie. Is dit die besinningsgids?",
+  "Everything here is saved with the preparation as you type. \"Save as PowerPoint\" gives a file to keep or send.": "Alles hier word saam met die voorbereiding gestoor terwyl jy tik. \"Stoor as PowerPoint\" gee 'n lêer om te hou of te stuur.",
+  "Delete these slides": "Skrap hierdie skyfies",
+  "Delete the slides of this reflection evening? What you changed or loaded here goes; the preparation stays as it is.": "Skrap die skyfies van hierdie besinningsaand? Wat jy hier verander of gelaai het, verdwyn; die voorbereiding bly soos dit is.",
+  "Slides deleted.": "Skyfies geskrap.",
+  "Slides": "Skyfies",
 };
