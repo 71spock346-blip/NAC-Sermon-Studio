@@ -145,16 +145,25 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   itself and the cue cards (A5 landscape: each main point with its main thoughts under it, picked
   by `mainThoughts`, and the minister's own thought in blue; a point never splits over two cards)
   with the vendored jsPDF.
-- **Reflection evening.** `src/reflect.js` is the screen `#prepare/<id>/reflect`: the
+- **Reflection evening.** "Reflection evening" has its own place in the side menu
+  (`#reflect`, `prepare.js renderReflect`): load the Church's reflection guide, the
+  evenings with slides, and the latest services held. `src/reflect.js` is the screen
+  `#reflect/<id>` (the old `#prepare/<id>/reflect` still leads there): the
   slides for the evening when the congregation looks back on a held service, one question
   at a time. What the slides say is kept on the preparation as `s.reflect` (language, date
-  of the evening, title, text word, message, questions, closing words), so it syncs and
-  backs up with it; the preparation's own boxes are not changed. "Load the reflection
+  of the evening, title, text word, message, questions, closing words, the facilitator's
+  own notes), so it syncs and backs up with it; the preparation's own boxes are not changed. "Load the reflection
   guide (PDF)" sends the Church's one-page discussion guide to Claude (`ai.js
   readReflection`), which copies its title, Bible text and questions word for word;
   `prepare.js newFromReflection` finds the service among the preparations or adds it as
   held. "Delete these slides" removes `s.reflect` (with Undo) and leaves the preparation;
-  cards with slides show a "Slides" mark in the list. The main points on the slide are always the headings of the Guide's article
+  cards with slides show a "Slides" mark in the lists. Each slide carries notes for the
+  facilitator (`slides.js notesFor`, English and Afrikaans): the welcome, the text word with
+  the Guide's background, the main points with their main thoughts (`pdf.js mainThoughts`),
+  how to lead each question (with a tip for each of the Church's four), and the close. The
+  minister's own words replace a suggestion (`s.reflect.notes`, questions' notes in the order
+  of the questions, moving with them); they go into the PowerPoint as slide notes and print
+  with `pdf.js facilitatorPdf`. The main points on the slide are always the headings of the Guide's article
   (`guides.js mainPoints`), in the language of the slides when the Guide is loaded in
   both. `src/slides.js` has no DOM: `deck()` lays every slide out as boxes on a
   13.33 × 7.5 inch page in the standard theme (blue #0168B5 opening and closing slides
@@ -180,7 +189,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/ai.js` – Claude: the request, the three prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
-- `src/reflect.js`, `src/slides.js` – the reflection evening: the screen and the show; the slide layout and the PowerPoint file
+- `src/reflect.js`, `src/slides.js` – the reflection evening: the screen and the show; the slide layout, the facilitator's notes and the PowerPoint file
 - `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)
 - `vendor/pptxgen.bundle.js` – PptxGenJS 4.0.1 with JSZip 3.10.1 inside (MIT), loaded only when a PowerPoint file is made

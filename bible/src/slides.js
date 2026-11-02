@@ -26,6 +26,11 @@
  * the letter widths of Calibri and Cambria, so nothing runs off a slide in
  * PowerPoint either.
  *
+ * Each slide also carries notes for the facilitator, the one who leads the
+ * evening: what to say and do at that slide (notesFor below). They are made
+ * from the sermon and the Guide, the minister can change them, and they go
+ * into the PowerPoint file as its notes, which only the presenter sees.
+ *
  * Nothing here touches the page or the app's data: the same file builds a
  * deck in Node, for a test.
  */
@@ -62,6 +67,11 @@ const WORDS = {
     question: (n, m) => `Question ${n} of ${m}`,
     takeWith: 'Take with you',
     thanks: 'Thank you for sharing',
+    notes: 'Notes for the facilitator',
+    opening: 'Opening',
+    closing: 'Closing',
+    slide: n => `Slide ${n}`,
+    questionN: n => `Question ${n}`,
     days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
     months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
     date: (d, day, month, y) => `${d}, ${day} ${month} ${y}`,
@@ -79,6 +89,11 @@ const WORDS = {
     question: (n, m) => `Vraag ${n} van ${m}`,
     takeWith: 'Neem saam',
     thanks: 'Dankie dat julle gedeel het',
+    notes: 'Notas vir die fasiliteerder',
+    opening: 'Opening',
+    closing: 'Afsluiting',
+    slide: n => `Skyfie ${n}`,
+    questionN: n => `Vraag ${n}`,
     days: ['Sondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrydag', 'Saterdag'],
     months: ['Januarie', 'Februarie', 'Maart', 'April', 'Mei', 'Junie', 'Julie', 'Augustus', 'September', 'Oktober', 'November', 'Desember'],
     date: (d, day, month, y) => `${d} ${day} ${month} ${y}`,
@@ -144,6 +159,135 @@ export function longDate(iso, lang) {
   if (isNaN(d)) return '';
   const w = words(lang);
   return w.date(w.days[d.getDay()], d.getDate(), w.months[d.getMonth()], d.getFullYear());
+}
+
+/* ---------------------------------------------------------------- notes for the facilitator */
+
+/*
+ * What the one who leads the evening says and does at each slide, in the
+ * language of the slides. Each slide's note is a few short paragraphs; the
+ * parts that are empty for this sermon (no title, no background) fall away.
+ */
+const NOTES = {
+  en: {
+    open: ({ service, date }) => [
+      'Welcome everyone warmly. Open with a prayer, and a hymn if you like.',
+      `Say why we are together: tonight we look back on ${service}${date ? `, held on ${date},` : ','} and share what it gave us.`,
+      'Everyone may share; nobody has to. We listen to one another, without judging or correcting.',
+    ],
+    text: ({ reference, title, context }) => [
+      reference ? `Read the text word aloud, slowly: ${reference}. You can ask someone to read it a second time.` : 'Read the text word aloud, slowly.',
+      title ? `The sermon was called “${title}”.` : '',
+      context ? `Background: ${context}` : '',
+    ],
+    points: ({ message, list }) => [
+      message ? `The message in one line: ${message}` : '',
+      list ? `Go briefly through the main points, a few words each:\n${list}` : '',
+      'Then ask: “Which of these do you still remember?” Keep it short: the questions are the heart of the evening.',
+    ],
+    ask: 'Read the question aloud, and give everyone a moment to think. Silence is fine.',
+    askAgain: 'Read the question aloud, and give everyone a moment to think.',
+    thank: 'Thank each person who shares. Listen; do not correct or debate.',
+    // for the Church's four questions, in their order
+    tips: [
+      () => 'If it stays quiet, share a short answer of your own first, or ask: “Was it a word, a picture or a moment?”',
+      ({ heads }) => heads ? `To help memories along, name the main points again: ${heads}.` : 'To help memories along, read the text word again.',
+      () => 'Leave room for experiences and testimonies, and keep an eye on the time.',
+      ({ application }) => 'Ask for one small, concrete step for this week, and give an example if it helps.' + (application ? `\n\nThe sermon's application: ${application}` : ''),
+    ],
+    close: ({ reference }) => [
+      'Thank everyone for what they shared. Sum up in a sentence or two what you heard tonight.',
+      reference ? `Read the text word once more, as the thought to take home: ${reference}.` : 'Read the text word once more, as the thought to take home.',
+      'Close with a prayer.',
+    ],
+  },
+  af: {
+    open: ({ service, date }) => [
+      'Verwelkom almal hartlik. Begin met ’n gebed, en ’n lied as julle wil.',
+      `Sê waarom ons hier is: vanaand kyk ons terug na ${service}${date ? `, gehou op ${date},` : ','} en deel ons wat dit vir ons gegee het.`,
+      'Elkeen mag deel; niemand hoef nie. Ons luister na mekaar, sonder om te oordeel of reg te stel.',
+    ],
+    text: ({ reference, title, context }) => [
+      reference ? `Lees die tekswoord stadig hardop: ${reference}. Jy kan iemand vra om dit ’n tweede keer te lees.` : 'Lees die tekswoord stadig hardop.',
+      title ? `Die preek se titel was “${title}”.` : '',
+      context ? `Agtergrond: ${context}` : '',
+    ],
+    points: ({ message, list }) => [
+      message ? `Die boodskap in een reël: ${message}` : '',
+      list ? `Gaan kortliks deur die hoofpunte, ’n paar woorde elk:\n${list}` : '',
+      'Vra dan: “Watter van hierdie onthou julle nog?” Hou dit kort: die vrae is die hart van die aand.',
+    ],
+    ask: 'Lees die vraag hardop, en gee almal ’n oomblik om te dink. Stilte is goed.',
+    askAgain: 'Lees die vraag hardop, en gee almal ’n oomblik om te dink.',
+    thank: 'Bedank elkeen wat deel. Luister; moenie regstel of daaroor stry nie.',
+    tips: [
+      () => 'As dit stil bly, deel eers self ’n kort antwoord, of vra: “Was dit ’n woord, ’n beeld of ’n oomblik?”',
+      ({ heads }) => heads ? `Om die geheue te help, noem die hoofpunte weer: ${heads}.` : 'Om die geheue te help, lees die tekswoord weer.',
+      () => 'Laat ruimte vir ervarings en getuienisse, en hou die tyd dop.',
+      ({ application }) => 'Vra vir een klein, konkrete stap vir hierdie week, en gee ’n voorbeeld as dit help.' + (application ? `\n\nDie preek se toepassing: ${application}` : ''),
+    ],
+    close: ({ reference }) => [
+      'Bedank almal vir wat hulle gedeel het. Som in een of twee sinne op wat jy vanaand gehoor het.',
+      reference ? `Lees die tekswoord nog een keer, as die gedagte om huis toe te neem: ${reference}.` : 'Lees die tekswoord nog een keer, as die gedagte om huis toe te neem.',
+      'Sluit af met ’n gebed.',
+    ],
+  },
+};
+
+const plain = v => String(v || '').toLowerCase().replace(/[‘’`]/g, "'").replace(/[^\p{L}\p{N}']+/gu, ' ').trim();
+
+/** Which of the Church's four questions this is (0 to 3), in English or Afrikaans, or -1. */
+export function churchQuestion(q) {
+  const v = plain(q);
+  if (!v) return -1;
+  for (const l of ['en', 'af']) {
+    const i = QUESTIONS[l].findIndex(x => plain(x) === v);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
+/**
+ * The suggested notes for an evening: {open, text, points, q: [...], close},
+ * q in the order of input.questions (an empty question has an empty note).
+ * `extra` adds what the slides do not show: the Guide's background to the
+ * text word (context), the main thoughts under each main point (thoughts, a
+ * list per point) and the sermon's application.
+ */
+export function notesFor(input, extra = {}) {
+  const lang = input.lang === 'af' ? 'af' : 'en';
+  const N = NOTES[lang];
+  const join = parts => parts.map(x => String(x || '').trim()).filter(Boolean).join('\n\n');
+  const points = (input.points || []).map(p => String(p || '').trim()).filter(Boolean);
+  const thoughts = extra.thoughts || [];
+  const list = points.map((p, i) => [`${i + 1}. ${p}`, ...(thoughts[i] || []).filter(Boolean).map(x => `    – ${x}`)].join('\n')).join('\n');
+  const heads = points.map((p, i) => `${i + 1}. ${p.replace(/[.:;]+$/, '')}`).join('; ');
+  const reference = String(input.reference || '').trim();
+  const date = longDate(input.serviceDate, lang);
+  return {
+    open: join(N.open({ service: input.service || servicePhrase('', lang), date })),
+    text: join(N.text({ reference, title: String(input.title || '').trim(), context: String(extra.context || '').trim() })),
+    points: join(N.points({ message: String(input.message || '').trim(), list })),
+    // the first question says how to lead a question; the others only what is particular to them
+    q: (input.questions || []).map((q, k, all) => {
+      if (!String(q || '').trim()) return '';
+      const first = !all.slice(0, k).some(x => String(x || '').trim());
+      const i = churchQuestion(q);
+      const tip = i >= 0 ? N.tips[i]({ heads, application: String(extra.application || '').trim() }) : '';
+      return join(first ? [N.ask, tip, N.thank] : [N.askAgain, tip]);
+    }),
+    close: join(N.close({ reference })),
+  };
+}
+
+/** The name of a slide in a list of notes: "Opening", "The sermon", "What we heard", "Question 2", "Closing". */
+export function slideName(sl, lang) {
+  const w = words(lang);
+  if (sl.kind === 'open') return w.opening;
+  if (sl.kind === 'text') return sl.titled ? w.sermon : w.textWord;
+  if (sl.kind === 'points') return w.heard;
+  if (sl.kind === 'question') return w.questionN(sl.q);
+  return w.closing;
 }
 
 /* ---------------------------------------------------------------- measuring text */
@@ -353,30 +497,39 @@ function questionSlide(input, w, q, n, m) {
  *   points       the headings of the main points, from the Guide
  *   questions    the questions, one slide each
  *   closing      the words of the last slide ("Thank you for sharing")
+ *   notes        the facilitator's notes {open, text, points, q: [...], close},
+ *                q in the order of `questions` (see notesFor)
+ *
+ * Each slide has a `key` ('open', 'text', 'points', 'q:<i>' with i the
+ * question's place in input.questions, 'close') and its `notes`.
  */
 export function deck(input) {
   const lang = input.lang === 'af' ? 'af' : 'en';
   const w = words(lang);
+  // an empty question (one just added) makes no slide; the others keep their place, for their notes
+  const asked = (input.questions || []).map((q, i) => ({ q: String(q || '').trim(), i })).filter(x => x.q);
   const inp = {
     ...input, lang,
     title: (input.title || '').trim(), text: (input.text || '').trim(), reference: (input.reference || '').trim(),
     message: (input.message || '').trim(),
     points: (input.points || []).map(p => String(p || '').trim()).filter(Boolean),
-    questions: (input.questions || []).map(q => String(q || '').trim()).filter(Boolean),
+    questions: asked.map(x => x.q),
   };
+  const notes = input.notes || {};
   const congregation = (inp.congregation || '').trim();
   const foot = [w.evening, longDate(inp.evening, lang)].filter(Boolean).join('  ·  ');
   const when = longDate(inp.serviceDate, lang);
   const slides = [];
-  slides.push(blueSlide('open', {
+  const add = (sl, key, note, more) => slides.push(Object.assign(sl, { key, notes: String(note || '').trim() }, more));
+  add(blueSlide('open', {
     lang, labelText: congregation ? w.congregation(congregation) : '', heading: (inp.heading || '').trim() || w.heading,
     under: [[when ? w.lookBack(inp.service || servicePhrase('', lang), when) : '', { name: 'Subtitle', max: 24, min: 16, gap: 0.35 }]],
     foot,
-  }));
-  if (inp.text || inp.title) slides.push(textWordSlide(inp, w));
-  if (inp.points.length) slides.push(pointsSlide(inp, w));
-  inp.questions.forEach((q, i) => slides.push(questionSlide(inp, w, q, i + 1, inp.questions.length)));
-  slides.push(blueSlide('close', {
+  }), 'open', notes.open);
+  if (inp.text || inp.title) add(textWordSlide(inp, w), 'text', notes.text, { titled: !!inp.title });
+  if (inp.points.length) add(pointsSlide(inp, w), 'points', notes.points);
+  asked.forEach((x, k) => add(questionSlide(inp, w, x.q, k + 1, asked.length), 'q:' + x.i, (notes.q || [])[x.i], { q: k + 1, question: x.q }));
+  add(blueSlide('close', {
     lang, labelText: congregation ? w.congregation(congregation) : '', heading: (inp.closing || '').trim() || w.thanks,
     under: [
       [inp.text ? w.takeWith : '', { name: 'Take with you', bold: true, max: 12, min: 12, spacing: 3, caps: true, color: COLOURS.labelOnBlue, gap: 0.5, line: 1 }],
@@ -384,7 +537,7 @@ export function deck(input) {
       [inp.text ? inp.reference : '', { name: 'Reference', bold: true, max: 16, min: 14, gap: 0.15, color: COLOURS.labelOnBlue }],
     ],
     foot,
-  }));
+  }), 'close', notes.close);
   slides.forEach((s, i) => { s.n = i + 1; for (const e of s.els) if (e.t === 'text' && e.size == null) e.size = 12; });
   return slides;
 }
@@ -398,6 +551,28 @@ export function themeXml(xml, name) {
   const scheme = `<a:clrScheme name="${name}">` + Object.entries(SLOTS).map(([k, v]) => `<a:${k}><a:srgbClr val="${v}"/></a:${k}>`).join('') + '</a:clrScheme>';
   return xml.replace(/<a:clrScheme\b[\s\S]*?<\/a:clrScheme>/, () => scheme)
     .replace(/(<a:(?:theme|fontScheme)\b[^>]*?\bname=")[^"]*"/g, (_, head) => `${head}${name}"`);
+}
+
+/**
+ * A slide's notes as PowerPoint wants them. PptxGenJS writes a note as one
+ * run with its line breaks inside it; here every line becomes a paragraph of
+ * its own, an empty line an empty paragraph, and a line that starts with
+ * spaces (a thought under a main point) an indented one. The notes are
+ * marked as the language of the slides, so PowerPoint checks their spelling
+ * in it.
+ */
+export function notesXml(xml, lang = 'en-ZA') {
+  return xml.replace(/<a:p><a:r>(<a:rPr[^>]*\/>)<a:t>([^<]*)<\/a:t><\/a:r>(<a:endParaRPr[^>]*\/>)?<\/a:p>/, (all, rPr0, text, end0) => {
+    const rPr = rPr0.replace(/\blang="[^"]*"/, `lang="${lang}"`);
+    const end = (end0 || '<a:endParaRPr lang="en-US" dirty="0"/>').replace(/\blang="[^"]*"/, `lang="${lang}"`);
+    if (!/[\r\n]/.test(text)) return `<a:p><a:r>${rPr}<a:t>${text}</a:t></a:r>${end}</a:p>`;
+    const empty = `<a:p>${end}</a:p>`;
+    return text.split(/\r?\n/).map(line => {
+      if (!line.trim()) return empty;
+      const sub = /^\s+\S/.test(line);
+      return `<a:p>${sub ? '<a:pPr marL="342900"/>' : ''}<a:r>${rPr}<a:t>${line.trim()}</a:t></a:r></a:p>`;
+    }).join('');
+  });
 }
 
 /**
@@ -442,5 +617,8 @@ export async function pptx(PptxGenJS, JSZip, slides, { emblems, title = '', auth
   const zip = await JSZip.loadAsync(await pres.write({ outputType: 'arraybuffer' }));
   const part = 'ppt/theme/theme1.xml';
   if (zip.file(part)) zip.file(part, themeXml(await zip.file(part).async('string'), 'New Apostolic Church'));
+  for (const name of Object.keys(zip.files).filter(n => /^ppt\/notesSlides\/notesSlide\d+\.xml$/.test(n))) {
+    zip.file(name, notesXml(await zip.file(name).async('string'), pres.lang));
+  }
   return zip.generateAsync({ type, compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
 }

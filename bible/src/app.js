@@ -3,9 +3,10 @@
  *
  * The address decides the screen: #read/PSA/130/7 opens Psalm 130 at verse 7,
  * #notes lists the notes, #prepare/<id> opens one service preparation,
- * #catechism/3.4.1 opens a Catechism section, #settings is settings. The back
- * button therefore works as people expect, and a link to a verse can be
- * shared.
+ * #reflect lists the reflection evenings and #reflect/<id> opens the slides
+ * of one, #catechism/3.4.1 opens a Catechism section, #settings is settings.
+ * The back button therefore works as people expect, and a link to a verse
+ * can be shared.
  *
  * The interface speaks English or Afrikaans (i18n.js). The switch sits in the
  * header on a phone and in the side menu on a PC, and under Settings; a change
@@ -30,6 +31,7 @@ const TABS = {
   read: Reader.render,
   notes: Notes.render,
   prepare: Prepare.render,
+  reflect: Prepare.renderReflect,
   catechism: Cat.render,
   settings: Settings.render,
 };
@@ -43,6 +45,12 @@ function route() {
     history.replaceState(null, '', '#settings');
     route();
     if (code) Settings.joinSheet(code);
+    return;
+  }
+  if (parts[0] === 'prepare' && parts[2] === 'reflect') {
+    // the reflection evening's old address (until November 2026): it has its own place in the menu now
+    history.replaceState(null, '', `#reflect/${parts[1]}`);
+    route();
     return;
   }
   const tab = TABS[parts[0]] ? parts[0] : 'read';
@@ -122,10 +130,10 @@ function onSynced(e) {
   const typing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
   if (typing || $('.overlay')) return;
   if (tab === 'read') return;                               // the reader keeps its place; the notes show on the next chapter
-  if (tab === 'prepare' && hash.length > 1) return;         // an open preparation is not pulled from under the person
+  if ((tab === 'prepare' || tab === 'reflect') && hash.length > 1) return;   // an open preparation or evening is not pulled from under the person
   if (tab === 'notes' && !parts.includes('notes')) return;
   if (tab === 'catechism' && !parts.includes('catechism')) return;
-  if (tab === 'prepare' && !parts.some(p => p === 'sermons' || p === 'guides' || p === 'settings')) return;
+  if ((tab === 'prepare' || tab === 'reflect') && !parts.some(p => p === 'sermons' || p === 'guides' || p === 'settings')) return;
   route();
 }
 

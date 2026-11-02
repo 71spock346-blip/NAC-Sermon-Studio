@@ -4,14 +4,21 @@
  * The Church sends a one-page discussion guide for it ("Divine Service
  * Reflections": the sermon's title, its Bible text and the questions).
  *
- * This screen (#prepare/<id>/reflect) makes the slides for such an evening
- * from the preparation of that service: the opening, the sermon and its text
- * word, what we heard (the message and the main points, from the Guide), one
- * slide per question, and the closing. slides.js lays them out in the look
- * the minister chose; here they are shown small to check, shown full screen
- * on the projector or the TV, and saved as a PowerPoint file to take along or
- * change. "Load the reflection guide (PDF)" lets Claude (ai.js) copy the
- * Church's title, text and questions out of the PDF, word for word.
+ * "Reflection evening" in the side menu (#reflect, prepare.js renderReflect)
+ * lists the evenings. This screen (#reflect/<id>) makes the slides for such
+ * an evening from the preparation of that service: the opening, the sermon
+ * and its text word, what we heard (the message and the main points, from the
+ * Guide), one slide per question, and the closing. slides.js lays them out in
+ * the look the minister chose; here they are shown small to check, shown full
+ * screen on the projector or the TV, and saved as a PowerPoint file to take
+ * along or change. "Load the reflection guide (PDF)" lets Claude (ai.js) copy
+ * the Church's title, text and questions out of the PDF, word for word.
+ *
+ * Each slide has notes for the facilitator, the one who leads the evening:
+ * what to say and do at that slide, made from the sermon and the Guide
+ * (slides.js notesFor) and changed here as the minister likes. They go into
+ * the PowerPoint file as its notes (only the presenter sees them) and print
+ * on their own (pdf.js facilitatorPdf).
  *
  * The evening is kept with its preparation (s.reflect), so it is saved,
  * backed up and synced with it. What the minister did not change follows the
@@ -24,6 +31,7 @@ import { formatRef } from './books.js';
 import { state, saveSermon } from './store.js';
 import * as Guides from './guides.js';
 import * as AI from './ai.js';
+import * as Pdf from './pdf.js';
 import * as S from './slides.js';
 
 const PX = 100;                                   // pixels per inch on a drawn slide: 1333 × 750
@@ -59,18 +67,68 @@ function defaultEvening(date) {
 
 /** The first sentence of a text, for a main point that has no heading. */
 const firstSentence = v => { const m = String(v || '').trim().match(/^[\s\S]*?[.!?](?=\s|$)/); return (m ? m[0] : String(v || '')).trim(); };
+const norm = v => String(v || '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 /**
  * The main points for the slide: the Guide's headed parts when the
  * preparation follows a Guide (in the language of the slides when that Guide
- * is loaded), else the headings of the preparation's own points.
+ * is loaded), else the headings of the preparation's own points. `bodies`
+ * holds what was said under each, for the facilitator's notes: the
+ * preparation's own words for the point when the sermon is in the language of
+ * the slides, else the Guide's.
  */
 export function pointsOf(s, lang) {
   const svc = serviceIn(s, lang) || (Guides.findService(s) || {}).service;
-  const fromGuide = svc ? Guides.mainPoints(svc).map(p => p.heading) : [];
-  if (fromGuide.length) return { list: fromGuide, guide: true };
-  const own = (s.points || []).map(p => ((p && p.heading) || '').trim() || firstSentence(p && p.body).slice(0, 120)).filter(Boolean);
-  return { list: own, guide: false };
+  const fromGuide = svc ? Guides.mainPoints(svc) : [];
+  if (fromGuide.length) {
+    const mine = AI.langOf(s) === lang ? (s.points || []).filter(p => p && (p.body || '').trim()) : [];
+    const bodyOf = p => {
+      const own = mine.find(x => x.guide === p.n) || mine.find(x => norm(x.heading) && norm(x.heading) === norm(p.heading));
+      return own ? own.body : p.body;
+    };
+    return { list: fromGuide.map(p => p.heading), bodies: fromGuide.map(bodyOf), guide: true };
+  }
+  const own = (s.points || []).map(p => ({ heading: ((p && p.heading) || '').trim() || firstSentence(p && p.body).slice(0, 120), body: (p && p.body) || '' })).filter(x => x.heading);
+  return { list: own.map(x => x.heading), bodies: own.map(x => x.body), guide: false };
+}
+
+/** The first sentences of a text, up to about `max` words, as one paragraph. */
+function brief(text, max) {
+  const flat = String(text || '').replace(/^\s*[-\u2013\u2022*]\s+/gm, '').replace(/\s+/g, ' ').trim();
+  if (!flat) return '';
+  const out = [];
+  let n = 0;
+  for (const x of Pdf.sentences(flat)) {
+    const k = x.split(/\s+/).length;
+    if (out.length && n + k > max) break;
+    out.push(x);
+    n += k;
+  }
+  return Pdf.shorten(out.join(' '), max + 10);
+}
+
+/**
+ * The facilitator's notes as the slides carry them: the minister's own where
+ * he wrote one (s.reflect.notes {open, text, points, close, q: [...]}, q in
+ * the order of the questions), else the suggestion, made from the sermon and
+ * the Guide: the Guide's background to the text word, the main thoughts
+ * under each point, the application.
+ */
+function notesOf(s, inp, pts) {
+  const lang = inp.lang;
+  const svc = serviceIn(s, lang);
+  const sameLang = AI.langOf(s) === lang;
+  const made = S.notesFor(inp, {
+    context: brief((svc && svc.context) || (sameLang ? s.context : ''), 45),
+    thoughts: inp.points.length ? pts.bodies.map(b => Pdf.mainThoughts(b).slice(0, 2)) : [],
+    application: sameLang ? brief(s.application, 30) : '',
+  });
+  const own = (s.reflect && s.reflect.notes) || {};
+  const pick = (mine, def) => (String(mine || '').trim() ? mine : def);
+  return {
+    open: pick(own.open, made.open), text: pick(own.text, made.text), points: pick(own.points, made.points), close: pick(own.close, made.close),
+    q: made.q.map((x, i) => pick((own.q || [])[i], x)),
+  };
 }
 
 /** True once something of the evening is kept (words changed, a guide loaded): opening the screen alone keeps nothing. */
@@ -98,7 +156,8 @@ export function input(s) {
   const prepRef = s.ref ? formatRef(s.ref, lang) : (s.refText || '');
   // the Guide's reference says "(excerpt)" where the text is a part of the verse
   const guideRef = svc && svc.reference && svc.bibleText && text === svc.bibleText.trim() ? svc.reference : '';
-  return {
+  const pts = pointsOf(s, lang);
+  const inp = {
     lang,
     congregation: (s.congregation || state.settings.congregation || '').trim(),
     heading: (r.heading || '').trim(),
@@ -109,10 +168,12 @@ export function input(s) {
     text,
     reference: (r.reference || '').trim() || guideRef || pick('', prepRef, svc && svc.reference),
     message: pick(r.message, s.theme, svc && svc.message),
-    points: r.showPoints === false ? [] : pointsOf(s, lang).list,
+    points: r.showPoints === false ? [] : pts.list,
     questions: (r.questions || []).some(q => (q || '').trim()) ? r.questions : S.QUESTIONS[lang],
     closing: (r.closing || '').trim(),
   };
+  inp.notes = notesOf(s, inp, pts);
+  return inp;
 }
 
 /** "Divine Service Reflections" from "DIVINE SERVICE REFLECTIONS": a heading printed in capitals reads normally on a slide. */
@@ -134,7 +195,12 @@ export function fromGuide(s, g) {
   if (g.title) r.title = g.title;
   if (g.bibleText) r.text = g.bibleText;
   if (g.reference) r.reference = g.reference;
-  if (g.questions && g.questions.length) r.questions = g.questions.slice();
+  if (g.questions && g.questions.length) {
+    // other questions than before: the notes written for the old ones do not fit them
+    const was = ((r.questions || []).some(q => (q || '').trim()) ? r.questions : S.QUESTIONS[lang]).map(norm).join('|');
+    r.questions = g.questions.slice();
+    if (r.notes && r.questions.map(norm).join('|') !== was) { delete r.notes.q; if (!Object.keys(r.notes).length) delete r.notes; }
+  }
   r.from = { name: g.fileName || '', at: new Date().toISOString(), date: g.date || '' };
   return s;
 }
@@ -412,12 +478,17 @@ export function render(root, s) {
     savedBadge.hidden = false;
     setTimeout(() => { savedBadge.hidden = true; }, 1500);
   }, 500);
-  const redraw = debounce(() => drawPreview(), 300);
+  let notesReady = false;   // the notes (section 5) follow every change once they are on the page
+  const redraw = debounce(() => { drawPreview(); syncNotes(); }, 300);
   const touch = () => { save(); redraw(); };
   const lang0 = state.settings.bookLang;
 
   root.append(
-    el('div', { class: 'crumbs' }, [el('a', { href: `#prepare/${s.id}`, text: t('‹ Back to the preparation') })]),
+    el('div', { class: 'crumbs' }, [
+      el('a', { href: '#reflect', text: t('‹ Reflection evenings') }),
+      el('span', { 'aria-hidden': 'true', text: '  ·  ' }),
+      el('a', { href: `#prepare/${s.id}`, text: t('Open the preparation') }),
+    ]),
     el('div', { class: 'prep-head' }, [el('div', { class: 'docbar' }, [el('h2', { text: t('Reflection evening') }), savedBadge])]));
   const page = el('div', { class: 'page reflect' });
   root.append(page);
@@ -567,14 +638,27 @@ export function render(root, s) {
   page.append(qBox);
   const current = () => input(s).questions.slice();
   function setQuestions(list) { r.questions = list; touch(); }
+  // the notes written for the questions go where their question goes
+  const qNotes = n => { const l = (r.notes && r.notes.q || []).slice(); while (l.length < n) l.push(''); return l; };
+  function setQNotes(list) {
+    const l = list.slice();
+    while (l.length && !String(l[l.length - 1] || '').trim()) l.pop();
+    if (l.length) (r.notes || (r.notes = {})).q = l;
+    else if (r.notes) { delete r.notes.q; if (!Object.keys(r.notes).length) delete r.notes; }
+  }
   function drawQuestions() {
     clear(qBox);
+    syncNotes();
     const list = current();
     list.forEach((q, k) => {
       const ta = el('textarea', { rows: 2, 'aria-label': t('Question {n}', { n: k + 1 }) });
       ta.value = q;
       ta.addEventListener('input', () => { const l = current(); l[k] = ta.value; setQuestions(l); });
-      const move = (d) => { const l = current(); const [x] = l.splice(k, 1); l.splice(k + d, 0, x); setQuestions(l); drawQuestions(); };
+      const move = (d) => {
+        const l = current(); const [x] = l.splice(k, 1); l.splice(k + d, 0, x);
+        const n = qNotes(list.length); const [y] = n.splice(k, 1); n.splice(k + d, 0, y); setQNotes(n);
+        setQuestions(l); drawQuestions();
+      };
       qBox.append(el('div', { class: 'reflect-q' }, [
         el('span', { class: 'step-n small', text: String(k + 1), 'aria-hidden': 'true' }),
         ta,
@@ -582,8 +666,14 @@ export function render(root, s) {
           el('button', { class: 'icon', type: 'button', text: '↑', 'aria-label': t('Move question {n} up', { n: k + 1 }), disabled: k === 0 ? true : null, onclick: () => move(-1) }),
           el('button', { class: 'icon', type: 'button', text: '↓', 'aria-label': t('Move question {n} down', { n: k + 1 }), disabled: k === list.length - 1 ? true : null, onclick: () => move(1) }),
           el('button', { class: 'icon del', type: 'button', text: '✕', 'aria-label': t('Remove question {n}', { n: k + 1 }), onclick: () => {
-            const l = current(); const [gone] = l.splice(k, 1); setQuestions(l); drawQuestions();
-            toast(t('Question removed.'), false, () => { const l2 = current(); l2.splice(k, 0, gone); setQuestions(l2); drawQuestions(); });
+            const l = current(); const [gone] = l.splice(k, 1);
+            const n = qNotes(list.length); const [note] = n.splice(k, 1); setQNotes(n);
+            setQuestions(l); drawQuestions();
+            toast(t('Question removed.'), false, () => {
+              const l2 = current(); l2.splice(k, 0, gone);
+              const n2 = qNotes(l2.length - 1); n2.splice(k, 0, note); setQNotes(n2);
+              setQuestions(l2); drawQuestions();
+            });
           } }),
         ]),
       ]));
@@ -597,9 +687,9 @@ export function render(root, s) {
       if (all.length) all[all.length - 1].focus();
     } }),
     el('button', { class: 'btn small ghost', type: 'button', text: t('Use the Church\'s four questions'), onclick: () => {
-      const old = r.questions;
-      delete r.questions; touch(); drawQuestions();
-      toast(t('The Church\'s four questions are back.'), false, () => { r.questions = old; touch(); drawQuestions(); });
+      const old = r.questions, oldNotes = qNotes(0);
+      delete r.questions; setQNotes([]); touch(); drawQuestions();
+      toast(t('The Church\'s four questions are back.'), false, () => { r.questions = old; setQNotes(oldNotes); touch(); drawQuestions(); });
     } }),
   ]));
 
@@ -610,6 +700,78 @@ export function render(root, s) {
   closing.addEventListener('input', () => { r.closing = closing.value; touch(); });
   page.append(el('label', { class: 'f' }, [title(t('Closing words')), closing]));
 
+  // ---- 5. notes for the facilitator: what to say and do at each slide
+  page.append(sec(5, t('Notes for the facilitator'), t('What to say and do at each slide, made from the sermon and the Guide. They go into the PowerPoint file as its notes, which only you see when you present, and into a printout. Change anything; empty a box to get the suggestion back.')));
+  const notesBox = el('div', { class: 'reflect-notes' });
+  page.append(notesBox);
+  const noteAreas = new Map();   // the key of a slide (see slides.js deck) and its box
+  let noteKeys = null;
+  function setNote(key, v) {
+    if (key.startsWith('q:')) { const i = +key.slice(2); const l = qNotes(i + 1); l[i] = v; setQNotes(l); return; }
+    const n = r.notes || (r.notes = {});
+    if (String(v || '').trim()) n[key] = v; else delete n[key];
+    if (!Object.keys(n).length) delete r.notes;
+  }
+  const noteName = sl => sl.kind === 'open' ? t('Opening') : sl.kind === 'text' ? (sl.titled ? t('The sermon') : t('The text word'))
+    : sl.kind === 'points' ? t('What we heard') : sl.kind === 'question' ? t('Question {n}', { n: sl.q }) : t('Closing');
+  function drawNotes(slides) {
+    clear(notesBox);
+    noteAreas.clear();
+    noteKeys = slides.map(sl => sl.key).join('|');
+    for (const sl of slides) {
+      const head = el('div', { class: 'reflect-note-head' });
+      const ta = el('textarea', { rows: 3 });
+      ta.value = sl.notes || '';
+      ta.addEventListener('input', () => { setNote(ta.dataset.key, ta.value); save(); });
+      ta.addEventListener('change', () => {
+        if (ta.value.trim()) return;
+        setNote(ta.dataset.key, '');   // an emptied box takes the suggestion again
+        const now = S.deck(input(s)).find(x => x.key === ta.dataset.key);
+        ta.value = now ? now.notes : '';
+        fit(ta);
+        save();
+      });
+      const q = el('p', { class: 'reflect-note-q' });
+      noteAreas.set(sl.key, { ta, head, q });
+      notesBox.append(el('div', { class: 'reflect-note' }, [head, q, ta]));
+      label(sl);
+    }
+  }
+  function label(sl) {   // the slide's number and name over its notes, and the question it asks
+    const { ta, head, q } = noteAreas.get(sl.key);
+    ta.dataset.key = sl.key;
+    ta.setAttribute('aria-label', t('Notes for slide {n}: {name}', { n: sl.n, name: noteName(sl) }));
+    head.replaceChildren(el('span', { class: 'reflect-note-n', text: t('Slide {n}', { n: sl.n }) }), el('b', { text: noteName(sl) }));
+    q.textContent = sl.kind === 'question' ? sl.question : '';
+    q.hidden = sl.kind !== 'question';
+  }
+  /** After a change elsewhere: the notes follow the slides, except the box being typed in. */
+  function syncNotes() {
+    if (!notesReady) return;
+    const slides = S.deck(input(s));
+    if (slides.map(sl => sl.key).join('|') !== noteKeys) { drawNotes(slides); return; }
+    for (const sl of slides) {
+      label(sl);
+      const { ta } = noteAreas.get(sl.key);
+      if (ta !== document.activeElement && ta.value !== sl.notes) { ta.value = sl.notes || ''; fit(ta); }
+    }
+  }
+  async function notesPdf(how) {
+    try {
+      const inp = input(s);
+      const f = Pdf.facilitatorPdf(inp, S.deck(inp));
+      if (how === 'print') Pdf.print(f);
+      else if (how === 'share') await Pdf.share(f);
+      else { Pdf.download(f); toast(t('Saved ') + f.name); }
+    } catch (e) { toast(e.message || t('The PDF could not be built.'), true); }
+  }
+  page.append(el('div', { class: 'row reflect-note-actions' }, [
+    el('button', { class: 'btn ghost', type: 'button', text: t('Save the notes as PDF'), onclick: () => notesPdf('download') }),
+    Pdf.canShare() ? el('button', { class: 'btn ghost', type: 'button', text: t('Share'), onclick: () => notesPdf('share') }) : null,
+    el('button', { class: 'btn ghost', type: 'button', text: t('Print the notes'), onclick: () => notesPdf('print') }),
+  ]));
+  notesReady = true;
+
   // ---- kept with the preparation; deleting takes the evening's own words away and leaves the preparation as it is
   page.append(
     el('p', { class: 'muted small reflect-kept', text: t('Everything here is saved with the preparation as you type. "Save as PowerPoint" gives a file to keep or send.') }),
@@ -619,11 +781,12 @@ export function render(root, s) {
         const old = s.reflect;
         delete s.reflect;
         await saveSermon(s);
-        location.hash = `#prepare/${s.id}`;
-        toast(t('Slides deleted.'), false, async () => { s.reflect = old; await saveSermon(s); location.hash = `#prepare/${s.id}/reflect`; });
+        location.hash = '#reflect';
+        toast(t('Slides deleted.'), false, async () => { s.reflect = old; await saveSermon(s); location.hash = `#reflect/${s.id}`; });
       } }),
     ]));
 
   drawPreview();
+  syncNotes();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => thumbs.forEach(fitSlide));
 }

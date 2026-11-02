@@ -761,6 +761,26 @@ label.check.sync-keys input { margin-top: 3px; }
 .reflect-kept { margin: 22px 0 4px; }
 .pill.kind.slides { color: var(--c-blue); }
 @media (max-width: 759.98px) { .reflect-q-tools { flex-direction: column; } }
+/* the notes for the facilitator, one box per slide */
+.reflect-notes { display: flex; flex-direction: column; gap: 16px; margin: 10px 0 8px; }
+.reflect-note-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 5px; }
+.reflect-note-head b { font-weight: 600; color: var(--accent-text); }
+.reflect-note-n { font: 600 11.5px/1.2 var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.reflect-note-q { margin: 0 0 6px; font-size: 14.5px; color: var(--ink-2); }
+.reflect-note textarea { display: block; width: 100%; }
+.reflect-note-actions { margin: 4px 0 2px; }
+.reflect-hub { margin-top: 4px; }
+.reflect-hub .row { margin-bottom: 4px; }
+/* the Reflection evening tab: its full name in a wide side menu, a short one in a narrow menu and the phone's bar */
+.tabs .lbl-long { display: none; }
+@media (min-width: 1100px) {
+  .tabs .lbl-long { display: inline; }
+  .tabs .lbl-short { display: none; }
+}
+/* six tabs in the phone's bar: a little smaller letters on a narrow phone, so the longest names (Kategismus) fit */
+@media (max-width: 419.98px) { .tabs button { letter-spacing: 0; } }
+@media (max-width: 389.98px) { .tabs button { font-size: 10.5px; } }
+@media (max-width: 374.98px) { .tabs button { font-size: 10px; } }
 
 /* the slides, small: tap one to start the show there */
 .sl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 4px 0 6px; }
