@@ -106,8 +106,10 @@ function applyLang(l) {
  * Switches the whole app to English or Afrikaans and redraws the open screen.
  * The book names and the language of Claude's suggestions follow, so one tap
  * sets all three; Settings can still set either of them apart afterwards.
+ * The other screens ask for it with i18n.js requestLang: nothing imports
+ * app.js, which must run only once.
  */
-export async function switchLang(l) {
+async function switchLang(l) {
   const to = l === 'af' ? 'af' : 'en';
   if (to === lang()) return;
   await saveSetting('uiLang', to);
@@ -162,6 +164,7 @@ async function start() {
   $('.tabs').addEventListener('keydown', tabKeys);
   $('.skip').addEventListener('click', e => { e.preventDefault(); $('#content').focus(); });
   for (const b of $$('.lang-switch button')) b.addEventListener('click', () => switchLang(b.dataset.lang));
+  document.addEventListener('sb-lang', e => switchLang(e.detail));   // the reader's Aa sheet and Settings (i18n.js requestLang)
   applyLang(state.settings.uiLang || 'en');
   window.addEventListener('hashchange', route);
   route();

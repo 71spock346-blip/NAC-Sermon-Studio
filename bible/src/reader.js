@@ -11,8 +11,7 @@
  * language, Compare, Beside) in a sheet so the text starts high on a phone.
  */
 import { el, $, clear, toast, sheet, copyText, seg, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
-import { t, tn, lang, LANGS } from './i18n.js';
-import { switchLang } from './app.js';
+import { t, tn, lang, LANGS, requestLang } from './i18n.js';
 import { BOOKS, BY_ID, GROUPS, GROUPS_AF, bookName, parseRef, formatRef } from './books.js';
 import { state, saveSetting } from './store.js';
 import * as Bible from './bible.js';
@@ -262,7 +261,7 @@ function viewSheet(srcId) {
   }, { block: true, label: t('Text size') });
   const themeSeg = seg(THEMES, state.settings.theme || 'system', async v => { await saveSetting('theme', v); applyTheme(v); }, { block: true, label: t('Theme') });
   const readSeg = seg(READS, state.settings.readMode || 'book', async v => { await saveSetting('readMode', v); applyRead(v); }, { block: true, label: t('Letters and spacing') });
-  const langSeg = seg(LANGS, lang(), v => { s.close(); switchLang(v); }, { block: true, label: t('Language of the app') });
+  const langSeg = seg(LANGS, lang(), v => { s.close(); requestLang(v); }, { block: true, label: t('Language of the app') });
 
   const cmpId = state.settings.compare && Bible.source(state.settings.compare) && state.settings.compare !== srcId ? state.settings.compare : '';
   const cmpSel = el('select', { 'aria-label': t('Compare with') }, el('option', { value: '', text: t('None') }));
