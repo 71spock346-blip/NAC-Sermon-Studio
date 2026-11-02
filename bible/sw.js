@@ -11,14 +11,14 @@
  * (/api/sync): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-02c';
+var VERSION = 'bible-2026-11-02d';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=32',
-  'src/app.js?v=32',
+  'styles.css?v=33',
+  'src/app.js?v=33',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -41,16 +41,27 @@ var SHELL = [
   'vendor/jspdf.umd.min.js?v=1',
   'vendor/qrcode.mjs',
   'vendor/pptxgen.bundle.js?v=1',
-  'vendor/fonts/literata-latin-normal.woff2',
-  'vendor/fonts/literata-latin-ext-normal.woff2',
+  'vendor/fonts/montserrat-latin-wght-normal.woff2',
+  'vendor/fonts/montserrat-latin-wght-italic.woff2',
+  // the look-alikes of Cambria and Calibri, for the slides of a reflection evening on a device without them
+  'vendor/fonts/caladea-latin-400.woff2',
+  'vendor/fonts/caladea-latin-700.woff2',
+  'vendor/fonts/caladea-latin-400-italic.woff2',
+  'vendor/fonts/caladea-latin-700-italic.woff2',
+  'vendor/fonts/carlito-latin-400.woff2',
+  'vendor/fonts/carlito-latin-700.woff2',
+  'vendor/fonts/carlito-latin-400-italic.woff2',
+  'vendor/fonts/carlito-latin-700-italic.woff2',
   'data/kjv/index.json',
   'data/web/index.json',
   'data/catechism.json',
   'icons/emblem.svg',
+  'icons/emblem-line.svg',
   'icons/emblem-white.png',
   'icons/emblem-blue.png',
   'icons/icon-192.png',
   'icons/icon-512.png',
+  'icons/icon-maskable-512.png',
   'icons/apple-touch-icon.png'
 ];
 // Big and slow to change: worth keeping rather than re-fetching.

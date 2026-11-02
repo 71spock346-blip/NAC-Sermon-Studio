@@ -275,7 +275,7 @@ function viewSheet(srcId) {
 
   s.body.append(
     el('label', { class: 'f' }, [t('Text size'), sizeSeg, el('span', { class: 'hint muted small', text: t('"Pulpit" is meant for reading while standing.') })]),
-    el('label', { class: 'f' }, [t('Look'), themeSeg, el('span', { class: 'hint muted small', text: t('"System" follows the setting of this phone or PC.') })]),
+    el('label', { class: 'f' }, [t('Look'), themeSeg, el('span', { class: 'hint muted small', text: t('"White" is the Church\'s blue and white, as on the slides. "Paper" keeps the blue with warm cream pages. "System" is White by day and Dark at night, as this phone or PC is set.') })]),
     el('label', { class: 'f' }, [t('Letters and spacing'), readSeg, el('span', { class: 'hint muted small', text: t('"Easy-read" uses plain letters with more room between them and between the lines, which many people with dyslexia find easier. It applies everywhere in the app.') })]),
     el('label', { class: 'f' }, [t('Language of the app'), langSeg, el('span', { class: 'hint muted small', text: t('Also sets the book names and the language of Claude\'s suggestions.') })]),
     el('label', { class: 'f' }, [t('Compare with a second translation'), cmpSel, el('span', { class: 'hint muted small', text: t('Shown under each verse.') })]),

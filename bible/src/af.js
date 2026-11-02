@@ -18,6 +18,7 @@ export const AF = {
   // ---- the frame: tabs, header, menu (index.html, app.js)
   "NAC Study Bible": "NAK Studiebybel",
   "Study Bible": "Studiebybel",
+  "New Apostolic Church": "Nuwe Apostoliese Kerk",
   "Skip to content": "Spring na die inhoud",
   "Sections": "Afdelings",
   "Read": "Lees",
@@ -139,7 +140,6 @@ export const AF = {
   "Theme": "Tema",
   "Look": "Tema",
   "\"Pulpit\" is meant for reading while standing.": "\"Kansel\" is bedoel vir lees terwyl jy staan.",
-  "\"System\" follows the setting of this phone or PC.": "\"Stelsel\" volg die instelling van hierdie foon of rekenaar.",
   "Edit the pasted {label} text": "Wysig die geplakte {label}-teks",
   "Loading…": "Laai…",
 
@@ -593,7 +593,7 @@ export const AF = {
   "Your name goes in the footer of the sermon notes, and the congregation is filled in for each new preparation.": "Jou naam kom in die voetstuk van die preeknotas, en die gemeente word by elke nuwe voorbereiding ingevul.",
   "Appearance": "Voorkoms",
   "How the app looks on this device. The \"Aa\" button in the reader changes the same things while you read.": "Hoe die app op hierdie toestel lyk. Die \"Aa\"-knoppie in die leser verander dieselfde dinge terwyl jy lees.",
-  "\"System\" follows the setting of this phone or PC. \"Paper\" is the warm default.": "\"Stelsel\" volg die instelling van hierdie foon of rekenaar. \"Papier\" is die warm standaard.",
+  "\"White\" is the Church's blue and white, as on the slides. \"Paper\" keeps the blue with warm cream pages. \"System\" is White by day and Dark at night, as this phone or PC is set.": "\"Wit\" is die Kerk se blou en wit, soos op die skyfies. \"Papier\" hou die blou met warm roomkleurige bladsye. \"Stelsel\" is Wit bedags en Donker snags, soos hierdie foon of rekenaar ingestel is.",
   "Text size in the reader": "Teksgrootte in die leser",
   "\"Pulpit\" is for reading while standing.": "\"Kansel\" is vir lees terwyl jy staan.",
   "Book names": "Boekname",
@@ -820,7 +820,7 @@ export const AF = {
   "World English Bible with the Deuterocanon: public domain, ebible.org. \"World English Bible\" is a trademark of eBible.org.": "World English Bible met die Deuterokanonieke boeke: publieke domein, ebible.org. \"World English Bible\" is 'n handelsmerk van eBible.org.",
   "Scripture read through API.Bible or the YouVersion Platform is the copyright of its publishers and is shown under their terms; see the notice under each chapter.": "Skrif wat deur API.Bible of die YouVersion Platform gelees word, is die kopiereg van sy uitgewers en word onder hul voorwaardes gewys; sien die kennisgewing onder elke hoofstuk.",
   "Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only the section numbers, titles and Bible references; the text itself is loaded by you onto this device for your own study, or read at nak.org.": "Kategismus van die Nuwe Apostoliese Kerk © Nuwe Apostoliese Kerk Internasionaal, Zürich. Die app dra net die afdelingnommers, titels en Bybelverwysings; die teks self word deur jou op hierdie toestel gelaai vir jou eie studie, of by nak.org gelees.",
-  "Reading typeface: Literata, © The Literata Project Authors, SIL Open Font License 1.1.": "Leesletterstyl: Literata, © The Literata Project Authors, SIL Open Font License 1.1.",
+  "Typeface: Montserrat (© The Montserrat Project Authors), SIL Open Font License 1.1. The slides of a reflection evening use Cambria and Calibri, as in PowerPoint, or where a device lacks them Caladea (© The Caladea Project Authors) and Carlito (© The Carlito Project Authors), both SIL Open Font License 1.1.": "Letterstyl: Montserrat (© The Montserrat Project Authors), SIL Open Font License 1.1. Die skyfies van 'n besinningsaand gebruik Cambria en Calibri, soos in PowerPoint, of waar 'n toestel hulle nie het nie Caladea (© The Caladea Project Authors) en Carlito (© The Carlito Project Authors), albei SIL Open Font License 1.1.",
 
   // ---- the sermon helper for the people listening, how the minister preaches, Easy-read (PR #20)
   "Claude answers the questions above from the text, the Guide's article and the Catechism, suggests cross references, and shows what the text gives each main point of the Guide, in short plain sentences and with the people above in mind. You choose what to keep.": "Claude beantwoord die vrae hierbo uit die teks, die Handleiding se artikel en die Kategismus, stel kruisverwysings voor, en wys wat die teks vir elke hoofpunt van die Handleiding gee, in kort eenvoudige sinne en met die mense hierbo in gedagte. Jy kies wat jy wil hou.",
@@ -871,6 +871,7 @@ export const AF = {
   "What goes to Anthropic to answer: the Guide PDF when you load one, the text word with its chapter, the Catechism sections that belong to it, your own notes on that preparation, who is listening and this note on how you preach. Anthropic processes it to answer and does not train its models on it. Nothing is put on the public site, and the suggestions are a starting point: the sermon remains yours.": "Wat na Anthropic gaan om te antwoord: die Handleiding-PDF wanneer jy een laai, die tekswoord met sy hoofstuk, die Kategismus-afdelings wat daarby hoort, jou eie notas oor daardie voorbereiding, wie luister en hierdie nota oor hoe jy preek. Anthropic verwerk dit om te antwoord en lei nie sy modelle daarmee op nie. Niks word op die openbare webwerf geplaas nie, en die voorstelle is 'n beginpunt: die preek bly joune.",
   "Letters and spacing": "Letters en spasiëring",
   "Easy-read": "Maklik-lees",
+  "Montserrat": "Montserrat",
   "\"Easy-read\" uses plain letters with more room between them and between the lines, in the whole app. Many people with dyslexia find it easier.": "\"Maklik-lees\" gebruik eenvoudige letters met meer ruimte tussen hulle en tussen die reëls, in die hele app. Baie mense met disleksie vind dit makliker.",
   "\"Easy-read\" uses plain letters with more room between them and between the lines, which many people with dyslexia find easier. It applies everywhere in the app.": "\"Maklik-lees\" gebruik eenvoudige letters met meer ruimte tussen hulle en tussen die reëls, wat baie mense met disleksie makliker vind. Dit geld oral in die app.",
   // ---- the Guide's article piece by piece, under step 2 (prepare.js, ai.js, pdf.js)

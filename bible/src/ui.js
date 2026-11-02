@@ -87,10 +87,11 @@ export function nextSunday() {
 
 /* ---------------------------------------------------------------- theme */
 
-export const THEMES = [['system', 'System'], ['paper', 'Paper'], ['white', 'White'], ['dark', 'Dark']];
+/* "White" is the Church's blue and white, as on the slides; "Paper" keeps the blue but gives the pages a warm cream; "System" is White by day and Dark at night. */
+export const THEMES = [['system', 'System'], ['white', 'White'], ['paper', 'Paper'], ['dark', 'Dark']];
 export const SIZES = [['s', 'Small'], ['m', 'Normal'], ['l', 'Large'], ['xl', 'Pulpit']];
-/* Letters and spacing: the book face, or plain letters with more room between them and the lines, which many readers with dyslexia find easier. */
-export const READS = [['book', 'Book'], ['easy', 'Easy-read']];
+/* Letters and spacing: Montserrat, the letters of the app, or plain letters in the whole app with more room between them and the lines, which many readers with dyslexia find easier. ('book' is the stored name of the first, from when it was a book face.) */
+export const READS = [['book', 'Montserrat'], ['easy', 'Easy-read']];
 
 /**
  * Applies the letters-and-spacing choice: "easy" puts data-read="easy" on the
@@ -117,11 +118,11 @@ export function applyTheme(theme) {
   syncThemeColor();
 }
 
-/** The browser's own bars take the page colour, so a dark page gets a dark frame. */
+/** The browser's own bars take the blue of the app's header (a deeper blue at night), so the phone's top bar runs on into it. */
 export function syncThemeColor() {
   requestAnimationFrame(() => {
     const meta = $('meta[name="theme-color"]');
-    if (meta) meta.content = getComputedStyle(document.body).backgroundColor;
+    if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() || getComputedStyle(document.body).backgroundColor;
   });
 }
 

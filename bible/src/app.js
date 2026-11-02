@@ -137,6 +137,20 @@ function onSynced(e) {
   route();
 }
 
+/**
+ * The welcome screen (index.html) stays at least a little over a second, so
+ * it is seen rather than flashed, then fades; a tap sends it away at once.
+ * It shows once each time the app is opened (index.html keeps a note in
+ * sessionStorage), not on a reload or on coming back from the help page.
+ */
+function hideSplash() {
+  const splash = $('#splash');
+  if (!splash) return;
+  const go = () => { splash.classList.add('gone'); setTimeout(() => splash.remove(), 600); };
+  splash.addEventListener('click', go);
+  setTimeout(go, Math.max(0, 1300 - performance.now()));
+}
+
 async function start() {
   await load();
   await Sync.init();
@@ -151,6 +165,7 @@ async function start() {
   applyLang(state.settings.uiLang || 'en');
   window.addEventListener('hashchange', route);
   route();
+  hideSplash();
   document.addEventListener('sb-sync', onSynced);
   Sync.start();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
@@ -160,5 +175,6 @@ async function start() {
 
 start().catch(e => {
   document.body.insertAdjacentHTML('afterbegin', `<p class="error" style="padding:12px">${t('The app could not start: {error}', { error: e.message || e })}</p>`);
+  hideSplash();
   console.error(e);
 });
