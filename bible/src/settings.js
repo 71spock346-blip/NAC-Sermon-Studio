@@ -121,7 +121,10 @@ export function render(container) {
     try {
       const data = JSON.parse(await f.text());
       const r = await importAll(data);
-      toast(t('Backup loaded: {notes} and {sermons} added or updated.', { notes: tn(r.notes, '{n} note', '{n} notes'), sermons: tn(r.sermons, '{n} preparation', '{n} preparations') }));
+      const what = { notes: tn(r.notes, '{n} note', '{n} notes'), sermons: tn(r.sermons, '{n} preparation', '{n} preparations') };
+      toast(r.theology
+        ? t('Backup loaded: {notes}, {sermons} and {theology} added or updated.', { ...what, theology: tn(r.theology, '{n} theology study', '{n} theology studies') })
+        : t('Backup loaded: {notes} and {sermons} added or updated.', what));
       render(root);
     } catch (e) { toast(e.message || t('That file could not be read.'), true); }
     fileInput.value = '';

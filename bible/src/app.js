@@ -4,7 +4,8 @@
  * The address decides the screen: #read/PSA/130/7 opens Psalm 130 at verse 7,
  * #notes lists the notes, #prepare/<id> opens one service preparation,
  * #reflect lists the reflection evenings and #reflect/<id> opens the slides
- * of one, #catechism/3.4.1 opens a Catechism section, #settings is settings.
+ * of one, #catechism/3.4.1 opens a Catechism section, #theology/ROM/8 opens
+ * the background to a chapter (theology.js), #settings is settings.
  * The back button therefore works as people expect, and a link to a verse
  * can be shared.
  *
@@ -24,6 +25,7 @@ import * as Reader from './reader.js';
 import * as Notes from './notes.js';
 import * as Prepare from './prepare.js';
 import * as Cat from './catechism.js';
+import * as Theology from './theology.js';
 import * as Settings from './settings.js';
 import * as Sync from './sync.js';
 
@@ -33,9 +35,9 @@ const TABS = {
   prepare: Prepare.render,
   reflect: Prepare.renderReflect,
   catechism: Cat.render,
+  theology: Theology.render,
   settings: Settings.render,
 };
-const ORDER = Object.keys(TABS);
 
 function route() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
@@ -59,6 +61,8 @@ function route() {
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
+    // the phone's bar has no Theology tab (it is reached from the reader), so there Read stays lit
+    b.classList.toggle('also', tab === 'theology' && b.dataset.tab === 'read');
   }
   for (const panel of $$('main .tab')) panel.hidden = panel.id !== 'tab-' + tab;
   const container = $('#tab-' + tab);
@@ -76,14 +80,14 @@ function route() {
 function tabKeys(e) {
   const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: 'first', End: 'last' };
   if (!(e.key in keys)) return;
-  const buttons = $$('.tabs button');
+  const buttons = $$('.tabs button').filter(b => b.offsetParent !== null);   // the tabs shown: the phone has no Theology tab
   const i = buttons.findIndex(b => b === document.activeElement);
   if (i < 0) return;
   e.preventDefault();
   const k = keys[e.key];
   const next = k === 'first' ? 0 : k === 'last' ? buttons.length - 1 : (i + k + buttons.length) % buttons.length;
   buttons[next].focus();
-  location.hash = '#' + ORDER[next];
+  location.hash = '#' + buttons[next].dataset.tab;
 }
 
 /* ---------------------------------------------------------------- language */
@@ -135,6 +139,7 @@ function onSynced(e) {
   if ((tab === 'prepare' || tab === 'reflect') && hash.length > 1) return;   // an open preparation or evening is not pulled from under the person
   if (tab === 'notes' && !parts.includes('notes')) return;
   if (tab === 'catechism' && !parts.includes('catechism')) return;
+  if (tab === 'theology' && (hash.length > 1 || !parts.includes('theology'))) return;   // an open book or chapter keeps its place; the list shows what came
   if ((tab === 'prepare' || tab === 'reflect') && !parts.some(p => p === 'sermons' || p === 'guides' || p === 'settings')) return;
   route();
 }

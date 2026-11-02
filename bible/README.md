@@ -2,8 +2,9 @@
 
 A personal study bible for a New Apostolic Church minister: Scripture in several
 translations, the person's own notes on verses, an index of where the Catechism of
-the New Apostolic Church refers to each verse, and a guided path from a text word to
-a divine service with printable sermon notes and a cue card.
+the New Apostolic Church refers to each verse, theological background to every book
+of the Bible (and, with Claude, to any chapter or passage), and a guided path from a
+text word to a divine service with printable sermon notes and a cue card.
 
 Like the other apps in this repository it is a static site: no build step, no
 login. It is built from the `bible/` folder as its own Vercel project. The one
@@ -77,6 +78,32 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   loaded, `src/catechism.js` shows the sections (with the book's own summaries,
   footnotes and the table of the Ten Commandments), searches them by word, and
   `src/pdf.js` prints the sections chosen for a service into the sermon notes.
+- **Theology.** `src/theology.js` gives background at three levels: a book with its
+  writer (`#theology/ROM`), a chapter (`#theology/ROM/8`) and a passage
+  (`#theology/ROM/8/28-30`); `#theology` lists the books in the Catechism's groups
+  (CNAC 1.2.2.2, 1.2.3, 1.2.4.2), the Apocrypha as "the later writings of the Old
+  Testament". Built in, free and offline, is a short introduction to each of the 80
+  books in `data/theology/en.json` and `af.json`, written for the app in plain words:
+  `title`, `line` (one line on the book), `writer`, `when`, `to` (written for whom),
+  `why`, `summary`, `themes`, `parts` (`[from, to, title]` by chapter), `key` verses
+  (`"ROM.8.28"`) and `christ` (how it points to Christ). The two files hold the same
+  parts and key verses, and `python3 tools/check_theology.py` checks that every book is
+  there, every field is filled and every part and key verse exists in the KJV text.
+  Beside each level stand the Catechism sections that quote it, counted from the
+  index (`catechism.js quoting`), with the Catechism's own "in short" when its text is
+  on the device. "Ask Claude" (`ai.js insight`, with the person's own key) adds the
+  plain meaning, background, writer, place in the book, parts, key words, themes, what
+  the Church teaches (from the Catechism text on the device, cited by section number
+  only from the index), up to three readings of other Christians each marked as in
+  line with New Apostolic teaching, different or left open, how it points to Christ,
+  other passages, Catechism sections and a word for today; the instructions, the Creed
+  and the index form a cached opening, so asking again soon costs less. The answer is
+  kept in the `theology` store, one row per place and language (`en:ROM.8`,
+  `af:ROM.8.28-30`), and goes with the sync and the backup file. In the reader,
+  "Theology" in the verse bar opens a sheet on the chosen verses and the button beside
+  the chapter title opens the chapter. A PC has "Theology" in the side menu; the phone's
+  bar keeps its six tabs (a seventh does not fit at 360px), so there it is reached from
+  the reader, and Read stays lit.
 - **AI helper.** `src/ai.js` calls Claude (Anthropic) straight from the browser with the
   person's own key (Settings → AI helper, on the device only, never exported), streaming
   and with the answer held to a JSON schema. Two jobs: a monthly Divine Service Guide
@@ -115,15 +142,17 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   words in the breakdown stay as they are. The Catechism sections' text and the Guide's article go along in the
   request when they are on the device; the Guide, like the Catechism, is the Church's text
   and stays out of the repository and the backup.
-- **Storage.** Notes, preparations and settings live in IndexedDB on the device
-  (`src/store.js`). Settings → Backup exports and merges a JSON file.
+- **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
+  in IndexedDB on the device (`src/store.js`). Settings → Backup exports and merges a
+  JSON file.
 - **Sync.** Settings → "Sync between your devices" keeps a PC and a phone the same
   without an account: the first device makes a code of 20 letters (100 bits), the
   other joins by typing it or scanning its QR square (`vendor/qrcode.mjs`, MIT; the
   square carries `#sync/<code>`, which `app.js` turns into the join sheet). The code
   is the whole secret. `src/sync.js` derives a key from it (PBKDF2) and locks each of
-  six parts (notes, preparations, settings, pasted text, the Catechism text, the
-  Guides) with AES-GCM, gzip first, before sending it to `api/sync.js`, which keeps
+  seven parts (notes, preparations, settings, pasted text, the Catechism text, the
+  Guides, the theology Claude wrote) with AES-GCM, gzip first, before sending it to
+  `api/sync.js`, which keeps
   the bytes as private blobs in Vercel Blob under `sync/<hash of the code>/<part>.bin`.
   The server and the store never hold anything readable, so the Church's texts and
   the person's keys travel too (the keys only while "Carry my keys" is ticked); the
@@ -195,15 +224,17 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `api/sync.js` – the sync server (Vercel function, Vercel Blob); `package.json` holds its one dependency
 - `icons/` – the emblem (SVG and the PNG sizes a phone's home screen wants; `emblem-white.png` and `emblem-blue.png` for the slides)
 - `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#notes`,
-  `#prepare/<id>`, `#catechism/3.4.1`, `#settings`)
+  `#prepare/<id>`, `#reflect/<id>`, `#catechism/3.4.1`, `#theology/ROM/8`, `#settings`)
 - `src/books.js` – the 80 books, English and Afrikaans names, reference parsing
 - `src/i18n.js`, `src/af.js` – the language of the interface: `t()` and the Afrikaans table
 - `src/store.js` – IndexedDB, in-memory state, backup, change events and deletion markers for sync
 - `src/sync.js`, `src/merge.js` – sync between devices: the code, the locking, the server calls, the merge rules
 - `src/bible.js` – bundled texts, API.Bible client and cache, links out
 - `src/catechism.js` – Catechism index and tab
+- `src/theology.js` – the Theology tab, the book, chapter and passage pages, and the sheet the reader opens
+- `data/theology/en.json`, `data/theology/af.json` – the built-in introduction to every book, in English and Afrikaans
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
-- `src/ai.js` – Claude: the request, the three prompts and their JSON schemas
+- `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
 - `src/reflect.js`, `src/slides.js` – the reflection evening: the screen and the show; the slide layout, the facilitator's notes and the PowerPoint file
@@ -212,7 +243,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `vendor/pptxgen.bundle.js` – PptxGenJS 4.0.1 with JSZip 3.10.1 inside (MIT), loaded only when a PowerPoint file is made
 - `vendor/fonts/` – Montserrat, variable (SIL OFL 1.1), Latin and Latin-extended subsets, the letters of the app; Caladea and Carlito (SIL OFL 1.1), standing in for Cambria and Calibri on the slides of a reflection evening
 - `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
-- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `test_merge.mjs` and `dev_server.mjs` for sync
+- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync
 
 ## Rebuilding the data
 
@@ -235,11 +266,17 @@ python3 build_catechism.py /path/to/catechism.txt catechism-toc.txt
 python3 build_catechism.py /path/to/catechism.txt catechism-toc.txt --text /path/to/catechism-text.json
 ```
 
+The book introductions in `data/theology/` are written by hand, not generated: one
+book per line, in the order of the books, so a change shows as one line in the diff.
+Change the English and the Afrikaans together (the parts and key verses must stay the
+same in both), then run `python3 tools/check_theology.py` from `bible/`.
+
 ## Releasing a change
 
 Bump `VERSION` in `sw.js` so phones pick up the new build, and the `?v=` on
 `styles.css` and `src/app.js` in `index.html` (and `styles.css` in `help.html`) when
-those change. Run `python3 tools/check_i18n.py` so every new text has its Afrikaans. The Vercel
+those change. Run `python3 tools/check_i18n.py` so every new text has its Afrikaans, and
+`python3 tools/check_theology.py` when the book introductions change. The Vercel
 project for this app has its root directory set to `bible`.
 
 ## Licences
