@@ -45,6 +45,7 @@ class Writer {
     this.h = doc.internal.pageSize.getHeight();
     this.y = margin;
     this.width = this.w - 2 * margin;
+    this.carry = '';   // while set, a new page has this line at its head, small and grey (see flow)
   }
   font(size, style, color) {
     this.doc.setFont('helvetica', style || 'normal');
@@ -54,7 +55,24 @@ class Writer {
     this.lead = size * 0.3528 * 1.35;
   }
   ensure(space) {
-    if (this.y + space > this.h - this.m) { this.doc.addPage(); this.y = this.m; }
+    if (this.y + space > this.h - this.m) this.page();
+  }
+  /**
+   * Goes on at the top of a new page. The line carry, if any, goes in the top
+   * margin like a running head, so it takes no room from the text; the
+   * paragraph being written keeps its letters.
+   */
+  page() {
+    this.doc.addPage();
+    this.y = this.m;
+    if (!this.carry) return;
+    const f = this.doc.getFont(), size = this.doc.getFontSize(), color = this.doc.getTextColor(), lead = this.lead;
+    this.font(9, 'normal', MUTED);
+    this.doc.text(this.carry, this.m, this.m - 6);
+    this.doc.setFont(f.fontName, f.fontStyle);
+    this.doc.setFontSize(size);
+    this.doc.setTextColor(color);
+    this.lead = lead;
   }
   space(mm) { this.y += mm; }
   heading(text, size = 12) {
@@ -75,18 +93,60 @@ class Writer {
     if (!text) return;
     const lines = this.wrap(text, opts);
     const x = this.m + (opts.indent || 0);
+    const cut = opts.tidy ? this.cut(lines.length) : -1;
     lines.forEach((line, i) => {
-      this.ensure(this.lead);
+      if (i === cut) this.page(); else this.ensure(this.lead);
       if (opts.bullet && i === 0) this.doc.text(opts.bullet, x, this.y + this.lead * 0.75);
       this.doc.text(line, x + (opts.bullet ? HANG : 0), this.y + this.lead * 0.75);
       this.y += this.lead;
     });
     this.y += opts.after == null ? 2 : opts.after;
   }
+  /**
+   * For print that reads well (para with opts.tidy): the line of a paragraph of
+   * n lines at which it goes over to the next page. 0 moves it whole: a paragraph
+   * of up to three lines is not split, and a longer one does not start with a
+   * single line at the foot of a page. One line early when only its last line
+   * would go over, so that two lines go over together. -1: it fits, or it goes
+   * over where it falls.
+   */
+  cut(n) {
+    const fit = Math.floor((this.h - this.m - this.y) / this.lead + 1e-6);
+    if (fit >= n) return -1;
+    if (n <= 3 || fit < 2) return 0;
+    return n - fit === 1 ? fit - 1 : -1;
+  }
+  /** The height of the paragraph [text, opts], with the space after it. */
+  height([text, opts = {}]) {
+    return this.wrap(text, opts).length * this.lead + (opts.after == null ? 2 : opts.after);
+  }
   /** Starts a new page unless the paragraphs [text, opts] fit below, when they fit on one page at all: a block stays together. */
   keep(parts) {
-    const height = parts.reduce((sum, [text, opts = {}]) => sum + this.wrap(text, opts).length * this.lead + (opts.after == null ? 2 : opts.after), 0);
-    if (this.y + height > this.h - this.m && height <= this.h - 2 * this.m) { this.doc.addPage(); this.y = this.m; }
+    const height = parts.reduce((sum, part) => sum + this.height(part), 0);
+    if (this.y + height > this.h - this.m && height <= this.h - 2 * this.m) this.page();
+  }
+  /**
+   * Writes the paragraphs [text, opts] so that they run on from page to page, as
+   * in a book, without leaving the foot of a page empty. Paragraphs are tidy (see
+   * cut), and one marked withNext (a heading, a question, a main point) never
+   * stands alone at the foot of a page: it goes over together with the first
+   * lines of what follows it. When they go over to a new page after the first
+   * paragraph, that page has the line carry at its head (to say which slide
+   * goes on there).
+   */
+  flow(parts, carry = '') {
+    parts.forEach(([text, opts = {}], i) => {
+      const chained = i > 0 && (parts[i - 1][1] || {}).withNext;
+      if (opts.withNext && !chained) {
+        let need = 0, j = i;
+        for (; j < parts.length && (parts[j][1] || {}).withNext; j++) need += this.height(parts[j]);
+        if (j < parts.length) { const n = this.wrap(parts[j][0], parts[j][1]).length; need += (n <= 3 ? n : 2) * this.lead; }
+        if (this.y + need > this.h - this.m && need <= this.h - 2 * this.m) this.page();
+      }
+      this.para(text, Object.assign({}, opts, { tidy: true }));
+      if (i === 0) this.carry = carry;
+    });
+    this.carry = '';
   }
   rule() {
     this.ensure(4);
@@ -489,8 +549,11 @@ export function breakdownPdf(s) {
 /**
  * The notes for the one who leads a reflection evening (reflect.js): slide
  * by slide its number and name, the question it asks, and what to say and
- * do there. In the language of the slides, like the notes themselves; a
- * slide's notes stay together on one page.
+ * do there. In the language of the slides, like the notes themselves. The
+ * notes run on from page to page with no gap at the foot of a page (Jerome:
+ * a slide that jumped whole to the next page left half a page empty). A
+ * slide's heading, its question or a main point is never left alone at the
+ * foot of a page, and a page that goes on with a slide says so at its head.
  */
 export function facilitatorPdf(inp, slides) {
   const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
@@ -510,8 +573,9 @@ export function facilitatorPdf(inp, slides) {
   w.rule();
 
   for (const sl of slides) {
-    const parts = [[`${W.slide(sl.n)}  \u00b7  ${S.slideName(sl, inp.lang)}`, { style: 'bold', size: 13, color: BLUE, after: 1.5 }]];
-    if (sl.kind === 'question' && sl.question) parts.push([sl.question, { style: 'bold', size: 12.5, after: 2.5 }]);
+    const head = `${W.slide(sl.n)}  \u00b7  ${S.slideName(sl, inp.lang)}`;
+    const parts = [[head, { style: 'bold', size: 13, color: BLUE, after: 1.5, withNext: true }]];
+    if (sl.kind === 'question' && sl.question) parts.push([sl.question, { style: 'bold', size: 12.5, after: 2.5, withNext: true }]);
     // the notes: a blank line between paragraphs; a main point in bold, its thoughts under it with a dash
     for (const block of String(sl.notes || '').split(/\n\s*\n/)) {
       const rows = block.split('\n').filter(x => x.trim());
@@ -519,12 +583,11 @@ export function facilitatorPdf(inp, slides) {
         const after = k === rows.length - 1 ? 3 : 1;
         const sub = row.match(/^\s*[\u2013\u2022-]\s+(.*)$/);
         if (sub) parts.push([sub[1], { size: 12, indent: 6, bullet: '\u2013', leading: 1.45, after }]);
-        else if (/^\d{1,2}\.\s/.test(row)) parts.push([row.trim(), { size: 12, style: 'bold', leading: 1.45, after }]);
+        else if (/^\d{1,2}\.\s/.test(row)) parts.push([row.trim(), { size: 12, style: 'bold', leading: 1.45, after, withNext: true }]);
         else parts.push([row.trim(), { size: 12, leading: 1.45, after }]);
       });
     }
-    w.keep(parts);
-    for (const [text, opts] of parts) w.para(text, opts);
+    w.flow(parts, `${head} (${W.continued})`);
     w.space(4);
   }
 
