@@ -177,7 +177,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   how to lead each question (with a tip for each of the Church's four), and the close. The
   minister's own words replace a suggestion (`s.reflect.notes`, questions' notes in the order
   of the questions, moving with them); they go into the PowerPoint as slide notes and print
-  with `pdf.js facilitatorPdf`. The main points on the slide are always the headings of the Guide's article
+  with `pdf.js facilitatorPdf`, where they run on over the page (`Writer.flow`: a paragraph of
+  up to three lines stays whole, a longer one keeps two lines on either page, a slide's heading,
+  question or main point never stands alone at the foot of a page, and a page that goes on
+  with a slide says so in its top margin). The main points on the slide are always the headings of the Guide's article
   (`guides.js mainPoints`), in the language of the slides when the Guide is loaded in
   both. `src/slides.js` has no DOM: `deck()` lays every slide out as boxes on a
   13.33 × 7.5 inch page in the standard theme (blue #0168B5 opening and closing slides
