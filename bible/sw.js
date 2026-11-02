@@ -11,14 +11,14 @@
  * (/api/sync): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-02d';
+var VERSION = 'bible-2026-11-02e';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=33',
-  'src/app.js?v=33',
+  'styles.css?v=34',
+  'src/app.js?v=34',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -55,14 +55,14 @@ var SHELL = [
   'data/kjv/index.json',
   'data/web/index.json',
   'data/catechism.json',
-  'icons/emblem.svg',
+  'icons/emblem.svg?v=2',
   'icons/emblem-line.svg',
   'icons/emblem-white.png',
   'icons/emblem-blue.png',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'icons/icon-maskable-512.png',
-  'icons/apple-touch-icon.png'
+  'icons/icon-192.png?v=2',
+  'icons/icon-512.png?v=2',
+  'icons/icon-maskable-512.png?v=2',
+  'icons/apple-touch-icon.png?v=2'
 ];
 // Big and slow to change: worth keeping rather than re-fetching.
 var CACHE_FIRST = /(vendor\/|icons\/|data\/)/;
