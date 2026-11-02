@@ -25,9 +25,9 @@ import * as Cat from './catechism.js';
 import { audienceOf, audienceLabel, modelLabel } from './ai.js';
 import * as S from './slides.js';
 
-const BLUE = [31, 78, 140];      // the Church's blue, the same as --accent on screen
-const INK = [31, 41, 55];
-const MUTED = [107, 114, 128];
+const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
+const INK = [29, 43, 56];
+const MUTED = [91, 107, 123];
 const HANG = 4.5;                // mm between a bullet and its text
 
 function jsPDF() {

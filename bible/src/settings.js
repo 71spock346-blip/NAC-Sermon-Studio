@@ -58,7 +58,7 @@ export function render(container) {
   container.append(section(t('Appearance'), [
     el('p', { class: 'small', text: t('How the app looks on this device. The "Aa" button in the reader changes the same things while you read.') }),
     el('div', { class: 'theme-row' }, [
-      el('label', { class: 'f' }, [t('Look'), themeSeg, el('span', { class: 'hint muted small', text: t('"System" follows the setting of this phone or PC. "Paper" is the warm default.') })]),
+      el('label', { class: 'f' }, [t('Look'), themeSeg, el('span', { class: 'hint muted small', text: t('"White" is the Church\'s blue and white, as on the slides. "Paper" keeps the blue with warm cream pages. "System" is White by day and Dark at night, as this phone or PC is set.') })]),
       el('label', { class: 'f' }, [t('Text size in the reader'), sizeSeg, el('span', { class: 'hint muted small', text: t('"Pulpit" is for reading while standing.') })]),
       el('label', { class: 'f' }, [t('Letters and spacing'), readSeg, el('span', { class: 'hint muted small', text: t('"Easy-read" uses plain letters with more room between them and between the lines, in the whole app. Many people with dyslexia find it easier.') })]),
     ]),
@@ -173,7 +173,7 @@ export function render(container) {
       el('li', { text: t('Text you paste in yourself stays on this device for your own study and remains the copyright of its publisher.') }),
       el('li', { text: t('Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only the section numbers, titles and Bible references; the text itself is loaded by you onto this device for your own study, or read at nak.org.') }),
       el('li', { text: t('Divine Service Guide © New Apostolic Church International. A Guide you load is read by Claude (Anthropic) with your own key and kept on this device only, for your own preparation.') }),
-      el('li', { text: t('Reading typeface: Literata, © The Literata Project Authors, SIL Open Font License 1.1.') }),
+      el('li', { text: t('Typeface: Montserrat (© The Montserrat Project Authors), SIL Open Font License 1.1. The slides of a reflection evening use Cambria and Calibri, as in PowerPoint, or where a device lacks them Caladea (© The Caladea Project Authors) and Carlito (© The Carlito Project Authors), both SIL Open Font License 1.1.') }),
     ]),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small ghost danger', type: 'button', text: t('Erase everything on this device'), onclick: async () => {

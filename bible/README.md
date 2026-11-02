@@ -14,14 +14,28 @@ On a phone, open the link and use "Add to Home Screen". The user manual is
 
 ## How it looks
 
-`styles.css` is the whole look: warm paper tones (a plain white and a dark theme swap
-the same tokens; Settings → Appearance, or the reader's "Aa" button, choose between
-them and the choice is mirrored in localStorage so the page paints in the right
-colours before the database is open), Literata as the reading typeface for Scripture
-and the Catechism (vendored under `vendor/fonts/`, SIL Open Font License), the system
-sans for everything else. Under 760px the tabs are a bar under the thumb and the text
-runs full width; from 760px they are a side menu and each screen is a page on the paper.
-The emblem in `icons/emblem.svg` is the mark in the header and the app icon.
+`styles.css` is the whole look, dressed like the Church's slides: the NAC blue
+(#0168B5) with the white line emblem for the frame (the header on a phone, the side
+menu on a PC), white pages, small spaced capitals over a heading, light-blue cards
+and numbers in blue circles. Every letter is Montserrat, as Jerome asked: one variable
+font for every weight, vendored under `vendor/fonts/` (SIL Open Font License) so a
+phone and a PC look the same offline. The tokens `--display`, `--serif` and `--sans`
+all point to `--font`, so one line changes the letters. "White" is that look,
+"Paper" keeps the blue with warm cream pages, "Dark" is a deep blue for the night, and
+"System" follows the device; they swap the same tokens, and the choice (Settings →
+Appearance, or the reader's "Aa" button) is mirrored in localStorage so the page paints
+in the right colours before the database is open. "Easy-read" swaps Montserrat for
+plain letters (Verdana where the device has it) in the whole app, with more room in the
+reading text. Under 760px the tabs are a bar under the thumb and
+the text runs full width on white; from 760px they are a side menu and each screen is
+a white page on a pale ground, with the small blue emblem in its corner.
+
+`icons/emblem-line.svg` is the official white line emblem, traced from
+`icons/emblem-white.png`; the app draws it through a CSS mask (`.emblem`), so it takes
+the colour of the text around it. `icons/emblem.svg` and the PNG icons are the same
+emblem on a blue tile (`icon-maskable-512.png` with room for an Android launcher's
+shape). The welcome screen in `index.html` (styled as the blue title slide) shows once
+each time the app is opened and fades when `app.js` has drawn the first screen.
 
 ## Two languages
 
@@ -193,7 +207,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)
 - `vendor/pptxgen.bundle.js` – PptxGenJS 4.0.1 with JSZip 3.10.1 inside (MIT), loaded only when a PowerPoint file is made
-- `vendor/fonts/` – Literata (SIL OFL 1.1), Latin and Latin-extended subsets
+- `vendor/fonts/` – Montserrat, variable (SIL OFL 1.1), Latin and Latin-extended subsets, the letters of the app; Caladea and Carlito (SIL OFL 1.1), standing in for Cambria and Calibri on the slides of a reflection evening
 - `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
 - `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `test_merge.mjs` and `dev_server.mjs` for sync
 
@@ -237,4 +251,4 @@ project for this app has its root directory set to `bible`.
   published.
 - jsPDF: MIT (`vendor/jspdf.LICENSE`).
 - PptxGenJS and JSZip: MIT (`vendor/pptxgen.LICENSE`).
-- Literata: © The Literata Project Authors, SIL Open Font License 1.1 (`vendor/fonts/OFL.txt`).
+- Montserrat: © The Montserrat Project Authors; Caladea: © The Caladea Project Authors; Carlito: © The Carlito Project Authors; all SIL Open Font License 1.1 (`vendor/fonts/OFL-Montserrat.txt`, `vendor/fonts/OFL-Caladea.txt`, `vendor/fonts/OFL-Carlito.txt`).

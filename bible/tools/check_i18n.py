@@ -32,7 +32,7 @@ HTML_PATTERNS = [re.compile(r'data-t(?:-aria|-title)?="([^"]*)"')]
 # switches (i18n.js and ai.js LANGS, guides.js editionLabel). Keep this list
 # in step with those.
 INDIRECT = [
-    'System', 'Paper', 'White', 'Dark', 'Small', 'Normal', 'Large', 'Pulpit', 'Book', 'Easy-read',
+    'System', 'Paper', 'White', 'Dark', 'Small', 'Normal', 'Large', 'Pulpit', 'Montserrat', 'Easy-read',
     'Thought', 'Experience', 'Doctrine', 'Illustration', 'Sermon idea', 'Question',
     'Draft', 'Ready', 'Held',
     'Sunday divine service', 'Midweek divine service', 'Divine service for the departed',

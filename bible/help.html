@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Help – NAC Study Bible</title>
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#f4f1ea">
+<meta name="theme-color" content="#0168b5">
 <link rel="icon" type="image/svg+xml" href="icons/emblem.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=32">
+<link rel="stylesheet" href="styles.css?v=33">
 </head>
 <body class="help">
 <header class="top">
-  <h1><span class="mark" aria-hidden="true"><svg viewBox="0 0 160 160"><rect width="160" height="160" rx="30" fill="currentColor"/><g fill="none" stroke="#fff" stroke-linecap="round"><path d="M76 8H84V27H108V35H84V127H76V35H52V27H76Z" fill="currentColor" stroke-width="3"/><path d="M74.4 99.6L64.8 54.6M85.6 99.6L95.2 54.6M66.5 102.6L45 65.4M93.5 102.6L115 65.4M59.9 106.5L33.3 80.8M100.1 106.5L126.7 80.8M56.6 112.5L29.8 97M103.4 112.5L130.2 97M33 119H55M105 119H127" stroke-width="3.2"/><path d="M38 131H54M60 131Q80 136 100 131M106 131H122M45 139H60M66 139Q80 143 97 139M102 139H117M57 147Q80 152 102 147" stroke-width="4.5"/></g></svg></span><span data-en="Help" data-af="Hulp">Help</span></h1>
+  <h1><span class="emblem" aria-hidden="true"></span><span data-en="Help" data-af="Hulp">Help</span></h1>
   <div class="actions">
     <div class="seg mini lang-switch" role="group" aria-label="Language">
       <button type="button" data-lang="en" aria-pressed="true" title="English">EN</button>
@@ -46,7 +46,7 @@ Bible text itself stays in the translation you choose.</p>
   <li><b>Translations:</b> the King James Version (with the Apocrypha) and the World English Bible are built in and
     work offline. Choose the translation next to the Go to box.</li>
   <li><b>The Aa button</b> holds the reading choices: the text size (the largest, "Pulpit", is meant for reading
-    while standing), the look of the app (System, Paper, White or Dark), the letters and spacing ("Easy-read" uses
+    while standing), the look of the app (System, White, Paper or Dark), the letters and spacing ("Easy-read" uses
     plain letters with more room between them and between the lines, in the whole app, which many people with
     dyslexia find easier), the language of the app, "Compare", which shows a second translation
     under each verse, and "Beside", which opens the same chapter from BibleSA, the Bible Society of South Africa's
@@ -64,10 +64,13 @@ Bible text itself stays in the translation you choose.</p>
 </ul>
 
 <h2>Appearance</h2>
-<p>Under Settings → Appearance (and under the Aa button in the reader) you choose the look: <b>System</b> follows the
-dark or light setting of your phone or PC, <b>Paper</b> is the warm default, <b>White</b> is plain, and <b>Dark</b> is
-for reading at night. The same place sets the text size, the letters and spacing (<b>Book</b> or <b>Easy-read</b>)
-and whether book names are shown in English or Afrikaans. Each device keeps its own choice.</p>
+<p>The app wears the Church's blue and white, like the slides: the blue header with the emblem on a phone, the blue
+side menu on a PC, and every letter in Montserrat. Under Settings → Appearance (and under the Aa button in the
+reader) you choose the look: <b>White</b> is the blue and white of the slides, <b>Paper</b> keeps the blue but gives the
+pages a warm cream colour, <b>Dark</b> is for reading at night, and <b>System</b> is White by day and Dark at night, as
+your phone or PC is set. The same place sets the text size, the letters and spacing (<b>Montserrat</b>, or
+<b>Easy-read</b>: plain letters in the whole app with more room between them) and whether book names are shown in English
+or Afrikaans. Each device keeps its own choice.</p>
 
 <h2>Notes</h2>
 <ul>
@@ -301,7 +304,9 @@ like an app.</p>
   <li>Translations read through API.Bible remain the copyright of their publishers and are shown under API.Bible's terms.</li>
   <li>Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only section
     numbers, titles and Bible references; the text is loaded by you onto your own device for personal study.</li>
-  <li>Reading typeface: Literata, © The Literata Project Authors, under the SIL Open Font License 1.1.</li>
+  <li>Typeface: Montserrat (© The Montserrat Project Authors), under the SIL Open Font License 1.1. The slides of a
+    reflection evening use Cambria and Calibri, as in PowerPoint, or where your device lacks them Caladea (© The Caladea
+    Project Authors) and Carlito (© The Carlito Project Authors), both under the SIL Open Font License 1.1.</li>
   <li>The PowerPoint files are made with PptxGenJS (© Brent Ely) and JSZip (© Stuart Knightley and others), both
     under the MIT License.</li>
 </ul>
@@ -328,7 +333,7 @@ Bybelteks self bly in die vertaling wat jy kies.</p>
   <li><b>Vertalings:</b> die King James Version (met die Apokriewe) en die World English Bible is ingebou en werk
     vanlyn. Kies die vertaling langs die Gaan na-boks.</li>
   <li><b>Die Aa-knoppie</b> hou die leeskeuses: die teksgrootte (die grootste, "Kansel", is bedoel vir lees terwyl jy
-    staan), die voorkoms van die app (Stelsel, Papier, Wit of Donker), die letters en spasiëring ("Maklik-lees"
+    staan), die voorkoms van die app (Stelsel, Wit, Papier of Donker), die letters en spasiëring ("Maklik-lees"
     gebruik eenvoudige letters met meer ruimte tussen hulle en tussen die reëls, in die hele app, wat baie mense met
     disleksie makliker vind), die taal van die app, "Vergelyk", wat 'n tweede vertaling onder elke vers wys, en
     "Langsaan", wat dieselfde hoofstuk van BibleSA, die Bybelgenootskap van Suid-Afrika se gratis webwerf met die
@@ -347,10 +352,13 @@ Bybelteks self bly in die vertaling wat jy kies.</p>
 </ul>
 
 <h2>Voorkoms</h2>
-<p>Onder Instellings → Voorkoms (en onder die Aa-knoppie in die leser) kies jy die tema: <b>Stelsel</b> volg die
-donker of ligte instelling van jou foon of rekenaar, <b>Papier</b> is die warm standaard, <b>Wit</b> is eenvoudig, en
-<b>Donker</b> is om snags te lees. Dieselfde plek stel die teksgrootte, die letters en spasiëring (<b>Boek</b> of
-<b>Maklik-lees</b>) en of boekname in Engels of Afrikaans gewys word. Elke toestel hou sy eie keuse.</p>
+<p>Die app dra die Kerk se blou en wit, soos die skyfies: die blou kopstrook met die embleem op 'n foon, die blou
+kantkieslys op 'n rekenaar, en elke letter in Montserrat. Onder Instellings → Voorkoms (en onder die
+Aa-knoppie in die leser) kies jy die tema: <b>Wit</b> is die blou en wit van die skyfies, <b>Papier</b> hou die blou maar
+gee die bladsye 'n warm roomkleur, <b>Donker</b> is om snags te lees, en <b>Stelsel</b> is Wit bedags en Donker snags,
+soos jou foon of rekenaar ingestel is. Dieselfde plek stel die teksgrootte, die letters en spasiëring (<b>Montserrat</b>,
+of <b>Maklik-lees</b>: gewone letters in die hele app met meer ruimte tussen hulle) en of boekname in Engels of Afrikaans
+gewys word. Elke toestel hou sy eie keuse.</p>
 
 <h2>Notas</h2>
 <ul>
@@ -594,7 +602,9 @@ tuisskerm" om dit soos 'n app oop te maak.</p>
   <li>Kategismus van die Nuwe Apostoliese Kerk © Nuwe Apostoliese Kerk Internasionaal, Zürich. Die app dra net
     afdelingnommers, titels en Bybelverwysings; die teks word deur jou op jou eie toestel gelaai vir persoonlike
     studie.</li>
-  <li>Leesletterstyl: Literata, © The Literata Project Authors, onder die SIL Open Font License 1.1.</li>
+  <li>Letterstyl: Montserrat (© The Montserrat Project Authors), onder die SIL Open Font License 1.1. Die skyfies van
+    'n besinningsaand gebruik Cambria en Calibri, soos in PowerPoint, of waar jou toestel hulle nie het nie Caladea (© The
+    Caladea Project Authors) en Carlito (© The Carlito Project Authors), albei onder die SIL Open Font License 1.1.</li>
   <li>Die PowerPoint-lêers word gemaak met PptxGenJS (© Brent Ely) en JSZip (© Stuart Knightley en ander), albei
     onder die MIT-lisensie.</li>
 </ul>

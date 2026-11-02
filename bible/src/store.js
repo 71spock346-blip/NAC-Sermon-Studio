@@ -72,7 +72,7 @@ export const DEFAULT_SETTINGS = {
   bookLang: 'en',
   uiLang: 'en',           // language of the interface: 'en' or 'af' (i18n.js); the switch also sets bookLang and aiLang
   fontSize: 'm',
-  theme: 'system',        // 'system' follows the device; 'paper', 'white' or 'dark' are fixed
+  theme: 'system',        // 'system' follows the device (white by day, dark at night); 'white', 'paper' or 'dark' are fixed
   apiKey: '',
   apiBibles: [],          // [{id, abbreviation, name, language}] chosen from the key's catalogue
   yvKey: '',              // YouVersion Platform app key, same rules as apiKey
@@ -83,7 +83,7 @@ export const DEFAULT_SETTINGS = {
   aiLang: 'en',           // language of the suggestions: 'en' or 'af'; a preparation can choose its own
   aiHumour: 'some',       // how much humour the suggested sermon may carry: 'none', 'some' or 'more' (see HUMOUR in ai.js)
   aiStyle: '',            // the person's own note on how they preach, sent with every request for suggestions
-  readMode: 'book',       // 'book' (Literata, normal spacing) or 'easy' (plain letters, wider spacing: easier with dyslexia)
+  readMode: 'book',       // 'book' (Montserrat, normal spacing) or 'easy' (plain letters in the whole app, wider spacing: easier with dyslexia)
   name: '',
   congregation: '',
   lastRef: 'PSA.23',
