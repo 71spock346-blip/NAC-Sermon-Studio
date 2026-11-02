@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=29">
+<link rel="stylesheet" href="styles.css?v=30">
 </head>
 <body class="help">
 <header class="top">
@@ -124,12 +124,40 @@ side by side: the Bible text, the title and message, the introduction, the main 
     blue; a point is never split over two cards). On a phone, "Share" sends the PDF to WhatsApp or e-mail. The headings on the notes follow
     the language of the app.</li>
   <li><b>Step 8, after the service:</b> a short reflection. It is saved with the preparation.</li>
+  <li><b>Step 9, reflection evening:</b> the slides for the evening when the congregation looks back on this service
+    (see "Reflection evening" below).</li>
 </ol>
 <p>Everything saves as you type. Use the status (Draft, Ready, Held) to keep the list tidy. To start a part again,
 each box has a <b>Clear</b> at its right while it has text, and each step a <b>Clear this step</b>; both can be undone
 from the message at the bottom for a few seconds. "Change" under step 2 picks another service from the Guide and asks
 whether to replace the text word, title and message; its context and summary come in too where you have not changed
 them, and your own notes stay.</p>
+
+<h2>Reflection evening</h2>
+<p>On a reflection evening the congregation looks back on a divine service that was held and talks about it, one
+question at a time. The app makes the slides for that evening in the Church's blue look: the sermon and its text
+word, the main points from the Guide, one slide for each question, and a word of thanks to close.</p>
+<ol>
+  <li>Open the preparation of the service and tap <b>Make the slides</b> under step 9. Or tap <b>Reflection
+    evening</b> in the Prepare tab: load the Church's reflection guide there, or choose the service.</li>
+  <li><b>The Church's reflection guide:</b> the one-page PDF for the evening. Tap <b>Load the reflection guide
+    (PDF)</b> and Claude copies its title, text word and questions onto the slides, word for word. The service it
+    looks back on is found among your preparations. If it is not there, it is added and marked as held. Without the
+    PDF the slides take the title and text from the preparation, and the Church's four usual questions.</li>
+  <li><b>What the slides say:</b> the language of the slides (English or Afrikaans), the date of the evening, the
+    congregation, the title, the text word and the message. The main points come from the Divine Service Guide, as
+    always: they are never made up. Untick <b>Show the main points on a slide</b> to leave that slide out. What you
+    change here changes the slides, not your preparation.</li>
+  <li><b>The questions:</b> one slide for each question, in this order. Change the words, move a question up or down,
+    remove one (Undo brings it back) or add your own. <b>Use the Church's four questions</b> brings the usual four
+    back, in the language of the slides.</li>
+  <li><b>The last slide:</b> your own closing words if you like, with the text word to take home.</li>
+</ol>
+<p><b>Show the slides</b> fills the screen. Tap a small slide to start the show there. On a projector or TV, the arrow
+keys, the space bar or a presentation clicker go to the next slide, <b>B</b> makes the screen black and <b>Esc</b>
+ends the show. On a phone or tablet, tap or swipe. <b>Save as PowerPoint</b> gives a file that opens in PowerPoint or
+Google Slides, where you can still change it. On a phone, <b>Share</b> sends it to WhatsApp or e-mail. Everything you
+set here is saved with the preparation.</p>
 
 <h2>Help from Claude (the AI helper)</h2>
 <p>Claude, the AI from Anthropic, can take a few chores off the preparation. It needs a key of your own under
@@ -209,7 +237,7 @@ Guide and a few rand for a set of suggestions, and the key stays on your device,
     means. Under Settings → AI helper → <b>How you preach</b> you set the usual humour and can write a few lines about
     your own way of preaching, which Claude follows in every suggestion.</li>
 </ul>
-<p>What is sent to Anthropic to answer: the Guide PDF when you load one, the text word and its chapter, the
+<p>What is sent to Anthropic to answer: the Guide PDF or the reflection guide when you load one, the text word and its chapter, the
 Catechism sections that belong to it, your own notes on that preparation, who is listening and your note on how you
 preach. Anthropic processes it to answer and
 does not train on it; nothing of it is put on the public site. The suggestions are a starting point. The sermon
@@ -263,6 +291,8 @@ like an app.</p>
   <li>Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only section
     numbers, titles and Bible references; the text is loaded by you onto your own device for personal study.</li>
   <li>Reading typeface: Literata, © The Literata Project Authors, under the SIL Open Font License 1.1.</li>
+  <li>The PowerPoint files are made with PptxGenJS (© Brent Ely) and JSZip (© Stuart Knightley and others), both
+    under the MIT License.</li>
 </ul>
 </div>
 
@@ -369,12 +399,40 @@ samevatting.</p>
     nooit oor twee kaarte verdeel nie). Op 'n foon stuur "Deel" die PDF na WhatsApp of e-pos. Die opskrifte op die notas volg die taal van die
     app.</li>
   <li><b>Stap 8, ná die godsdiens:</b> 'n kort terugblik. Dit word saam met die voorbereiding gestoor.</li>
+  <li><b>Stap 9, besinningsaand:</b> die skyfies vir die aand waarop die gemeente terugkyk na hierdie godsdiens (sien
+    "Besinningsaand" hieronder).</li>
 </ol>
 <p>Alles stoor terwyl jy tik. Gebruik die status (Konsep, Gereed, Gehou) om die lys netjies te hou. Om 'n deel weer te
 begin, het elke boks 'n <b>Vee uit</b> aan sy regterkant solank dit teks het, en elke stap 'n <b>Vee hierdie stap
 uit</b>; albei kan vir 'n paar sekondes uit die boodskap onderaan ontdoen word. "Verander" onder stap 2 kies 'n ander
 godsdiens uit die Handleiding en vra of die tekswoord, titel en boodskap vervang moet word; sy agtergrond en
 samevatting kom ook in waar jy hulle nie verander het nie, en jou eie notas bly.</p>
+
+<h2>Besinningsaand</h2>
+<p>Op 'n besinningsaand kyk die gemeente terug na 'n godsdiens wat gehou is en praat daaroor, een vraag op 'n slag.
+Die app maak die skyfies vir daardie aand in die Kerk se blou voorkoms: die preek en sy tekswoord, die hoofpunte uit
+die Handleiding, een skyfie vir elke vraag, en 'n woord van dank om af te sluit.</p>
+<ol>
+  <li>Maak die voorbereiding van die godsdiens oop en tik op <b>Maak die skyfies</b> onder stap 9. Of tik op
+    <b>Besinningsaand</b> in die Voorberei-oortjie: laai die Kerk se besinningsgids daar, of kies die godsdiens.</li>
+  <li><b>Die Kerk se besinningsgids:</b> die PDF van een bladsy vir die aand. Tik op <b>Laai die besinningsgids
+    (PDF)</b> en Claude skryf sy titel, tekswoord en vrae woord vir woord op die skyfies oor. Die godsdiens waarna dit
+    terugkyk, word tussen jou voorbereidings gevind. As dit nie daar is nie, word dit bygevoeg en as gehou gemerk.
+    Sonder die PDF neem die skyfies die titel en teks uit die voorbereiding, en die Kerk se vier gewone vrae.</li>
+  <li><b>Wat die skyfies sê:</b> die taal van die skyfies (Engels of Afrikaans), die datum van die aand, die gemeente,
+    die titel, die tekswoord en die boodskap. Die hoofpunte kom soos altyd uit die Handleiding vir Godsdienste: hulle
+    word nooit opgemaak nie. Haal die merk by <b>Wys die hoofpunte op 'n skyfie</b> af om daardie skyfie uit te laat.
+    Wat jy hier verander, verander die skyfies, nie jou voorbereiding nie.</li>
+  <li><b>Die vrae:</b> een skyfie vir elke vraag, in hierdie volgorde. Verander die woorde, skuif 'n vraag op of af,
+    verwyder een (Ontdoen bring dit terug) of voeg jou eie by. <b>Gebruik die Kerk se vier vrae</b> bring die gewone
+    vier terug, in die taal van die skyfies.</li>
+  <li><b>Die laaste skyfie:</b> jou eie slotwoorde as jy wil, met die tekswoord om huis toe te neem.</li>
+</ol>
+<p><b>Wys die skyfies</b> vul die skerm. Tik op 'n klein skyfie om die vertoning daar te begin. Op 'n projektor of TV
+gaan die pyltjiesleutels, die spasiebalk of 'n aanbiedingsklikker na die volgende skyfie, <b>B</b> maak die skerm
+swart en <b>Esc</b> beëindig die vertoning. Op 'n foon of tablet tik of swiep jy. <b>Stoor as PowerPoint</b> gee 'n
+lêer wat in PowerPoint of Google Slides oopmaak, waar jy dit nog kan verander. Op 'n foon stuur <b>Deel</b> dit na
+WhatsApp of e-pos. Alles wat jy hier instel, word saam met die voorbereiding gestoor.</p>
 
 <h2>Hulp van Claude (die KI-helper)</h2>
 <p>Claude, die KI van Anthropic, kan 'n paar take van die voorbereiding oorneem. Dit het 'n sleutel van jou eie nodig
@@ -461,7 +519,7 @@ rugsteun.</p>
     beteken. Onder Instellings → KI-helper → <b>Hoe jy preek</b> stel jy die gewone humor en kan jy 'n paar reëls oor
     jou eie manier van preek skryf, wat Claude in elke voorstel volg.</li>
 </ul>
-<p>Wat na Anthropic gestuur word om te antwoord: die Handleiding-PDF wanneer jy een laai, die tekswoord en sy
+<p>Wat na Anthropic gestuur word om te antwoord: die Handleiding-PDF of die besinningsgids wanneer jy een laai, die tekswoord en sy
 hoofstuk, die Kategismus-afdelings wat daarby hoort, jou eie notas oor daardie voorbereiding, wie luister en jou nota
 oor hoe jy preek. Anthropic verwerk dit om te antwoord en lei nie daarmee op nie; niks daarvan word op die openbare
 webwerf geplaas nie. Die voorstelle is 'n beginpunt. Die preek bly joune.</p>
@@ -516,6 +574,8 @@ tuisskerm" om dit soos 'n app oop te maak.</p>
     afdelingnommers, titels en Bybelverwysings; die teks word deur jou op jou eie toestel gelaai vir persoonlike
     studie.</li>
   <li>Leesletterstyl: Literata, © The Literata Project Authors, onder die SIL Open Font License 1.1.</li>
+  <li>Die PowerPoint-lêers word gemaak met PptxGenJS (© Brent Ely) en JSZip (© Stuart Knightley en ander), albei
+    onder die MIT-lisensie.</li>
 </ul>
 </div>
 

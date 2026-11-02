@@ -137,7 +137,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   5 context (the Guide's Context box, with key words, Catechism sections and cross
   references), 6 summary and conclusion (the Guide's Summary, the application, the
   conclusion), then the person's own 7 illustrations and 8 reflection after the
-  service. `guides.js prefill` puts each part of the article into its own step;
+  service, and 9 the slides for the reflection evening. `guides.js prefill` puts each part of the article into its own step;
   `guides.js upgrade` moves the Summary and Context of a preparation made before
   November 2026 out of "Notes from the Guide" into steps 6 and 5 while those notes are
   still the Guide's own words.
@@ -145,12 +145,28 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   itself and the cue cards (A5 landscape: each main point with its main thoughts under it, picked
   by `mainThoughts`, and the minister's own thought in blue; a point never splits over two cards)
   with the vendored jsPDF.
+- **Reflection evening.** `src/reflect.js` is the screen `#prepare/<id>/reflect`: the
+  slides for the evening when the congregation looks back on a held service, one question
+  at a time. What the slides say is kept on the preparation as `s.reflect` (language, date
+  of the evening, title, text word, message, questions, closing words), so it syncs and
+  backs up with it; the preparation's own boxes are not changed. "Load the reflection
+  guide (PDF)" sends the Church's one-page discussion guide to Claude (`ai.js
+  readReflection`), which copies its title, Bible text and questions word for word;
+  `prepare.js newFromReflection` finds the service among the preparations or adds it as
+  held. The main points on the slide are always the headings of the Guide's article
+  (`guides.js mainPoints`), in the language of the slides when the Guide is loaded in
+  both. `src/slides.js` has no DOM: `deck()` lays every slide out as boxes on a
+  13.33 × 7.5 inch page in the standard theme (blue #0168B5 opening and closing slides
+  with the white emblem, white slides with pale blue cards, Cambria headings, Calibri
+  text), and fits each text with Calibri and Cambria widths; the in-app show draws the
+  same boxes in HTML, and `pptx()` writes them with the vendored PptxGenJS as a
+  PowerPoint file with two layouts, sections and the theme's colours and fonts.
 
 ## Files
 
 - `index.html`, `styles.css`, `help.html`, `manifest.json`, `sw.js` – the page
 - `api/sync.js` – the sync server (Vercel function, Vercel Blob); `package.json` holds its one dependency
-- `icons/` – the emblem (SVG and the PNG sizes a phone's home screen wants)
+- `icons/` – the emblem (SVG and the PNG sizes a phone's home screen wants; `emblem-white.png` and `emblem-blue.png` for the slides)
 - `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#notes`,
   `#prepare/<id>`, `#catechism/3.4.1`, `#settings`)
 - `src/books.js` – the 80 books, English and Afrikaans names, reference parsing
@@ -163,8 +179,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/ai.js` – Claude: the request, the three prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
+- `src/reflect.js`, `src/slides.js` – the reflection evening: the screen and the show; the slide layout and the PowerPoint file
 - `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)
+- `vendor/pptxgen.bundle.js` – PptxGenJS 4.0.1 with JSZip 3.10.1 inside (MIT), loaded only when a PowerPoint file is made
 - `vendor/fonts/` – Literata (SIL OFL 1.1), Latin and Latin-extended subsets
 - `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
 - `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `test_merge.mjs` and `dev_server.mjs` for sync
@@ -208,4 +226,5 @@ project for this app has its root directory set to `bible`.
   file built with `--text` is loaded by the person onto their own device and is not
   published.
 - jsPDF: MIT (`vendor/jspdf.LICENSE`).
+- PptxGenJS and JSZip: MIT (`vendor/pptxgen.LICENSE`).
 - Literata: © The Literata Project Authors, SIL Open Font License 1.1 (`vendor/fonts/OFL.txt`).

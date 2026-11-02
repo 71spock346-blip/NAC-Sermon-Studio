@@ -11,14 +11,14 @@
  * (/api/sync): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-01h';
+var VERSION = 'bible-2026-11-02a';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=29',
-  'src/app.js?v=29',
+  'styles.css?v=30',
+  'src/app.js?v=30',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -36,14 +36,19 @@ var SHELL = [
   'src/guides.js',
   'src/sync.js',
   'src/merge.js',
+  'src/reflect.js',
+  'src/slides.js',
   'vendor/jspdf.umd.min.js?v=1',
   'vendor/qrcode.mjs',
+  'vendor/pptxgen.bundle.js?v=1',
   'vendor/fonts/literata-latin-normal.woff2',
   'vendor/fonts/literata-latin-ext-normal.woff2',
   'data/kjv/index.json',
   'data/web/index.json',
   'data/catechism.json',
   'icons/emblem.svg',
+  'icons/emblem-white.png',
+  'icons/emblem-blue.png',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png'

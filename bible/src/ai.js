@@ -37,6 +37,9 @@
  *                     piece: what each sentence says in plain words, what it
  *                     gives the sermon, and the Bible passages and Catechism
  *                     sections that bring depth to it
+ *   readReflection(file) the Church's one-page guide for a reflection evening
+ *                     (PDF): the sermon's title, its text and the questions,
+ *                     copied word for word for the slides (reflect.js)
  *
  * All of them ask for an answer in a fixed JSON shape, streamed so a long answer does
  * not time out. What is sent (the Guide, the Catechism sections, the text and
@@ -334,6 +337,53 @@ function isoDate(date, dateText, month, year) {
   const m = dateText.match(/(?:^|\D)(\d{1,2})(?!\d)/);   // a day, not the first figures of the year
   if (!m || !month || parseInt(m[1], 10) > 31) return '';
   return `${year}-${String(month).padStart(2, '0')}-${String(parseInt(m[1], 10)).padStart(2, '0')}`;
+}
+
+/* ---------------------------------------------------------------- the reflection guide */
+
+const REFLECTION_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['language', 'heading', 'service', 'date', 'dateText', 'title', 'reference', 'bibleText', 'questions'],
+  properties: {
+    language: { type: 'string', enum: ['en', 'af', 'other'], description: 'The language of the guide' },
+    heading: { type: 'string', description: 'The heading at the top, as printed, e.g. "DIVINE SERVICE REFLECTIONS"' },
+    service: { type: 'string', description: 'The divine service the guide looks back on, as printed, e.g. "Divine service for the departed"; "Divine service" for an ordinary one' },
+    date: { type: 'string', description: 'The date that service was held, as yyyy-mm-dd; empty when none is printed' },
+    dateText: { type: 'string', description: 'That date as printed, e.g. "Sunday, 1 November 2026"' },
+    title: { type: 'string', description: 'The title of the sermon, e.g. "God delivers from great distress"' },
+    reference: { type: 'string', description: 'The Bible reference exactly as printed, e.g. "Psalm 130:7 (excerpt)"' },
+    bibleText: { type: 'string', description: 'The Bible text, word for word' },
+    questions: { type: 'array', items: { type: 'string' }, description: 'Every question for the evening, word for word, in the order printed' },
+  },
+};
+
+const REFLECTION_SYSTEM = 'You transcribe a one-page discussion guide of the New Apostolic Church into a fixed JSON shape, for a minister who makes slides for a reflection evening. You copy; you do not summarise, shorten, translate or add.';
+
+const REFLECTION_TASK = `This PDF is a discussion guide for a reflection evening ("Divine Service Reflections", or the same in Afrikaans): the congregation looks back on a divine service that was held, with the sermon's title, its Bible text and a few questions to talk about. Copy them into the JSON shape, word for word, in the language of the guide. Never translate. Join words that are hyphenated across a line. The questions are the lines that ask something, usually each above a space to write in; copy every one, in order, as printed.`;
+
+/** Reads the Church's reflection guide (a one-page PDF) into {language, heading, service, date, title, reference, bibleText, questions, fileName, …}. */
+export async function readReflection(file, { signal, onProgress } = {}) {
+  if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') throw new Error(t('Choose the reflection guide as a PDF file.'));
+  if (file.size > 25 * 1024 * 1024) throw new Error(t('That PDF is larger than 25 MB; the reflection guide is one page.'));
+  const data = await fileToBase64(file);
+  const r = await run({
+    system: REFLECTION_SYSTEM,
+    content: [
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data }, title: file.name },
+      { type: 'text', text: REFLECTION_TASK },
+    ],
+    schema: REFLECTION_SCHEMA, effort: 'low', maxTokens: 4000, signal, onProgress,
+  });
+  const d = r.data || {};
+  const g = {
+    language: ['en', 'af'].includes(d.language) ? d.language : 'other',
+    heading: str(d.heading), service: str(d.service),
+    date: /^\d{4}-\d{2}-\d{2}$/.test(str(d.date)) && !isNaN(new Date(str(d.date) + 'T12:00:00')) ? str(d.date) : '',
+    dateText: str(d.dateText), title: str(d.title), reference: str(d.reference), bibleText: str(d.bibleText),
+    questions: (Array.isArray(d.questions) ? d.questions : []).map(str).filter(Boolean),
+  };
+  if (!g.questions.length && !g.title && !g.bibleText) throw new Error(t('No questions were found in that PDF. Is it the reflection guide?'));
+  return { ...g, fileName: file.name, model: r.model, usage: r.usage, cost: cost(r.usage, r.model) };
 }
 
 /* ---------------------------------------------------------------- suggestions */
