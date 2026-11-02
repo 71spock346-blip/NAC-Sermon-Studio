@@ -73,6 +73,9 @@ export function pointsOf(s, lang) {
   return { list: own, guide: false };
 }
 
+/** True once something of the evening is kept (words changed, a guide loaded): opening the screen alone keeps nothing. */
+export const hasSlides = s => !!s && !!s.reflect && typeof s.reflect === 'object' && Object.keys(s.reflect).length > 0;
+
 /** The language of the slides: the evening's own choice, else the language of the sermon. */
 export const langOf = s => { const l = s.reflect && s.reflect.lang; return l === 'af' || l === 'en' ? l : AI.langOf(s); };
 
@@ -606,6 +609,20 @@ export function render(root, s) {
   closing.value = r.closing || '';
   closing.addEventListener('input', () => { r.closing = closing.value; touch(); });
   page.append(el('label', { class: 'f' }, [title(t('Closing words')), closing]));
+
+  // ---- kept with the preparation; deleting takes the evening's own words away and leaves the preparation as it is
+  page.append(
+    el('p', { class: 'muted small reflect-kept', text: t('Everything here is saved with the preparation as you type. "Save as PowerPoint" gives a file to keep or send.') }),
+    el('div', { class: 'row end' }, [
+      el('button', { class: 'btn ghost danger', type: 'button', text: t('Delete these slides'), onclick: async () => {
+        if (!await confirmBox(t('Delete the slides of this reflection evening? What you changed or loaded here goes; the preparation stays as it is.'), t('Delete'), true)) return;
+        const old = s.reflect;
+        delete s.reflect;
+        await saveSermon(s);
+        location.hash = `#prepare/${s.id}`;
+        toast(t('Slides deleted.'), false, async () => { s.reflect = old; await saveSermon(s); location.hash = `#prepare/${s.id}/reflect`; });
+      } }),
+    ]));
 
   drawPreview();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => thumbs.forEach(fitSlide));

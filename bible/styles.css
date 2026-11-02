@@ -758,6 +758,8 @@ label.check.sync-keys input { margin-top: 3px; }
 .reflect-q > textarea { flex: 1 1 auto; min-width: 0; }
 .reflect-q-tools { display: flex; gap: 2px; flex: 0 0 auto; }
 .reflect-q-tools .icon:disabled { opacity: .3; cursor: default; }
+.reflect-kept { margin: 22px 0 4px; }
+.pill.kind.slides { color: var(--c-blue); }
 @media (max-width: 759.98px) { .reflect-q-tools { flex-direction: column; } }
 
 /* the slides, small: tap one to start the show there */
