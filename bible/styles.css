@@ -743,3 +743,64 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .sync-join input.sync-input { font: 500 20px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .1em; text-transform: uppercase; text-align: center; }
 label.check.sync-keys { margin-top: 10px; align-items: flex-start; }
 label.check.sync-keys input { margin-top: 3px; }
+
+/* ------------------------------------------------------------ the reflection evening (reflect.js) */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.reflect-actions { margin: 4px 0 12px; }
+.reflect-from { margin: 6px 0 0; }
+.reflect-points { margin: 12px 0 4px; }
+.reflect-points label.check { display: flex; align-items: center; gap: 10px; min-height: 36px; cursor: pointer; }
+.reflect-points label.check input { width: 20px; height: 20px; flex: 0 0 auto; margin: 0; accent-color: var(--accent); }
+.reflect-list { margin: 6px 0 4px; padding-left: 26px; }
+.reflect-list li { margin: 4px 0; font-weight: 600; color: var(--accent-text); }
+.reflect-q { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0; }
+.reflect-q > .step-n { margin-top: 7px; }
+.reflect-q > textarea { flex: 1 1 auto; min-width: 0; }
+.reflect-q-tools { display: flex; gap: 2px; flex: 0 0 auto; }
+.reflect-q-tools .icon:disabled { opacity: .3; cursor: default; }
+@media (max-width: 759.98px) { .reflect-q-tools { flex-direction: column; } }
+
+/* the slides, small: tap one to start the show there */
+.sl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 4px 0 6px; }
+@media (min-width: 760px) { .sl-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.sl-thumb { position: relative; display: block; width: 100%; padding: 0; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; background: #fff; cursor: pointer; }
+.sl-thumb:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .sl-thumb:hover { box-shadow: var(--shadow-pop); } }
+.sl-scale { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; }
+.sl-scale > .sl, .show-frame > .sl { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.sl-n { position: absolute; right: 6px; top: 6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: rgba(20, 24, 30, .7); color: #fff; font: 600 11px/20px var(--sans); text-align: center; }
+
+/* one slide: 1333 × 750 pixels, drawn from the same boxes as the PowerPoint file, in the Church's colours whatever the app's theme */
+.sl { position: relative; width: 1333.3px; height: 750px; overflow: hidden; background: #fff; color: #3a4b5c; text-align: left;
+  --sl-head: Cambria, Caladea, "Literata", Georgia, serif;
+  --sl-body: Calibri, Carlito, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--sl-body); -webkit-font-smoothing: antialiased; }
+.sl.sl-blue { background: #0168b5; }
+.sl > * { position: absolute; margin: 0; box-sizing: border-box; }
+.sl-card { border-radius: 8px; }
+.sl-circle { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--sl-head); font-weight: 700; line-height: 1; }
+.sl-t { display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; white-space: pre-line; overflow-wrap: break-word; font-weight: 400; }
+.sl-t.v-middle { justify-content: center; }
+.sl-t.v-bottom { justify-content: flex-end; }
+.sl-t.sl-head { font-family: var(--sl-head); }
+.sl-t.b { font-weight: 700; }
+.sl-emblem { pointer-events: none; user-select: none; -webkit-user-drag: none; }
+[data-read="easy"] .sl-t { letter-spacing: normal; word-spacing: normal; }   /* the slides keep their own spacing: they are for the congregation */
+
+/* the show: the slides full screen, for the projector or the TV */
+body.showing { overflow: hidden; }
+.slideshow { position: fixed; inset: 0; z-index: 60; background: #000; outline: none; }
+.show-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.show-frame { position: relative; overflow: hidden; }
+.show-black { position: absolute; inset: 0; background: #000; z-index: 2; }
+.show-bar { position: absolute; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(20, 24, 30, .72); color: #fff; z-index: 3; transition: opacity .3s ease; }
+.slideshow.idle { cursor: none; }
+.slideshow.idle .show-stage { cursor: none; }
+.slideshow.idle .show-bar { opacity: 0; }
+.show-btn { min-width: 44px; min-height: 44px; border: 0; border-radius: 999px; background: transparent; color: #fff; font: 600 22px/1 var(--sans); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.show-btn.end { font-size: 18px; }
+.show-btn:disabled { opacity: .35; cursor: default; }
+.show-btn:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) { .show-btn:not(:disabled):hover { background: rgba(255, 255, 255, .16); } }
+.show-count { min-width: 60px; text-align: center; font: 600 14px/1 var(--sans); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .show-bar { transition: none; } }
