@@ -12,6 +12,8 @@
  *                  own thought on it; a point is never split over two cards
  *   Guide breakdown  A4 portrait, the Guide's article piece by piece as
  *                  Claude broke it down: a study sheet to read beside the booklet
+ *   Facilitator notes  A4 portrait, large clear type: for a reflection
+ *                  evening, what to say and do at each slide, slide by slide
  *
  * Printing goes through the finished PDF, so the paper matches the file.
  */
@@ -21,6 +23,7 @@ import { fmtDate } from './ui.js';
 import { state } from './store.js';
 import * as Cat from './catechism.js';
 import { audienceOf, audienceLabel, modelLabel } from './ai.js';
+import * as S from './slides.js';
 
 const BLUE = [31, 78, 140];      // the Church's blue, the same as --accent on screen
 const INK = [31, 41, 55];
@@ -388,7 +391,7 @@ function firstLine(text) {
  * typed comes through whole); of a point written as one paragraph, its first,
  * middle and last sentence. Each is kept short enough to take in at a glance.
  */
-function mainThoughts(body) {
+export function mainThoughts(body) {
   const paras = lines(body).map(l => l.replace(LIST_MARK, '').trim()).filter(Boolean);
   const picked = paras.length > 1 ? paras.map(p => sentences(p)[0]) : spread(sentences(paras[0] || ''), 3);
   return picked.filter(Boolean).map(x => shorten(x, 20));
@@ -402,7 +405,7 @@ const SHORT_FORMS = new Set(('cf e.g i.e etc vs v vv ch st mr mrs dr no nr bv nl
   'eks spr pred jes eseg joh hand kor ef fil kol tess filem jak op').split(' '));
 
 /** A paragraph in its sentences. A full stop after a short form ("Rom.", "e.g.", "bv.") or an initial does not end one. */
-function sentences(text) {
+export function sentences(text) {
   const out = [];
   const end = /([.!?\u2026])["'\u201d\u2019)\]]*\s+(?=["'\u201c\u2018(]?(?:\p{Lu}|['\u2019]n\s))/gu;
   let from = 0, m;
@@ -428,7 +431,7 @@ function spread(list, k) {
 }
 
 /** A line of at most `max` words; a longer one is cut a few words earlier and ends in an ellipsis. */
-function shorten(text, max) {
+export function shorten(text, max) {
   const words = String(text || '').split(/\s+/).filter(Boolean);
   if (words.length <= max) return words.join(' ');
   return words.slice(0, max - 4).join(' ').replace(/[,;:\u2013\u2014-]+$/, '') + ' \u2026';
@@ -481,6 +484,53 @@ export function breakdownPdf(s) {
   const who = [state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  ·  ');
   w.footer(who);
   return { blob: doc.output('blob'), name: fileName(s, '-guide'), title };
+}
+
+/**
+ * The notes for the one who leads a reflection evening (reflect.js): slide
+ * by slide its number and name, the question it asks, and what to say and
+ * do there. In the language of the slides, like the notes themselves; a
+ * slide's notes stay together on one page.
+ */
+export function facilitatorPdf(inp, slides) {
+  const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
+  const w = new Writer(doc, 20);
+  const W = S.words(inp.lang);
+  const title = W.notes;
+
+  const top = [W.evening, S.longDate(inp.evening, inp.lang), inp.congregation ? W.congregation(inp.congregation) : ''].filter(Boolean).join('  \u00b7  ');
+  w.font(9.5, 'normal', MUTED);
+  doc.text(top, w.m, w.y);
+  w.y += 7;
+  w.font(20, 'bold', INK);
+  doc.text(title, w.m, w.y + 5);
+  w.y += 11;
+  if (inp.title) w.para(inp.title, { style: 'bold', size: 13, after: 1 });
+  if (inp.reference) w.para(inp.reference, { style: 'bold', size: 12, color: BLUE, after: 1 });
+  w.rule();
+
+  for (const sl of slides) {
+    const parts = [[`${W.slide(sl.n)}  \u00b7  ${S.slideName(sl, inp.lang)}`, { style: 'bold', size: 13, color: BLUE, after: 1.5 }]];
+    if (sl.kind === 'question' && sl.question) parts.push([sl.question, { style: 'bold', size: 12.5, after: 2.5 }]);
+    // the notes: a blank line between paragraphs; a main point in bold, its thoughts under it with a dash
+    for (const block of String(sl.notes || '').split(/\n\s*\n/)) {
+      const rows = block.split('\n').filter(x => x.trim());
+      rows.forEach((row, k) => {
+        const after = k === rows.length - 1 ? 3 : 1;
+        const sub = row.match(/^\s*[\u2013\u2022-]\s+(.*)$/);
+        if (sub) parts.push([sub[1], { size: 12, indent: 6, bullet: '\u2013', leading: 1.45, after }]);
+        else if (/^\d{1,2}\.\s/.test(row)) parts.push([row.trim(), { size: 12, style: 'bold', leading: 1.45, after }]);
+        else parts.push([row.trim(), { size: 12, leading: 1.45, after }]);
+      });
+    }
+    w.keep(parts);
+    for (const [text, opts] of parts) w.para(text, opts);
+    w.space(4);
+  }
+
+  w.footer([state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  \u00b7  '));
+  const name = [W.evening, inp.evening, '-', W.notes].filter(Boolean).join(' ').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim() + '.pdf';
+  return { blob: doc.output('blob'), name, title };
 }
 
 /* ---------------------------------------------------------------- output */

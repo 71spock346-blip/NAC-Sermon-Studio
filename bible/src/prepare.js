@@ -50,8 +50,9 @@
  *
  * After the service, step 9 opens the reflection evening (reflect.js): slides
  * for the evening when the congregation looks back on the service and talks
- * about it, one question at a time. "Reflection evening" in the list starts
- * one from the Church's reflection guide (PDF).
+ * about it, one question at a time, with notes for the one who leads it.
+ * "Reflection evening" in the side menu (#reflect, renderReflect below) lists
+ * the evenings and starts one from the Church's reflection guide (PDF).
  *
  * Three printed outputs come from a preparation (pdf.js): the sermon notes
  * (everything, in the order of the steps), the cue cards, and the sermon
@@ -167,7 +168,6 @@ export function render(container, route) {
     const s = state.sermons.find(x => x.id === route[1]);
     if (s) {
       if (Guides.upgrade(s)) saveSermon(s).catch(() => {});   // made before the Guide's Context and Summary had steps of their own
-      if (route[2] === 'reflect') return Reflect.render(container, s);   // the slides for the reflection evening on this service
       return renderEditor(container, s);
     }
     toast(t('That preparation was not found.'), true);
@@ -203,7 +203,6 @@ function renderList(container) {
     el('div', { class: 'docbar' }, [
       el('h2', { text: t('Service preparations ({n})', { n: state.sermons.length }) }),
       el('div', { class: 'spacer' }),
-      el('button', { class: 'btn small ghost', type: 'button', text: t('Reflection evening'), onclick: () => reflectSheet() }),
       el('button', { class: 'btn small', type: 'button', text: t('New preparation'), onclick: () => newBlank() }),
     ]),
     el('p', { class: 'muted small', text: t('Each card is one divine service: the text word, the message from the Divine Service Guide, your own thoughts, and the printed sermon notes and cue card.') }),
@@ -218,40 +217,63 @@ async function newBlank() {
   location.hash = `#prepare/${s.id}`;
 }
 
-/* ---------------------------------------------------------------- a reflection evening */
+/* ---------------------------------------------------------------- reflection evenings */
 
 /**
- * "Reflection evening" in the list: load the Church's reflection guide (the
- * service it looks back on is found among the preparations, or added), or
- * pick the service from the latest preparations.
+ * "Reflection evening" in the side menu (#reflect): load the Church's
+ * reflection guide (the service it looks back on is found among the
+ * preparations, or added), or open the slides of a service. #reflect/<id> is
+ * the evening of one preparation (reflect.js).
  */
-function reflectSheet() {
-  const sh = sheet(t('Reflection evening'));
+export function renderReflect(container, route) {
+  clear(container);
+  if (route[1]) {
+    const s = state.sermons.find(x => x.id === route[1]);
+    if (s) {
+      if (Guides.upgrade(s)) saveSermon(s).catch(() => {});
+      return Reflect.render(container, s);
+    }
+    toast(t('That preparation was not found.'), true);
+    location.hash = '#reflect';
+    return;
+  }
   const picker = Reflect.pdfPicker(async file => {
-    sh.close();
     const g = await Reflect.readPdf(file);
     if (g) await newFromReflection(g);
   });
-  sh.body.append(
-    el('p', { text: t('Slides for an evening when the congregation looks back on a divine service: the sermon and its text word, the main points from the Guide, and the questions one by one.') }),
-    el('div', { class: 'row' }, [el('button', { class: 'btn ai-btn', type: 'button', onclick: picker.pick }, [sparkle(), t('Load the reflection guide (PDF)')]), picker.input]),
-    el('p', { class: 'muted small', text: t('Claude reads the Church\'s guide for the evening: the title, the text word and the questions. The service it looks back on is found among your preparations, or added to them.') }));
-  const now = today();
-  const past = state.sermons.filter(x => x.date && x.date <= now).slice(0, 8);   // the latest services held, newest first
-  if (!past.length) return;
-  sh.body.append(el('h3', { class: 'sub', text: t('Or choose the service') }));
-  const list = el('div', { class: 'list' });
-  for (const s of past) {
-    list.append(el('a', { class: 'item sermon', href: `#prepare/${s.id}/reflect`, onclick: () => sh.close() }, [
-      el('div', { class: 'when' }, [el('b', { text: fmtDate(s.date, true) }), el('span', { class: 'muted small', text: [s.congregation, t(s.occasion)].filter(Boolean).join(' · ') })]),
-      el('div', { class: 'grow' }, [
-        el('div', { class: 'ref', text: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || t('No text word yet')) }),
-        el('div', { class: 'muted small', text: s.title || s.theme || '' }),
-      ]),
-      Reflect.hasSlides(s) ? el('span', { class: 'pill kind slides', text: t('Slides') }) : null,
+  const item = s => el('a', { class: 'item sermon', href: `#reflect/${s.id}` }, [
+    el('div', { class: 'when' }, [el('b', { text: fmtDate(s.date, true) || t('No date') }), el('span', { class: 'muted small', text: [s.congregation, t(s.occasion)].filter(Boolean).join(' · ') })]),
+    el('div', { class: 'grow' }, [
+      el('div', { class: 'ref', text: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || t('No text word yet')) }),
+      el('div', { class: 'muted small', text: s.title || s.theme || '' }),
+    ]),
+    Reflect.hasSlides(s) ? el('span', { class: 'pill kind slides', text: t('Slides') }) : null,
+  ]);
+  container.append(
+    el('div', { class: 'docbar' }, [el('h2', { text: t('Reflection evenings') })]),
+    el('p', { class: 'muted small', text: t('Slides for an evening when the congregation looks back on a divine service: the sermon and its text word, the main points from the Guide, and the questions one by one, with notes for the one who leads the evening.') }),
+    el('div', { class: 'page reflect-hub' }, [
+      el('div', { class: 'row' }, [el('button', { class: 'btn ai-btn', type: 'button', onclick: picker.pick }, [sparkle(), t('Load the reflection guide (PDF)')]), picker.input]),
+      el('p', { class: 'muted small', text: t('Claude reads the Church\'s guide for the evening: the title, the text word and the questions. The service it looks back on is found among your preparations, or added to them.') }),
     ]));
+  // the evenings with slides first, then the latest services held; the search finds any preparation
+  const made = state.sermons.filter(Reflect.hasSlides);
+  if (made.length) container.append(el('h3', { class: 'sub', text: t('Your slides') }), el('div', { class: 'list' }, made.map(item)));
+  const search = el('input', { type: 'search', placeholder: t('Search by text, congregation or theme…'), 'aria-label': t('Search preparations'), autocomplete: 'off' });
+  const list = el('div', { class: 'list' });
+  const now = today();
+  function show() {
+    clear(list);
+    const q = search.value.trim().toLowerCase();
+    const items = q
+      ? state.sermons.filter(s => [s.refText, s.congregation, s.theme, s.title, s.occasion, s.date].join(' ').toLowerCase().includes(q)).slice(0, 50)
+      : state.sermons.filter(s => s.date && s.date <= now && !Reflect.hasSlides(s)).slice(0, 10);   // the latest services held, newest first
+    if (!items.length) list.append(el('p', { class: 'muted', text: q ? t('Nothing matches.') : state.sermons.length ? t('No other services held yet.') : t('No services yet. Load the reflection guide above, or start a preparation under Prepare.') }));
+    for (const s of items) list.append(item(s));
   }
-  sh.body.append(list);
+  search.addEventListener('input', show);
+  container.append(el('h3', { class: 'sub', text: made.length ? t('Or choose another service') : t('Or choose the service') }), search, list);
+  show();
 }
 
 /** The occasion of a preparation from the service a reflection guide names. */
@@ -307,7 +329,7 @@ export async function newFromReflection(g) {
   }
   Reflect.fromGuide(s, g);
   await saveSermon(s);
-  location.hash = `#prepare/${s.id}/reflect`;
+  location.hash = `#reflect/${s.id}`;
 }
 
 /* ---------------------------------------------------------------- editor */
@@ -1369,7 +1391,7 @@ function renderEditor(root, s) {
   container.append(step(9, t('Reflection evening'), t('An evening when the congregation looks back on this service and talks about it. The slides show the sermon, its text word, the main points from the Guide and the questions, one at a time.')));
   const made = Reflect.hasSlides(s);
   container.append(el('div', { class: 'row' }, [
-    el('a', { class: 'btn small', href: `#prepare/${s.id}/reflect`, text: made ? t('Open the slides') : t('Make the slides') }),
+    el('a', { class: 'btn small', href: `#reflect/${s.id}`, text: made ? t('Open the slides') : t('Make the slides') }),
     s.reflect && s.reflect.from ? el('span', { class: 'muted small', text: t('With the questions from the reflection guide.') }) : null,
   ]));
 
