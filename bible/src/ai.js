@@ -1449,3 +1449,54 @@ function tidyInsight(r, lang) {
     today: str(d.today), note: str(d.note),
   };
 }
+
+/* ---------------------------------------------------------------- translating a note (notes.js) */
+
+const TRANSLATE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['title', 'body'],
+  properties: {
+    title: { type: 'string', description: 'The title, translated. Empty when the note has no title.' },
+    body: { type: 'string', description: 'The whole note, translated, with the same lines, blank lines, headings and bullets in the same places' },
+  },
+};
+
+/* The Church's own words, English and Afrikaans, as the New Apostolic Church in South Africa says them. */
+const CHURCH_WORDS = [
+  ['divine service', 'godsdiens'], ['congregation', 'gemeente'], ['Holy Communion', 'Heilige Nagmaal'], ['Holy Sealing', 'Heilige Verseëling'],
+  ['Apostle', 'Apostel'], ['Chief Apostle', 'Stamapostel'], ['the return of Christ', 'die wederkoms van Christus'], ['altar', 'altaar'],
+  ['the Catechism', 'die Kategismus'], ['the New Apostolic Church (NAC)', 'die Nuwe Apostoliese Kerk (NAK)'],
+  ['the Divine Service Guide', 'die Handleiding vir Godsdienste'], ['the text word (of a sermon)', 'die tekswoord'], ['sermon notes', 'preeknotas'],
+];
+
+function translateSystem(to) {
+  const into = to === 'af' ? 'Afrikaans' : 'English';
+  const from = to === 'af' ? 'English' : 'Afrikaans';
+  const words = CHURCH_WORDS.map(([en, af]) => (to === 'af' ? `${en} = ${af}` : `${af} = ${en}`)).join('; ');
+  return `You translate one note from a New Apostolic minister's study Bible from ${from} into ${into}, for his own use. He reads it instead of the note as he wrote it, so it must say exactly what the note says.
+
+The rules:
+- Translate all of it, faithfully: the same meaning, in the same order, at about the same length. Add nothing, leave nothing out, and do not comment on it, explain it or sum it up.
+- Keep the layout exactly: every line break, blank line, heading line and bullet (•) stays in its place.
+- Write ${to === 'af' ? 'plain, everyday Afrikaans as it is spoken in the congregation, not stiff or bookish' : 'plain, everyday English as it is spoken in South Africa'}.
+- The Church's own words, as the New Apostolic Church in South Africa says them: ${words}.
+- Bible references take the ${into} book names (${to === 'af' ? 'as in the Afrikaans Bible: Kolossense 1:15-20, Romeine 8:28, Johannes 3:16, Psalm 23' : 'Colossians 1:15-20, Romans 8:28, John 3:16, Psalm 23'}); the numbers stay exactly as they are.
+- Catechism references keep their numbers: ${to === 'af' ? '"(CNAC 4.5.3)" becomes "(Kategismus 4.5.3)"' : '"(Kategismus 4.5.3)" becomes "(CNAC 4.5.3)"'}.
+- Bible verses quoted word for word from a Bible translation (in quotation marks, often with its name after them, such as KJV, NKJV, WEB or AFR83) stay exactly as they are, untranslated: they are that Bible's own words.
+- Names of people, places and churches, words in Hebrew or Greek, and web addresses stay as they are. A part that is already in ${into} stays as it is.`;
+}
+
+/**
+ * The note in the other language: {title, body, at, model, cost}. `to` is
+ * 'af' or 'en'. The note stays as it is; notes.js keeps the translation beside it.
+ */
+export async function translateNote({ title = '', body = '' }, to, { signal, onProgress } = {}) {
+  const r = await run({
+    system: translateSystem(to),
+    content: [{ type: 'text', text: `THE TITLE\n${title || '(no title)'}\n\nTHE NOTE\n${body}` }],
+    schema: TRANSLATE_SCHEMA, effort: 'low', maxTokens: 16000, signal, onProgress,
+  });
+  const d = r.data || {};
+  return { title: title ? str(d.title) : '', body: str(d.body), at: new Date().toISOString(), model: r.model, cost: cost(r.usage, r.model) };
+}

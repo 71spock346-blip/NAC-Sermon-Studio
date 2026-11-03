@@ -1350,12 +1350,14 @@ function renderEditor(root, s) {
   const illusArea = illus.querySelector('textarea');
   container.append(illus, el('div', { class: 'row' }, [
     el('button', { class: 'btn small ghost', type: 'button', text: t('Insert from my notes'), onclick: () => pickNote(note => {
-      const line = `${Notes.refLabel(note)}${note.title ? ' – ' + note.title : ''}: ${note.body}`;
+      // in the language of this preparation, when the note has it (notes.js: a note can carry its translation)
+      const x = Notes.textIn(note, AI.langOf(s));
+      const line = `${Notes.refLabel(note)}${x.title ? ' – ' + x.title : ''}: ${x.body}`;
       s.illustrations = (s.illustrations ? s.illustrations.trim() + '\n\n' : '') + line;
       illusArea.value = s.illustrations;
       fit(illusArea);
       touch();
-    }) }),
+    }, AI.langOf(s)) }),
   ]));
 
   // ---- output
@@ -1420,16 +1422,18 @@ function sparkle() {
   return span;
 }
 
-function pickNote(onPick) {
+/** Pick one of the notes; each shows in language `l` when it has it. */
+function pickNote(onPick, l) {
   const sh = sheet(t('Insert a note'));
   const kinds = new Set(['experience', 'illustration']);
   const first = state.notes.filter(n => kinds.has(n.kind));
   const rest = state.notes.filter(n => !kinds.has(n.kind));
   if (!state.notes.length) sh.body.append(el('p', { class: 'muted', text: t('You have no notes yet. Write them in the reader: tap a verse, then "Note".') }));
   for (const n of [...first, ...rest]) {
+    const x = Notes.textIn(n, l);
     sh.body.append(el('button', { class: 'item pick', type: 'button', onclick: () => { sh.close(); onPick(n); } }, [
       el('div', { class: 'note-head' }, [el('b', { text: Notes.refLabel(n) }), el('span', { class: 'pill kind ' + n.kind, text: Notes.kindLabel(n.kind) })]),
-      el('div', { class: 'small', text: (n.title ? n.title + ' – ' : '') + n.body.slice(0, 160) + (n.body.length > 160 ? '…' : '') }),
+      el('div', { class: 'small', lang: x.lang, text: (x.title ? x.title + ' – ' : '') + x.body.slice(0, 160) + (x.body.length > 160 ? '…' : '') }),
     ]));
   }
 }

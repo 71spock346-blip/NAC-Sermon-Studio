@@ -152,6 +152,15 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   words in the breakdown stay as they are. The Catechism sections' text and the Guide's article go along in the
   request when they are on the device; the Guide, like the Catechism, is the Church's text
   and stays out of the repository and the backup.
+- **Notes in English and Afrikaans.** Each note card (`src/notes.js`) has an EN | AF switch. The
+  note shows in the app's language when it has it, else as written. Tapping the other language
+  has Claude translate it once (`ai.js translateNote`, effort low, Church words as the NAC in
+  South Africa says them, quoted Bible verses left as they are); the translation is kept in the
+  note as `alt` ({lang, title, body, of, at, model, edited}), so it syncs and backs up with it and
+  switching needs no connection. `lang` is the language the note is written in, guessed from
+  its short words (`guessLang`) until it is kept. `of` marks the note as translated: when the note
+  changes later, the translation says so and offers "Translate again". Edit changes the language
+  on the screen; the other stays. "Insert from my notes" in Prepare takes the preparation's language.
 - **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
   in IndexedDB on the device (`src/store.js`). At start the app asks the browser to keep
   that storage when the device runs short of space (`app.js keepData`,
