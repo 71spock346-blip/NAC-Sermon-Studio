@@ -1470,13 +1470,11 @@ const CHURCH_WORDS = [
   ['the Divine Service Guide', 'die Handleiding vir Godsdienste'], ['the text word (of a sermon)', 'die tekswoord'], ['sermon notes', 'preeknotas'],
 ];
 
-function translateSystem(to) {
+/** The rules of every translation for the minister: a note of his (translateNote) and an answer of Claude's in Theology (translateInsight). */
+function translateRules(to) {
   const into = to === 'af' ? 'Afrikaans' : 'English';
-  const from = to === 'af' ? 'English' : 'Afrikaans';
   const words = CHURCH_WORDS.map(([en, af]) => (to === 'af' ? `${en} = ${af}` : `${af} = ${en}`)).join('; ');
-  return `You translate one note from a New Apostolic minister's study Bible from ${from} into ${into}, for his own use. He reads it instead of the note as he wrote it, so it must say exactly what the note says.
-
-The rules:
+  return `The rules:
 - Translate all of it, faithfully: the same meaning, in the same order, at about the same length. Add nothing, leave nothing out, and do not comment on it, explain it or sum it up.
 - Keep the layout exactly: every line break, blank line, heading line and bullet (•) stays in its place.
 - Write ${to === 'af' ? 'plain, everyday Afrikaans as it is spoken in the congregation, not stiff or bookish' : 'plain, everyday English as it is spoken in South Africa'}.
@@ -1485,6 +1483,14 @@ The rules:
 - Catechism references keep their numbers: ${to === 'af' ? '"(CNAC 4.5.3)" becomes "(Kategismus 4.5.3)"' : '"(Kategismus 4.5.3)" becomes "(CNAC 4.5.3)"'}.
 - Bible verses quoted word for word from a Bible translation (in quotation marks, often with its name after them, such as KJV, NKJV, WEB or AFR83) stay exactly as they are, untranslated: they are that Bible's own words.
 - Names of people, places and churches, words in Hebrew or Greek, and web addresses stay as they are. A part that is already in ${into} stays as it is.`;
+}
+
+function translateSystem(to) {
+  const into = to === 'af' ? 'Afrikaans' : 'English';
+  const from = to === 'af' ? 'English' : 'Afrikaans';
+  return `You translate one note from a New Apostolic minister's study Bible from ${from} into ${into}, for his own use. He reads it instead of the note as he wrote it, so it must say exactly what the note says.
+
+${translateRules(to)}`;
 }
 
 /**
@@ -1499,4 +1505,90 @@ export async function translateNote({ title = '', body = '' }, to, { signal, onP
   });
   const d = r.data || {};
   return { title: title ? str(d.title) : '', body: str(d.body), at: new Date().toISOString(), model: r.model, cost: cost(r.usage, r.model) };
+}
+
+/* ---------------------------------------------------------------- translating an answer in Theology (theology.js) */
+
+/**
+ * The words of an answer in Theology, piece by piece, in the order of the
+ * screen: [{id, text}], the id saying where the piece belongs ("plain",
+ * "themes.0.theme", "views.1.text"). Only words: the numbers of the parts,
+ * the Catechism sections with their titles (the Catechism tab has them in
+ * English), the Bible references (the app writes them in the reader's book
+ * names) and the marks of the readings of other churches stay as they are.
+ */
+export function insightPieces(d) {
+  const out = [];
+  const put = (id, v) => { const s = str(v); if (s) out.push({ id, text: s }); };
+  const each = (v, fn) => (Array.isArray(v) ? v : []).forEach((x, i) => { if (x && typeof x === 'object') fn(x, i); });
+  for (const f of ['plain', 'background', 'writer', 'place']) put(f, d[f]);
+  each(d.parts, (p, i) => put(`parts.${i}.title`, p.title));
+  each(d.words, (w, i) => { put(`words.${i}.word`, w.word); put(`words.${i}.meaning`, w.meaning); });
+  each(d.themes, (x, i) => { put(`themes.${i}.theme`, x.theme); put(`themes.${i}.text`, x.text); });
+  put('church', d.church);
+  each(d.catechism, (c, i) => put(`catechism.${i}.why`, c.why));
+  each(d.views, (v, i) => { put(`views.${i}.view`, v.view); put(`views.${i}.text`, v.text); put(`views.${i}.differs`, v.differs); });
+  put('christ', d.christ);
+  each(d.bible, (b, i) => put(`bible.${i}.why`, b.why));
+  put('today', d.today);
+  put('note', d.note);
+  return out;
+}
+
+const PIECES_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['pieces'],
+  properties: {
+    pieces: {
+      type: 'array', description: 'Every piece given, in the same order, each with its id and its text translated',
+      items: {
+        type: 'object', additionalProperties: false, required: ['id', 'text'],
+        properties: {
+          id: { type: 'string', description: 'The id of the piece, exactly as given' },
+          text: { type: 'string', description: 'The piece, translated, with its line breaks and blank lines in the same places' },
+        },
+      },
+    },
+  },
+};
+
+function translateAnswerSystem(to) {
+  const into = to === 'af' ? 'Afrikaans' : 'English';
+  const from = to === 'af' ? 'English' : 'Afrikaans';
+  return `You translate an answer from the Theology section of a New Apostolic minister's study Bible from ${from} into ${into}, for his own use: the theological background of a Bible passage, a chapter or a book, as Claude wrote it for him. He reads it instead of the answer as it was written, so it must say exactly what the answer says.
+
+The answer comes in pieces, each with an id, in the order he reads them: paragraphs, headings, the titles of the parts, key words with their meaning, and the ways other churches read the text. Give back every piece, each with its id exactly as given and its text translated. A short piece (a heading, a title, a key word) stays short. Use the same words for the same things in all the pieces.
+
+${translateRules(to)}`;
+}
+
+/**
+ * An answer of Claude's in Theology (theology.js) in the other language: the
+ * same answer, its words translated piece by piece (insightPieces) and put
+ * back in their places, with when, which model and roughly what it cost.
+ * `to` is 'af' or 'en'. A piece Claude leaves out keeps its own words; when
+ * too many are missing, the translation is refused.
+ */
+export async function translateInsight(d, to, { signal, onProgress } = {}) {
+  const pieces = insightPieces(d);
+  const r = await run({
+    system: translateAnswerSystem(to),
+    content: [{ type: 'text', text: `THE PIECES\n${JSON.stringify(pieces, null, 1)}` }],
+    schema: PIECES_SCHEMA, effort: 'low', maxTokens: 32000, signal, onProgress,
+  });
+  const got = new Map();
+  for (const p of Array.isArray(r.data && r.data.pieces) ? r.data.pieces : []) {
+    if (p && typeof p.id === 'string' && str(p.text)) got.set(p.id, str(p.text));
+  }
+  if (pieces.filter(p => !got.has(p.id)).length > pieces.length / 4) throw new Error(t('Claude left part of the translation out. Try again.'));
+  const out = JSON.parse(JSON.stringify(d));
+  delete out.translated;
+  for (const p of pieces) {
+    const path = p.id.split('.');
+    let at = out;
+    for (const k of path.slice(0, -1)) at = at && at[k];
+    if (at && typeof at === 'object') at[path[path.length - 1]] = got.get(p.id) || p.text;
+  }
+  return { ...out, lang: to, at: new Date().toISOString(), model: r.model, cost: cost(r.usage, r.model) };
 }

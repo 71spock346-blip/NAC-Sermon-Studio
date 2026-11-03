@@ -28,6 +28,18 @@
  * PDF to keep, print or share (pdf.js theologyPdf), or as one of the
  * minister's notes (savedPage).
  *
+ * Every answer reads in English and in Afrikaans (Jerome, of the language
+ * mark in the list: "The EN button, what function does it serve?"). The
+ * EN | AF switch over an answer shows the answer kept in that language, or
+ * has Claude translate the one on the screen once (ai.js translateInsight).
+ * The translation is kept as the row of that language with `translated`
+ * ({from, of}) in its answer, so it travels like any other answer and
+ * switching back and forth needs no connection; `of` marks the answer as it
+ * was when it was translated, so that the translation says when that answer
+ * changed after it. Ask again and Remove work on the language on the screen.
+ * The list and the chapter page show each place once, in the language it
+ * opens in.
+ *
  * The addresses: #theology lists the books as the Catechism groups them,
  * #theology/ROM opens a book, #theology/ROM/8 a chapter and
  * #theology/ROM/8/28-30 a passage. In the reader, "Theology" in the verse bar
@@ -145,21 +157,39 @@ function hrefOf(level, ref) {
 
 const readHref = ref => `#read/${ref.book}/${ref.chapter || 1}${ref.verse ? '/' + ref.verse : ''}`;
 
-/** What Claude wrote on this place: in the language of Claude's answers when there is one, else in the other language. */
-function keptFor(level, ref) {
+/* The language picked on a place's switch (place key -> {l, ai}): it holds while Claude's answers keep the language they had then. */
+const picked = new Map();
+/* Translations under way (place key -> {ctrl, l, label}). */
+const working = new Map();
+
+/** What Claude wrote on a place in one language, or null. */
+const rowIn = (l, key) => state.theology.find(x => x.id === `${l}:${key}`) || null;
+
+/** What a place shows: in the language picked on its switch, else in the language of Claude's answers when there is one, else in the other. */
+function shownRow(level, ref) {
   const key = placeKey(level, ref);
-  const mine = state.theology.find(x => x.id === `${aiLang()}:${key}`) || null;
-  const other = mine ? null : state.theology.find(x => x.id.slice(x.id.indexOf(':') + 1) === key) || null;
-  return { mine, other };
+  const p = picked.get(key);
+  const mine = aiLang();
+  return (p && p.ai === mine && rowIn(p.l, key)) || rowIn(mine, key) || rowIn(mine === 'af' ? 'en' : 'af', key);
+}
+
+/** Each place of these rows once, in their order, as the row it shows. */
+function eachPlace(rows) {
+  const seen = new Set();
+  const out = [];
+  for (const x of rows) {
+    const key = x.id.slice(x.id.indexOf(':') + 1);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(shownRow(x.level, refOfRow(x)) || x);
+  }
+  return out;
 }
 
 /** Rows kept on passages of one chapter, by their first verse. */
 function passagesIn(book, chapter) {
-  const seen = new Set();
-  return state.theology
-    .filter(x => x.level === 'text' && x.book === book && x.chapter === chapter)
-    .sort((a, b) => (a.verse - b.verse) || ((a.verseEnd || 0) - (b.verseEnd || 0)))
-    .filter(x => { const k = placeKey('text', refOfRow(x)); if (seen.has(k)) return false; seen.add(k); return true; });
+  return eachPlace(state.theology.filter(x => x.level === 'text' && x.book === book && x.chapter === chapter))
+    .sort((a, b) => (a.verse - b.verse) || ((a.verseEnd || 0) - (b.verseEnd || 0)));
 }
 
 /** The verses as the minister reads them, for Claude: {text, translation}, or null. */
@@ -344,9 +374,8 @@ function claudeBlock(level, ref, opts = {}) {
   const draw = () => {
     clear(box);
     box.append(el('h3', { class: 'sub', text: title }));
-    const { mine, other } = keptFor(level, ref);
-    const row = mine || other;
-    box.append(row ? insightView(row, level, ref, opts, draw, !mine) : askCard(level, ref, opts, draw));
+    const row = shownRow(level, ref);
+    box.append(row ? insightView(row, level, ref, opts, draw) : askCard(level, ref, opts, draw));
   };
   draw();
   return box;
@@ -391,6 +420,7 @@ async function ask(level, ref, opts, redraw, l = aiLang()) {
       verse: level === 'text' ? ref.verse : null, verseEnd: level === 'text' ? end : null,
       lang: l,
     }, r, earlier));
+    picked.set(placeKey(level, ref), { l, ai: aiLang() });
     b.done();
     redraw();
     toast(earlier.length ? t('The new answer is first. The earlier one is kept under it.') : t('Kept with your study. Sync takes it to your other devices.'));
@@ -401,20 +431,15 @@ async function ask(level, ref, opts, redraw, l = aiLang()) {
 }
 
 /** What Claude wrote, field by field, with the Catechism sections it names, the buttons under it and the answers Claude gave here before. */
-function insightView(row, level, ref, opts, redraw, otherLang) {
+function insightView(row, level, ref, opts, redraw) {
   const d = row.data || {};
   const box = el('div', { class: 'th-insight' });
-  if (otherLang) {
-    box.append(el('div', { class: 'row line th-lang' }, [
-      el('span', { class: 'small grow', text: t('Written in {language}.', { language: langName(row.lang) }) }),
-      el('button', { class: 'btn small ghost', type: 'button', onclick: () => ask(level, ref, opts, redraw) }, [sparkle(), t('Ask in {language}', { language: langName(aiLang()) })]),
-    ]));
-  }
-  box.append(...answerParts(d, level, ref));
+  box.append(langRow(row, level, ref, redraw));
+  box.append(...answerParts(d, level, ref, row.lang));
   box.append(saveBox(row, level, ref, opts), el('div', { class: 'th-foot' }, [
     el('p', { class: 'muted small', text: writtenLine(d, row.updated) + ' ' + measureLine() }),
     el('div', { class: 'row' }, [
-      el('button', { class: 'btn small ghost', type: 'button', onclick: () => ask(level, ref, opts, redraw) }, [sparkle(), t('Ask again')]),
+      el('button', { class: 'btn small ghost', type: 'button', onclick: () => ask(level, ref, opts, redraw, row.lang) }, [sparkle(), t('Ask again')]),
       el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => removeAnswer(row, -1, level, ref, redraw) }),
     ]),
   ]));
@@ -423,11 +448,97 @@ function insightView(row, level, ref, opts, redraw, otherLang) {
   return box;
 }
 
-/** The parts of one answer of Claude's, in the order of the screen; a part with nothing in it is left out. */
-function answerParts(d, level, ref) {
+/* ---------------------------------------------------------------- English and Afrikaans */
+
+/** A short mark of an answer's words, to see later whether it changed after it was translated. */
+const answerMark = d => Notes.textMark(AI.insightPieces(d || {}).map(p => `${p.id}\n${p.text}`).join('\n\u0000'));
+
+/**
+ * EN | AF over an answer, with a line on what the switch does: on the
+ * translation shown, on the one under way, or, for an answer only in the
+ * other language, that a tap has Claude translate it.
+ */
+function langRow(row, level, ref, redraw) {
+  const key = placeKey(level, ref);
+  const job = working.get(key);
+  const d = row.data || {};
+  const button = l => el('button', {
+    type: 'button', text: l.toUpperCase(), title: langName(l), class: row.lang === l ? 'on' : null, 'aria-pressed': String(row.lang === l),
+    disabled: !!job, onclick: () => choose(row, l, level, ref, redraw),
+  });
+  const line = el('div', { class: 'th-lang' }, [el('div', { class: 'seg mini', role: 'group', 'aria-label': t('Language of this answer') }, [button('en'), button('af')])]);
+  if (job) {
+    job.label = el('span', { class: 'small muted', role: 'status', text: t('Claude is translating this answer into {language}…', { language: langName(job.l) }) });
+    line.append(job.label, el('button', { class: 'btn small ghost', type: 'button', text: t('Cancel'), onclick: () => job.ctrl.abort() }));
+  } else if (d.translated) {
+    const from = d.translated.from;
+    const src = rowIn(from, key);
+    // a translation back from this one does not make it out of date
+    const stale = !!(src && src.data && !(src.data.translated && src.data.translated.from === row.lang) && answerMark(src.data) !== d.translated.of);
+    line.append(el('span', { class: 'small muted', text: stale
+      ? t('The answer in {language} has changed since this translation.', { language: langName(from) })
+      : t('Translated by Claude from {language}.', { language: langName(from) }) }));
+    if (stale) line.append(el('button', { class: 'btn small ghost', type: 'button', text: t('Translate again'), onclick: () => translate(src, row.lang, level, ref, redraw) }));
+  } else if (row.lang !== aiLang() && !rowIn(aiLang(), key)) {
+    line.append(el('span', { class: 'small muted', text: t('Written in {language}. Tap {code} and Claude translates it.', { language: langName(row.lang), code: aiLang().toUpperCase() }) }));
+  }
+  return line;
+}
+
+/** A tap on EN or AF: show the answer in that language, translating it first when there is none in it yet. */
+function choose(row, l, level, ref, redraw) {
+  const key = placeKey(level, ref);
+  if (working.has(key) || l === row.lang) return;
+  if (rowIn(l, key)) { picked.set(key, { l, ai: aiLang() }); redraw(); return; }
+  translate(row, l, level, ref, redraw);
+}
+
+/**
+ * Claude translates the answer `src` shows first into `l`, kept as what
+ * Claude wrote on the place in that language. An answer there already (a
+ * translation from before, or one Claude wrote in that language) goes under
+ * the new one, as with Ask again: nothing is thrown away.
+ */
+async function translate(src, l, level, ref, redraw) {
+  const key = placeKey(level, ref);
+  if (working.has(key)) return;
+  if (!AI.ready()) { noKey(); return; }
+  const job = { ctrl: new AbortController(), l, label: null };
+  working.set(key, job);
+  redraw();
+  const d = src.data || {};
+  const size = AI.insightPieces(d).reduce((n, p) => n + p.id.length + p.text.length + 24, 30);
+  try {
+    const r = await AI.translateInsight(d, l, {
+      signal: job.ctrl.signal,
+      onProgress: chars => {
+        if (job.label) job.label.textContent = `${t('Claude is translating this answer into {language}…', { language: langName(l) })} ${Math.min(99, Math.round(chars * 100 / (size * 1.15)))}%`;
+      },
+    });
+    const id = `${l}:${key}`;
+    const before = state.theology.find(x => x.id === id);
+    const earlier = before && before.data ? [stamped(before), ...earlierOf(before)] : [];
+    await saveInsight(withAnswers({
+      id, level: src.level, book: src.book, chapter: src.chapter || null, verse: src.verse || null, verseEnd: src.verseEnd || null, lang: l,
+    }, { ...r, translated: { from: src.lang, of: answerMark(d) } }, earlier));
+    picked.set(key, { l, ai: aiLang() });
+    toast(earlier.length ? t('The new answer is first. The earlier one is kept under it.')
+      : r.cost ? t('The answer is translated ({cost}).', { cost: AI.fmtCost(r.cost) }) : t('The answer is translated.'));
+  } catch (e) {
+    if (!(e && e.name === 'AbortError')) toast(e.message || String(e), true);
+  } finally {
+    working.delete(key);
+    redraw();
+  }
+}
+
+/** The parts of one answer of Claude's, in the order of the screen; a part with nothing in it is left out. `l` is the language it is in. */
+function answerParts(d, level, ref, l = '') {
   const list = v => (Array.isArray(v) ? v : []);
   const part = (title, body, cls) => {
     const items = [].concat(body).filter(Boolean);
+    // the heading is in the app's language, what Claude wrote in its own (the Catechism's titles stay as the Catechism tab has them)
+    if (l) for (const x of items) if (x.setAttribute && !x.classList.contains('th-catrefs')) x.setAttribute('lang', l);
     return items.length ? el('section', { class: 'th-sec' + (cls ? ' ' + cls : '') }, [el('h4', { text: title }), ...items]) : null;
   };
   const partHref = level === 'book' ? p => `#theology/${ref.book}/${p.from}` : p => `#read/${ref.book}/${ref.chapter}/${p.from}`;
@@ -451,9 +562,12 @@ function answerParts(d, level, ref) {
   ].filter(Boolean);
 }
 
-/** "Written 3 Nov 2026 by Claude …, about $0.14." under an answer, and on an earlier answer folded away. */
-function writtenLine(d, fallback) {
-  return t('Written {date} by {model}{cost}.', { date: fmtDate(d.at || fallback), model: AI.modelLabel(d.model), cost: d.cost ? ', ' + AI.fmtCost(d.cost) : '' });
+/** "Written 3 Nov 2026 by Claude …, about $0.14." under an answer, and on an earlier answer folded away; "Translated from English …" for a translation. */
+function writtenLine(d, fallback, withCost = true) {
+  const vars = { date: fmtDate(d.at || fallback), model: AI.modelLabel(d.model), cost: withCost && d.cost ? ', ' + AI.fmtCost(d.cost) : '' };
+  return d.translated
+    ? t('Translated from {language} {date} by {model}{cost}.', { ...vars, language: langName(d.translated.from) })
+    : t('Written {date} by {model}{cost}.', vars);
 }
 
 /* ---------------------------------------------------------------- answers kept */
@@ -490,7 +604,7 @@ function earlierBox(row, level, ref, redraw) {
         el('span', { class: 'th-old-when', text: writtenLine(d) }),
         firstWords(d) ? el('span', { class: 'th-old-first', text: firstWords(d) }) : null,
       ]),
-      ...answerParts(d, level, ref),
+      ...answerParts(d, level, ref, row.lang),
       el('div', { class: 'row th-old-foot' }, [
         el('button', { class: 'btn small', type: 'button', text: t('Put this one first'), onclick: () => putFirst(row, i, redraw) }),
         el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => removeAnswer(row, i, level, ref, redraw) }),
@@ -514,11 +628,14 @@ async function putFirst(row, i, redraw) {
  */
 async function removeAnswer(row, i, level, ref, redraw) {
   const old = earlierOf(row);
+  const other = rowIn(row.lang === 'af' ? 'en' : 'af', placeKey(level, ref));
   const question = i >= 0
     ? t('Remove the earlier answer written {date}? It goes from all your devices.', { date: fmtDate(old[i] && old[i].at) })
     : old.length
       ? t('Remove this answer? The earlier answer, written {date}, takes its place.', { date: fmtDate(old[0].at) })
-      : t('Remove what Claude wrote on {place}? It goes from all your devices.', { place: placeLabel(level, ref) });
+      : other
+        ? t('Remove the answer in {language} on {place}? The one in {other} stays.', { language: langName(row.lang), place: placeLabel(level, ref), other: langName(other.lang) })
+        : t('Remove what Claude wrote on {place}? It goes from all your devices.', { place: placeLabel(level, ref) });
   if (!await confirmBox(question, t('Remove'), true)) return;
   const copy = JSON.parse(JSON.stringify(row));
   if (i >= 0) await saveInsight(withAnswers(row, row.data, old.filter((_, k) => k !== i)));
@@ -684,7 +801,7 @@ async function savedPage(level, ref, row, opts = {}) {
   add(t('Other passages'), list(d.bible).map(x => ({ li: [x.ref ? formatRef(x.ref, bl()) : x.reference, x.why].filter(Boolean).join(' \u2013 ') })));
   add(t('For today'), ps(d.today));
   add(t('Good to know'), ps(d.note));
-  add('', [{ p: t('Written {date} by {model}{cost}.', { date: fmtDate(d.at || row.updated), model: AI.modelLabel(d.model), cost: '' }) + ' ' + measureLine(), small: true }]);
+  add('', [{ p: writtenLine(d, row.updated, false) + ' ' + measureLine(), small: true }]);
 
   if (level === 'chapter') add(t('In the Catechism'), quoting(chapterCatechism(ref), 8));
   if (level === 'text') add(t('In the Catechism'), quoting(versesCatechism(ref, ref.verse, ref.verseEnd || ref.verse)));
@@ -781,18 +898,17 @@ function indexPage(box, data) {
     gotoForm(),
   );
 
-  // what Claude wrote, the newest first
-  if (state.theology.length) {
-    const rows = state.theology.slice();
+  // what Claude wrote, the newest first: each place once, in the language it opens in
+  const rows = eachPlace(state.theology);
+  if (rows.length) {
     const list = el('div', { class: 'list th-kept' });
     const item = row => {
       const ref = refOfRow(row);
       const d = row.data || {};
       const first = String(d.plain || '').split(/(?<=[.!?])\s/)[0];
       return el('a', { class: 'item', href: hrefOf(row.level, ref) }, [
-        el('span', { class: 'grow' }, [el('b', { text: placeLabel(row.level, ref) }), first ? el('span', { class: 'snippet muted small', text: first }) : null]),
+        el('span', { class: 'grow' }, [el('b', { text: placeLabel(row.level, ref) }), first ? el('span', { class: 'snippet muted small', lang: row.lang, text: first }) : null]),
         el('span', { class: 'pill', text: row.level === 'book' ? t('Book') : row.level === 'chapter' ? t('Chapter') : t('Verses') }),
-        row.lang !== aiLang() ? el('span', { class: 'pill', text: row.lang.toUpperCase() }) : null,
       ]);
     };
     rows.slice(0, 5).forEach(r => list.append(item(r)));
@@ -873,7 +989,7 @@ function chapterPage(box, data, ref) {
       inPart ? el('p', { class: 'th-where' }, [el('span', { class: 'muted', text: t('In the book:') }), ' ', el('a', { href: `#theology/${ref.book}`, text: inBookText(inPart) })]) : null,
       claudeBlock('chapter', ref),
       passages.length ? sec(t('Verses Claude wrote on'), el('div', { class: 'list' }, passages.map(x => el('a', { class: 'item', href: hrefOf('text', refOfRow(x)) }, [
-        el('span', { class: 'grow' }, [el('b', { text: placeLabel('text', refOfRow(x)) }), el('span', { class: 'snippet muted small', text: String((x.data || {}).plain || '').split(/(?<=[.!?])\s/)[0] })]),
+        el('span', { class: 'grow' }, [el('b', { text: placeLabel('text', refOfRow(x)) }), el('span', { class: 'snippet muted small', lang: x.lang, text: String((x.data || {}).plain || '').split(/(?<=[.!?])\s/)[0] })]),
       ])))) : null,
       sec(t('In the Catechism'), catList(chapterCatechism(ref), { limit: 8, empty: t('No section of the Catechism quotes this chapter directly.') })),
       el('nav', { class: 'row chapnav', 'aria-label': t('Chapters') }, [

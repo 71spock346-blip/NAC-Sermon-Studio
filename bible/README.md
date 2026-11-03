@@ -161,6 +161,17 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   its short words (`guessLang`) until it is kept. `of` marks the note as translated: when the note
   changes later, the translation says so and offers "Translate again". Edit changes the language
   on the screen; the other stays. "Insert from my notes" in Prepare takes the preparation's language.
+- **Theology in English and Afrikaans.** Each of Claude's answers in Theology (`src/theology.js`)
+  has the same EN | AF switch. A place shows the language picked on its switch, else the
+  language of Claude's answers when there is an answer in it, else the other. Tapping a language
+  without an answer has Claude translate the one on the screen (`ai.js translateInsight`: the
+  answer's words go piece by piece, `insightPieces`, so numbers, Catechism sections, Bible
+  references and the marks on other churches' readings never change). The translation is kept
+  as the row of that language (`af:COL.1`), its answer marked `translated` ({from, of}), so it
+  syncs and backs up like any answer; `of` marks the answer it came from, and when that one
+  changes, the translation says so and offers "Translate again" (the old translation goes under
+  the new one, as with Ask again). The list under Theology and a chapter's passages show each
+  place once, in the language it opens in.
 - **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
   in IndexedDB on the device (`src/store.js`). At start the app asks the browser to keep
   that storage when the device runs short of space (`app.js keepData`,
