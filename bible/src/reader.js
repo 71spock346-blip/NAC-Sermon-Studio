@@ -14,6 +14,7 @@
  */
 import { el, $, clear, toast, sheet, copyText, seg, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
 import { t, tn, lang, LANGS, requestLang } from './i18n.js';
+import { unlocked as helperUnlocked } from './lock.js';   // is the AI helper open on this device? (what a locked device may not mention)
 import { BOOKS, BY_ID, GROUPS, GROUPS_AF, bookName, parseRef, formatRef } from './books.js';
 import { state, saveSetting } from './store.js';
 import * as Bible from './bible.js';
@@ -283,7 +284,7 @@ function viewSheet(srcId) {
     el('label', { class: 'f' }, [t('Text size'), sizeSeg, el('span', { class: 'hint muted small', text: t('"Pulpit" is meant for reading while standing.') })]),
     el('label', { class: 'f' }, [t('Look'), themeSeg, el('span', { class: 'hint muted small', text: t('"White" is the Church\'s blue and white, as on the slides. "Paper" keeps the blue with warm cream pages. "System" is White by day and Dark at night, as this phone or PC is set.') })]),
     el('label', { class: 'f' }, [t('Letters and spacing'), readSeg, el('span', { class: 'hint muted small', text: t('"Easy-read" uses plain letters with more room between them and between the lines, which many people with dyslexia find easier. It applies everywhere in the app.') })]),
-    el('label', { class: 'f' }, [t('Language of the app'), langSeg, el('span', { class: 'hint muted small', text: t('Also sets the book names and the language of Claude\'s suggestions.') })]),
+    el('label', { class: 'f' }, [t('Language of the app'), langSeg, el('span', { class: 'hint muted small', text: helperUnlocked() ? t('Also sets the book names and the language of Claude\'s suggestions.') : t('Also sets the book names.') })]),
     el('label', { class: 'f' }, [t('Compare with a second translation'), cmpSel, el('span', { class: 'hint muted small', text: t('Shown under each verse.') })]),
     el('label', { class: 'f' }, [t('Beside: the Afrikaans Bible on BibleSA'), besideSel, el('span', { class: 'hint muted small', text: t('Opens in its own window next to the app and follows the chapter.') })]),
     el('div', { class: 'row end' }, [el('button', { class: 'btn', type: 'button', text: t('Done'), onclick: () => s.close() })]),

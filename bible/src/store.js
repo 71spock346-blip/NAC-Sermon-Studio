@@ -86,6 +86,9 @@ export const DEFAULT_SETTINGS = {
   aiLang: 'en',           // language of the suggestions: 'en' or 'af'; a preparation can choose its own
   aiHumour: 'some',       // how much humour the suggested sermon may carry: 'none', 'some' or 'more' (see HUMOUR in ai.js)
   aiStyle: '',            // the person's own note on how they preach, sent with every request for suggestions
+  helperLock: null,       // the lock on the AI helper (lock.js): {v, salt, hash, iter, at}, a hash of the minister's password, never the password; travels with sync and backup
+  helperOpen: '',         // the lock's `at` once the password was typed on this device: the helper is open here. Device only (see lock.js)
+  guestAiKey: '',         // a visitor's own Anthropic key for Theology while the helper is locked; this device only, never in a backup or the sync
   readMode: 'book',       // 'book' (Montserrat, normal spacing) or 'easy' (plain letters in the whole app, wider spacing: easier with dyslexia)
   name: '',
   congregation: '',
@@ -93,10 +96,10 @@ export const DEFAULT_SETTINGS = {
 };
 
 /** The keys never leave the device in a backup file. Sync carries them only when the person ticks "Carry my keys" (locked with the code). */
-export const SECRET = new Set(['apiKey', 'yvKey', 'aiKey']);
+export const SECRET = new Set(['apiKey', 'yvKey', 'aiKey', 'guestAiKey', 'helperOpen']);
 
 /** Settings that belong to this screen rather than to the person: a phone and a PC may well differ. Sync leaves them alone. */
-export const DEVICE_ONLY = new Set(['theme', 'fontSize']);
+export const DEVICE_ONLY = new Set(['theme', 'fontSize', 'helperOpen', 'guestAiKey']);   // helperOpen and guestAiKey: a device is unlocked by hand, and a visitor's key stays with the visitor (lock.js)
 
 /** Settings that may change often and matter little: sent on with the next sync rather than at once. */
 const LAZY = new Set(['lastRef']);

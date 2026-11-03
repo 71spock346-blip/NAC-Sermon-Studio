@@ -208,7 +208,7 @@ function renderList(container) {
       el('button', { class: 'btn small', type: 'button', text: t('New preparation'), onclick: () => newBlank() }),
     ]),
     el('p', { class: 'muted small', text: t('Each card is one divine service: the text word, the message from the Divine Service Guide, your own thoughts, and the printed sermon notes and cue card.') }),
-    Guides.card({ onPrepare: newFromService, onChange: () => renderList(clear(container)) }),
+    ...[Guides.card({ onPrepare: newFromService, onChange: () => renderList(clear(container)) })].filter(Boolean),   // null on a locked device without a Guide (lock.js)
     search, list);
   show();
 }
@@ -254,10 +254,10 @@ export function renderReflect(container, route) {
   container.append(
     el('div', { class: 'docbar' }, [el('h2', { text: t('Reflection evenings') })]),
     el('p', { class: 'muted small', text: t('Slides for an evening when the congregation looks back on a divine service: the sermon and its text word, the main points from the Guide, and the questions one by one, with notes for the one who leads the evening.') }),
-    el('div', { class: 'page reflect-hub' }, [
+    ...[AI.unlocked() ? el('div', { class: 'page reflect-hub' }, [
       el('div', { class: 'row' }, [el('button', { class: 'btn ai-btn', type: 'button', onclick: picker.pick }, [sparkle(), t('Load the reflection guide (PDF)')]), picker.input]),
       el('p', { class: 'muted small', text: t('Claude reads the Church\'s guide for the evening: the title, the text word and the questions. The service it looks back on is found among your preparations, or added to them.') }),
-    ]));
+    ]) : null].filter(Boolean));   // reading the Church's guide is Claude's work, the minister's own (lock.js); a locked device makes the slides from the preparation
   // the evenings with slides first, then the latest services held; the search finds any preparation
   const made = state.sermons.filter(Reflect.hasSlides);
   if (made.length) container.append(el('h3', { class: 'sub', text: t('Your slides') }), el('div', { class: 'list' }, made.map(item)));
@@ -455,6 +455,7 @@ function renderEditor(root, s) {
   const humourSel = pick(t('Humour'), 'humour', [['', t('As usual: {usual}', { usual: t(AI.humourLabel(state.settings.aiHumour)).toLowerCase() })], ['none', 'None in this service'], ['some', 'A little, where it fits'], ['more', 'A bit more']]);
   const humourHint = el('span', { class: 'hint muted small' });
   humourSel.append(humourHint);
+  humourSel.hidden = !AI.unlocked();   // humour steers Claude's suggestions only: nothing to choose where the helper is locked (lock.js)
   /** No humour at a funeral or a service for the departed, whatever is chosen. */
   function syncHumour() {
     const off = AI.humourOf({ ...s, humour: 'some' }) === 'none';
@@ -470,7 +471,9 @@ function renderEditor(root, s) {
       pick(t('Language of the sermon'), 'lang', [['', t('As usual: {usual}', { usual: state.settings.aiLang === 'af' ? 'Afrikaans' : 'English' })], ...AI.LANGS]),
       field(t('About the people'), 'people', { cls: 'full people', line: true, placeholder: t('A few words: who they are, their work and language, what they are going through, how many') }),
     ]),
-    el('p', { class: 'muted small who-hint', text: t('Claude shapes its suggestions for these people, in the language chosen. For an ordinary Sunday, leave it as it is. The age group and the people are remembered for your next preparation in this congregation.') }),
+    el('p', { class: 'muted small who-hint', text: AI.unlocked()
+      ? t('Claude shapes its suggestions for these people, in the language chosen. For an ordinary Sunday, leave it as it is. The age group and the people are remembered for your next preparation in this congregation.')
+      : t('The line about the people heads the sermon notes, and the language sets the Guide and the slides. The age group and the people are remembered for your next preparation in this congregation.') }),
   );
   // the same congregation as an earlier preparation: its people come along, unless this one already says who is listening
   inputs.congregation.addEventListener('change', () => {
@@ -693,7 +696,7 @@ function renderEditor(root, s) {
   function renderBreak() {
     clear(breakBox);
     const a = s.breakdown;
-    breakBox.hidden = !a && !Guides.findService(s);   // no article to break down, and nothing kept
+    breakBox.hidden = !AI.unlocked() || (!a && !Guides.findService(s));   // the helper is locked here (lock.js), or no article to break down and nothing kept
     if (breakBox.hidden) return;
     const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askBreak }, [sparkle(), a ? t('Break it down again') : t('Break down the article')]);
     const drop = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => {
@@ -749,7 +752,9 @@ function renderEditor(root, s) {
   container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }));
 
   // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
-  container.append(step(4, t('Main points'), t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear.'),
+  container.append(step(4, t('Main points'), AI.unlocked()
+    ? t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear.')
+    : t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences.'),
     () => clearStep(4, t('the main points'), [], {
       clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
       restore: kept => { s.points = kept; renderPoints(); },
@@ -869,6 +874,8 @@ function renderEditor(root, s) {
   }
   function renderBuild() {
     clear(buildBox);
+    buildBox.hidden = !AI.unlocked();   // the helper is locked here (lock.js): the outline waits, unseen, for the password
+    if (buildBox.hidden) return;
     const a = s.build;
     const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askBuild }, [sparkle(), a ? t('Suggest again') : t('Suggest the sermon')]);
     const drop = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => {
@@ -940,14 +947,15 @@ function renderEditor(root, s) {
       const weaveBtn = el('button', { class: 'btn small ghost ai-btn weave-btn', type: 'button', onclick: () => weave(p, thought) }, [sparkle(), p.weave ? t('Weave again') : t('Weave my thought into this point')]);
       const woven = p.weave ? weavePanel(p, i) : null;
       if (woven) thought.addEventListener('input', woven.stale);
+      const open = AI.unlocked();   // the thought, Claude's questions and the weave belong to the helper (lock.js); locked, the point is just its text
       pointsBox.append(el('div', { class: 'point' }, [
         el('div', { class: 'row line' }, [el('span', { class: 'step-n small', text: i + 1 }), head, mark,
           el('button', { class: 'icon del', type: 'button', 'aria-label': t('Remove this point'), text: '✕', onclick: () => { s.points.splice(i, 1); touch(); renderPoints(); } })]),
         body,
-        el('label', { class: 'f thought' }, [title(t('My thought on this point')), thought]),
-        talk,
-        el('div', { class: 'row weave-row' }, [weaveBtn]),
-        woven ? woven.node : null,
+        open ? el('label', { class: 'f thought' }, [title(t('My thought on this point')), thought]) : null,
+        open ? talk : null,
+        open ? el('div', { class: 'row weave-row' }, [weaveBtn]) : null,
+        open && woven ? woven.node : null,
       ]));
     });
     // the Guide's main points, straight from its article, no Claude needed
@@ -1299,6 +1307,8 @@ function renderEditor(root, s) {
   }
   function renderAi() {
     clear(aiBox);
+    aiBox.hidden = !AI.unlocked();   // the helper is locked here (lock.js)
+    if (aiBox.hidden) return;
     const a = s.ai;
     const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askAi }, [sparkle(), a ? t('Ask again') : t('Suggest answers')]);
     const drop = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => {

@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=46">
+<link rel="stylesheet" href="styles.css?v=47">
 </head>
 <body class="help">
 <header class="top">
@@ -34,8 +34,8 @@ Everything you write stays on your own device. There is no account and no server
 <h2>Language</h2>
 <p>The app speaks English or Afrikaans. The <b>EN / AF</b> switch sits in the header on a phone and at the foot of
 the side menu on a PC, and the same choice is under Settings → Language and under the Aa button in the reader. It
-changes the screens, the buttons, this help page and the headings of the printed notes. It also sets the book names
-and the language of Claude's suggestions, and each of those can be changed on its own afterwards under Settings. The
+changes the screens, the buttons, this help page and the headings of the printed notes. It also sets the book names<span class="mo" hidden>
+and the language of Claude's suggestions</span>, and each of those can be changed on its own afterwards under Settings. The
 Bible text itself stays in the translation you choose.</p>
 
 <h2>Reading</h2>
@@ -77,10 +77,12 @@ or Afrikaans. Each device keeps its own choice.</p>
   <li>Tap a verse (or several) in the reader and choose <b>Note</b>. Give it a kind: a thought, an experience,
     a doctrine link, an illustration, a sermon idea or a question. Tags are optional.</li>
   <li>The Notes tab lists everything, and searches by word, tag or reference.</li>
-  <li><b>English | Afrikaans:</b> every note has an EN | AF switch. Tap the other language and Claude translates the
-    note once (this needs your Anthropic key, under Settings → AI helper). After that you flip between the two, also
-    offline and on your other devices. <b>Edit</b> changes the language you see; the other one stays as it is, and
-    says so when the note changed after it was translated. Bible verses quoted from a translation stay as they are.</li>
+  <li><b>English | Afrikaans:</b> a note that has both languages shows an EN | AF switch: flip between them, also
+    offline and on your other devices. <b>Edit</b> changes the language you see. Bible verses quoted from a
+    translation stay as they are.</li>
+  <li class="mo" hidden>Tap the other language on a note that has only one, and Claude translates it once (this needs
+    your Anthropic key, under Settings → AI helper). The other language stays as it is, and says so when the note
+    changed after it was translated.</li>
   <li>Experiences and illustrations can be inserted into a sermon preparation with one tap, in the preparation's
     language when the note has it.</li>
 </ul>
@@ -155,14 +157,14 @@ side by side: the Bible text, the title and message, the introduction, the main 
     yours.</li>
   <li><b>Step 4, main points:</b> the main points always come from the Divine Service Guide: the parts of its article,
     in its order, are main point 1, 2, 3 and so on. A preparation taken from the Guide starts with them (each marked
-    "Guide"), and <b>Take the main points from the Guide</b> fetches them again. Under each point there is a box for
+    "Guide"), and <b>Take the main points from the Guide</b> fetches them again. <span class="mo" hidden>Under each point there is a box for
     <b>your own thought</b> on it: a story, a picture, a question, something that struck you. Claude weaves it into
     the sermon when it builds it (see "Suggest the sermon" below) and asks you first when something is unclear.
     To put a thought into <b>one point only</b>, tap <b>Weave my thought into this point</b> under it: Claude
     writes that point again with your thought in it and leaves the rest of the sermon as it is. Where the thought
     is unclear, it asks you first in a short sheet. The new text waits under the point, with a line on where your
     thought went; change its words if you like, then tap <b>Use</b> to put it in place of the point's text (Undo
-    brings the old text back), or <b>Remove</b>.</li>
+    brings the old text back), or <b>Remove</b>.</span></li>
   <li><b>Step 5, context:</b> like the Guide's Context box, the setting of the text, with the key words, the Catechism
     sections that quote the text, and cross references. Tick the Catechism sections to keep and choose what the sermon
     notes should carry for them: the full text of each section, the Catechism's own summary, or the number and title
@@ -192,10 +194,10 @@ question at a time. The app makes the slides for that evening in the Church's bl
 word, the main points from the Guide, one slide for each question, and a word of thanks to close. Each slide comes
 with notes for the one who leads the evening.</p>
 <ol>
-  <li>Tap <b>Reflection evening</b> in the side menu (on a phone: <b>Reflection</b> in the bar at the bottom). Load
-    the Church's reflection guide there, or choose the service. Evenings with slides come first, under <b>Your
+  <li>Tap <b>Reflection evening</b> in the side menu (on a phone: <b>Reflection</b> in the bar at the bottom). Choose
+    the service<span class="mo" hidden>, or load the Church's reflection guide there</span>. Evenings with slides come first, under <b>Your
     slides</b>. You can also open the preparation of the service and tap <b>Make the slides</b> under step 9.</li>
-  <li><b>The Church's reflection guide:</b> the one-page PDF for the evening. Tap <b>Load the reflection guide
+  <li class="mo" hidden><b>The Church's reflection guide:</b> the one-page PDF for the evening. Tap <b>Load the reflection guide
     (PDF)</b> and Claude copies its title, text word and questions onto the slides, word for word. The service it
     looks back on is found among your preparations. If it is not there, it is added and marked as held. Without the
     PDF the slides take the title and text from the preparation, and the Church's four usual questions.</li>
@@ -225,9 +227,24 @@ with slides shows <b>Slides</b>.
 the preparation stays as it is.</p>
 
 <h2>Help from Claude (the AI helper)</h2>
-<p>Claude, the AI from Anthropic, can take a few chores off the preparation. It needs a key of your own under
-Settings → AI helper (the steps are there): you pay Anthropic only for what you use, roughly R10 to read a month's
-Guide and a few rand for a set of suggestions, and the key stays on your device, out of any backup.</p>
+<p>In Theology, <b>Ask Claude</b> writes the background of a book, a chapter or a passage, in line with the Catechism.
+It works with a key of your own from Anthropic, under Settings → AI helper (the steps are there): you pay Anthropic
+only for what you use, usually under 20 US cents an answer, and the key stays on your device, out of any backup. What
+is sent to Anthropic to answer: the verses or the chapter, the app's own introduction to the book and the Catechism
+sections that quote it. Anthropic processes it to answer and does not train on it. The answer is a help for study, not
+Church doctrine.</p>
+<div class="mo" hidden>
+<p>Claude can also take a few chores off the preparation, with the same key: roughly R10 to read a month's Guide and
+a few rand for a set of suggestions.</p>
+<p><b>The helper is the minister's own.</b> Under Settings → AI helper, <b>Choose a password</b>. From then on the
+Guide, the suggestions, the translation of a note and the reflection guide show only on a device where the password
+was typed, once, and a locked device shows no sign of them: not in Prepare, not in Settings, not on this page. To
+unlock a device, open Settings there and tap the words <b>AI helper</b> five times: the sheet for the password opens.
+<b>Lock on this device</b> closes it again, for example before handing the phone to someone. The password travels with
+the sync as a lock, never as the password itself; a new password asks again on each device. Forgot it? <b>Change the
+password</b> on a device that is still unlocked, or tap "AI helper" five times and choose <b>I forgot the
+password</b>: your sync code removes the lock. Anyone else may still <b>Ask Claude</b> in Theology, with a key of
+their own; the minister's key is never used for that.</p>
 <ul>
   <li><b>The Divine Service Guide:</b> in the Prepare tab, <b>Load a Guide (PDF)</b> takes the month's Guide
     (English or Afrikaans). Claude reads every service out of it: date, Bible text, title, message, the article, the
@@ -307,6 +324,7 @@ Catechism sections that belong to it, your own notes on that preparation, who is
 preach. Anthropic processes it to answer and
 does not train on it; nothing of it is put on the public site. The suggestions are a starting point. The sermon
 remains yours.</p>
+</div>
 
 <h2>Keys for the licensed translations</h2>
 <p>Two services license Bible translations to apps, and both give a free key for personal, non-commercial use.
@@ -326,13 +344,14 @@ on your device and are never included in a backup.</p>
 On the other device, open the same screen, tap <b>I have a code</b> and type the code in, or point the phone's camera
 at the square (if the app is on your home screen, open it from there and type the code, so that copy is the one that
 joins). From then on both devices keep each other up to date on their own: notes, preparations, settings, pasted text,
-the Catechism text, the Guides and what Claude wrote in Theology travel across within a few seconds of opening the app
+the Catechism text,<span class="mo" hidden> the Guides</span> and what Claude wrote in Theology travel across within a few seconds of opening the app
 or making a change. Something
 you delete on one device goes on the other too; when the same note or preparation was changed on both before they could
 sync, the newer change wins.</p>
 <p>Everything is locked with your code on the device before it is sent. The server, a small part of the app on Vercel,
 keeps only the locked copy and cannot read it, and nobody can find or open it without the code, so keep the code where
-you keep your passwords: <b>Show the code</b> shows it again any time. Your keys for API.Bible, YouVersion and Anthropic
+you keep your passwords: <b>Show the code</b> shows it again any time<span class="mo" hidden> (a locked device does not show it:
+unlock the helper first)</span>. Your keys for API.Bible, YouVersion and Anthropic
 travel too, locked in the same way, unless you untick <b>Carry my keys too</b>. The look of the app (theme and text size)
 stays per device. <b>Stop syncing on this device</b> keeps everything on the device and leaves the copy on the server
 for your other devices; <b>Delete the copy on the server</b> removes it for good. <b>Erase everything on this device</b>
@@ -375,8 +394,8 @@ Alles wat jy skryf, bly op jou eie toestel. Daar is geen rekening en geen bedien
 <h2>Taal</h2>
 <p>Die app praat Engels of Afrikaans. Die <b>EN / AF</b>-skakelaar sit in die kopstuk op 'n foon en onderaan die
 symenu op 'n rekenaar, en dieselfde keuse is onder Verstellings → Taal en onder die Aa-knoppie in die leser. Dit
-verander die skerms, die knoppies, hierdie hulpblad en die opskrifte van die gedrukte notas. Dit stel ook die boekname
-en die taal van Claude se voorstelle, en elkeen daarvan kan daarna op sy eie onder Verstellings verander word. Die
+verander die skerms, die knoppies, hierdie hulpblad en die opskrifte van die gedrukte notas. Dit stel ook die boekname<span class="mo" hidden>
+en die taal van Claude se voorstelle</span>, en elkeen daarvan kan daarna op sy eie onder Verstellings verander word. Die
 Bybelteks self bly in die vertaling wat jy kies.</p>
 
 <h2>Lees</h2>
@@ -419,11 +438,12 @@ gewys word. Elke toestel hou sy eie keuse.</p>
   <li>Tik op 'n vers (of 'n paar) in die leser en kies <b>Nota</b>. Gee dit 'n soort: 'n gedagte, 'n ervaring, 'n
     leerskakel, 'n illustrasie, 'n preekidee of 'n vraag. Etikette is opsioneel.</li>
   <li>Die Notas-oortjie lys alles, en soek volgens woord, etiket of verwysing.</li>
-  <li><b>Engels | Afrikaans:</b> elke nota het 'n EN | AF-skakelaar. Tik op die ander taal en Claude vertaal die nota
-    een keer (dit het jou Anthropic-sleutel nodig, onder Verstellings → KI-helper). Daarna wissel jy tussen die twee,
-    ook sonder internet en op jou ander toestelle. <b>Wysig</b> verander die taal wat jy sien; die ander een bly soos
-    dit is, en sê so as die nota ná die vertaling verander het. Bybelverse wat uit 'n vertaling aangehaal is, bly
-    soos hulle is.</li>
+  <li><b>Engels | Afrikaans:</b> 'n nota wat albei tale het, wys 'n EN | AF-skakelaar: wissel tussen die twee, ook
+    sonder internet en op jou ander toestelle. <b>Wysig</b> verander die taal wat jy sien. Bybelverse wat uit 'n
+    vertaling aangehaal is, bly soos hulle is.</li>
+  <li class="mo" hidden>Tik op die ander taal by 'n nota wat net een het, en Claude vertaal dit een keer (dit het jou
+    Anthropic-sleutel nodig, onder Verstellings → KI-helper). Die ander taal bly soos dit is, en sê so as die nota ná
+    die vertaling verander het.</li>
   <li>Ervarings en illustrasies kan met een tik in 'n preekvoorbereiding ingevoeg word, in die voorbereiding se taal
     as die nota dit het.</li>
 </ul>
@@ -503,14 +523,14 @@ samevatting.</p>
     joune.</li>
   <li><b>Stap 4, hoofpunte:</b> die hoofpunte kom altyd uit die Handleiding vir Godsdienste: die dele van sy
     artikel, in sy volgorde, is hoofpunt 1, 2, 3 en so aan. 'n Voorbereiding wat uit die Handleiding geneem is, begin
-    met hulle (elk gemerk "Handleiding"), en <b>Neem die hoofpunte uit die Handleiding</b> haal hulle weer. Onder elke
+    met hulle (elk gemerk "Handleiding"), en <b>Neem die hoofpunte uit die Handleiding</b> haal hulle weer. <span class="mo" hidden>Onder elke
     punt is 'n boks vir <b>jou eie gedagte</b> daaroor: 'n verhaal, 'n beeld, 'n vraag, iets wat jou getref het.
     Claude weef dit in die preek in wanneer dit die preek bou (sien "Stel die preek voor" hieronder) en vra jou eers
     wanneer iets onduidelik is. Om 'n gedagte in <b>net een punt</b> in te sit, tik op <b>Weef my gedagte in
     hierdie punt in</b> daaronder: Claude skryf daardie punt oor met jou gedagte daarin en laat die res van die
     preek soos dit is. Waar die gedagte onduidelik is, vra dit jou eers in 'n kort blad. Die nuwe teks wag onder die
     punt, met 'n reël oor waar jou gedagte heen is; verander die woorde as jy wil, en tik dan op <b>Gebruik</b> om
-    dit in die plek van die punt se teks te sit (Ontdoen bring die ou teks terug), of op <b>Verwyder</b>.</li>
+    dit in die plek van die punt se teks te sit (Ontdoen bring die ou teks terug), of op <b>Verwyder</b>.</span></li>
   <li><b>Stap 5, agtergrond:</b> soos die Handleiding se Agtergrond-boks, die agtergrond van die teks, met die
     sleutelwoorde, die Kategismus-afdelings wat die teks aanhaal, en kruisverwysings. Merk die Kategismus-afdelings
     wat jy wil hou en kies wat die preeknotas vir hulle moet dra: die volledige teks van elke afdeling, die Kategismus
@@ -540,10 +560,10 @@ Die app maak die skyfies vir daardie aand in die Kerk se blou voorkoms: die pree
 die Handleiding, een skyfie vir elke vraag, en 'n woord van dank om af te sluit. Elke skyfie kom met notas vir die een
 wat die aand lei.</p>
 <ol>
-  <li>Tik op <b>Besinningsaand</b> in die symenu (op 'n foon: <b>Besinning</b> in die balk onder). Laai die Kerk se
-    besinningsgids daar, of kies die godsdiens. Aande met skyfies staan eerste, onder <b>Jou skyfies</b>. Jy kan ook
+  <li>Tik op <b>Besinningsaand</b> in die symenu (op 'n foon: <b>Besinning</b> in die balk onder). Kies die
+    godsdiens<span class="mo" hidden>, of laai die Kerk se besinningsgids daar</span>. Aande met skyfies staan eerste, onder <b>Jou skyfies</b>. Jy kan ook
     die voorbereiding van die godsdiens oopmaak en op <b>Maak die skyfies</b> onder stap 9 tik.</li>
-  <li><b>Die Kerk se besinningsgids:</b> die PDF van een bladsy vir die aand. Tik op <b>Laai die besinningsgids
+  <li class="mo" hidden><b>Die Kerk se besinningsgids:</b> die PDF van een bladsy vir die aand. Tik op <b>Laai die besinningsgids
     (PDF)</b> en Claude skryf sy titel, tekswoord en vrae woord vir woord op die skyfies oor. Die godsdiens waarna dit
     terugkyk, word tussen jou voorbereidings gevind. As dit nie daar is nie, word dit bygevoeg en as gehou gemerk.
     Sonder die PDF neem die skyfies die titel en teks uit die voorbereiding, en die Kerk se vier gewone vrae.</li>
@@ -573,10 +593,25 @@ lys onder Diens Voorbereiding en onder Besinningsaand wys 'n godsdiens met skyfi
 vir die aand verander of gelaai het (Ontdoen bring dit terug); die voorbereiding bly soos dit is.</p>
 
 <h2>Hulp van Claude (die KI-helper)</h2>
-<p>Claude, die KI van Anthropic, kan 'n paar take van die voorbereiding oorneem. Dit het 'n sleutel van jou eie nodig
-onder Verstellings → KI-helper (die stappe is daar): jy betaal Anthropic net vir wat jy gebruik, omtrent R10 om 'n
-maand se Handleiding te lees en 'n paar rand vir 'n stel voorstelle, en die sleutel bly op jou toestel, buite enige
-rugsteun.</p>
+<p>Onder Teologie skryf <b>Vra Claude</b> die agtergrond van 'n boek, 'n hoofstuk of 'n gedeelte, in lyn met die
+Kategismus. Dit werk met 'n sleutel van jou eie van Anthropic, onder Verstellings → KI-helper (die stappe is daar): jy
+betaal Anthropic net vir wat jy gebruik, gewoonlik minder as 20 Amerikaanse sent per antwoord, en die sleutel bly op jou
+toestel, buite enige rugsteun. Wat na Anthropic gestuur word om te antwoord: die verse of die hoofstuk, die app se eie
+inleiding tot die boek en die Kategismus-afdelings wat dit aanhaal. Anthropic verwerk dit om te antwoord en lei nie
+daarmee op nie. Die antwoord is 'n hulp vir studie, nie Kerkleer nie.</p>
+<div class="mo" hidden>
+<p>Claude kan ook 'n paar take van die voorbereiding oorneem, met dieselfde sleutel: omtrent R10 om 'n maand se
+Handleiding te lees en 'n paar rand vir 'n stel voorstelle.</p>
+<p><b>Die helper is die ampsdraer se eie.</b> Onder Verstellings → KI-helper, <b>Kies 'n wagwoord</b>. Van dan af wys
+die Handleiding, die voorstelle, die vertaling van 'n nota en die besinningsgids net op 'n toestel waar die wagwoord
+getik is, een keer, en 'n geslote toestel wys geen teken daarvan nie: nie onder Diens Voorbereiding nie, nie onder
+Verstellings nie, nie op hierdie blad nie. Om 'n toestel te ontsluit, maak Verstellings daar oop en tik vyf keer op die
+woorde <b>KI-helper</b>: die blad vir die wagwoord maak oop. <b>Sluit op hierdie toestel</b> maak dit weer toe,
+byvoorbeeld voordat jy die foon vir iemand gee. Die wagwoord reis saam met die sinkronisasie as 'n slot, nooit as die
+wagwoord self nie; 'n nuwe wagwoord vra weer op elke toestel. Vergeet? <b>Verander die wagwoord</b> op 'n toestel wat
+nog oop is, of tik vyf keer op "KI-helper" en kies <b>Ek het die wagwoord vergeet</b>: jou sinkronisasiekode verwyder
+die slot. Enigiemand anders kan steeds <b>Vra Claude</b> onder Teologie gebruik, met 'n sleutel van hul eie; die
+ampsdraer se sleutel word nooit daarvoor gebruik nie.</p>
 <ul>
   <li><b>Die Handleiding vir Godsdienste:</b> onder Diens Voorbereiding neem <b>Laai 'n Handleiding (PDF)</b> die
     maand se Handleiding (Engels of Afrikaans). Claude lees elke godsdiens daaruit: datum, Bybelteks, titel, boodskap,
@@ -661,6 +696,7 @@ rugsteun.</p>
 hoofstuk, die Kategismus-afdelings wat daarby hoort, jou eie notas oor daardie voorbereiding, wie luister en jou nota
 oor hoe jy preek. Anthropic verwerk dit om te antwoord en lei nie daarmee op nie; niks daarvan word op die openbare
 webwerf geplaas nie. Die voorstelle is 'n beginpunt. Die preek bly joune.</p>
+</div>
 
 <h2>Sleutels vir die gelisensieerde vertalings</h2>
 <p>Twee dienste lisensieer Bybelvertalings aan apps, en albei gee 'n gratis sleutel vir persoonlike, nie-kommersiële
@@ -680,12 +716,13 @@ op die eerste toestel <b>Skakel sinkronisasie aan</b>: die app maak 'n kode van 
 'n QR-blokkie. Op die ander toestel maak jy dieselfde skerm oop, tik <b>Ek het 'n kode</b> en tik die kode in, of rig die
 foon se kamera op die blokkie (as die app op jou tuisskerm is, maak dit daar oop en tik die kode in, sodat daardie kopie
 die een is wat aansluit). Van toe af hou die twee toestelle mekaar vanself op datum: notas, voorbereidings, instellings,
-geplakte teks, die Kategismus-teks, die Handleidings en wat Claude in Teologie geskryf het, gaan oor binne 'n paar
+geplakte teks, die Kategismus-teks,<span class="mo" hidden> die Handleidings</span> en wat Claude in Teologie geskryf het, gaan oor binne 'n paar
 sekondes nadat jy die app oopmaak of iets verander. Wat jy op een toestel skrap, verdwyn ook op die ander; as dieselfde nota of voorbereiding op albei verander is
 voordat hulle kon sinkroniseer, wen die nuwer verandering.</p>
 <p>Alles word met jou kode op die toestel gesluit voordat dit gestuur word. Die bediener, 'n klein deel van die app op
 Vercel, hou net die gesluite kopie en kan dit nie lees nie, en niemand kan dit sonder die kode vind of oopmaak nie. Hou
-die kode dus waar jy jou wagwoorde hou: <b>Wys die kode</b> wys dit enige tyd weer. Jou sleutels vir API.Bible,
+die kode dus waar jy jou wagwoorde hou: <b>Wys die kode</b> wys dit enige tyd weer<span class="mo" hidden> ('n geslote toestel wys dit
+nie: ontsluit eers die helper)</span>. Jou sleutels vir API.Bible,
 YouVersion en Anthropic gaan ook mee, op dieselfde manier gesluit, tensy jy <b>Neem my sleutels ook mee</b> afmerk. Die
 voorkoms van die app (tema en tekstgrootte) bly per toestel. <b>Hou op sinkroniseer op hierdie toestel</b> hou alles op
 die toestel en laat die kopie op die bediener vir jou ander toestelle; <b>Skrap die kopie op die bediener</b> verwyder dit
@@ -753,6 +790,41 @@ tuisskerm" om dit soos 'n app oop te maak.</p>
   for (var b = 0; b < buttons.length; b++) {
     buttons[b].addEventListener('click', function (e) { show(e.currentTarget.getAttribute('data-lang')); });
   }
+})();
+
+/*
+ * The minister's part of this page (class "mo": the sermon helper and its
+ * lock) shows only where the helper is unlocked, by the same rule as in the
+ * app (src/lock.js): a lock whose password was typed on this device, or, before
+ * a lock exists, the minister's own key. It reads the app's own settings; where
+ * the app has never run, no database is made and the page stays as anyone sees it.
+ */
+(function () {
+  var want = { helperLock: null, helperOpen: '', aiKey: '' };
+  function show() {
+    var l = want.helperLock;
+    var open = l && typeof l === 'object' && l.hash && l.salt ? want.helperOpen === l.at : !!String(want.aiKey || '').trim();
+    if (!open) return;
+    var m = document.querySelectorAll('.mo');
+    for (var i = 0; i < m.length; i++) m[i].hidden = false;
+  }
+  try {
+    var req = indexedDB.open('nac-study-bible');
+    req.onupgradeneeded = function (e) { e.target.transaction.abort(); };
+    req.onsuccess = function () {
+      var db = req.result;
+      try {
+        var st = db.transaction('settings', 'readonly').objectStore('settings');
+        var left = 3;
+        function one() { if (!--left) { db.close(); show(); } }
+        ['helperLock', 'helperOpen', 'aiKey'].forEach(function (k) {
+          var g = st.get(k);
+          g.onsuccess = function () { if (g.result) want[k] = g.result.value; one(); };
+          g.onerror = one;
+        });
+      } catch (e) { db.close(); }
+    };
+  } catch (e) { /* no IndexedDB here: the page stays as anyone sees it */ }
 })();
 </script>
 </body>

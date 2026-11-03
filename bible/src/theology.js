@@ -398,7 +398,7 @@ function askCard(level, ref, opts, redraw) {
 }
 
 async function ask(level, ref, opts, redraw, l = aiLang()) {
-  if (!AI.ready()) { noKey(); return; }
+  if (!AI.ready('theology')) { noKey(); return; }   // anyone may ask here; while the helper is locked, with a key of their own (lock.js)
   const ctrl = new AbortController();
   const b = busy(t('Asking Claude'), () => ctrl.abort());
   const place = placeLabel(level, ref);
@@ -502,7 +502,7 @@ function choose(row, l, level, ref, redraw) {
 async function translate(src, l, level, ref, redraw) {
   const key = placeKey(level, ref);
   if (working.has(key)) return;
-  if (!AI.ready()) { noKey(); return; }
+  if (!AI.ready('theology')) { noKey(); return; }
   const job = { ctrl: new AbortController(), l, label: null };
   working.set(key, job);
   redraw();

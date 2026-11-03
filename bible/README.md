@@ -114,6 +114,19 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   the chapter title opens the chapter. A PC has "Theology" in the side menu; the phone's
   bar keeps its six tabs (a seventh does not fit at 360px), so there it is reached from
   the reader, and Read stays lit.
+- **The helper is the minister's own.** `src/lock.js`: under Settings → AI helper the
+  minister chooses a password; the app keeps a PBKDF2 hash of it (`settings.helperLock`,
+  which travels with the sync and the backup) and remembers an unlocked device in
+  `settings.helperOpen` (device only). Where the helper is locked, nothing says it exists:
+  Prepare, Notes and Reflection evening show none of Claude's buttons, panels or words,
+  the Guide cannot be loaded, the sync code is not shown, Settings has only Theology's key
+  box, the help page hides its part for the minister (class `mo`, shown by a small script
+  that reads the same settings), and `ai.js` refuses every request but Theology's. The way
+  in is five quick taps on the heading "AI helper" in Settings (`settings.js secretTap`),
+  which open the password sheet. Theology stays open to anyone, with a key of their own
+  (`settings.guestAiKey`, device only); the minister's key never goes out while the helper
+  is locked (`ai.js activeKey`). Before a password is chosen, the helper shows wherever the
+  minister's key is, as it did before.
 - **AI helper.** `src/ai.js` calls Claude (Anthropic) straight from the browser with the
   person's own key (Settings → AI helper, on the device only, never exported), streaming
   and with the answer held to a JSON schema. Two jobs: a monthly Divine Service Guide
