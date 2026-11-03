@@ -37,16 +37,36 @@ import { state, saveGuide, deleteGuide, uid } from './store.js';
 import * as AI from './ai.js';
 import * as Cat from './catechism.js';
 
-/** Loaded Guides, newest month first. */
-export function all() {
-  return state.guides.slice().sort((a, b) => (b.year - a.year) || (b.month - a.month) || (b.loadedAt || '').localeCompare(a.loadedAt || ''));
-}
-
-/* ---------------------------------------------------------------- one Guide, two languages */
-
 /* The languages the Guide comes in, as a switch names them (seg() puts them into the app's language). */
 const EDITIONS = { en: 'English', af: 'Afrikaans' };
 const RANK = { en: 0, af: 1 };
+
+/*
+ * One booklet: the month's Guide in one language. A Guide loaded on two
+ * devices before the sync joined them is there twice, as two copies of the
+ * same booklet with their own ids; preparations may be linked to either.
+ */
+const bookletOf = g => [g.year, g.month, g.language, EDITIONS[g.language] ? '' : g.title].join('|');
+
+/** Loaded Guides, newest month first, each booklet once: of a booklet loaded more than once, the copy loaded last. */
+export function all() {
+  const seen = new Set();
+  return state.guides.slice()
+    .sort((a, b) => (b.year - a.year) || (b.month - a.month) || (b.loadedAt || '').localeCompare(a.loadedAt || ''))
+    .filter(g => {
+      const k = bookletOf(g);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+}
+
+/** Every copy of a Guide's booklet on this device: the Guide itself, and the same month and language loaded on another device. */
+function copiesOf(guide) {
+  return state.guides.filter(g => bookletOf(g) === bookletOf(guide));
+}
+
+/* ---------------------------------------------------------------- one Guide, two languages */
 
 /** The name of a Guide's language for a switch: "English" or "Afrikaans" (else the booklet's own title). */
 export function editionLabel(guide) {
@@ -69,7 +89,7 @@ export function months() {
 export function otherEdition(guide) {
   const want = guide && { en: 'af', af: 'en' }[guide.language];
   if (!want) return null;
-  return state.guides.find(g => g.id !== guide.id && g.year === guide.year && g.month === guide.month && g.language === want) || null;
+  return all().find(g => g.year === guide.year && g.month === guide.month && g.language === want) || null;
 }
 
 /** Two references to the same verses. */
@@ -77,22 +97,28 @@ const sameRef = (a, b) => !!(a && b) && a.book === b.book && a.chapter === b.cha
   && (a.verse || 0) === (b.verse || 0) && (a.verseEnd || a.verse || 0) === (b.verseEnd || b.verse || 0);
 
 /**
- * The same service in the other language's Guide: {guide, service, i}, or
- * null when that Guide is not loaded or has no such service. It is the same
- * service when it has the same Bible text on the same day; failing that, the
- * same day and kind of service; failing that, the same place in a booklet
- * with as many services.
+ * Where service i of a Guide stands in another Guide of the same month (a
+ * copy, or the other language's): the same Bible text on the same day;
+ * failing that, the same day and kind of service; failing that, the same
+ * place in a booklet with as many services. -1 when it is not there.
  */
-export function partnerOf(guide, i) {
-  const other = otherEdition(guide);
-  const svc = guide && guide.services[i];
-  if (!other || !svc) return null;
+function placeIn(other, guide, i) {
+  if (other === guide) return i;
+  const svc = guide.services[i];
   const list = other.services;
   const ref = refOf(svc);
   let j = ref ? list.findIndex(x => sameRef(refOf(x), ref) && (!svc.date || !x.date || x.date === svc.date)) : -1;
   if (j < 0 && svc.date) j = list.findIndex(x => x.date === svc.date && x.kind === svc.kind);
   if (j < 0 && list.length === guide.services.length && list[i] && list[i].kind === svc.kind) j = i;
-  return j >= 0 ? { guide: other, service: list[j], i: j } : null;
+  return j;
+}
+
+/** The same service in the other language's Guide: {guide, service, i}, or null when that Guide is not loaded or has no such service (see placeIn). */
+export function partnerOf(guide, i) {
+  const other = otherEdition(guide);
+  if (!other || !guide.services[i]) return null;
+  const j = placeIn(other, guide, i);
+  return j >= 0 ? { guide: other, service: other.services[j], i: j } : null;
 }
 
 /** The Guides in the order to search them: newest month first, and in each month the Guide in `lang` first. */
@@ -144,11 +170,21 @@ export function matchService(ref, lang) {
   return null;
 }
 
-/** The preparations already started from a service, in this Guide or the same service in the other language's: [{sermon}] */
+/**
+ * The preparations already started from a service: linked to it in this
+ * Guide, in another copy of the same booklet, or to the same service in the
+ * other language's Guide or one of its copies: [{sermon}]
+ */
 export function preparationsFor(guide, i) {
+  const at = [];   // [guide id, service index]: this service in every copy, in both languages
   const twin = partnerOf(guide, i);
-  const from = (g, k) => s => s.guideLink && s.guideLink.guideId === g.id && s.guideLink.i === k;
-  return state.sermons.filter(s => from(guide, i)(s) || (twin && from(twin.guide, twin.i)(s)));
+  for (const [g, k] of [[guide, i], twin && [twin.guide, twin.i]].filter(Boolean)) {
+    for (const c of copiesOf(g)) {
+      const j = placeIn(c, g, k);
+      if (j >= 0) at.push([c.id, j]);
+    }
+  }
+  return state.sermons.filter(s => s.guideLink && at.some(([id, j]) => s.guideLink.guideId === id && s.guideLink.i === j));
 }
 
 /** The Guide's Summary as it goes into the Summary box under step 6: one point per line. */
@@ -376,7 +412,7 @@ async function read(file) {
   b.say(t('Claude is reading "{file}". A whole month takes a minute or two; you can keep the app open.', { file: file.name }));
   try {
     const g = await AI.readGuide(file, { signal: ctrl.signal, onProgress: n => b.say(t('Reading "{file}"… {k}k letters of it are in so far.', { file: file.name, k: Math.round(n / 1000) })) });
-    const older = state.guides.find(x => x.year === g.year && x.month === g.month && x.language === g.language);
+    const older = all().find(x => bookletOf(x) === bookletOf(g));   // the copy shown now, when this booklet is loaded already
     const guide = { ...g, id: older ? older.id : uid(), loadedAt: new Date().toISOString() };
     await saveGuide(guide);
     shown = { year: guide.year, month: guide.month, language: guide.language, usual: AI.langOf(null) };   // the card opens on the Guide just read
@@ -497,7 +533,7 @@ export function card({ onPrepare, onChange }) {
         canLoad ? el('button', { class: 'btn small ghost', type: 'button', text: t('Load another Guide'), onclick: loadOne }) : null,
         el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove this Guide'), onclick: async () => {
           if (await confirmBox(t('Remove "{title}" from this device? Preparations made from it keep their text; you can load the PDF again later.', { title: current.title }), t('Remove'), true)) {
-            await deleteGuide(current.id);
+            for (const g of copiesOf(current)) await deleteGuide(g.id);   // every copy of it, so no older copy takes its place
             toast(t('Guide removed.'));
             onChange();
           }
