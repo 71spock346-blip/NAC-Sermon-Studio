@@ -11,14 +11,14 @@
  * (/api/sync): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-03f';
+var VERSION = 'bible-2026-11-03g';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=43',
-  'src/app.js?v=43',
+  'styles.css?v=44',
+  'src/app.js?v=44',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',

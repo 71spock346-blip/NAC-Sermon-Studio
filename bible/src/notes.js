@@ -79,12 +79,16 @@ export function noteLang(n) {
   return n.lang === 'af' || n.lang === 'en' ? n.lang : guessLang(`${n.title || ''}\n${n.body || ''}`) || lang();
 }
 
-/** A short mark of a note's title and text, to see later whether it changed after it was translated. */
-function mark(title, body) {
-  const s = `${(title || '').trim()}\n\u0000${(body || '').trim()}`;
+/** A short mark of a text, to see later whether it changed after it was translated (a note here, an answer in Theology). */
+export function textMark(s) {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
   return `${s.length}.${h.toString(36)}`;
+}
+
+/** The mark of a note's title and text. */
+function mark(title, body) {
+  return textMark(`${(title || '').trim()}\n\u0000${(body || '').trim()}`);
 }
 
 /** A note in a language: its translation when it has one in that language, else the note as written. {title, body, lang, translated} */
