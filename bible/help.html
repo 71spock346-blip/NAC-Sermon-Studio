@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=41">
+<link rel="stylesheet" href="styles.css?v=42">
 </head>
 <body class="help">
 <header class="top">
@@ -108,7 +108,9 @@ how other Christians read it (each reading marked as in line with New Apostolic 
 open by the Catechism), how it points to Christ, other passages, and a thought for today. With the Catechism text loaded
 on the device, Claude says what the Church teaches from the Catechism itself; without it, Claude only names the
 sections. It takes about a minute and usually costs under 20 US cents. What Claude wrote is kept on the device, goes
-into the backup file and travels with the sync. <b>Ask again</b> writes it anew.</p>
+into the backup file and travels with the sync. <b>Ask again</b> writes it anew and keeps the earlier answer under the
+new one: tap it to read it, or tap <b>Put this one first</b>. Nothing Claude wrote goes unless you tap <b>Remove</b>,
+which asks first and takes away only that one answer (Undo brings it back).</p>
 <p>Under what Claude wrote, <b>Save all of this</b> keeps everything the page shows: the verses (for a book, its
 introduction), all that Claude wrote and the Catechism sections. <b>Save as PDF</b> gives a file to keep, for example in
 your Google Drive, or to send. <b>Print</b> prints it, and on a phone <b>Share</b> sends it straight to another app.
@@ -345,9 +347,9 @@ Alles wat jy skryf, bly op jou eie toestel. Daar is geen rekening en geen bedien
 
 <h2>Taal</h2>
 <p>Die app praat Engels of Afrikaans. Die <b>EN / AF</b>-skakelaar sit in die kopstuk op 'n foon en onderaan die
-symenu op 'n rekenaar, en dieselfde keuse is onder Instellings → Taal en onder die Aa-knoppie in die leser. Dit
+symenu op 'n rekenaar, en dieselfde keuse is onder Verstellings → Taal en onder die Aa-knoppie in die leser. Dit
 verander die skerms, die knoppies, hierdie hulpblad en die opskrifte van die gedrukte notas. Dit stel ook die boekname
-en die taal van Claude se voorstelle, en elkeen daarvan kan daarna op sy eie onder Instellings verander word. Die
+en die taal van Claude se voorstelle, en elkeen daarvan kan daarna op sy eie onder Verstellings verander word. Die
 Bybelteks self bly in die vertaling wat jy kies.</p>
 
 <h2>Lees</h2>
@@ -365,11 +367,11 @@ Bybelteks self bly in die vertaling wat jy kies.</p>
     Afrikaanse Bybels, in sy eie venster langs die app oopmaak; solank daardie venster oop bly, volg dit jou van
     hoofstuk tot hoofstuk. (BibleSA laat nie toe dat sy bladsye binne 'n ander webwerf gewys word nie, dus is 'n
     venster die naaste wat die app kan kom.)</li>
-  <li><b>Jou eie teks:</b> vir 'n Bybelteks wat jy self mag gebruik, merk sy weergawe onder Instellings → Vertalings →
+  <li><b>Jou eie teks:</b> vir 'n Bybelteks wat jy self mag gebruik, merk sy weergawe onder Verstellings → Vertalings →
     "My geplakte teks", kies dit in die leser (gemerk "geplak") en plak elke hoofstuk in van die bladsy waar jy dit
-    lees, versnommers ingesluit. Dit bly net in hierdie blaaier en het sy eie stoorlêer in Instellings.</li>
+    lees, versnommers ingesluit. Dit bly net in hierdie blaaier en het sy eie stoorlêer in Verstellings.</li>
   <li><b>NKJV en Afrikaans:</b> hierdie is kopieregbeskerm en kan nie ingebou word nie. Voeg jou eie gratis sleutel
-    vir API.Bible of die YouVersion Platform in Instellings by om hulle binne die app te lees (sien hieronder), of
+    vir API.Bible of die YouVersion Platform in Verstellings by om hulle binne die app te lees (sien hieronder), of
     gebruik die skakels onder elke hoofstuk om dieselfde hoofstuk op YouVersion, op BibleSA of op BibleGateway oop te
     maak.</li>
   <li><b>Merke:</b> 'n pers <b>C</b> beteken die Kategismus verwys na daardie vers; tik daarop om te sien watter
@@ -378,7 +380,7 @@ Bybelteks self bly in die vertaling wat jy kies.</p>
 
 <h2>Voorkoms</h2>
 <p>Die app dra die Kerk se blou en wit, soos die skyfies: die blou kopstrook met die embleem op 'n foon, die blou
-kantkieslys op 'n rekenaar, en elke letter in Montserrat. Onder Instellings → Voorkoms (en onder die
+kantkieslys op 'n rekenaar, en elke letter in Montserrat. Onder Verstellings → Voorkoms (en onder die
 Aa-knoppie in die leser) kies jy die tema: <b>Wit</b> is die blou en wit van die skyfies, <b>Papier</b> hou die blou maar
 gee die bladsye 'n warm roomkleur, <b>Donker</b> is om snags te lees, en <b>Stelsel</b> is Wit bedags en Donker snags,
 soos jou foon of rekenaar ingestel is. Dieselfde plek stel die teksgrootte, die letters en spasiëring (<b>Montserrat</b>,
@@ -396,7 +398,7 @@ gewys word. Elke toestel hou sy eie keuse.</p>
 <h2>Kategismus</h2>
 <p>Die Kategismus-oortjie lys die Kategismus se hoofstukke en afdelings. Maak 'n afdeling oop om die Bybelverse te
 sien wat dit aanhaal. Die teks van die afdelings is die Kerk se kopiereg, dus is dit nie deel van die openbare app
-nie: laai dit een keer op elke toestel onder Instellings → Kategismus, uit die lêer <i>catechism-text.json</i> wat
+nie: laai dit een keer op elke toestel onder Verstellings → Kategismus, uit die lêer <i>catechism-text.json</i> wat
 uit die Kategismus-PDF gemaak word
 (<code>python3 bible/tools/build_catechism.py catechism.txt catechism-toc.txt --text catechism-text.json</code>, waar
 <i>catechism.txt</i> die PDF as teks uit <code>pdftotext -layout</code> is). Dit bly in hierdie blaaier op hierdie
@@ -423,7 +425,10 @@ daaroor leer, hoe ander Christene dit lees (elke lesing gemerk as in lyn met die
 of deur die Kategismus oopgelaat), hoe dit na Christus wys, ander gedeeltes, en 'n gedagte vir vandag. Met die
 Kategismus-teks op die toestel gelaai, sê Claude uit die Kategismus self wat die Kerk leer; daarsonder noem Claude net
 die afdelings. Dit neem omtrent 'n minuut en kos gewoonlik minder as 20 Amerikaanse sent. Wat Claude geskryf het, word op
-die toestel bewaar, gaan in die rugsteunlêer en reis saam met die sinkronisasie. <b>Vra weer</b> skryf dit opnuut.</p>
+die toestel bewaar, gaan in die rugsteunlêer en reis saam met die sinkronisasie. <b>Vra weer</b> skryf dit opnuut en
+hou die vroeëre antwoord onder die nuwe een: tik daarop om dit te lees, of tik op <b>Sit hierdie een eerste</b>. Niks wat
+Claude geskryf het, verdwyn tensy jy op <b>Verwyder</b> tik nie; dit vra eers en neem net daardie een antwoord weg
+(Ontdoen bring dit terug).</p>
 <p>Onder wat Claude geskryf het, hou <b>Stoor dit alles</b> alles wat die blad wys: die verse (by 'n boek, sy
 inleiding), alles wat Claude geskryf het en die Kategismus-afdelings. <b>Stoor as PDF</b> gee 'n lêer om te hou,
 byvoorbeeld in jou Google Drive, of om te stuur. <b>Druk</b> druk dit, en op 'n foon stuur <b>Deel</b> dit reguit na
@@ -436,7 +441,7 @@ mekaar kan deurwerk: die Bybelteks, die titel en boodskap, die inleiding, die ho
 samevatting.</p>
 <ol>
   <li>Kies die tekswoord in die leser en kies <b>Berei 'n godsdiens voor</b>, tik op 'n godsdiens van die gelaaide
-    Handleiding, of tik op "Nuwe voorbereiding" in die Voorberei-oortjie. Vul die datum, gemeente en geleentheid in.</li>
+    Handleiding, of tik op "Nuwe voorbereiding" onder Diens Voorbereiding. Vul die datum, gemeente en geleentheid in.</li>
   <li><b>Stap 1, die tekswoord:</b> die Bybelteks. Dit kan uit 'n vertaling gehaal of ingetik word.</li>
   <li><b>Stap 2, titel en boodskap:</b> die Handleiding se titel en boodskap, dan die kerngedagte in jou eie woorde,
     en jou notas oor die Handleiding se artikel.</li>
@@ -510,19 +515,19 @@ gaan die pyltjiesleutels, die spasiebalk of 'n aanbiedingsklikker na die volgend
 swart en <b>Esc</b> beëindig die vertoning. Op 'n foon of tablet tik of swiep jy. <b>Stoor as PowerPoint</b> gee 'n
 lêer wat in PowerPoint of Google Slides oopmaak, waar jy dit nog kan verander. Op 'n foon stuur <b>Deel</b> dit na
 WhatsApp of e-pos. Alles wat jy hier instel, word saam met die voorbereiding gestoor terwyl jy tik. In die
-Voorberei-lys en onder Besinningsaand wys 'n godsdiens met skyfies <b>Skyfies</b>. <b>Skrap hierdie skyfies</b>, heel onder, neem weg wat jy
+lys onder Diens Voorbereiding en onder Besinningsaand wys 'n godsdiens met skyfies <b>Skyfies</b>. <b>Skrap hierdie skyfies</b>, heel onder, neem weg wat jy
 vir die aand verander of gelaai het (Ontdoen bring dit terug); die voorbereiding bly soos dit is.</p>
 
 <h2>Hulp van Claude (die KI-helper)</h2>
 <p>Claude, die KI van Anthropic, kan 'n paar take van die voorbereiding oorneem. Dit het 'n sleutel van jou eie nodig
-onder Instellings → KI-helper (die stappe is daar): jy betaal Anthropic net vir wat jy gebruik, omtrent R10 om 'n
+onder Verstellings → KI-helper (die stappe is daar): jy betaal Anthropic net vir wat jy gebruik, omtrent R10 om 'n
 maand se Handleiding te lees en 'n paar rand vir 'n stel voorstelle, en die sleutel bly op jou toestel, buite enige
 rugsteun.</p>
 <ul>
-  <li><b>Die Handleiding vir Godsdienste:</b> in die Voorberei-oortjie neem <b>Laai 'n Handleiding (PDF)</b> die
+  <li><b>Die Handleiding vir Godsdienste:</b> onder Diens Voorbereiding neem <b>Laai 'n Handleiding (PDF)</b> die
     maand se Handleiding (Engels of Afrikaans). Claude lees elke godsdiens daaruit: datum, Bybelteks, titel, boodskap,
     die artikel, die Agtergrond-boks, die Samevatting en die Kategismus-afdelings wat dit aanhaal. Die godsdienste
-    word dan in die Voorberei-oortjie gelys; tik op een en 'n voorbereiding maak oop met die tekswoord, titel,
+    word dan onder Diens Voorbereiding gelys; tik op een en 'n voorbereiding maak oop met die tekswoord, titel,
     boodskap, hoofpunte, agtergrond en samevatting ingevul, elk in sy eie stap, en die Kategismus-afdelings gemerk.
     Onder stap 2 wys <b>Lees die artikel</b> die Handleiding se teks terwyl jy werk. 'n Voorbereiding wat in die leser begin is oor 'n teks wat die Handleiding
     dek, tel die artikel vanself op; "Neem die boodskap uit die Handleiding" heg een met die hand aan. Gelaaide
@@ -595,7 +600,7 @@ rugsteun.</p>
     wat Claude dink pas, word op sy eie onder "Stel die preek voor" aangebied, sodat jy dit kan neem of laat.</li>
   <li><b>In jou woorde:</b> elke voorstel kom in kort sinne en alledaagse woorde, sodat dit maklik is om op 'n foon
     te lees en van die kansel af te sê; waar 'n Kerk- of Bybelwoord nodig is, sê Claude in eenvoudige woorde wat dit
-    beteken. Onder Instellings → KI-helper → <b>Hoe jy preek</b> stel jy die gewone humor en kan jy 'n paar reëls oor
+    beteken. Onder Verstellings → KI-helper → <b>Hoe jy preek</b> stel jy die gewone humor en kan jy 'n paar reëls oor
     jou eie manier van preek skryf, wat Claude in elke voorstel volg.</li>
 </ul>
 <p>Wat na Anthropic gestuur word om te antwoord: die Handleiding-PDF of die besinningsgids wanneer jy een laai, die tekswoord en sy
@@ -608,7 +613,7 @@ webwerf geplaas nie. Die voorstelle is 'n beginpunt. Die preek bly joune.</p>
 gebruik. <b>API.Bible</b>: gaan na <a href="https://scripture.api.bible/signup" target="_blank" rel="noopener">scripture.api.bible/signup</a>,
 skep 'n toepassing en kopieer sy sleutel; dit dra die NKJV. <b>YouVersion Platform</b>: registreer by
 <a href="https://platform.youversion.com" target="_blank" rel="noopener">platform.youversion.com</a>, skep 'n app en
-kopieer sy appsleutel; YouVersion dra die Afrikaanse Bybels. Plak 'n sleutel onder Instellings → Vertalings en tik op
+kopieer sy appsleutel; YouVersion dra die Afrikaanse Bybels. Plak 'n sleutel onder Verstellings → Vertalings en tik op
 "Kontroleer sleutel": dit lys die Bybels wat daardie sleutel mag lees, en jy merk dié wat in die leser gewys moet
 word. Watter vertalings verskyn, hang af van die lisensies wat elke diens aan jou sleutel toegestaan het. YouVersion
 wys ook die Bybels wat dit in jou tale dra wat nog nie aan jou app gelisensieer is nie, gemerk "lisensie nodig": tik
@@ -616,7 +621,7 @@ op Lisensie langs een om te sien watter ooreenkoms dit dek, aanvaar daardie oore
 kontroleer dan die sleutel weer. Sleutels word net op jou toestel gestoor en is nooit in 'n rugsteun ingesluit nie.</p>
 
 <h2>Sinkroniseer tussen jou toestelle</h2>
-<p>Jou rekenaar en foon kan mekaar dieselfde hou. Onder Instellings → <b>Sinkroniseer tussen jou toestelle</b> tik jy
+<p>Jou rekenaar en foon kan mekaar dieselfde hou. Onder Verstellings → <b>Sinkroniseer tussen jou toestelle</b> tik jy
 op die eerste toestel <b>Skakel sinkronisasie aan</b>: die app maak 'n kode van 20 letters en syfers en wys dit saam met
 'n QR-blokkie. Op die ander toestel maak jy dieselfde skerm oop, tik <b>Ek het 'n kode</b> en tik die kode in, of rig die
 foon se kamera op die blokkie (as die app op jou tuisskerm is, maak dit daar oop en tik die kode in, sodat daardie kopie
@@ -633,14 +638,14 @@ die toestel en laat die kopie op die bediener vir jou ander toestelle; <b>Skrap 
 vir goed. <b>Vee alles op hierdie toestel uit</b> onder Oor die app raak net daardie toestel.</p>
 
 <h2>Rugsteun en toestelle</h2>
-<p>Notas, voorbereidings en wat Claude in Teologie geskryf het, leef in die blaaier op elke toestel. Onder Instellings → Rugsteun maak <b>Stoor
+<p>Notas, voorbereidings en wat Claude in Teologie geskryf het, leef in die blaaier op elke toestel. Onder Verstellings → Rugsteun maak <b>Stoor
 rugsteunlêer</b> een lêer met alles; hou dit in jou Google Drive, ook wanneer sinkronisasie aan is: dit is jou eie kopie,
 in 'n lêer wat jy kan sien. <b>Laai rugsteunlêer</b> op 'n ander toestel voeg dit saam: nuwer kopieë wen en niks word
 geskrap nie. As jy die blaaier se webwerfdata uitvee, word die app se berging uitgewis, dus stoor eers 'n rugsteun.</p>
 
 <h2>Vanlyn en tuisskerm</h2>
 <p>Die app hou elke hoofstuk wat jy oopmaak. Om die hele Bybel sonder 'n verbinding gereed te hê, gebruik
-<b>Laai alle tekste af vir vanlyn gebruik</b> in Instellings een keer. Gebruik op 'n foon die blaaier se "Voeg by
+<b>Laai alle tekste af vir vanlyn gebruik</b> in Verstellings een keer. Gebruik op 'n foon die blaaier se "Voeg by
 tuisskerm" om dit soos 'n app oop te maak.</p>
 
 <h2>Kopiereg</h2>

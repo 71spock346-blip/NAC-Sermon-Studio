@@ -103,8 +103,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   other passages, Catechism sections and a word for today; the instructions, the Creed
   and the index form a cached opening, so asking again soon costs less. The answer is
   kept in the `theology` store, one row per place and language (`en:ROM.8`,
-  `af:ROM.8.28-30`), and goes with the sync and the backup file. Under it, "Save all of
-  this" keeps everything the page shows (the verses or the book's introduction, all
+  `af:ROM.8.28-30`), and goes with the sync and the backup file. Asking again keeps the
+  answer it replaces in the row's `earlier` list, shown folded under the new one to read,
+  put first again or remove; Remove asks first and takes away one answer, with Undo.
+  Under it, "Save all of this" keeps everything the page shows (the verses or the book's introduction, all
   that Claude wrote and the Catechism sections, built once by `theology.js savedPage`)
   as a PDF (`pdf.js theologyPdf`, with `winAnsi` for Greek or Hebrew letters the PDF's
   letters lack) or as a Doctrine note. In the reader,
@@ -151,8 +153,9 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   request when they are on the device; the Guide, like the Catechism, is the Church's text
   and stays out of the repository and the backup.
 - **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
-  in IndexedDB on the device (`src/store.js`). Settings → Backup exports and merges a
-  JSON file.
+  in IndexedDB on the device (`src/store.js`). At start the app asks the browser to keep
+  that storage when the device runs short of space (`app.js keepData`,
+  `navigator.storage.persist`). Settings → Backup exports and merges a JSON file.
 - **Sync.** Settings → "Sync between your devices" keeps a PC and a phone the same
   without an account: the first device makes a code of 20 letters (100 bits), the
   other joins by typing it or scanning its QR square (`vendor/qrcode.mjs`, MIT; the

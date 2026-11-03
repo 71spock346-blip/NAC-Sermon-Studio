@@ -158,6 +158,18 @@ function hideSplash() {
   setTimeout(go, Math.max(0, 1300 - performance.now()));
 }
 
+/**
+ * Asks the browser to keep what is saved in the app (notes, preparations,
+ * what Claude wrote in Theology) even when the device runs short of space,
+ * instead of clearing it as it may for a site it thinks is little used.
+ * Most browsers decide by themselves without asking; Firefox asks once.
+ */
+function keepData() {
+  const s = navigator.storage;
+  if (!s || !s.persist || !s.persisted) return;
+  s.persisted().then(kept => kept || s.persist()).catch(() => {});
+}
+
 async function start() {
   await load();
   await Sync.init();
@@ -176,6 +188,7 @@ async function start() {
   hideSplash();
   document.addEventListener('sb-sync', onSynced);
   Sync.start();
+  keepData();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }

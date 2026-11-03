@@ -361,9 +361,11 @@ export async function deleteGuide(id) {
 }
 
 /* ---- theology: what Claude wrote on a passage, a chapter or a book ----
-   One row per place and language ('en:PSA.23.1-3', 'af:PSA.23', 'en:PSA'),
-   so asking again replaces it. Claude's words, not the Church's text: they
-   travel with the sync and the backup like the notes. */
+   One row per place and language ('en:PSA.23.1-3', 'af:PSA.23', 'en:PSA').
+   Asking again keeps the answer it replaces in the row's `earlier` list
+   (theology.js), so the row carries every answer on that place. Claude's
+   words, not the Church's text: they travel with the sync and the backup
+   like the notes. */
 export async function saveInsight(row) {
   row.updated = new Date().toISOString();
   const i = state.theology.findIndex(x => x.id === row.id);

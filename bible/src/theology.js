@@ -19,7 +19,11 @@
  * the device, and how other Christians read it, each reading marked as in
  * line with New Apostolic teaching, different from it, or left open by the
  * Catechism. What Claude wrote is kept (store.js saveInsight, one row per
- * place and language) and travels with the sync and the backup. Under it,
+ * place and language) and travels with the sync and the backup. Nothing of
+ * it goes unless the minister says so (Jerome: "if it won't disappear"):
+ * asking again puts the answer shown so far under the new one (row.earlier,
+ * the newest first), to read, to put first again or to remove, and Remove
+ * asks first and takes away only the answer it stands under. Under it,
  * "Save all of this" keeps everything the page shows outside Theology: as a
  * PDF to keep, print or share (pdf.js theologyPdf), or as one of the
  * minister's notes (savedPage).
@@ -32,7 +36,7 @@
  * seventh does not fit at 360px), so there Theology is reached from the
  * reader; on a PC it also has its own place in the side menu.
  */
-import { el, clear, toast, sheet, busy, seg, fmtDate } from './ui.js';
+import { el, clear, toast, sheet, busy, seg, fmtDate, confirmBox } from './ui.js';
 import { t, tn, lang } from './i18n.js';
 import { BY_ID, bookName, parseRef, formatRef } from './books.js';
 import { state, saveInsight, deleteInsight } from './store.js';
@@ -377,25 +381,28 @@ async function ask(level, ref, opts, redraw, l = aiLang()) {
     const data = await loadIntros(l).catch(() => null);
     const r = await AI.insight(level, ref, { passage, intro: introLines(data && data.books[ref.book]), lang: l, signal: ctrl.signal });
     const end = ref.verseEnd || ref.verse;
-    await saveInsight({
-      id: `${l}:${placeKey(level, ref)}`, level, book: ref.book,
+    const id = `${l}:${placeKey(level, ref)}`;
+    // asking again throws nothing away: the answer there so far goes under the new one
+    const before = state.theology.find(x => x.id === id);
+    const earlier = before && before.data ? [stamped(before), ...earlierOf(before)] : [];
+    await saveInsight(withAnswers({
+      id, level, book: ref.book,
       chapter: level === 'book' ? null : ref.chapter,
       verse: level === 'text' ? ref.verse : null, verseEnd: level === 'text' ? end : null,
-      lang: l, data: r,
-    });
+      lang: l,
+    }, r, earlier));
     b.done();
     redraw();
-    toast(t('Kept with your study. Sync takes it to your other devices.'));
+    toast(earlier.length ? t('The new answer is first. The earlier one is kept under it.') : t('Kept with your study. Sync takes it to your other devices.'));
   } catch (e) {
     if (e && e.name === 'AbortError') return;
     b.fail(e.message || String(e));
   }
 }
 
-/** What Claude wrote, field by field, with the Catechism sections it names and the buttons under it. */
+/** What Claude wrote, field by field, with the Catechism sections it names, the buttons under it and the answers Claude gave here before. */
 function insightView(row, level, ref, opts, redraw, otherLang) {
   const d = row.data || {};
-  const list = v => (Array.isArray(v) ? v : []);
   const box = el('div', { class: 'th-insight' });
   if (otherLang) {
     box.append(el('div', { class: 'row line th-lang' }, [
@@ -403,12 +410,28 @@ function insightView(row, level, ref, opts, redraw, otherLang) {
       el('button', { class: 'btn small ghost', type: 'button', onclick: () => ask(level, ref, opts, redraw) }, [sparkle(), t('Ask in {language}', { language: langName(aiLang()) })]),
     ]));
   }
+  box.append(...answerParts(d, level, ref));
+  box.append(saveBox(row, level, ref, opts), el('div', { class: 'th-foot' }, [
+    el('p', { class: 'muted small', text: writtenLine(d, row.updated) + ' ' + measureLine() }),
+    el('div', { class: 'row' }, [
+      el('button', { class: 'btn small ghost', type: 'button', onclick: () => ask(level, ref, opts, redraw) }, [sparkle(), t('Ask again')]),
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => removeAnswer(row, -1, level, ref, redraw) }),
+    ]),
+  ]));
+  const earlier = earlierBox(row, level, ref, redraw);
+  if (earlier) box.append(earlier);
+  return box;
+}
+
+/** The parts of one answer of Claude's, in the order of the screen; a part with nothing in it is left out. */
+function answerParts(d, level, ref) {
+  const list = v => (Array.isArray(v) ? v : []);
   const part = (title, body, cls) => {
     const items = [].concat(body).filter(Boolean);
     return items.length ? el('section', { class: 'th-sec' + (cls ? ' ' + cls : '') }, [el('h4', { text: title }), ...items]) : null;
   };
   const partHref = level === 'book' ? p => `#theology/${ref.book}/${p.from}` : p => `#read/${ref.book}/${ref.chapter}/${p.from}`;
-  box.append(...[
+  return [
     part(t('In plain words'), paras(d.plain), 'lead'),
     part(t('Background'), paras(d.background)),
     part(t('The writer'), paras(d.writer)),
@@ -425,28 +448,91 @@ function insightView(row, level, ref, opts, redraw, otherLang) {
     ]))) : null),
     part(t('For today'), paras(d.today)),
     part(t('Good to know'), paras(d.note), 'aside'),
-  ].filter(Boolean));
+  ].filter(Boolean);
+}
 
-  const remove = el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: async () => {
-    const copy = JSON.parse(JSON.stringify(row));
-    await deleteInsight(row.id);
-    redraw();
-    toast(t('Removed.'), false, async () => { await saveInsight(copy); redraw(); });
-  } });
-  box.append(saveBox(row, level, ref, opts), el('div', { class: 'th-foot' }, [
-    el('p', { class: 'muted small', text: t('Written {date} by {model}{cost}.', { date: fmtDate(d.at || row.updated), model: AI.modelLabel(d.model), cost: d.cost ? ', ' + AI.fmtCost(d.cost) : '' }) + ' ' + measureLine() }),
-    el('div', { class: 'row' }, [
-      el('button', { class: 'btn small ghost', type: 'button', onclick: () => ask(level, ref, opts, redraw) }, [sparkle(), t('Ask again')]),
-      remove,
-    ]),
-  ]));
-  return box;
+/** "Written 3 Nov 2026 by Claude …, about $0.14." under an answer, and on an earlier answer folded away. */
+function writtenLine(d, fallback) {
+  return t('Written {date} by {model}{cost}.', { date: fmtDate(d.at || fallback), model: AI.modelLabel(d.model), cost: d.cost ? ', ' + AI.fmtCost(d.cost) : '' });
+}
+
+/* ---------------------------------------------------------------- answers kept */
+
+/** The answers Claude gave on this place before, the newest first. */
+const earlierOf = row => (Array.isArray(row.earlier) ? row.earlier.filter(x => x && typeof x === 'object') : []);
+
+/** The answer shown first, with the day it was written, ready to go under another. */
+const stamped = row => ({ ...(row.data || {}), at: (row.data && row.data.at) || row.updated });
+
+/** The row with `data` shown first and `earlier` under it, the newest first. */
+function withAnswers(row, data, earlier) {
+  const { earlier: _old, ...rest } = row;
+  const kept = earlier.filter(Boolean).sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+  return kept.length ? { ...rest, data, earlier: kept } : { ...rest, data };
+}
+
+/** The first sentence of an answer, to know it again. */
+const firstWords = d => String(d.plain || '').split(/(?<=[.!?])\s/)[0].trim();
+
+/**
+ * The answers Claude gave here before, kept under the newest. Each is folded
+ * away under its date and first words: open it to read all of it, put it
+ * first again, or remove it.
+ */
+function earlierBox(row, level, ref, redraw) {
+  const old = earlierOf(row);
+  if (!old.length) return null;
+  return el('section', { class: 'th-earlier' }, [
+    el('h4', { text: tn(old.length, 'An earlier answer', '{n} earlier answers') }),
+    el('p', { class: 'small muted', text: t('Asking again never throws an answer away. Earlier answers stay here until you remove them.') }),
+    ...old.map((d, i) => el('details', { class: 'th-old' }, [
+      el('summary', {}, [
+        el('span', { class: 'th-old-when', text: writtenLine(d) }),
+        firstWords(d) ? el('span', { class: 'th-old-first', text: firstWords(d) }) : null,
+      ]),
+      ...answerParts(d, level, ref),
+      el('div', { class: 'row th-old-foot' }, [
+        el('button', { class: 'btn small', type: 'button', text: t('Put this one first'), onclick: () => putFirst(row, i, redraw) }),
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => removeAnswer(row, i, level, ref, redraw) }),
+      ]),
+    ])),
+  ]);
+}
+
+/** Earlier answer i becomes the one shown first; the one shown so far goes under it. */
+async function putFirst(row, i, redraw) {
+  const old = earlierOf(row);
+  if (!old[i]) return;
+  await saveInsight(withAnswers(row, old[i], [stamped(row), ...old.filter((_, k) => k !== i)]));
+  redraw();
+  toast(t('This answer is first now. The other one is kept under it.'));
+}
+
+/**
+ * Removes one answer, after asking: the one shown first (i < 0), whose place
+ * the newest earlier answer then takes, or earlier answer i. With Undo.
+ */
+async function removeAnswer(row, i, level, ref, redraw) {
+  const old = earlierOf(row);
+  const question = i >= 0
+    ? t('Remove the earlier answer written {date}? It goes from all your devices.', { date: fmtDate(old[i] && old[i].at) })
+    : old.length
+      ? t('Remove this answer? The earlier answer, written {date}, takes its place.', { date: fmtDate(old[0].at) })
+      : t('Remove what Claude wrote on {place}? It goes from all your devices.', { place: placeLabel(level, ref) });
+  if (!await confirmBox(question, t('Remove'), true)) return;
+  const copy = JSON.parse(JSON.stringify(row));
+  if (i >= 0) await saveInsight(withAnswers(row, row.data, old.filter((_, k) => k !== i)));
+  else if (old.length) await saveInsight(withAnswers(row, old[0], old.slice(1)));
+  else await deleteInsight(row.id);
+  redraw();
+  toast(t('Removed.'), false, async () => { await saveInsight(copy); redraw(); });
 }
 
 /**
  * Keeping all of it outside Theology (Jerome: "I want to be able to save all
  * that information that is on the screen"): as a PDF to keep, print or share,
- * or as one of his notes. What Claude wrote stays in Theology by itself.
+ * or as one of his notes. What Claude wrote stays in Theology by itself, the
+ * earlier answers too.
  */
 function saveBox(row, level, ref, opts) {
   const what = level === 'book'
