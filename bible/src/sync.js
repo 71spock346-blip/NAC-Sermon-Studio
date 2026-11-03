@@ -10,8 +10,9 @@
  * of the code. It cannot read notes, keys or the Church's texts, and nobody
  * without the code can find or open them.
  *
- * The data goes in six parts (notes, preparations, settings, pasted text,
- * the Catechism text and the Guides), each its own blob with an ETag. A sync
+ * The data goes in seven parts (notes, preparations, settings, pasted text,
+ * the Catechism text, the Guides and the theology Claude wrote), each its
+ * own blob with an ETag. A sync
  * asks the server for each part "has it changed since the copy I saw?"; a
  * changed part is merged with the rows here (merge.js: newer wins, deletions
  * travel as markers) and, when this device holds anything the server lacks,
@@ -25,7 +26,7 @@ import { state, db, DEFAULT_SETTINGS, SECRET, DEVICE_ONLY, onChange, getCatechis
 import { mergeCollection, mergeSettings, mergeSingle } from './merge.js';
 import * as Cat from './catechism.js';
 
-export const PARTS = ['notes', 'sermons', 'settings', 'texts', 'catechism', 'guides'];
+export const PARTS = ['notes', 'sermons', 'settings', 'texts', 'catechism', 'guides', 'theology'];
 const API = 'api/sync';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no 0, O, 1 or I: nothing to mistake when typing
 const CODE_LENGTH = 20;
@@ -176,7 +177,7 @@ async function sendPart(part, obj, etag) {
 }
 
 function partName(part) {
-  return { notes: t('notes|part'), sermons: t('preparations|part'), settings: t('settings|part'), texts: t('pasted chapters|part'), catechism: t('Catechism text|part'), guides: t('Guides|part') }[part] || part;
+  return { notes: t('notes|part'), sermons: t('preparations|part'), settings: t('settings|part'), texts: t('pasted chapters|part'), catechism: t('Catechism text|part'), guides: t('Guides|part'), theology: t('theology|part') }[part] || part;
 }
 
 /* ---------------------------------------------------------------- the parts */
@@ -192,6 +193,7 @@ async function localPayload(part) {
     case 'notes': return { v: 1, items: state.notes, deleted: state.deleted.notes };
     case 'sermons': return { v: 1, items: state.sermons, deleted: state.deleted.sermons };
     case 'guides': return { v: 1, items: state.guides, deleted: state.deleted.guides };
+    case 'theology': return { v: 1, items: state.theology, deleted: state.deleted.theology };
     case 'texts': return { v: 1, items: await db.all('texts'), deleted: state.deleted.texts };
     case 'settings': {
       const rows = {};
@@ -206,8 +208,8 @@ async function localPayload(part) {
   throw new Error('unknown part ' + part);
 }
 
-const STAMP = { notes: r => r.updated || '', sermons: r => r.updated || '', guides: r => r.loadedAt || '', texts: r => r.at || '' };
-const KEY = { notes: r => r.id, sermons: r => r.id, guides: r => r.id, texts: r => r.key };
+const STAMP = { notes: r => r.updated || '', sermons: r => r.updated || '', guides: r => r.loadedAt || '', texts: r => r.at || '', theology: r => r.updated || '' };
+const KEY = { notes: r => r.id, sermons: r => r.id, guides: r => r.id, texts: r => r.key, theology: r => r.id };
 
 /**
  * Merges the server copy into this device and says what must go back:

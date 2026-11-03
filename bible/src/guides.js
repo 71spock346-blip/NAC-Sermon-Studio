@@ -396,7 +396,7 @@ async function read(file) {
 export function noKey() {
   const s = sheet(t('Your Anthropic key is needed'));
   s.body.append(
-    el('p', { text: t('Claude reads the Guide and makes the suggestions with a key of your own, so that you pay only for what you use and the key stays on this device.') }),
+    el('p', { text: t('Claude reads the Guide, makes the suggestions and writes the theology with a key of your own, so that you pay only for what you use and the key stays on this device.') }),
     el('p', { class: 'small' }, [t('Get the key at console.anthropic.com and paste it under Settings → AI helper. The settings page has the steps.')]),
     el('div', { class: 'row end' }, [el('a', { class: 'btn', href: '#settings', text: t('Open Settings'), onclick: () => s.close() })]),
   );

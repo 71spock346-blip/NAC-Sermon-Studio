@@ -5,8 +5,7 @@
  * API.Bible ask for.
  */
 import { el, clear, toast, confirmBox, download, today, sheet, busy, fmtDate, seg, copyText, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
-import { t, tn, LANGS } from './i18n.js';
-import { switchLang } from './app.js';
+import { t, tn, LANGS, requestLang } from './i18n.js';
 import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts, saveCatechismText, deleteCatechismText } from './store.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
@@ -29,7 +28,7 @@ export function render(container) {
   const S = state.settings;
 
   // ---- language
-  const uiSeg = seg(LANGS, S.uiLang || 'en', v => switchLang(v), { block: true, label: t('Language of the app') });
+  const uiSeg = seg(LANGS, S.uiLang || 'en', v => requestLang(v), { block: true, label: t('Language of the app') });
   container.append(section(t('Language'), [
     el('label', { class: 'f' }, [t('Language of the app'), uiSeg, el('span', { class: 'hint muted small', text: t('The screens, the buttons, the help page and the headings in the printed notes. Switching also sets the book names and the language of Claude\'s suggestions below; each can be changed on its own afterwards. The Bible text stays in the translation you choose.') })]),
   ]));
@@ -122,7 +121,10 @@ export function render(container) {
     try {
       const data = JSON.parse(await f.text());
       const r = await importAll(data);
-      toast(t('Backup loaded: {notes} and {sermons} added or updated.', { notes: tn(r.notes, '{n} note', '{n} notes'), sermons: tn(r.sermons, '{n} preparation', '{n} preparations') }));
+      const what = { notes: tn(r.notes, '{n} note', '{n} notes'), sermons: tn(r.sermons, '{n} preparation', '{n} preparations') };
+      toast(r.theology
+        ? t('Backup loaded: {notes}, {sermons} and {theology} added or updated.', { ...what, theology: tn(r.theology, '{n} theology study', '{n} theology studies') })
+        : t('Backup loaded: {notes} and {sermons} added or updated.', what));
       render(root);
     } catch (e) { toast(e.message || t('That file could not be read.'), true); }
     fileInput.value = '';

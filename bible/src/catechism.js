@@ -197,6 +197,22 @@ export function chapterMap(book, chapter) {
   return out;
 }
 
+/** How often each section quotes a book, or one chapter of it: [{section, count}], the most quoted first. */
+export function quoting(book, chapter = 0) {
+  if (!data) return [];
+  const prefix = chapter ? `${book}.${chapter}.` : `${book}.`;
+  const whole = chapter ? `${book}.${chapter}` : '';
+  const counts = new Map();
+  for (const [k, ns] of Object.entries(data.refs)) {
+    if (!k.startsWith(prefix) && k !== whole) continue;
+    for (const n of ns) counts.set(n, (counts.get(n) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || compareN(a[0], b[0]))
+    .map(([n, count]) => ({ section: data.byN[n], count }))
+    .filter(x => x.section);
+}
+
 /** The verses a section quotes: [{key, label, ref}]. */
 export function versesOf(n) {
   if (!data) return [];

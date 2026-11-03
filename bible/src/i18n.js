@@ -35,6 +35,17 @@ export function setLang(l) {
   try { localStorage.setItem('sb-lang', current); } catch (e) { /* private mode: the database still has it */ }
 }
 
+/**
+ * Asks the app to switch everything to English or Afrikaans (app.js
+ * switchLang, which also sets the book names and Claude's language and
+ * redraws the screen). The screens ask through an event rather than by
+ * importing app.js: index.html loads app.js with a version mark (?v=) and an
+ * import would load it a second time, starting the whole app twice.
+ */
+export function requestLang(l) {
+  document.dispatchEvent(new CustomEvent('sb-lang', { detail: l }));
+}
+
 /** The text for a key in the current language, with {name} variables filled in. */
 export function t(key, vars) {
   let s = current === 'af' ? AF[key] : undefined;
