@@ -99,7 +99,11 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   other passages, Catechism sections and a word for today; the instructions, the Creed
   and the index form a cached opening, so asking again soon costs less. The answer is
   kept in the `theology` store, one row per place and language (`en:ROM.8`,
-  `af:ROM.8.28-30`), and goes with the sync and the backup file. In the reader,
+  `af:ROM.8.28-30`), and goes with the sync and the backup file. Under it, "Save all of
+  this" keeps everything the page shows (the verses or the book's introduction, all
+  that Claude wrote and the Catechism sections, built once by `theology.js savedPage`)
+  as a PDF (`pdf.js theologyPdf`, with `winAnsi` for Greek or Hebrew letters the PDF's
+  letters lack) or as a Doctrine note. In the reader,
   "Theology" in the verse bar opens a sheet on the chosen verses and the button beside
   the chapter title opens the chapter. A PC has "Theology" in the side menu; the phone's
   bar keeps its six tabs (a seventh does not fit at 360px), so there it is reached from

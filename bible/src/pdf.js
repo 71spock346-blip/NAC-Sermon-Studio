@@ -14,6 +14,8 @@
  *                  Claude broke it down: a study sheet to read beside the booklet
  *   Facilitator notes  A4 portrait, large clear type: for a reflection
  *                  evening, what to say and do at each slide, slide by slide
+ *   Theology       A4 portrait: everything the Theology page shows on a
+ *                  passage, a chapter or a book, with all that Claude wrote
  *
  * Printing goes through the finished PDF, so the paper matches the file.
  */
@@ -594,6 +596,83 @@ export function facilitatorPdf(inp, slides) {
   w.footer([state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  \u00b7  '));
   const name = [W.evening, inp.evening, '-', W.notes].filter(Boolean).join(' ').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim() + '.pdf';
   return { blob: doc.output('blob'), name, title };
+}
+
+/**
+ * Theology on a place, everything the page shows (theology.js savedPage):
+ * the verses, for a book its own introduction, all that Claude wrote and the
+ * Catechism sections that quote the place, in the order of the screen. A
+ * study sheet to keep, print or share. The parts run on from page to page,
+ * and a heading or a name (a key word, a Catechism section) never stands
+ * alone at the foot of a page.
+ */
+export function theologyPdf(page) {
+  const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
+  const w = new Writer(doc, 20);
+  const s = winAnsi;
+
+  w.font(9, 'normal', MUTED);
+  doc.text(s(page.top), w.m, w.y);
+  w.y += 6;
+  w.para(s(page.title), { style: 'bold', size: 18, after: 1.5 });
+  for (const line of page.lines) w.para(s(line), { size: 11.5, after: 1 });
+  if (page.quote) {
+    w.para(s(`\u201c${page.quote.text}\u201d`), { serif: true, style: 'italic', size: 11.5, after: 1 });
+    if (page.quote.cite) w.para(s(page.quote.cite), { size: 9, color: MUTED, after: 1 });
+  }
+  w.rule();
+
+  let parts = [];
+  const run = () => { if (parts.length) w.flow(parts); parts = []; };
+  for (const b of page.blocks) {
+    if (b.big) { run(); w.space(3); }   // what Claude wrote starts with a little room above it
+    if (b.head) parts.push([s(b.head), b.big ? { style: 'bold', size: 14.5, after: 2, withNext: true } : { style: 'bold', size: 11.5, color: BLUE, after: 1.2, withNext: true }]);
+    for (const x of b.items) {
+      if (x.li) parts.push([s(x.li), { size: 10.5, bullet: '\u2022', after: 1 }]);
+      else if (x.lead) {
+        parts.push([s(x.lead), { size: 10.5, style: 'bold', after: 0.6, withNext: true }]);
+        for (const line of x.lines || []) parts.push([s(line), { size: 10.5, indent: 4, after: 1 }]);
+        for (const line of x.small || []) parts.push([s(line), { size: 9, color: MUTED, indent: 4, after: 1 }]);
+        parts[parts.length - 1][1].after = 2.5;
+      } else parts.push([s(x.p), x.small ? { size: 8.5, color: MUTED, after: 2 } : { size: 10.5, after: 2 }]);
+    }
+    if (parts.length && b.items.length) parts[parts.length - 1][1].after += 1.5;   // room before the next heading
+  }
+  run();
+
+  w.footer(s([state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  \u00b7  ')));
+  return { blob: doc.output('blob'), name: page.file, title: page.title };
+}
+
+/*
+ * The letters of these PDFs (Helvetica and Times, which every PDF reader has)
+ * know only the Western European letters (WinAnsi). Claude may give a Greek
+ * or Hebrew word, or a letter with a mark such as the ē of agapē: the PDF gets
+ * the letter without the mark and Greek in Latin letters (ἀγάπη: agape).
+ * Hebrew is left out; its plain meaning stands beside it.
+ */
+const WIN_EXTRA = new Set([0x20ac, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021, 0x02c6, 0x2030, 0x0160, 0x2039, 0x0152, 0x017d,
+  0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x02dc, 0x2122, 0x0161, 0x203a, 0x0153, 0x017e, 0x0178]);
+const GREEK = { '\u03b1': 'a', '\u03b2': 'b', '\u03b3': 'g', '\u03b4': 'd', '\u03b5': 'e', '\u03b6': 'z', '\u03b7': 'e', '\u03b8': 'th',
+  '\u03b9': 'i', '\u03ba': 'k', '\u03bb': 'l', '\u03bc': 'm', '\u03bd': 'n', '\u03be': 'x', '\u03bf': 'o', '\u03c0': 'p', '\u03c1': 'r',
+  '\u03c2': 's', '\u03c3': 's', '\u03c4': 't', '\u03c5': 'u', '\u03c6': 'ph', '\u03c7': 'ch', '\u03c8': 'ps', '\u03c9': 'o' };
+const inWin = ch => { const c = ch.codePointAt(0); return c === 10 || (c >= 0x20 && c < 0x7f) || (c >= 0xa0 && c <= 0xff) || WIN_EXTRA.has(c); };
+
+export function winAnsi(text) {
+  let out = '', dropped = false;
+  for (const ch of String(text == null ? '' : text)) {
+    if (inWin(ch)) { out += ch; continue; }
+    if (/[\u2000-\u200a\u202f\u205f\u3000]/.test(ch)) { out += ' '; continue; }
+    if (/[\u200b-\u200d\u2060\ufeff]/.test(ch)) continue;            // joiners: nothing to print
+    if (/[\u02bc\u02be\u02bf\u2032]/.test(ch)) { out += '\u2019'; continue; }   // the marks for a breath or a stop in a Hebrew word
+    const base = ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const lower = base.toLowerCase();
+    if (GREEK[lower]) { out += base === lower ? GREEK[lower] : GREEK[lower][0].toUpperCase() + GREEK[lower].slice(1); continue; }
+    if (base && [...base].every(inWin)) { out += base; continue; }
+    dropped = true;
+  }
+  // what is left where a word was left out: "chesed ()" becomes "chesed"
+  return dropped ? out.replace(/[([]\s*[)\]]/g, '').replace(/ {2,}/g, ' ').replace(/ ([,.;:)])/g, '$1').trim() : out;
 }
 
 /* ---------------------------------------------------------------- output */

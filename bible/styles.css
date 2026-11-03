@@ -1054,7 +1054,7 @@ body.showing { overflow: hidden; }
 .th-sec.lead p { font-size: 17px; color: var(--ink); }
 .th-sec.church { margin: 4px -8px 6px; padding: 14px 16px 14px; border-top: none; border-left: 4px solid var(--brand); border-radius: var(--radius-s); background: var(--surface); }
 .th-sec.church + .th-sec { border-top: none; }
-.th-sec.note p { color: var(--ink-2); }
+.th-sec.aside p { color: var(--ink-2); }   /* "Good to know" (not .note: that is the card of a note) */
 .th-words { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 16px; margin: 0; max-width: 70ch; }
 .th-words dt { font-weight: 700; color: var(--ink); }
 .th-words dd { margin: 0; line-height: 1.55; }
@@ -1078,6 +1078,10 @@ body.showing { overflow: hidden; }
 .th-refs a { font-weight: 700; text-decoration: none; }
 .th-foot { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
 .th-foot > p { margin: 0; }
+/* keeping all of it: as a PDF to keep, print or share, or as a note */
+.th-save { margin: 10px -8px 8px; padding: 12px 16px 14px; border-radius: var(--radius-s); background: var(--surface); }
+.th-save h4 { font: 700 11px/1.35 var(--sans); text-transform: uppercase; letter-spacing: .16em; color: var(--label-ink); margin: 0 0 5px; }
+.th-save p { margin: 0 0 10px; line-height: 1.55; max-width: 70ch; }
 /* the sheet from the reader: the verses, the chapter and the book side by side, a long name wrapping inside its own button */
 .seg.th-levels { display: grid; grid-template-columns: auto auto auto; }
 .seg.th-levels button { overflow-wrap: break-word; }
@@ -1090,7 +1094,7 @@ body.showing { overflow: hidden; }
 [data-read="easy"] .th-parts li, [data-read="easy"] .th-words dd, [data-read="easy"] .th-lead, [data-read="easy"] .th-ask > p, [data-read="easy"] .th-refs li {
   letter-spacing: .035em; word-spacing: .12em; line-height: 1.8;
 }
-[data-read="easy"] .th-sec h4, [data-read="easy"] .th-facts dt { text-transform: none; letter-spacing: .02em; font-size: 14px; }
+[data-read="easy"] .th-sec h4, [data-read="easy"] .th-save h4, [data-read="easy"] .th-facts dt { text-transform: none; letter-spacing: .02em; font-size: 14px; }
 [data-read="easy"] .th-quote { font-style: normal; line-height: 1.85; }
 @media (max-width: 759.98px) {
   /* the phone's bar keeps six tabs: Theology is reached from the reader, and Read stays lit while it is open */
@@ -1105,6 +1109,7 @@ body.showing { overflow: hidden; }
   .th-words dd { margin-bottom: 8px; }
   .th-insight { padding: 2px 14px 12px; }
   .th-sec.church { margin: 4px -6px 6px; padding: 12px 12px; }
+  .th-save { margin: 10px -6px 8px; padding: 12px 12px 14px; }
   .th-goto .btn { display: none; }   /* the keyboard's Go key submits */
   .th-chapters { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
   .th-parts li { gap: 10px; }
