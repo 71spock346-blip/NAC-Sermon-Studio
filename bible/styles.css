@@ -1115,8 +1115,8 @@ body.showing { overflow: hidden; }
 [data-read="easy"] .th-sec h4, [data-read="easy"] .th-save h4, [data-read="easy"] .th-earlier > h4, [data-read="easy"] .th-facts dt { text-transform: none; letter-spacing: .02em; font-size: 14px; }
 [data-read="easy"] .th-quote { font-style: normal; line-height: 1.85; }
 @media (max-width: 759.98px) {
-  /* the phone's bar keeps six tabs: Theology is reached from the reader, and Read stays lit while it is open */
-  .tabs button[data-tab="theology"] { display: none; }
+  /* the phone's bar keeps six tabs: Theology is reached from the reader and Liturgy from Prepare, and Read or Prepare stays lit while it is open */
+  .tabs button[data-tab="theology"], .tabs button[data-tab="liturgy"] { display: none; }
   .tabs button.also { color: var(--accent-text); }
   .tabs button.also .ico { background: var(--accent); color: var(--accent-ink); }
   .th-books { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1133,4 +1133,49 @@ body.showing { overflow: hidden; }
   .th-chapters { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); }
   .th-parts li { gap: 10px; }
   .chapnav.row .btn { white-space: normal; }
+}
+
+/* ---------------------------------------------------------------- Liturgy: the altar booklet's cards (liturgy.js) */
+.lit-lead { margin: 0 0 12px; max-width: 70ch; line-height: 1.55; }
+.lit-empty { border-radius: var(--radius); background: var(--card); padding: 14px 16px; margin: 10px 0 14px; }
+.lit-empty p { margin: 0 0 4px; line-height: 1.55; }
+.lit-list .ico, .lit-shortcut .ico { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-text); flex: 0 0 auto; }
+.lit-list .ico svg, .lit-shortcut .ico svg { display: block; width: 22px; height: 22px; }
+.lit-list .chev, .lit-shortcut .chev { color: var(--muted); font-size: 22px; line-height: 1; flex: 0 0 auto; }
+.lit-list .item b { font-size: 16px; }
+/* the link at the top of Prepare on a phone (the bar has no Liturgy tab); a PC has the tab in the side menu */
+.lit-shortcut { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin: 0 0 14px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); text-decoration: none; color: var(--ink); }
+.lit-shortcut b { display: block; font-size: 16px; }
+.lit-shortcut .muted { margin: 0; display: block; }
+@media (min-width: 760px) { .lit-shortcut { display: none; } }
+.lit-books { margin-top: 18px; }
+.lit-book { padding: 12px 14px; margin-top: 8px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14.5px; line-height: 1.5; }
+.lit-book .row { margin-top: 6px; }
+.lit-credit { margin-top: 16px; max-width: 70ch; }
+/* one card: the rows as the booklet prints them, the label on the left, the words on the right, a dotted rule between the rows */
+.lit-page .docbar { align-items: center; }
+.lit-card { margin: 4px 0 12px; line-height: 1.55; }
+.lit-card.size-s { font-size: 15px; }
+.lit-card.size-m { font-size: 16.5px; }
+.lit-card.size-l { font-size: 19.5px; }
+.lit-card.size-xl { font-size: 23.5px; }
+.lit-row { display: grid; grid-template-columns: minmax(130px, 2fr) 5fr; gap: 4px 22px; padding: 14px 0; border-top: 1px dotted var(--line-strong, var(--line)); }
+.lit-row:first-child { border-top: 0; padding-top: 2px; }
+.lit-label { font-weight: 700; color: var(--accent-text); margin: 0; }
+.lit-sub { font-style: italic; color: var(--muted); font-size: .88em; margin: 3px 0 0; line-height: 1.4; }
+.lit-right p, .lit-li { margin: 0 0 .6em; }
+.lit-right > :last-child { margin-bottom: 0; }
+.lit-note { font-style: italic; color: var(--label-ink); }
+.lit-li { display: flex; gap: .55em; }
+.lit-li .lit-bullet { flex: 0 0 1em; text-align: center; color: var(--label-ink); }
+.lit-li.d2, .lit-p.d1, .lit-note.d1 { margin-left: 1.55em; }
+.lit-li.d3, .lit-p.d2, .lit-note.d2 { margin-left: 3.1em; }
+.lit-p.d3, .lit-note.d3 { margin-left: 4.65em; }
+.lit-card small { font-size: .78em; }
+.lit-card i { font-style: italic; }
+[data-read="easy"] .lit-card { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
+[data-read="easy"] .lit-note { font-style: normal; }
+@media (max-width: 759.98px) {
+  .lit-row { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 12px 0; }
+  .lit-page .docbar .seg { order: 3; }   /* under the title when the two do not fit side by side */
 }

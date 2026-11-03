@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=44">
+<link rel="stylesheet" href="styles.css?v=45">
 </head>
 <body class="help">
 <header class="top">
@@ -126,6 +126,21 @@ introduction), all that Claude wrote and the Catechism sections. <b>Save as PDF<
 your Google Drive, or to send. <b>Print</b> prints it, and on a phone <b>Share</b> sends it straight to another app.
 <b>Save as a note</b> puts all of it in one of your notes, as a Doctrine note on that place, and you can still change it
 before you save it.</p>
+
+<h2>Liturgy</h2>
+<p>Liturgy holds the Church's altar booklet, <i>Liturgy for Altar Use</i>: the words said at the altar in the divine
+service and in each act of blessing (adoption, confirmation, a wedding, a funeral, the blessing before a birth, a
+wedding anniversary, Holy Baptism), one card per rite, as the booklet prints them: the label on the left, the words on
+the right, the booklet's notes in italics and its lists. On a PC it has its own place in the side menu; on a phone,
+open <b>Prepare</b> and tap <b>Liturgy</b> at the top.</p>
+<p>The booklet is the Church's own, so it is not part of the app. Load its PDF once under Liturgy: <b>Load the English
+booklet (PDF)</b> or <b>Load the Afrikaans booklet (PDF)</b>, or both. The app reads the cards from the file on the
+device itself (no Claude, no key, a few seconds), keeps them in this browser and sends them to your other devices through
+the sync, so one load is enough. They are not in the backup file. <b>Remove</b> takes a booklet off your devices again
+(Undo brings it back), and the PDF can be loaded anew at any time; <b>Load a newer file</b> replaces a booklet.</p>
+<p>The cards show in the app's language, or in the other language when only that booklet is loaded, and a card has an
+<b>EN | AF</b> switch when both are loaded. <b>Aa</b> sets the text size, the same sizes as in the reader, up to Pulpit.
+While a card is open the phone keeps its screen on, so the words stay at the altar.</p>
 
 <h2>Preparing a divine service</h2>
 <p>The steps follow the order of the Divine Service Guide's article, so you can go through the booklet and the app
@@ -341,6 +356,8 @@ like an app.</p>
   <li>Translations read through API.Bible remain the copyright of their publishers and are shown under API.Bible's terms.</li>
   <li>Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only section
     numbers, titles and Bible references; the text is loaded by you onto your own device for personal study.</li>
+  <li>Liturgy for Altar Use © New Apostolic Church Cape. The booklet is loaded by you onto your own device for your use
+    at the altar and is not part of the public app. Its PDF is read with pdf.js (Mozilla), Apache License 2.0.</li>
   <li>Typeface: Montserrat (© The Montserrat Project Authors), under the SIL Open Font License 1.1. The slides of a
     reflection evening use Cambria and Calibri, as in PowerPoint, or where your device lacks them Caladea (© The Caladea
     Project Authors) and Carlito (© The Carlito Project Authors), both under the SIL Open Font License 1.1.</li>
@@ -455,6 +472,22 @@ inleiding), alles wat Claude geskryf het en die Kategismus-afdelings. <b>Stoor a
 byvoorbeeld in jou Google Drive, of om te stuur. <b>Druk</b> druk dit, en op 'n foon stuur <b>Deel</b> dit reguit na
 'n ander app. <b>Stoor as 'n nota</b> sit alles in een van jou notas, as 'n Leer-nota by daardie plek, en jy kan dit
 nog verander voordat jy dit stoor.</p>
+
+<h2>Liturgie</h2>
+<p>Liturgie hou die Kerk se altaarboekie, <i>Liturgie vir Altaar Gebruik</i>: die woorde wat by die altaar gesê word in
+die godsdiens en in elke seënhandeling (opname, konfirmasie, 'n huwelik, 'n begrafnis, die seën voor 'n geboorte, 'n
+huweliksherdenking, die Heilige Doop), een kaart per handeling, soos die boekie dit druk: die etiket links, die woorde
+regs, die boekie se aantekeninge in skuinsdruk en sy lyste. Op 'n rekenaar het dit sy eie plek in die kantkieslys; op 'n
+foon maak jy <b>Voorberei</b> oop en tik op <b>Liturgie</b> bo-aan.</p>
+<p>Die boekie is die Kerk se eie, dus is dit nie deel van die app nie. Laai sy PDF een keer onder Liturgie: <b>Laai die
+Engelse boekie (PDF)</b> of <b>Laai die Afrikaanse boekie (PDF)</b>, of albei. Die app lees die kaarte uit die lêer op
+die toestel self (geen Claude, geen sleutel, 'n paar sekondes), hou hulle in hierdie blaaier en stuur hulle deur die
+sinkronisasie na jou ander toestelle, dus is een laai genoeg. Hulle is nie in die rugsteunlêer nie. <b>Verwyder</b> haal
+'n boekie weer van jou toestelle af (Ontdoen bring dit terug), en die PDF kan enige tyd opnuut gelaai word; <b>Laai 'n
+nuwer lêer</b> vervang 'n boekie.</p>
+<p>Die kaarte wys in die app se taal, of in die ander taal as net daardie boekie gelaai is, en 'n kaart het 'n
+<b>EN | AF</b>-skakelaar as albei gelaai is. <b>Aa</b> stel die teksgrootte, dieselfde groottes as in die leser, tot
+Kansel. Terwyl 'n kaart oop is, hou die foon sy skerm aan, sodat die woorde by die altaar bly.</p>
 
 <h2>'n Godsdiens voorberei</h2>
 <p>Die stappe volg die volgorde van die Handleiding vir Godsdienste se artikel, sodat jy die boekie en die app langs
@@ -678,6 +711,9 @@ tuisskerm" om dit soos 'n app oop te maak.</p>
   <li>Kategismus van die Nuwe Apostoliese Kerk © Nuwe Apostoliese Kerk Internasionaal, Zürich. Die app dra net
     afdelingnommers, titels en Bybelverwysings; die teks word deur jou op jou eie toestel gelaai vir persoonlike
     studie.</li>
+  <li>Liturgie vir Altaargebruik © Nuwe Apostoliese Kerk Kaap. Die boekie word deur jou op jou eie toestel gelaai vir
+    jou gebruik by die altaar en is nie deel van die openbare app nie. Sy PDF word gelees met pdf.js (Mozilla),
+    Apache-lisensie 2.0.</li>
   <li>Letterstyl: Montserrat (© The Montserrat Project Authors), onder die SIL Open Font License 1.1. Die skyfies van
     'n besinningsaand gebruik Cambria en Calibri, soos in PowerPoint, of waar jou toestel hulle nie het nie Caladea (© The
     Caladea Project Authors) en Carlito (© The Carlito Project Authors), albei onder die SIL Open Font License 1.1.</li>
