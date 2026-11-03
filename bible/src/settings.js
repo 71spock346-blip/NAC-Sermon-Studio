@@ -269,20 +269,57 @@ function catechismSection(container) {
   ]));
 }
 
-/** The AI helper: the Anthropic key, which Claude to ask, and the language of the suggestions. */
-function aiSection(container) {
-  const S = state.settings;
-  const keyInput = el('input', { type: 'password', value: S.aiKey || '', placeholder: t('Paste your Anthropic key (sk-ant-…)'), autocomplete: 'off', spellcheck: 'false' });
-  const showBtn = el('button', { class: 'btn small ghost', type: 'button', text: t('Show'), onclick: () => { keyInput.type = keyInput.type === 'password' ? 'text' : 'password'; showBtn.textContent = keyInput.type === 'password' ? t('Show') : t('Hide'); } });
-  keyInput.addEventListener('change', async () => { await saveSetting('aiKey', keyInput.value.trim()); toast(keyInput.value.trim() ? t('Key saved on this device.') : t('Key removed.')); });
-  const checkBtn = el('button', { class: 'btn small', type: 'button', text: t('Check key'), onclick: async () => {
-    await saveSetting('aiKey', keyInput.value.trim());
-    if (!S.aiKey) { toast(t('Paste the key first.'), true); return; }
+/**
+ * A box for a key (API.Bible, YouVersion, Anthropic). The key has a line of
+ * its own, the full width, so it can be read on a phone too; Show and the
+ * check sit under it and wrap when they do not fit, instead of squeezing the
+ * box. A line under the box says whether a key is saved here and how it
+ * ends. Emptying the box removes the key, with Undo in case it was a slip.
+ */
+function keyBox({ label, setting, placeholder, checkText, onCheck }) {
+  const current = () => state.settings[setting] || '';   // read each time: a sync or a backup can replace the settings
+  const input = el('input', { type: 'password', class: 'key-input', value: current(), placeholder, autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false' });
+  const status = el('p', { class: 'key-state small', role: 'status' });
+  const showState = () => {
+    const key = current();
+    status.textContent = key ? t('A key is saved on this device. It ends in {end}.', { end: key.slice(-4) }) : t('No key on this device yet.');
+  };
+  const save = async value => { await saveSetting(setting, value); showState(); };
+  input.addEventListener('change', async () => {
+    const before = current(), now = input.value.trim();
+    await save(now);
+    if (now) toast(t('Key saved on this device.'));
+    else toast(t('Key removed.'), false, before ? async () => { input.value = before; await save(before); toast(t('The key is back.')); } : undefined);
+  });
+  // both words are in the button, one hidden, so it is as wide as the longer one and the check beside it never moves
+  const showBtn = el('button', { class: 'btn small ghost key-show', type: 'button', onclick: () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    showBtn.classList.toggle('on', show);
+  } }, [el('span', { text: t('Show') }), el('span', { text: t('Hide') })]);
+  const checkBtn = el('button', { class: 'btn small', type: 'button', text: checkText, onclick: async () => {
+    await save(input.value.trim());
+    if (!current()) { toast(t('Paste the key first.'), true); return; }
     checkBtn.disabled = true;
-    try { await AI.checkKey(); toast(t('The key works. Claude is ready in the Prepare tab.')); }
+    try { await onCheck(); }
     catch (e) { toast(e.message, true); }
     checkBtn.disabled = false;
   } });
+  showState();
+  return el('div', { class: 'keybox' }, [
+    el('label', { class: 'f' }, [label, input]),
+    status,
+    el('div', { class: 'row key-btns' }, [showBtn, checkBtn]),
+  ]);
+}
+
+/** The AI helper: the Anthropic key, which Claude to ask, and the language of the suggestions. */
+function aiSection(container) {
+  const S = state.settings;
+  const keyField = keyBox({
+    label: t('Anthropic key'), setting: 'aiKey', placeholder: t('Paste your Anthropic key (sk-ant-…)'), checkText: t('Check key'),
+    onCheck: async () => { await AI.checkKey(); toast(t('The key works. Claude is ready in the Prepare tab.')); },
+  });
   const modelSel = el('select', {}, AI.MODELS.map(m => el('option', { value: m.id, text: `${m.label} – ${t(m.note)}`, selected: m.id === AI.model().id })));
   modelSel.addEventListener('change', async () => { await saveSetting('aiModel', modelSel.value); toast(`Claude: ${AI.modelLabel(modelSel.value)}.`); });
   const langSel = el('select', {}, AI.LANGS.map(([v, l]) => el('option', { value: v, text: l, selected: (S.aiLang || 'en') === v })));
@@ -304,7 +341,7 @@ function aiSection(container) {
         el('li', { text: t('Under API Keys, create a key, copy it (it is shown once) and paste it below. Then tap "Check key".') }),
       ]),
     ]),
-    el('label', { class: 'f' }, [t('Anthropic key'), el('div', { class: 'row line' }, [keyInput, showBtn, checkBtn])]),
+    keyField,
     el('div', { class: 'fields two' }, [
       el('label', { class: 'f' }, [t('Which Claude'), modelSel]),
       el('label', { class: 'f' }, [t('Language of the suggestions'), langSel, el('span', { class: 'hint muted small', text: t('The usual language. Each preparation can choose English or Afrikaans for itself.') })]),
@@ -341,9 +378,6 @@ async function licenceSheet(b) {
 /** One licensed service: key box, catalogue check, and the tick list of Bibles to show. */
 function providerSection(container, o) {
   const S = state.settings;
-  const keyInput = el('input', { type: 'password', value: S[o.keyName] || '', placeholder: o.placeholder, autocomplete: 'off', spellcheck: 'false' });
-  const showBtn = el('button', { class: 'btn small ghost', type: 'button', text: t('Show'), onclick: () => { keyInput.type = keyInput.type === 'password' ? 'text' : 'password'; showBtn.textContent = keyInput.type === 'password' ? t('Show') : t('Hide'); } });
-  keyInput.addEventListener('change', async () => { await saveSetting(o.keyName, keyInput.value.trim()); toast(keyInput.value.trim() ? t('Key saved on this device.') : t('Key removed.')); });
   const langInput = o.languages ? el('input', { type: 'text', value: 'af, en', placeholder: t('Languages, e.g. af, en'), 'aria-label': t('Languages') }) : null;
   const filter = el('input', { type: 'search', placeholder: t('Filter: Afrikaans, NKJV, English…'), hidden: true });
   const bibleList = el('div', { class: 'list biblelist' });
@@ -382,11 +416,9 @@ function providerSection(container, o) {
     if (items.length > 80) bibleList.append(el('p', { class: 'muted small', text: t('Showing 80 of {total}. Type to narrow the list.', { total: items.length }) }));
   }
   filter.addEventListener('input', showCatalogue);
-  const checkBtn = el('button', { class: 'btn small', type: 'button', text: t('Check key and list Bibles'), onclick: async () => {
-    await saveSetting(o.keyName, keyInput.value.trim());
-    if (!S[o.keyName]) { toast(t('Paste the key first.'), true); return; }
-    checkBtn.disabled = true;
-    try {
+  const keyField = keyBox({
+    label: t('{service} key', { service: o.title }), setting: o.keyName, placeholder: o.placeholder, checkText: t('Check key and list Bibles'),
+    onCheck: async () => {
       const langs = langInput ? langInput.value.split(/[,\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean) : [];
       catalogue = await o.fetchList(langs.length ? langs : ['af', 'en']);
       filter.hidden = false;
@@ -396,9 +428,8 @@ function providerSection(container, o) {
         : !ready ? t('The key works, but none of the {need} Bibles listed is licensed to your app yet. Tap Licence next to one to see how to get it.', { need })
         : need ? t('The key works: {ready} ready to read, and {need} more need a licence for your app (marked in the list).', { ready, need })
         : t('The key works: {ready} Bibles available. Tick the ones to show in the reader.', { ready }));
-    } catch (e) { toast(e.message, true); }
-    checkBtn.disabled = false;
-  } });
+    },
+  });
   showChosen();
 
   container.append(...[
@@ -407,7 +438,7 @@ function providerSection(container, o) {
       el('summary', { text: t('How to get a key for {service}', { service: o.title }) }),
       el('ol', {}, o.howTo.map(parts => el('li', {}, parts))),
     ]),
-    el('label', { class: 'f' }, [t('{service} key', { service: o.title }), el('div', { class: 'row line' }, [keyInput, showBtn, checkBtn])]),
+    keyField,
     langInput ? el('label', { class: 'f' }, [t('Languages to list (codes such as af, en, de)'), langInput]) : null,
     chosenNow, filter, bibleList,
     el('p', { class: 'muted small', text: o.note }),

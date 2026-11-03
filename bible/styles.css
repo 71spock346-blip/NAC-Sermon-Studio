@@ -361,6 +361,17 @@ label.f > input, label.f > select, label.f > textarea { color: var(--ink); font-
 label.f .hint, label.f .muted, label.f p { font-weight: 400; }   /* the label is bold, the line of help under it is not */
 label.f .row.line { width: 100%; }
 .fields > label.f { margin: 0; }
+/* a key box (settings.js keyBox): the key on a line of its own at the full width, so it can be read on a phone;
+   Show and the check go under it and wrap rather than squeeze the box, and a long button name wraps inside its button */
+.keybox { margin: 6px 0 10px; }
+.keybox > label.f { margin: 0; }
+.keybox .key-state { margin: 6px 0 0; color: var(--ink-2); }
+.keybox .key-btns { margin-top: 8px; }
+.keybox .key-btns .btn { white-space: normal; text-align: center; max-width: 100%; }
+.keybox .key-show { display: inline-grid; place-items: center; }   /* Show and Hide (Wys, Verberg) share one cell: the button keeps its width */
+.keybox .key-show > span { grid-area: 1 / 1; }
+.keybox .key-show > span + span, .keybox .key-show.on > span:first-child { visibility: hidden; }
+.keybox .key-show.on > span + span { visibility: visible; }
 label.check { display: flex; gap: 10px; align-items: center; padding: 8px 6px; border-top: 1px solid var(--line); font-size: 14px; color: var(--ink); cursor: pointer; min-height: 44px; }
 label.check:first-child { border-top: none; }
 label.check input { width: 18px; height: 18px; flex: 0 0 auto; margin: 0; accent-color: var(--accent); }
