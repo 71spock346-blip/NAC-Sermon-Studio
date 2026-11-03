@@ -928,9 +928,10 @@ label.check.sync-keys input { margin-top: 3px; }
 .reflect-note-actions { margin: 4px 0 2px; }
 .reflect-hub { margin-top: 4px; }
 .reflect-hub .row { margin-bottom: 4px; }
-/* the Reflection evening tab: its full name in a wide side menu, a short one in a narrow menu and the phone's bar */
+/* a tab with a long name (Reflection evening, Diens Voorbereiding): the full name in the side menu, on two lines where
+   the menu is narrow, and a short one in the phone's bar, where six tabs share the width */
 .tabs .lbl-long { display: none; }
-@media (min-width: 1100px) {
+@media (min-width: 760px) {
   .tabs .lbl-long { display: inline; }
   .tabs .lbl-short { display: none; }
 }
