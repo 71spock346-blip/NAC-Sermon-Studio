@@ -19,7 +19,10 @@
  * the device, and how other Christians read it, each reading marked as in
  * line with New Apostolic teaching, different from it, or left open by the
  * Catechism. What Claude wrote is kept (store.js saveInsight, one row per
- * place and language) and travels with the sync and the backup.
+ * place and language) and travels with the sync and the backup. Under it,
+ * "Save all of this" keeps everything the page shows outside Theology: as a
+ * PDF to keep, print or share (pdf.js theologyPdf), or as one of the
+ * minister's notes (savedPage).
  *
  * The addresses: #theology lists the books as the Catechism groups them,
  * #theology/ROM opens a book, #theology/ROM/8 a chapter and
@@ -37,6 +40,7 @@ import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
 import * as AI from './ai.js';
 import * as Notes from './notes.js';
+import * as Pdf from './pdf.js';
 import { noKey } from './guides.js';
 
 /* The books as the Catechism groups them (CNAC 1.2.2.2, 1.2.3, 1.2.4.2). */
@@ -219,29 +223,40 @@ function partsList(parts, href, unit) {
   ])));
 }
 
-/** Key verses as links to the reader: "ROM.8.28" or "ROM.1.16-17". */
-function keyVerses(keys) {
-  const refs = (keys || []).map(k => {
+/** A book's key verses as places: "ROM.8.28" or "ROM.1.16-17". */
+function keyRefs(keys) {
+  return (keys || []).map(k => {
     const m = /^([0-9A-Z]{3})\.(\d+)(?:\.(\d+)(?:-(\d+))?)?$/.exec(k);
     if (!m || !BY_ID[m[1]]) return null;
     const verse = m[3] ? parseInt(m[3], 10) : null;
     return { book: m[1], chapter: parseInt(m[2], 10), verse, verseEnd: m[4] ? parseInt(m[4], 10) : verse };
   }).filter(Boolean);
+}
+
+/** Key verses as links to the reader. */
+function keyVerses(keys) {
+  const refs = keyRefs(keys);
   if (!refs.length) return null;
   return el('div', { class: 'pills big' }, refs.map(r => el('a', { class: 'pill link', href: readHref(r), text: formatRef(r, bl()) })));
 }
 
-/** The Catechism's own "in short" for a section, when its text is on this device: its first sentence or two, the rest a tap away. */
-function catSummary(n) {
+/** The Catechism's own "in short" for a section, when its text is on this device: its first sentence or two (… when there is more), or ''. */
+function shortSummary(n) {
   const sum = Cat.textReady() ? Cat.summaryOf(n) : [];
-  if (!sum.length) return null;
+  if (!sum.length) return '';
   const all = sum.join(' ');
   let short = '';
   for (const s of all.split(/(?<=[.!?])\s+/)) {
     if (short && short.length + s.length > 220) break;
     short = short ? `${short} ${s}` : s;
   }
-  return el('p', { class: 'th-cat-sum small' }, [el('b', { text: t('In short:') }), ' ', short.length < all.length ? `${short} …` : short]);
+  return short.length < all.length ? `${short} …` : short;
+}
+
+/** That "in short" under a section in a list, the rest a tap away. */
+function catSummary(n) {
+  const short = shortSummary(n);
+  return short ? el('p', { class: 'th-cat-sum small' }, [el('b', { text: t('In short:') }), ' ', short]) : null;
 }
 
 /**
@@ -409,7 +424,7 @@ function insightView(row, level, ref, opts, redraw, otherLang) {
       x.why ? el('span', { text: ' ' + x.why }) : null,
     ]))) : null),
     part(t('For today'), paras(d.today)),
-    part(t('Good to know'), paras(d.note), 'note'),
+    part(t('Good to know'), paras(d.note), 'aside'),
   ].filter(Boolean));
 
   const remove = el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: async () => {
@@ -418,25 +433,66 @@ function insightView(row, level, ref, opts, redraw, otherLang) {
     redraw();
     toast(t('Removed.'), false, async () => { await saveInsight(copy); redraw(); });
   } });
-  box.append(el('div', { class: 'th-foot' }, [
+  box.append(saveBox(row, level, ref, opts), el('div', { class: 'th-foot' }, [
     el('p', { class: 'muted small', text: t('Written {date} by {model}{cost}.', { date: fmtDate(d.at || row.updated), model: AI.modelLabel(d.model), cost: d.cost ? ', ' + AI.fmtCost(d.cost) : '' }) + ' ' + measureLine() }),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small ghost', type: 'button', onclick: () => ask(level, ref, opts, redraw) }, [sparkle(), t('Ask again')]),
-      el('button', { class: 'btn small ghost', type: 'button', text: t('Keep as a note'), onclick: () => keepAsNote(row, level, ref) }),
       remove,
     ]),
   ]));
   return box;
 }
 
+/**
+ * Keeping all of it outside Theology (Jerome: "I want to be able to save all
+ * that information that is on the screen"): as a PDF to keep, print or share,
+ * or as one of his notes. What Claude wrote stays in Theology by itself.
+ */
+function saveBox(row, level, ref, opts) {
+  const what = level === 'book'
+    ? t('The book\'s introduction, all that Claude wrote and the Catechism sections: as a PDF, or as one of your notes.')
+    : level === 'chapter'
+      ? t('Where the chapter stands in the book, all that Claude wrote and the Catechism sections: as a PDF, or as one of your notes.')
+      : t('The verses, all that Claude wrote and the Catechism sections: as a PDF, or as one of your notes.');
+  const go = how => saveAll(how, row, level, ref, opts);
+  return el('section', { class: 'th-save' }, [
+    el('h4', { text: t('Save all of this') }),
+    el('p', { class: 'small', text: what }),
+    el('div', { class: 'row' }, [
+      el('button', { class: 'btn small', type: 'button', text: t('Save as PDF'), onclick: () => go('download') }),
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => go('print') }),
+      Pdf.canShare() ? el('button', { class: 'btn small ghost', type: 'button', text: t('Share'), onclick: () => go('share') }) : null,
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Save as a note'), onclick: () => go('note') }),
+    ]),
+  ]);
+}
+
+async function saveAll(how, row, level, ref, opts) {
+  try {
+    const page = await savedPage(level, ref, row, opts);
+    if (how === 'note') { noteOf(page, level, ref); return; }
+    const r = Pdf.theologyPdf(page);
+    if (how === 'print') { Pdf.print(r); toast(t('Sending to the printer…')); }
+    else if (how === 'share') { if (await Pdf.share(r) === 'downloaded') toast(t('Sharing is not available here, so the PDF was downloaded.')); }
+    else { Pdf.download(r); toast(t('Saved ') + r.name); }
+  } catch (e) {
+    toast(e.message || t('The PDF could not be built.'), true);
+  }
+}
+
 /** A reading of the text by other Christians, marked against New Apostolic teaching. */
 function viewItem(v) {
-  const badge = v.nac === 'agrees' ? t('Agrees with NAC teaching') : v.nac === 'differs' ? t('NAC teaching differs') : t('Left open by the Catechism');
+  const badge = badgeOf(v.nac);
   return el('div', { class: 'th-view ' + (v.nac || 'open') }, [
     el('div', { class: 'th-view-head' }, [el('b', { text: v.view }), el('span', { class: 'th-badge ' + (v.nac || 'open'), text: badge })]),
     v.text ? el('p', { text: v.text }) : null,
     v.nac === 'differs' && v.differs ? el('p', { class: 'th-differs' }, [el('b', { text: t('New Apostolic teaching:') }), ' ', v.differs]) : null,
   ]);
+}
+
+/** How a reading of other Christians stands to New Apostolic teaching, in a few words. */
+function badgeOf(nac) {
+  return nac === 'agrees' ? t('Agrees with NAC teaching') : nac === 'differs' ? t('NAC teaching differs') : t('Left open by the Catechism');
 }
 
 /** The Catechism sections Claude names, each a link with the reason, and the Catechism's own "in short". */
@@ -449,19 +505,134 @@ function catRefs(items) {
   ])));
 }
 
-/** Puts the heart of what Claude wrote into a note of the kind "Doctrine", which the person can change before saving. */
-function keepAsNote(row, level, ref) {
+/* ---------------------------------------------------------------- keeping it all */
+
+/**
+ * Everything the page shows on a place, in the order of the screen, to keep
+ * outside Theology: for a book its own introduction, for a chapter where it
+ * stands in the book, for verses the verses themselves; then all that Claude
+ * wrote, and the Catechism sections that quote the place. One page for the
+ * note and for the PDF (pdf.js theologyPdf), so that the two keep the same.
+ *
+ *   {title, top, lines[], quote: {text, cite} | null, blocks[], file}
+ *
+ * A block is {head, big, items[]}; big starts what Claude wrote. An item is
+ * {p} a paragraph ({p, small} small print), {li} a line of a list, or
+ * {lead, lines[], small[]}: a name with what belongs to it, like a key word
+ * and its meaning, a Catechism section, or a reading of other Christians.
+ */
+async function savedPage(level, ref, row, opts = {}) {
   const d = row.data || {};
+  const list = v => (Array.isArray(v) ? v : []);
+  const ps = text => String(text || '').split(/\n\s*\n/).map(x => x.trim()).filter(Boolean).map(p => ({ p }));
+  const [intros] = await Promise.all([loadIntros(lang()).catch(() => null), Cat.load().catch(() => null)]);
+  if (Cat.hasText()) await Cat.loadText().catch(() => false);
+  const b = (intros && intros.books[ref.book]) || null;
+  const shelf = SHELVES.find(x => x.books.includes(ref.book));
+  const title = placeLabel(level, ref);
+  const page = {
+    title,
+    top: [t('Theology'), shelf && shelfLabel(shelf.id)[0], shelf && partLabel(shelf.part)].filter(Boolean).join('  \u00b7  '),
+    lines: [], quote: null, blocks: [],
+    // "Theology - Romans 8.28-30.pdf": no colon, which a file name cannot have
+    file: `${t('Theology')} - ${title}`.replace(/:/g, '.').replace(/[\u2013\u2014]/g, '-').replace(/[\\/*?"<>|\u2060]+/g, '').replace(/\s+/g, ' ').trim() + '.pdf',
+  };
+  const add = (head, items, big = false) => {
+    items = items.filter(Boolean);
+    if (items.length || big) page.blocks.push({ head, big, items });
+  };
+  /** "Chapters 1–8: The gospel …" or "Verse 5: …" */
+  const partLine = (p, unit) => `${unit === 'chapter'
+    ? (p.from === p.to ? t('Chapter {n}', { n: p.from }) : t('Chapters {range}', { range: rangeText(p) }))
+    : (p.from === p.to ? tn(1, 'Verse {list}', 'Verses {list}', { list: p.from }) : t('Verses {range}', { range: rangeText(p) }))}: ${p.title}`;
+  const section = (n, name, why, extra) => {
+    const short = shortSummary(n);
+    return { lead: `${t('Catechism')} ${n}: ${name}`, lines: why ? [why] : [], small: [extra, short && `${t('In short:')} ${short}`].filter(Boolean) };
+  };
+  /** The sections that quote the place, as many as the screen shows first. */
+  const quoting = (items, limit = 0) => {
+    const more = limit ? items.length - limit : 0;
+    return [
+      ...(more > 0 ? items.slice(0, limit) : items).map(x => section(x.section.n, x.section.title, '', x.extra)),
+      more > 0 ? { p: tn(more, 'And one more section in the Catechism tab.', 'And {n} more sections in the Catechism tab.'), small: true } : null,
+    ];
+  };
+
+  if (level === 'book') {
+    if (b) {
+      if (b.title) page.lines.push(b.title);
+      add('', [[t('Writer'), b.writer], [t('When'), b.when], [t('Written for'), b.to], [t('Why'), b.why]].filter(x => x[1]).map(([lead, text]) => ({ lead, lines: [text] })));
+      add(t('In short'), ps(b.summary));
+      add(t('Big themes'), (b.themes || []).map(li => ({ li })));
+      add(t('How the book is built'), (b.parts || []).map(p => ({ li: partLine(p, 'chapter') })));
+      const keys = keyRefs(b.key);
+      add(t('Key verses'), keys.length ? [{ p: keys.map(r => formatRef(r, bl())).join(', ') }] : []);
+      add(t('Pointing to Christ'), ps(b.christ));
+    }
+    add(t('In the Catechism'), quoting(bookCatechism(ref.book), 6));
+    if (b) add('', [{ p: t('This introduction is written for the app in plain words, from what is generally known about the book, and in line with the Catechism (CNAC 1.2). It is a help for study.'), small: true }]);
+  } else if (level === 'chapter') {
+    if (b && b.line) page.lines.push(`${bookName(ref.book, bl())}: ${b.line}`);
+    const inPart = b && (b.parts || []).find(p => ref.chapter >= p.from && ref.chapter <= p.to);
+    if (inPart) page.lines.push(`${t('In the book:')} ${inBookText(inPart)}`);
+  } else {
+    const p = opts.passage || await passageText(ref);
+    if (p && p.text) page.quote = { text: p.text, cite: p.translation };
+  }
+
+  // all that Claude wrote, as the screen shows it
+  add(level === 'book' ? t('Claude on this book and its writer') : level === 'chapter' ? t('Claude on this chapter') : t('Claude on these verses'), [], true);
+  add(t('In plain words'), ps(d.plain));
+  add(t('Background'), ps(d.background));
+  add(t('The writer'), ps(d.writer));
+  add(t('Where it stands'), ps(d.place));
+  add(t('How it is built'), list(d.parts).map(p => ({ li: partLine(p, level === 'book' ? 'chapter' : 'verse') })));
+  add(t('Key words'), list(d.words).map(w => ({ lead: w.word, lines: [w.meaning] })));
+  add(t('What it teaches'), list(d.themes).map(x => (x.theme ? { lead: x.theme, lines: x.text ? [x.text] : [] } : { p: x.text })));
+  add(t('What the Church teaches'), [...ps(d.church), ...list(d.catechism).map(c => section(c.n, c.title, c.why, ''))]);
+  add(t('How other Christians read it'), list(d.views).map(v => ({
+    lead: [v.view, badgeOf(v.nac)].filter(Boolean).join('  \u00b7  '),
+    lines: [v.text, v.nac === 'differs' && v.differs ? `${t('New Apostolic teaching:')} ${v.differs}` : ''].filter(Boolean),
+  })));
+  add(t('Pointing to Christ'), ps(d.christ));
+  add(t('Other passages'), list(d.bible).map(x => ({ li: [x.ref ? formatRef(x.ref, bl()) : x.reference, x.why].filter(Boolean).join(' \u2013 ') })));
+  add(t('For today'), ps(d.today));
+  add(t('Good to know'), ps(d.note));
+  add('', [{ p: t('Written {date} by {model}{cost}.', { date: fmtDate(d.at || row.updated), model: AI.modelLabel(d.model), cost: '' }) + ' ' + measureLine(), small: true }]);
+
+  if (level === 'chapter') add(t('In the Catechism'), quoting(chapterCatechism(ref), 8));
+  if (level === 'text') add(t('In the Catechism'), quoting(versesCatechism(ref, ref.verse, ref.verseEnd || ref.verse)));
+  return page;
+}
+
+/** The page as the text of a note: each heading on its own line over what belongs to it, a blank line between the parts. */
+function pageText(page) {
+  const chunks = [];
+  if (page.lines.length) chunks.push(page.lines.join('\n'));
+  if (page.quote) chunks.push(`\u201c${page.quote.text}\u201d${page.quote.cite ? ` (${page.quote.cite})` : ''}`);
+  for (const b of page.blocks) {
+    let head = b.head;
+    let rows = [];
+    const put = text => { chunks.push(head ? `${head}\n${text}` : text); head = ''; };
+    const flush = () => { if (rows.length) put(rows.join('\n')); rows = []; };
+    for (const x of b.items) {
+      if (x.li) { rows.push(`\u2022 ${x.li}`); continue; }
+      flush();
+      put(x.lead ? [x.lead, ...(x.lines || []), ...(x.small || [])].join('\n') : x.p);
+    }
+    flush();
+    if (head) chunks.push(head);   // a heading with nothing under it: the start of what Claude wrote
+  }
+  return chunks.join('\n\n');
+}
+
+/** All of it in a note of the kind "Doctrine", which can still be changed before it is saved. */
+function noteOf(page, level, ref) {
   const at = level === 'book' ? { book: ref.book, chapter: 1 } : level === 'chapter' ? { book: ref.book, chapter: ref.chapter } : ref;
   const note = Notes.draft(at);
   note.kind = 'doctrine';
-  note.title = t('Theology: {place}', { place: placeLabel(level, ref) });
-  note.body = [
-    d.plain,
-    d.church && `${t('What the Church teaches')}: ${d.church}`,
-    d.christ && `${t('Pointing to Christ')}: ${d.christ}`,
-    d.today && `${t('For today')}: ${d.today}`,
-  ].filter(Boolean).join('\n\n');
+  note.title = t('Theology: {place}', { place: page.title });
+  note.body = pageText(page);
   note.tags = [t('theology|tag')];
   Notes.editNote(note);
 }
