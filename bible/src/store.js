@@ -1,8 +1,9 @@
 import { t } from './i18n.js';
 /*
  * Storage. Everything a person writes lives in IndexedDB on the device:
- * notes, service preparations, settings, and a cache of chapters fetched
- * from API.Bible. On start the small stores are loaded into memory, and
+ * notes, service preparations, settings, the theology Claude wrote on a
+ * passage, a chapter or a book, and a cache of chapters fetched from
+ * API.Bible. On start the small stores are loaded into memory, and
  * every change is written through, so the rest of the app can treat the
  * arrays as the truth. Export/Import moves the lot between devices by file;
  * sync.js keeps the person's devices the same over the app's own server.
@@ -15,8 +16,8 @@ import { t } from './i18n.js';
  * which tells nobody, so they are not sent back again.
  */
 const DB_NAME = 'nac-study-bible';
-const DB_VERSION = 5;
-const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync'];
+const DB_VERSION = 6;
+const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync', 'theology'];
 
 let dbPromise = null;
 
@@ -34,6 +35,7 @@ function openDb() {
       if (!db.objectStoreNames.contains('catechism')) db.createObjectStore('catechism', { keyPath: 'key' });
       if (!db.objectStoreNames.contains('guides')) db.createObjectStore('guides', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('sync')) db.createObjectStore('sync', { keyPath: 'key' });
+      if (!db.objectStoreNames.contains('theology')) db.createObjectStore('theology', { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -107,13 +109,14 @@ export const state = {
   texts: {},              // version -> Set of 'BOOK.chapter' pasted in (the text itself stays in the database)
   catechism: null,        // {edition, sections, builtAt, loadedAt} when the Catechism text is loaded on this device
   guides: [],             // Divine Service Guides read by the AI helper, each with its services (device only, see guides.js)
-  deleted: { notes: {}, sermons: {}, texts: {}, guides: {}, catechism: '' },   // id -> when it was deleted here (ISO), kept so sync can pass the deletion on
+  theology: [],           // what Claude wrote on a passage, a chapter or a book (theology.js), one row per place and language
+  deleted: { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, catechism: '' },   // id -> when it was deleted here (ISO), kept so sync can pass the deletion on
 };
 
 /* ---- who wants to know about a change (sync.js) ---- */
 const listeners = new Set();
 
-/** fn(part, {lazy}) is called after every write the person makes; part is 'notes', 'sermons', 'settings', 'texts', 'catechism' or 'guides'. */
+/** fn(part, {lazy}) is called after every write the person makes; part is 'notes', 'sermons', 'settings', 'texts', 'catechism', 'guides' or 'theology'. */
 export function onChange(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
@@ -138,9 +141,9 @@ async function saveDeleted() {
 }
 
 function pruneDeleted(deleted) {
-  const d = { notes: {}, sermons: {}, texts: {}, guides: {}, catechism: '', ...(deleted || {}) };
+  const d = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, catechism: '', ...(deleted || {}) };
   const cutoff = new Date(Date.now() - KEEP_DELETED_DAYS * 86400000).toISOString();
-  for (const part of ['notes', 'sermons', 'texts', 'guides']) {
+  for (const part of ['notes', 'sermons', 'texts', 'guides', 'theology']) {
     const m = d[part] && typeof d[part] === 'object' ? d[part] : {};
     d[part] = Object.fromEntries(Object.entries(m).filter(([, at]) => typeof at === 'string' && at > cutoff));
   }
@@ -149,9 +152,10 @@ function pruneDeleted(deleted) {
 }
 
 export async function load() {
-  const [notes, sermons, settings, textKeys, catMeta, guides, deleted] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta'), db.all('guides'), db.get('sync', 'deleted')]);
+  const [notes, sermons, settings, textKeys, catMeta, guides, deleted, theology] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta'), db.all('guides'), db.get('sync', 'deleted'), db.all('theology')]);
   state.catechism = catMeta ? catMeta.value : null;
   state.guides = guides;
+  state.theology = theology.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
   state.deleted = pruneDeleted(deleted && deleted.value);
   state.texts = {};
   for (const k of textKeys) {
@@ -356,6 +360,28 @@ export async function deleteGuide(id) {
   changed('guides');
 }
 
+/* ---- theology: what Claude wrote on a passage, a chapter or a book ----
+   One row per place and language ('en:PSA.23.1-3', 'af:PSA.23', 'en:PSA'),
+   so asking again replaces it. Claude's words, not the Church's text: they
+   travel with the sync and the backup like the notes. */
+export async function saveInsight(row) {
+  row.updated = new Date().toISOString();
+  const i = state.theology.findIndex(x => x.id === row.id);
+  if (i >= 0) state.theology[i] = row; else state.theology.unshift(row);
+  state.theology.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
+  if (state.deleted.theology[row.id]) { delete state.deleted.theology[row.id]; await saveDeleted(); }
+  await db.put('theology', row);
+  changed('theology');
+  return row;
+}
+
+export async function deleteInsight(id) {
+  state.theology = state.theology.filter(x => x.id !== id);
+  await db.del('theology', id);
+  await markDeleted('theology', id);
+  changed('theology');
+}
+
 /* ---- backup (pasted text and the Catechism text are not in it: see exportTexts) ---- */
 export async function exportAll() {
   return {
@@ -364,6 +390,7 @@ export async function exportAll() {
     exportedAt: new Date().toISOString(),
     notes: state.notes,
     sermons: state.sermons,
+    theology: state.theology,
     settings: Object.fromEntries(Object.entries(state.settings).filter(([k]) => !SECRET.has(k))),
   };
 }
@@ -388,6 +415,20 @@ export async function importAll(data) {
       sermons++;
     }
   }
+  let theology = 0;
+  for (const x of data.theology || []) {
+    if (!x || !x.id || !x.data) continue;
+    const mine = state.theology.find(y => y.id === x.id);
+    if (!mine || (x.updated || '') > (mine.updated || '')) {
+      await db.put('theology', x);
+      if (mine) Object.assign(mine, x); else state.theology.push(x);
+      theology++;
+    }
+  }
+  if (theology) {
+    state.theology.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
+    changed('theology');
+  }
   for (const [k, v] of Object.entries(data.settings || {})) {
     if (SECRET.has(k)) continue;
     if (!(k in DEFAULT_SETTINGS)) continue;
@@ -397,7 +438,7 @@ export async function importAll(data) {
   state.sermons.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   if (notes) changed('notes');
   if (sermons) changed('sermons');
-  return { notes, sermons };
+  return { notes, sermons, theology };
 }
 
 /** Erases this device only: no deletion markers, so the other devices and the copy on the server keep everything. */
@@ -410,7 +451,8 @@ export async function wipeAll() {
   state.texts = {};
   state.catechism = null;
   state.guides = [];
-  state.deleted = { notes: {}, sermons: {}, texts: {}, guides: {}, catechism: '' };
+  state.theology = [];
+  state.deleted = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, catechism: '' };
 }
 
 /* ---- what came from another device (sync.js) ----
@@ -428,7 +470,7 @@ export async function applyRemoteSettings(rows) {
   }
 }
 
-/** Notes or preparations: `put` rows replace ours (in place, so an open screen keeps its object), `remove` ids go. */
+/** Notes, preparations, Guides or theology: `put` rows replace ours (in place, so an open screen keeps its object), `remove` ids go. */
 export async function applyRemoteList(part, put, remove, deleted) {
   const list = state[part];
   for (const row of put) {
@@ -445,6 +487,7 @@ export async function applyRemoteList(part, put, remove, deleted) {
   if (part === 'notes') list.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
   if (part === 'sermons') list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   if (part === 'guides') list.sort((a, b) => (a.loadedAt || '').localeCompare(b.loadedAt || ''));
+  if (part === 'theology') list.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
   if (deleted) { state.deleted[part] = deleted; await saveDeleted(); }
 }
 

@@ -10,8 +10,9 @@ site:
   sheets. Built from `choir/`, live at https://nac-choir-planner.vercel.app. See
   [`choir/README.md`](choir/README.md).
 - **[NAC Study Bible](bible/)** — a minister's personal study bible: Scripture in
-  several translations, notes on verses, where the Catechism refers to each verse, and
-  a guided divine service preparation with printable sermon notes and a cue card. Built
+  several translations, notes on verses, where the Catechism refers to each verse,
+  theological background to every book, chapter and passage, and a guided divine
+  service preparation with printable sermon notes and a cue card. Built
   from `bible/`, live at https://nac-study-bible.vercel.app. See
   [`bible/README.md`](bible/README.md).
 

@@ -18,7 +18,7 @@
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;if(sessionStorage.getItem('sb-splash'))document.documentElement.dataset.splash='off';}catch(e){}</script>
 <!-- Montserrat, the letters of the app, kept with it and fetched first so the words do not jump -->
 <link rel="preload" href="vendor/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=35">
+<link rel="stylesheet" href="styles.css?v=37">
 </head>
 <body>
 <!-- The welcome screen, like the blue title slide: shown while the app starts, gone after a moment or a tap (app.js hideSplash). -->
@@ -55,6 +55,7 @@
       <button type="button" role="tab" id="tab-btn-prepare" aria-controls="tab-prepare" data-tab="prepare"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/></svg></span><span class="lbl" data-t="Prepare">Prepare</span></button>
       <button type="button" role="tab" id="tab-btn-reflect" aria-controls="tab-reflect" data-tab="reflect"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h19"/><path d="M4 4v10.5A1.5 1.5 0 0 0 5.5 16h13a1.5 1.5 0 0 0 1.5-1.5V4"/><path d="M8.5 8.5h7M8.5 11.5h4.5"/><path d="M12 16v2.5M8 21.5l4-3 4 3"/></svg></span><span class="lbl lbl-long" data-t="Reflection evening">Reflection evening</span><span class="lbl lbl-short" data-t="Reflection|tab">Reflection</span></button>
       <button type="button" role="tab" id="tab-btn-catechism" aria-controls="tab-catechism" data-tab="catechism"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M12 6v8M8.5 9.5h7"/></svg></span><span class="lbl" data-t="Catechism">Catechism</span></button>
+      <button type="button" role="tab" id="tab-btn-theology" aria-controls="tab-theology" data-tab="theology"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span><span class="lbl" data-t="Theology">Theology</span></button>
       <button type="button" role="tab" id="tab-btn-settings" aria-controls="tab-settings" data-tab="settings"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span><span class="lbl" data-t="Settings">Settings</span></button>
     </div>
     <div class="nav-foot">
@@ -73,6 +74,7 @@
     <section class="tab" id="tab-prepare" role="tabpanel" aria-labelledby="tab-btn-prepare" hidden></section>
     <section class="tab" id="tab-reflect" role="tabpanel" aria-labelledby="tab-btn-reflect" hidden></section>
     <section class="tab" id="tab-catechism" role="tabpanel" aria-labelledby="tab-btn-catechism" hidden></section>
+    <section class="tab" id="tab-theology" role="tabpanel" aria-labelledby="tab-btn-theology" hidden></section>
     <section class="tab" id="tab-settings" role="tabpanel" aria-labelledby="tab-btn-settings" hidden></section>
   </main>
 </div>
@@ -80,6 +82,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="vendor/jspdf.umd.min.js?v=9" defer></script>
-<script type="module" src="src/app.js?v=35"></script>
+<script type="module" src="src/app.js?v=37"></script>
 </body>
 </html>

@@ -11,14 +11,14 @@
  * (/api/sync): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-02f';
+var VERSION = 'bible-2026-11-02h';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=35',
-  'src/app.js?v=35',
+  'styles.css?v=37',
+  'src/app.js?v=37',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -26,6 +26,7 @@ var SHELL = [
   'src/store.js',
   'src/bible.js',
   'src/catechism.js',
+  'src/theology.js',
   'src/reader.js',
   'src/paste.js',
   'src/notes.js',
@@ -55,6 +56,9 @@ var SHELL = [
   'data/kjv/index.json',
   'data/web/index.json',
   'data/catechism.json',
+  // the short introduction to every book of the Bible (theology.js), in English and Afrikaans
+  'data/theology/en.json',
+  'data/theology/af.json',
   'icons/emblem.svg',
   'icons/emblem-line.svg',
   'icons/emblem-white.png',

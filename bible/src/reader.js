@@ -3,22 +3,24 @@
  * optional second translation interleaved verse by verse. Each verse carries
  * two marks: a "C" when the Catechism quotes it and a pen when the person has
  * written a note on it. Tapping verses selects them; the bar that appears
- * offers a note, the Catechism sections, a service preparation, a copy, and
- * the licensed translations on YouVersion or BibleGateway.
+ * offers a note, the Catechism sections, the theological background
+ * (theology.js), a service preparation, a copy, and the licensed translations
+ * on YouVersion or BibleGateway. The Theology button beside the chapter's
+ * title opens the background to the chapter and its book.
  *
  * The bar above the text keeps to the essentials: book, chapter, Go to, the
  * translation and "Aa", which opens the reading choices (text size, theme,
  * language, Compare, Beside) in a sheet so the text starts high on a phone.
  */
 import { el, $, clear, toast, sheet, copyText, seg, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
-import { t, tn, lang, LANGS } from './i18n.js';
-import { switchLang } from './app.js';
+import { t, tn, lang, LANGS, requestLang } from './i18n.js';
 import { BOOKS, BY_ID, GROUPS, GROUPS_AF, bookName, parseRef, formatRef } from './books.js';
 import { state, saveSetting } from './store.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
 import * as Notes from './notes.js';
 import * as Prepare from './prepare.js';
+import * as Theology from './theology.js';
 import { unpastedCard, pasteSheet } from './paste.js';
 
 let current = { book: 'PSA', chapter: 23, verse: null };
@@ -132,7 +134,11 @@ async function draw() {
   page.append(article);
   const heading = formatRef({ book: current.book, chapter: current.chapter }, lang);
   article.append(el('header', { class: 'chap-head' }, [
-    el('h2', { text: heading }),
+    el('div', { class: 'chap-title' }, [
+      el('h2', { text: heading }),
+      // the background to this chapter and its book (theology.js)
+      el('a', { class: 'btn small ghost th-btn', href: `#theology/${current.book}/${current.chapter}`, title: t('Background to this chapter and its book') }, [Theology.lampIcon(), t('Theology')]),
+    ]),
     el('p', { class: 'caption', text: src ? (src.name || src.short) + (cmpId ? t(' · compared with {short}', { short: Bible.source(cmpId).short }) : '') : '' }),
   ]));
   const status = el('p', { class: 'muted small', text: t('Loading…') });
@@ -262,7 +268,7 @@ function viewSheet(srcId) {
   }, { block: true, label: t('Text size') });
   const themeSeg = seg(THEMES, state.settings.theme || 'system', async v => { await saveSetting('theme', v); applyTheme(v); }, { block: true, label: t('Theme') });
   const readSeg = seg(READS, state.settings.readMode || 'book', async v => { await saveSetting('readMode', v); applyRead(v); }, { block: true, label: t('Letters and spacing') });
-  const langSeg = seg(LANGS, lang(), v => { s.close(); switchLang(v); }, { block: true, label: t('Language of the app') });
+  const langSeg = seg(LANGS, lang(), v => { s.close(); requestLang(v); }, { block: true, label: t('Language of the app') });
 
   const cmpId = state.settings.compare && Bible.source(state.settings.compare) && state.settings.compare !== srcId ? state.settings.compare : '';
   const cmpSel = el('select', { 'aria-label': t('Compare with') }, el('option', { value: '', text: t('None') }));
@@ -391,6 +397,7 @@ function updateActions() {
     el('div', { class: 'vbtns' }, [
       el('button', { class: 'btn small', type: 'button', text: t('Note'), onclick: () => Notes.editNote(Notes.draft(ref), () => draw()) }),
       el('button', { class: 'btn small ghost', type: 'button', text: cats.length ? t('Catechism ({n})', { n: cats.length }) : t('Catechism'), disabled: !cats.length, onclick: () => showCatechism(ref.verse, cats, label) }),
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Theology'), onclick: () => Theology.openSheet(ref, { text, translation: Bible.source(state.settings.translation)?.short || 'KJV' }) }),
       el('button', { class: 'btn small ghost', type: 'button', text: t('Prepare a service'), onclick: () => Prepare.newFromText(ref, text, Bible.source(state.settings.translation)?.short || 'KJV') }),
       el('button', { class: 'btn small ghost', type: 'button', text: t('Copy'), onclick: async () => { toast((await copyText(`${label} (${Bible.source(state.settings.translation)?.short}) ${text}`)) ? t('Copied.') : t('Could not copy.'), false); } }),
       ...Bible.EXTERNAL.slice(0, 2).map(x => el('a', { class: 'btn small ghost', href: Bible.youVersionUrl(x, ref.book, ref.chapter, ref.verse), target: '_blank', rel: 'noopener', text: x.label + ' ↗' })),

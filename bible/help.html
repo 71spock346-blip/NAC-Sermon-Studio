@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=35">
+<link rel="stylesheet" href="styles.css?v=37">
 </head>
 <body class="help">
 <header class="top">
@@ -91,6 +91,25 @@ and is not in the backup file.</p>
 "see 4.2" links between sections; search the whole Catechism by word; tap the <b>C</b> on a verse to see the summary
 of each section that quotes it; and open a section under a service preparation with "Read". Without it, each section
 links to the same text at nak.org. The Catechism's text and index are in English, so search it with English words.</p>
+
+<h2>Theology</h2>
+<p>Theology gives the background to the Bible at three levels: the verses you choose, the chapter, and the book with
+its writer. On a PC it has its own place in the side menu. On a phone you reach it from the reader: the <b>Theology</b>
+button beside the chapter's title opens that chapter, and after you tap verses, <b>Theology</b> in the bar at the bottom
+opens a sheet on those verses, with the chapter and the book a tap away.</p>
+<p>Every book of the Bible has a short introduction built in, the later writings of the Old Testament (the Apocrypha)
+included, in English and in Afrikaans: who wrote it, when, for whom and why, its big themes, how it is built, its key
+verses and how it points to Christ. The books are grouped as the Catechism groups them, and beside each book, chapter
+and passage stand the Catechism sections that quote it. The introductions are written for the app in plain words: a
+help for study, not the Church's doctrine.</p>
+<p>With your Anthropic key (see "Help from Claude" below), <b>Ask Claude</b> writes the background of the verses, the
+chapter or the book: what it says in plain words, its setting and writer, the key words, what the Church teaches on it,
+how other Christians read it (each reading marked as in line with New Apostolic teaching, different from it, or left
+open by the Catechism), how it points to Christ, other passages, and a thought for today. With the Catechism text loaded
+on the device, Claude says what the Church teaches from the Catechism itself; without it, Claude only names the
+sections. It takes about a minute and usually costs under 20 US cents. What Claude wrote is kept on the device, goes
+into the backup file and travels with the sync. <b>Keep as a note</b> copies it into your notes, and <b>Ask again</b>
+writes it anew.</p>
 
 <h2>Preparing a divine service</h2>
 <p>The steps follow the order of the Divine Service Guide's article, so you can go through the booklet and the app
@@ -276,7 +295,8 @@ on your device and are never included in a backup.</p>
 On the other device, open the same screen, tap <b>I have a code</b> and type the code in, or point the phone's camera
 at the square (if the app is on your home screen, open it from there and type the code, so that copy is the one that
 joins). From then on both devices keep each other up to date on their own: notes, preparations, settings, pasted text,
-the Catechism text and the Guides travel across within a few seconds of opening the app or making a change. Something
+the Catechism text, the Guides and what Claude wrote in Theology travel across within a few seconds of opening the app
+or making a change. Something
 you delete on one device goes on the other too; when the same note or preparation was changed on both before they could
 sync, the newer change wins.</p>
 <p>Everything is locked with your code on the device before it is sent. The server, a small part of the app on Vercel,
@@ -288,7 +308,7 @@ for your other devices; <b>Delete the copy on the server</b> removes it for good
 under About touches only that device.</p>
 
 <h2>Backup and devices</h2>
-<p>Notes and preparations live in the browser on each device. Under Settings → Backup, <b>Save backup file</b>
+<p>Notes, preparations and what Claude wrote in Theology live in the browser on each device. Under Settings → Backup, <b>Save backup file</b>
 makes one file with everything; keep it in your Google Drive, also when sync is on: it is your own copy, in a file you can see.
 <b>Load backup file</b> on another device merges it in: newer copies win and nothing is deleted. Clearing the browser's
 site data erases the app's storage, so save a backup first.</p>
@@ -382,6 +402,25 @@ toestel en is nie in die rugsteunlêer nie.</p>
 samevatting te sien van elke afdeling wat dit aanhaal; en 'n afdeling onder 'n godsdiensvoorbereiding met "Lees"
 oopmaak. Daarsonder skakel elke afdeling na dieselfde teks by nak.org. Die Kategismus se teks en indeks is in Engels,
 soek dus daarin met Engelse woorde.</p>
+
+<h2>Teologie</h2>
+<p>Teologie gee die agtergrond by die Bybel op drie vlakke: die verse wat jy kies, die hoofstuk, en die boek met sy
+skrywer. Op 'n rekenaar het dit sy eie plek in die kantkieslys. Op 'n foon kom jy daar uit die leser: die
+<b>Teologie</b>-knoppie langs die hoofstuk se titel maak daardie hoofstuk oop, en nadat jy op verse getik het, maak
+<b>Teologie</b> in die balk onderaan 'n blad oor daardie verse oop, met die hoofstuk en die boek een tik weg.</p>
+<p>Elke boek van die Bybel het 'n kort ingeboude inleiding, die latere geskrifte van die Ou Testament (die Apokriewe)
+ingesluit, in Engels en in Afrikaans: wie dit geskryf het, wanneer, vir wie en waarom, sy groot temas, hoe dit opgebou
+is, sy sleutelverse en hoe dit na Christus wys. Die boeke is gegroepeer soos die Kategismus hulle groepeer, en by elke
+boek, hoofstuk en gedeelte staan die Kategismus-afdelings wat dit aanhaal. Die inleidings is vir die app in eenvoudige
+woorde geskryf: 'n hulp vir studie, nie die leer van die Kerk nie.</p>
+<p>Met jou Anthropic-sleutel (sien "Hulp van Claude" hieronder) skryf <b>Vra Claude</b> die agtergrond van die verse,
+die hoofstuk of die boek: wat dit in eenvoudige woorde sê, die agtergrond en skrywer, die sleutelwoorde, wat die Kerk
+daaroor leer, hoe ander Christene dit lees (elke lesing gemerk as in lyn met die Nuwe Apostoliese leer, anders as dit,
+of deur die Kategismus oopgelaat), hoe dit na Christus wys, ander gedeeltes, en 'n gedagte vir vandag. Met die
+Kategismus-teks op die toestel gelaai, sê Claude uit die Kategismus self wat die Kerk leer; daarsonder noem Claude net
+die afdelings. Dit neem omtrent 'n minuut en kos gewoonlik minder as 20 Amerikaanse sent. Wat Claude geskryf het, word op
+die toestel bewaar, gaan in die rugsteunlêer en reis saam met die sinkronisasie. <b>Hou as 'n nota</b> kopieer dit na
+jou notas, en <b>Vra weer</b> skryf dit opnuut.</p>
 
 <h2>'n Godsdiens voorberei</h2>
 <p>Die stappe volg die volgorde van die Handleiding vir Godsdienste se artikel, sodat jy die boekie en die app langs
@@ -574,8 +613,8 @@ op die eerste toestel <b>Skakel sinkronisasie aan</b>: die app maak 'n kode van 
 'n QR-blokkie. Op die ander toestel maak jy dieselfde skerm oop, tik <b>Ek het 'n kode</b> en tik die kode in, of rig die
 foon se kamera op die blokkie (as die app op jou tuisskerm is, maak dit daar oop en tik die kode in, sodat daardie kopie
 die een is wat aansluit). Van toe af hou die twee toestelle mekaar vanself op datum: notas, voorbereidings, instellings,
-geplakte teks, die Kategismus-teks en die Handleidings gaan oor binne 'n paar sekondes nadat jy die app oopmaak of iets
-verander. Wat jy op een toestel skrap, verdwyn ook op die ander; as dieselfde nota of voorbereiding op albei verander is
+geplakte teks, die Kategismus-teks, die Handleidings en wat Claude in Teologie geskryf het, gaan oor binne 'n paar
+sekondes nadat jy die app oopmaak of iets verander. Wat jy op een toestel skrap, verdwyn ook op die ander; as dieselfde nota of voorbereiding op albei verander is
 voordat hulle kon sinkroniseer, wen die nuwer verandering.</p>
 <p>Alles word met jou kode op die toestel gesluit voordat dit gestuur word. Die bediener, 'n klein deel van die app op
 Vercel, hou net die gesluite kopie en kan dit nie lees nie, en niemand kan dit sonder die kode vind of oopmaak nie. Hou
@@ -586,7 +625,7 @@ die toestel en laat die kopie op die bediener vir jou ander toestelle; <b>Skrap 
 vir goed. <b>Vee alles op hierdie toestel uit</b> onder Oor die app raak net daardie toestel.</p>
 
 <h2>Rugsteun en toestelle</h2>
-<p>Notas en voorbereidings leef in die blaaier op elke toestel. Onder Instellings → Rugsteun maak <b>Stoor
+<p>Notas, voorbereidings en wat Claude in Teologie geskryf het, leef in die blaaier op elke toestel. Onder Instellings → Rugsteun maak <b>Stoor
 rugsteunlêer</b> een lêer met alles; hou dit in jou Google Drive, ook wanneer sinkronisasie aan is: dit is jou eie kopie,
 in 'n lêer wat jy kan sien. <b>Laai rugsteunlêer</b> op 'n ander toestel voeg dit saam: nuwer kopieë wen en niks word
 geskrap nie. As jy die blaaier se webwerfdata uitvee, word die app se berging uitgewis, dus stoor eers 'n rugsteun.</p>

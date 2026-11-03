@@ -40,6 +40,12 @@
  *   readReflection(file) the Church's one-page guide for a reflection evening
  *                     (PDF): the sermon's title, its text and the questions,
  *                     copied word for word for the slides (reflect.js)
+ *   insight(level, ref, …) theological background for the Theology section
+ *                     (theology.js) on a passage, a chapter or a whole book:
+ *                     what it says, its background and writer, what it
+ *                     teaches, what the Church teaches on it, how other
+ *                     Christians read it and whether that agrees with New
+ *                     Apostolic teaching
  *
  * All of them ask for an answer in a fixed JSON shape, streamed so a long answer does
  * not time out. What is sent (the Guide, the Catechism sections, the text and
@@ -56,7 +62,7 @@
  */
 import { state } from './store.js';
 import { t } from './i18n.js';
-import { parseRef, formatRef } from './books.js';
+import { parseRef, formatRef, bookName } from './books.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
 import { mainPoints } from './guides.js';
@@ -155,7 +161,7 @@ function apiError(status, text) {
 export function cost(usage, modelId) {
   const m = MODELS.find(x => x.id === modelId) || model();
   if (!usage) return 0;
-  const inTok = (usage.input_tokens || 0) + (usage.cache_creation_input_tokens || 0) + (usage.cache_read_input_tokens || 0) * 0.1;
+  const inTok = (usage.input_tokens || 0) + (usage.cache_creation_input_tokens || 0) * 1.25 + (usage.cache_read_input_tokens || 0) * 0.1;   // writing the cache costs a quarter more, reading it a tenth
   return (inTok * m.input + (usage.output_tokens || 0) * m.output) / 1e6;
 }
 
@@ -174,8 +180,10 @@ export async function checkKey() {
 }
 
 /**
- * One request to Claude. `content` is the user turn (text and document blocks),
- * `schema` the JSON shape the answer must take. The answer is streamed;
+ * One request to Claude. `system` is the instructions (a string, or text
+ * blocks, the last of which may be marked for the prompt cache), `content`
+ * the user turn (text and document blocks), `schema` the JSON shape the
+ * answer must take. The answer is streamed;
  * onProgress(chars) reports how much has arrived, `signal` cancels.
  * Resolves to {data, usage, model}.
  */
@@ -1232,5 +1240,212 @@ function tidyBreakdown(r, lang) {
     at: new Date().toISOString(), model: r.model, lang,
     cost: cost(r.usage, r.model),
     parts, thread: str(d.thread), note: str(d.note),
+  };
+}
+
+/* ---------------------------------------------------------------- theology */
+
+/*
+ * Theological background on a passage, a chapter or a whole book, for the
+ * Theology section (theology.js). One shape for all three, so the
+ * instructions, the Creed and the Catechism's index form the same opening
+ * of every request and are read from Anthropic's prompt cache when the
+ * minister asks again within a few minutes (a tenth of the price).
+ */
+const INSIGHT_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['plain', 'background', 'writer', 'place', 'parts', 'words', 'themes', 'church', 'views', 'christ', 'bible', 'catechism', 'today', 'note'],
+  properties: {
+    plain: { type: 'string', description: 'In plain words: what the passage says, what happens or is said in the chapter, or what the book is about' },
+    background: { type: 'string', description: 'The time, the place, the people and the customs that help to understand it' },
+    writer: { type: 'string', description: 'Who wrote it and how we know; for a book, what of his life and situation matters for it; for a passage or chapter, what of the writer shows here' },
+    place: { type: 'string', description: 'Where it stands: what comes before and after it, and its place in the book and in the history of salvation' },
+    parts: {
+      type: 'array', description: 'How it is built, in order: for a chapter its parts by verses, for a book its parts by chapters; empty for a passage of a few verses',
+      items: { type: 'object', additionalProperties: false, required: ['from', 'to', 'title'], properties: { from: { type: 'integer', description: 'The first verse (a chapter) or chapter (a book) of this part' }, to: { type: 'integer', description: 'The last verse or chapter of this part' }, title: { type: 'string', description: 'A few plain words' } } },
+    },
+    words: {
+      type: 'array', description: 'Words of the text that carry its weight',
+      items: { type: 'object', additionalProperties: false, required: ['word', 'meaning'], properties: { word: { type: 'string' }, meaning: { type: 'string', description: 'What it means here, in plain words' } } },
+    },
+    themes: {
+      type: 'array', description: 'What it teaches: about God, Jesus Christ, people, salvation, the church or the future',
+      items: { type: 'object', additionalProperties: false, required: ['theme', 'text'], properties: { theme: { type: 'string', description: 'A short heading' }, text: { type: 'string', description: 'Two or three short sentences' } } },
+    },
+    church: { type: 'string', description: 'What the New Apostolic Church teaches about what this speaks of, as the Catechism given states it, with section numbers in brackets as the instructions show' },
+    views: {
+      type: 'array', description: 'How Christians read it, where that matters: up to three ways, each compared with New Apostolic teaching; empty when there is nothing worth comparing',
+      items: { type: 'object', additionalProperties: false, required: ['view', 'text', 'nac', 'differs'], properties: { view: { type: 'string', description: 'A short name for the reading, e.g. "Many Protestant churches"' }, text: { type: 'string', description: 'The reading in one or two plain sentences' }, nac: { type: 'string', enum: ['agrees', 'differs', 'open'], description: '"agrees": in line with New Apostolic teaching; "differs": New Apostolic teaching says otherwise; "open": the Catechism does not decide it' }, differs: { type: 'string', description: 'When "differs": how New Apostolic teaching differs, in one plain sentence; else empty' } } },
+    },
+    christ: { type: 'string', description: 'How it points to Jesus Christ, or what it shows of Him' },
+    bible: {
+      type: 'array', description: 'Other Bible passages that shed light on it',
+      items: { type: 'object', additionalProperties: false, required: ['reference', 'why'], properties: { reference: { type: 'string', description: 'English book name, chapter and verse(s), e.g. "Romans 8:28" or "1 Peter 3:18-20"' }, why: { type: 'string', description: 'One line on how it connects' } } },
+    },
+    catechism: {
+      type: 'array', description: 'Catechism sections that belong with it, by number from the index given',
+      items: { type: 'object', additionalProperties: false, required: ['n', 'why'], properties: { n: { type: 'string', description: 'The section number as in the index, e.g. "8.1"' }, why: { type: 'string', description: 'One line on what the section adds here' } } },
+    },
+    today: { type: 'string', description: 'What it says to us today, for the congregation and for the minister himself' },
+    note: { type: 'string', description: 'Anything else he should know, e.g. where scholars disagree on something that matters; else empty' },
+  },
+};
+
+/** How a study answer is written: plain words for a minister who did not study theology, and wants the depth anyway. */
+function studyVoice(lang) {
+  return `How to write, always:
+- Short sentences, one thought each. Everyday words, the kind people use at the kitchen table. Three or four sentences, then a break.
+- He did not study theology and keeps his words simple, but he wants the depth. When a Bible or Church word is the right one (covenant, grace, atonement, sacrament, prophecy), use it and say in a few plain words what it means here. Never use a hard word to sound learned.
+- Put the main thing first. Start a line with its key word. Leave out what does not help him understand the text. Nothing padded, and nothing said twice in two fields.
+- Name a theologian, a council or a school of thought only when it truly matters, and then say in a few plain words who or what it is.
+- Answer in ${lang === 'af' ? 'Afrikaans: plain, everyday Afrikaans as it is spoken in the congregation, not stiff or bookish. Church words as the New Apostolic Church in South Africa says them: godsdiens, Apostel, gemeente, Heilige Nagmaal, Heilige Verseëling, die wederkoms van Christus' : 'English: plain, everyday English as it is spoken in South Africa'}. Give Bible references with the English book names, as the schema asks.`;
+}
+
+function insightSystem(lang) {
+  return `You help a minister of the New Apostolic Church study the Bible. He asks for the theological background of a Bible passage, a chapter or a whole book: what it says, where it comes from, who wrote it, what it teaches and how it is understood, so that he understands it well and can preach from it.
+
+What to give, field by field:
+- plain: what it says (a passage), what happens or is said in it (a chapter), or what the book is about. Two to four short sentences.
+- background: the time, the place, the people and the customs that help to understand it. Three to five short sentences. Say plainly what is certain; where it is not certain (a date, a place), say so in a few words.
+- writer: for a book, who wrote it, how we know, and what of his life and situation matters for the book, in three to six short sentences. For a passage or a chapter, one or two sentences on the writer and what of him shows here.
+- place: where it stands: what comes before and after it, and its place in the book and in God's history of salvation. One to three short sentences.
+- parts: how it is built, in order. For a chapter, its parts by verses; for a book, its parts by chapters; three to seven parts, each with a title of a few plain words. For a passage of a few verses, leave it empty.
+- words: three to six words of the text that carry its weight, each with what it means here in plain words. A Hebrew or Greek word only where it truly opens the text, then with its plain meaning.
+- themes: two to four things it teaches: about God, about Jesus Christ, about people, about salvation, the church or the future. A short heading each, and two or three short sentences.
+- church: what the New Apostolic Church teaches about what this speaks of, as the Catechism given in the request states it, in plain words, with the section number in brackets, for example ${lang === 'af' ? '"(Kategismus 8.1)"' : '"(CNAC 8.1)"'}. Where the text of a section is not given, you may name the section that treats it (number and title), but do not say what it says. Where the Catechism does not speak to it, say so in one line. Two to five short sentences.
+- views: how Christians read it, where that matters: up to three readings, for example the reading of another church or two ways the text is understood. For each, a short name, one or two plain sentences, and "nac": "agrees" when it is in line with New Apostolic teaching, "differs" when New Apostolic teaching says otherwise (then say how in "differs", in one plain sentence), or "open" when the Catechism does not decide it. Mark "differs" only where the Catechism given or the New Apostolic Creed clearly says otherwise; when unsure, mark "open". Leave "views" empty when nothing is worth comparing. Speak of other churches with respect: never mock or belittle.
+- christ: how it points to Jesus Christ or what it shows of Him, in one to three short sentences. The New Apostolic Church reads all of Scripture from Christ, its centre, and weighs the Old Testament by the gospel (CNAC 1.2.5.2). Do not force a link: where it is not direct, say it simply.
+- bible: four to eight other passages that shed light on it, each with one line on how it connects. Do not quote them, and do not give the passage itself again.
+- catechism: one to five sections of the Catechism that belong with it, by number from the index below, each with one line on what it adds here.
+- today: what it says to us today, for the congregation and for the minister himself. Two or three short sentences.
+- note: anything else he should know, for example where scholars disagree on something that matters; else empty.
+
+Rules:
+- Stay faithful to the Bible and to the doctrine of the New Apostolic Church. Where the teaching of other churches differs, say so plainly and kindly, and give the New Apostolic teaching beside it.
+- God is the author of Holy Scripture; its writers were people whom the Holy Spirit inspired, and each book bears the mark of its writer and his time (CNAC 1.2). On who wrote a book and when, give the tradition, and where many scholars see it differently, say so in a few words, without taking sides beyond what the Catechism says.
+- The later writings of the Old Testament (the Apocrypha) are, for the New Apostolic Church, as binding for faith and doctrine as the rest of the Old Testament (CNAC 1.2.3). Many Protestant churches do not count them as Scripture; the Roman Catholic and Orthodox churches count most of them. Say this where it matters.
+- Cite Catechism sections only by numbers that appear in the index below. Do not state what a section says unless its text is given in the request.
+- What the app already says about the book (its own short introduction, in the request) is a starting point: go deeper, do not repeat it, and where it is wrong, say so in "note".
+
+${studyVoice(lang)}
+
+Put nothing outside the JSON fields.`;
+}
+
+/** The ten Articles of Faith (CNAC 2.4.1 to 2.4.10), from the Catechism text on the device; '' when it is not loaded. */
+function creedPart() {
+  const lines = [];
+  for (let i = 1; i <= 10; i++) {
+    const tx = Cat.textOf(`2.4.${i}`);
+    const first = tx && (tx.blocks || []).find(b => typeof b === 'string');
+    if (first) lines.push(`${i}. ${first}`);
+  }
+  return lines.length === 10 ? 'THE NEW APOSTOLIC CREED (the ten Articles of Faith, CNAC 2.4), to weigh the readings of other churches against\n' + lines.join('\n') : '';
+}
+
+/** The instructions, the Creed and the index as system blocks, the last marked for the prompt cache: the same for every theology request in one language on this device. */
+async function insightSystemBlocks(lang) {
+  await Cat.load().catch(() => null);
+  await Cat.loadText().catch(() => false);
+  const index = 'INDEX OF THE CATECHISM OF THE NEW APOSTOLIC CHURCH (number and title; cite only these numbers)\n'
+    + Cat.allSections().filter(x => x.n !== 'Intro' && x.n !== 'Appendix').map(x => `${x.n} ${x.title}`).join('\n');
+  const tail = [creedPart(), index].filter(Boolean).join('\n\n\n');
+  return [
+    { type: 'text', text: insightSystem(lang) },
+    { type: 'text', text: tail, cache_control: { type: 'ephemeral' } },
+  ];
+}
+
+/** Sections of the Catechism with their text (when it is on the device) for the request, the most relevant first: at most `max`, each cut at `cap` letters. */
+function catechismSections(ns, heading, max = 10, cap = 4000) {
+  const haveText = Cat.textReady();
+  const shown = ns.filter(n => Cat.section(n)).slice(0, max);
+  if (!shown.length) return '';
+  const lines = [heading + (haveText ? ' (their text follows each)' : ' (their text is not loaded on this device: number and title only)')];
+  for (const n of shown) {
+    const sec = Cat.section(n);
+    lines.push(`--- ${n} ${sec.title}`);
+    if (!haveText) continue;
+    const body = Cat.plainLines(n).map(l => (l.kind === 'li' ? '- ' : '') + l.text).join('\n');
+    const sum = Cat.summaryOf(n);
+    if (body) lines.push(body.length > cap ? body.slice(0, cap) + ' …' : body);
+    if (sum.length) lines.push('In short: ' + sum.join(' '));
+  }
+  return lines.join('\n');
+}
+
+/** Catechism sections that quote a passage, a chapter or a book, the most quoted first. */
+export function sectionsQuoting(level, ref) {
+  if (!Cat.ready()) return [];
+  if (level === 'text') {
+    const out = [];
+    for (let v = ref.verse; v <= (ref.verseEnd || ref.verse); v++) for (const sec of Cat.refsFor(ref.book, ref.chapter, v)) if (!out.includes(sec.n)) out.push(sec.n);
+    return out;
+  }
+  return Cat.quoting(ref.book, level === 'chapter' ? ref.chapter : 0).map(x => x.section.n);
+}
+
+/**
+ * Theological background on `ref` at one `level`: 'text' (the verses
+ * ref.verse to ref.verseEnd), 'chapter' or 'book'. `passage` is the text of
+ * the verses as the minister reads them ({text, translation}) when he chose
+ * them in the reader; `intro` is the app's own short introduction to the
+ * book, as a few lines. Resolves to the tidied answer with when, which model
+ * and roughly what it cost.
+ */
+export async function insight(level, ref, { passage = null, intro = '', lang: l = '', signal, onProgress } = {}) {
+  const lang = l === 'af' || l === 'en' ? l : (state.settings.aiLang === 'af' ? 'af' : 'en');
+  const system = await insightSystemBlocks(lang);
+  const label = formatRef(level === 'book' ? { book: ref.book, chapter: 1 } : level === 'chapter' ? { book: ref.book, chapter: ref.chapter } : ref, 'en');
+  const bookLabel = bookName(ref.book, 'en');
+  const what = level === 'book' ? `THE BOOK: ${bookLabel}` : level === 'chapter' ? `THE CHAPTER: ${label}` : `THE PASSAGE: ${label}`;
+  const parts = [`THE TASK\nGive the theological background of ${level === 'book' ? `the book ${bookLabel} and its writer` : level === 'chapter' ? `the chapter ${label}` : `the passage ${label}`}, as the rules say. The answer is in ${lang === 'af' ? 'Afrikaans' : 'English'}.`];
+  if (level === 'text') {
+    const own = passage && passage.text ? `${what}${passage.translation ? ` (${passage.translation}, as the minister reads it)` : ''}\n${passage.text}` : '';
+    let web = '';
+    try {
+      const ch = await Bible.getChapter('web', ref.book, ref.chapter);
+      const vs = (ch && ch.verses || []).filter(v => v.n >= ref.verse && v.n <= (ref.verseEnd || ref.verse));
+      if (vs.length) web = `${what} (World English Bible)\n` + vs.map(v => `${v.n} ${v.text}`).join('\n');
+    } catch (e) { /* Claude knows the text */ }
+    parts.push([own, web].filter(Boolean).join('\n\n') || what);
+  } else {
+    parts.push(what);
+  }
+  if (level !== 'book') {
+    const chapter = await chapterPart({ ref: { book: ref.book, chapter: ref.chapter } });
+    if (chapter) parts.push(chapter);
+  }
+  if (intro) parts.push(`WHAT THE APP ALREADY SAYS ABOUT THE BOOK (its own short introduction)\n${intro}`);
+  const ns = sectionsQuoting(level, ref);
+  const cat = level === 'book' ? catechismSections(ns, 'CATECHISM SECTIONS THAT QUOTE THIS BOOK MOST', 6, 3000)
+    : catechismSections(ns, level === 'chapter' ? 'CATECHISM SECTIONS THAT QUOTE THIS CHAPTER' : 'CATECHISM SECTIONS THAT QUOTE THIS PASSAGE', 8, 4000);
+  parts.push(cat || 'No section of the Catechism quotes this directly.');
+
+  const r = await run({
+    system,
+    content: [{ type: 'text', text: parts.join('\n\n\n') }],
+    schema: INSIGHT_SCHEMA, effort: 'medium', maxTokens: 16000, signal, onProgress,
+  });
+  return tidyInsight(r, lang);
+}
+
+function tidyInsight(r, lang) {
+  const d = r.data || {};
+  const list = v => (Array.isArray(v) ? v.filter(Boolean) : []);
+  const int = v => { const n = parseInt(v, 10); return n > 0 ? n : 0; };
+  return {
+    at: new Date().toISOString(), model: r.model, lang,
+    cost: cost(r.usage, r.model),
+    plain: str(d.plain), background: str(d.background), writer: str(d.writer), place: str(d.place),
+    parts: list(d.parts).map(p => ({ from: int(p.from), to: Math.max(int(p.from), int(p.to)), title: str(p.title) })).filter(p => p.from && p.title),
+    words: list(d.words).map(w => ({ word: str(w.word), meaning: str(w.meaning) })).filter(w => w.word && w.meaning),
+    themes: list(d.themes).map(x => ({ theme: str(x.theme), text: str(x.text) })).filter(x => x.theme || x.text),
+    church: str(d.church),
+    views: list(d.views).map(v => ({ view: str(v.view), text: str(v.text), nac: ['agrees', 'differs', 'open'].includes(v.nac) ? v.nac : 'open', differs: str(v.differs) })).filter(v => v.view || v.text),
+    christ: str(d.christ),
+    bible: tidyBibleRefs(d.bible),
+    catechism: tidyCatRefs(d.catechism),
+    today: str(d.today), note: str(d.note),
   };
 }
