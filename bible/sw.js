@@ -11,14 +11,14 @@
  * (/api/sync): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-03g';
+var VERSION = 'bible-2026-11-03h';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=44',
-  'src/app.js?v=44',
+  'styles.css?v=45',
+  'src/app.js?v=45',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -39,6 +39,9 @@ var SHELL = [
   'src/merge.js',
   'src/reflect.js',
   'src/slides.js',
+  'src/liturgy.js',
+  'src/booklet.js',
+  // pdf.js (vendor/pdfjs/) is fetched the first time a booklet is loaded and kept from then on (cache-first)
   'vendor/jspdf.umd.min.js?v=1',
   'vendor/qrcode.mjs',
   'vendor/pptxgen.bundle.js?v=1',

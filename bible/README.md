@@ -172,6 +172,22 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   changes, the translation says so and offers "Translate again" (the old translation goes under
   the new one, as with Ask again). The list under Theology and a chapter's passages show each
   place once, in the language it opens in.
+- **Liturgy.** `src/liturgy.js` is the Church's altar booklet, *Liturgy for Altar Use*
+  (English and Afrikaans), one card per rite with the words said at the altar. The
+  booklet is the Church's text, so it is not in the repository: the person loads its PDF
+  under Liturgy, and `src/booklet.js` reads it on the device with pdf.js
+  (`vendor/pdfjs/`, fetched only then): `readPages` takes every piece of text with its
+  place, letters and size, and the dotted rules between the rows; `parse` turns the pages
+  into cards (`{key, title, rows}`; a row `{label, sub, blocks}`; a block a paragraph, a
+  note in italics or small letters, or a list item with its depth), joining a row or a
+  card that runs over the page. The cards are kept in the `liturgy` store, one row per
+  language (`en`, `af`), travel with the sync and are not in the backup. `#liturgy`
+  lists the cards in the app's language (or the other's when only that booklet is
+  loaded); `#liturgy/<key>` is one card, with an EN | AF switch when both are loaded, the
+  reader's text sizes under "Aa" and a screen wake lock. A PC has Liturgy in the side
+  menu; the phone's bar keeps six tabs, so there it sits at the top of Prepare, which
+  stays lit. `node tools/test_booklet.mjs booklet.pdf` reads a PDF in Node and prints
+  the cards (after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`).
 - **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
   in IndexedDB on the device (`src/store.js`). At start the app asks the browser to keep
   that storage when the device runs short of space (`app.js keepData`,
@@ -181,8 +197,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   other joins by typing it or scanning its QR square (`vendor/qrcode.mjs`, MIT; the
   square carries `#sync/<code>`, which `app.js` turns into the join sheet). The code
   is the whole secret. `src/sync.js` derives a key from it (PBKDF2) and locks each of
-  seven parts (notes, preparations, settings, pasted text, the Catechism text, the
-  Guides, the theology Claude wrote) with AES-GCM, gzip first, before sending it to
+  eight parts (notes, preparations, settings, pasted text, the Catechism text, the
+  Guides, the theology Claude wrote, the altar booklet) with AES-GCM, gzip first, before sending it to
   `api/sync.js`, which keeps
   the bytes as private blobs in Vercel Blob under `sync/<hash of the code>/<part>.bin`.
   The server and the store never hold anything readable, so the Church's texts and
@@ -255,7 +271,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `api/sync.js` – the sync server (Vercel function, Vercel Blob); `package.json` holds its one dependency
 - `icons/` – the emblem (SVG and the PNG sizes a phone's home screen wants; `emblem-white.png` and `emblem-blue.png` for the slides)
 - `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#notes`,
-  `#prepare/<id>`, `#reflect/<id>`, `#catechism/3.4.1`, `#theology/ROM/8`, `#settings`)
+  `#prepare/<id>`, `#reflect/<id>`, `#catechism/3.4.1`, `#theology/ROM/8`, `#liturgy/baptism`, `#settings`)
 - `src/books.js` – the 80 books, English and Afrikaans names, reference parsing
 - `src/i18n.js`, `src/af.js` – the language of the interface: `t()` and the Afrikaans table
 - `src/store.js` – IndexedDB, in-memory state, backup, change events and deletion markers for sync
@@ -264,6 +280,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/catechism.js` – Catechism index and tab
 - `src/theology.js` – the Theology tab, the book, chapter and passage pages, and the sheet the reader opens
 - `data/theology/en.json`, `data/theology/af.json` – the built-in introduction to every book, in English and Afrikaans
+- `src/liturgy.js` – the Liturgy tab: the altar booklet's cards, loading and removing a booklet, the EN | AF switch, the screen wake lock
+- `src/booklet.js` – reads the altar booklet's PDF into cards (pdf.js on the device, then a pure parse of the pages)
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
 - `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
@@ -274,7 +292,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `vendor/pptxgen.bundle.js` – PptxGenJS 4.0.1 with JSZip 3.10.1 inside (MIT), loaded only when a PowerPoint file is made
 - `vendor/fonts/` – Montserrat, variable (SIL OFL 1.1), Latin and Latin-extended subsets, the letters of the app; Caladea and Carlito (SIL OFL 1.1), standing in for Cambria and Calibri on the slides of a reflection evening
 - `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
-- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync
+- `vendor/pdfjs/` – pdf.js 5.4.624 (Apache 2.0; `vendor/pdfjs.LICENSE`), fetched only when an altar booklet is loaded
+- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_booklet.mjs` for the altar booklet
 
 ## Rebuilding the data
 
@@ -320,6 +339,9 @@ project for this app has its root directory set to `bible`.
   Only section numbers, titles and Bible references are in the repository; the text
   file built with `--text` is loaded by the person onto their own device and is not
   published.
+- Liturgy for Altar Use: © New Apostolic Church Cape. Nothing of it is in the
+  repository; the person loads the PDF onto their own device, and it is not published.
 - jsPDF: MIT (`vendor/jspdf.LICENSE`).
+- pdf.js: Apache License 2.0 (`vendor/pdfjs.LICENSE`).
 - PptxGenJS and JSZip: MIT (`vendor/pptxgen.LICENSE`).
 - Montserrat: © The Montserrat Project Authors; Caladea: © The Caladea Project Authors; Carlito: © The Carlito Project Authors; all SIL Open Font License 1.1 (`vendor/fonts/OFL-Montserrat.txt`, `vendor/fonts/OFL-Caladea.txt`, `vendor/fonts/OFL-Carlito.txt`).

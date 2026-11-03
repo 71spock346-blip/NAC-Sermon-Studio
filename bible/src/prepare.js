@@ -70,6 +70,7 @@ import * as Pdf from './pdf.js';
 import * as Guides from './guides.js';
 import * as AI from './ai.js';
 import * as Reflect from './reflect.js';
+import * as Liturgy from './liturgy.js';
 
 export const OCCASIONS = [
   'Sunday divine service', 'Midweek divine service', 'Divine service for the departed',
@@ -200,6 +201,7 @@ function renderList(container) {
   }
   search.addEventListener('input', show);
   container.append(
+    Liturgy.shortcut(),   // on a phone only: the words at the altar, which the bar has no tab for
     el('div', { class: 'docbar' }, [
       el('h2', { text: t('Service preparations ({n})', { n: state.sermons.length }) }),
       el('div', { class: 'spacer' }),
