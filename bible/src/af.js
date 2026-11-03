@@ -553,7 +553,6 @@ export const AF = {
   ", heading \"{title}\"": ", opskrif \"{title}\"",
 
   // ---- the Bible services (bible.js)
-  "(pasted)": "(geplak)",
   "Unknown translation": "Onbekende vertaling",
   "Licence {id}": "Lisensie {id}",
   "API.Bible did not accept the key. Check it in Settings.": "API.Bible het die sleutel nie aanvaar nie. Kyk dit na in Verstellings.",
@@ -682,9 +681,9 @@ export const AF = {
 
   // my pasted text
   "My pasted text": "My geplakte teks",
-  "For a text you may use yourself: tick its version here, choose it in the reader (marked \"pasted\"), and paste each chapter in when you open it, copied from the page where you read it. The text stays in this browser on this device. It is not part of the normal backup; save it with its own file here to carry it to another device.": "Vir 'n teks wat jy self mag gebruik: merk sy weergawe hier, kies dit in die leser (gemerk \"geplak\"), en plak elke hoofstuk in wanneer jy dit oopmaak, gekopieer van die bladsy waar jy dit lees. Die teks bly in hierdie blaaier op hierdie toestel. Dit is nie deel van die gewone rugsteun nie; stoor dit hier met sy eie lêer om dit na 'n ander toestel oor te dra.",
-  "{label} (pasted) is now in the reader's translation list.": "{label} (geplak) is nou in die leser se vertalingslys.",
-  "{label} (pasted) removed from the list{kept}.": "{label} (geplak) uit die lys verwyder{kept}.",
+  "For a text you may use yourself: tick its version here, choose it in the reader (listed by its short name, such as AFR83), and paste each chapter in when you open it, copied from the page where you read it. The text stays in this browser on this device. It is not part of the normal backup; save it with its own file here to carry it to another device.": "Vir 'n teks wat jy self mag gebruik: merk sy weergawe hier, kies dit in die leser (gelys onder sy kort naam, soos AFR83), en plak elke hoofstuk in wanneer jy dit oopmaak, gekopieer van die bladsy waar jy dit lees. Die teks bly in hierdie blaaier op hierdie toestel. Dit is nie deel van die gewone rugsteun nie; stoor dit hier met sy eie lêer om dit na 'n ander toestel oor te dra.",
+  "{label} is now in the reader's translation list.": "{label} is nou in die leser se vertalingslys.",
+  "{label} removed from the list{kept}.": "{label} uit die lys verwyder{kept}.",
   "; its chapters are kept": "; sy hoofstukke word gehou",
   "{n} chapter pasted": "{n} hoofstuk geplak",
   "{n} chapters pasted": "{n} hoofstukke geplak",
