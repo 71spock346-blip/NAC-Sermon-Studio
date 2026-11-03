@@ -80,7 +80,7 @@ export const DEFAULT_SETTINGS = {
   apiBibles: [],          // [{id, abbreviation, name, language}] chosen from the key's catalogue
   yvKey: '',              // YouVersion Platform app key, same rules as apiKey
   yvBibles: [],           // [{id, abbreviation, name, language}] chosen from that catalogue
-  myTexts: [],            // versions the person pastes in chapter by chapter ('afr83'), shown as "(pasted)"
+  myTexts: [],            // versions the person pastes in chapter by chapter ('afr83'), listed by their short name
   aiKey: '',              // Anthropic key for the AI helper, same rules as apiKey
   aiModel: 'claude-opus-5-5',
   aiLang: 'en',           // language of the suggestions: 'en' or 'af'; a preparation can choose its own

@@ -58,7 +58,7 @@ export function sources() {
   const list = Object.values(BUILT_IN);
   for (const x of EXTERNAL) {
     if ((state.settings.myTexts || []).includes(x.id) || textCount(x.id)) {
-      list.push({ id: 'mine:' + x.id, short: x.label + ' ' + t('(pasted)'), name: t('{name}, pasted in by you', { name: x.name }), lang: x.lang, builtin: false, provider: 'mine', ext: x });
+      list.push({ id: 'mine:' + x.id, short: x.label, name: t('{name}, pasted in by you', { name: x.name }), lang: x.lang, builtin: false, provider: 'mine', ext: x });
     }
   }
   for (const b of state.settings.apiBibles || []) {
