@@ -159,9 +159,8 @@ export function modelLabel(id) {
 function headers(scope) {
   const key = activeKey(scope);
   if (!key) {
-    if (Lock.unlocked()) throw new Error(t('Add your Anthropic key under Settings → AI helper first.'));
-    if (scope === 'theology') throw new Error(t('To ask Claude here, add a key of your own under Settings → AI helper first.'));
-    throw new Error(t('The helper is locked on this device. Unlock it under Settings → AI helper.'));
+    if (scope === 'theology' && !Lock.unlocked()) throw new Error(t('To ask Claude here, add a key of your own under Settings → AI helper first.'));
+    throw new Error(t('Add your Anthropic key under Settings → AI helper first.'));   // also for a job of the minister's own on a locked device: no button leads here, and no word gives the lock away
   }
   return {
     'content-type': 'application/json',

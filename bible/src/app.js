@@ -22,6 +22,7 @@
 import { $, $$, applyTheme, applyRead, syncThemeColor, toast } from './ui.js';
 import { load, state, saveSetting } from './store.js';
 import { t, lang, setLang, translatePage } from './i18n.js';
+import { unlocked as helperUnlocked } from './lock.js';   // is the AI helper open on this device? (what a locked device may not mention)
 import * as Reader from './reader.js';
 import * as Notes from './notes.js';
 import * as Prepare from './prepare.js';
@@ -124,7 +125,7 @@ async function switchLang(l) {
   await saveSetting('aiLang', to);
   applyLang(to);
   route();
-  toast(t('The app is now in English: the screens, the book names and Claude\'s suggestions.'));
+  toast(helperUnlocked() ? t('The app is now in English: the screens, the book names and Claude\'s suggestions.') : t('The app is now in English: the screens and the book names.'));
 }
 
 /** Another device's changes have arrived: redraw the open screen, unless the person is in the middle of typing or of a preparation. */

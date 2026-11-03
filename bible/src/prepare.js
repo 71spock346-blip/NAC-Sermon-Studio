@@ -455,6 +455,7 @@ function renderEditor(root, s) {
   const humourSel = pick(t('Humour'), 'humour', [['', t('As usual: {usual}', { usual: t(AI.humourLabel(state.settings.aiHumour)).toLowerCase() })], ['none', 'None in this service'], ['some', 'A little, where it fits'], ['more', 'A bit more']]);
   const humourHint = el('span', { class: 'hint muted small' });
   humourSel.append(humourHint);
+  humourSel.hidden = !AI.unlocked();   // humour steers Claude's suggestions only: nothing to choose where the helper is locked (lock.js)
   /** No humour at a funeral or a service for the departed, whatever is chosen. */
   function syncHumour() {
     const off = AI.humourOf({ ...s, humour: 'some' }) === 'none';

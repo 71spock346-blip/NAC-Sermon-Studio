@@ -370,6 +370,7 @@ label.f .row.line { width: 100%; }
 .lock-card .lock-head h3 { margin: 0; font: 700 16px/1.3 var(--display); color: var(--head-ink); }
 .lock-card .lock-ico { display: inline-flex; color: var(--accent-text); flex: 0 0 auto; }
 .lock-card p.small { margin: 8px 0 0; color: var(--ink-2); }
+.tap-quiet { user-select: none; -webkit-user-select: none; touch-action: manipulation; }   /* a heading that counts quick taps (settings.js secretTap) must not select or zoom */
 .lock-card .row { margin-top: 10px; }
 .pw-row { width: 100%; gap: 8px; }
 .pw-row .pw-input { flex: 1 1 auto; min-width: 0; font-size: 17px; letter-spacing: .02em; }

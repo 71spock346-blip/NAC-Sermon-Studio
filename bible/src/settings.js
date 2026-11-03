@@ -33,7 +33,9 @@ export function render(container) {
   // ---- language
   const uiSeg = seg(LANGS, S.uiLang || 'en', v => requestLang(v), { block: true, label: t('Language of the app') });
   container.append(section(t('Language'), [
-    el('label', { class: 'f' }, [t('Language of the app'), uiSeg, el('span', { class: 'hint muted small', text: t('The screens, the buttons, the help page and the headings in the printed notes. Switching also sets the book names and the language of Claude\'s suggestions below; each can be changed on its own afterwards. The Bible text stays in the translation you choose.') })]),
+    el('label', { class: 'f' }, [t('Language of the app'), uiSeg, el('span', { class: 'hint muted small', text: Lock.unlocked()
+      ? t('The screens, the buttons, the help page and the headings in the printed notes. Switching also sets the book names and the language of Claude\'s suggestions below; each can be changed on its own afterwards. The Bible text stays in the translation you choose.')
+      : t('The screens, the buttons, the help page and the headings in the printed notes. Switching also sets the book names below; each can be changed on its own afterwards. The Bible text stays in the translation you choose.') })]),
   ]));
 
   // ---- about you
@@ -177,8 +179,12 @@ export function render(container) {
       el('li', { text: t('Scripture read through API.Bible or the YouVersion Platform is the copyright of its publishers and is shown under their terms; see the notice under each chapter.') }),
       el('li', { text: t('Text you paste in yourself stays on this device for your own study and remains the copyright of its publisher.') }),
       el('li', { text: t('Catechism of the New Apostolic Church © New Apostolic Church International, Zurich. The app carries only the section numbers, titles and Bible references; the text itself is loaded by you onto this device for your own study, or read at nak.org.') }),
-      el('li', { text: t('Divine Service Guide © New Apostolic Church International. A Guide you load is read by Claude (Anthropic) with your own key and kept on this device only, for your own preparation.') }),
-      el('li', { text: t('Liturgy for Altar Use © New Apostolic Church Cape. The booklet you load is read on this device itself, without Claude, kept on your own devices only, and is not part of the public app.') }),
+      el('li', { text: Lock.unlocked()
+        ? t('Divine Service Guide © New Apostolic Church International. A Guide you load is read by Claude (Anthropic) with your own key and kept on this device only, for your own preparation.')
+        : t('Divine Service Guide © New Apostolic Church International. A Guide that is loaded is kept on the minister\'s own devices only, for his own preparation.') }),
+      el('li', { text: Lock.unlocked()
+        ? t('Liturgy for Altar Use © New Apostolic Church Cape. The booklet you load is read on this device itself, without Claude, kept on your own devices only, and is not part of the public app.')
+        : t('Liturgy for Altar Use © New Apostolic Church Cape. The booklet you load is read on this device itself, kept on your own devices only, and is not part of the public app.') }),
       el('li', { text: t('The booklet\'s PDF is read with pdf.js (Mozilla), Apache License 2.0.') }),
       el('li', { text: t('Typeface: Montserrat (© The Montserrat Project Authors), SIL Open Font License 1.1. The slides of a reflection evening use Cambria and Calibri, as in PowerPoint, or where a device lacks them Caladea (© The Caladea Project Authors) and Carlito (© The Carlito Project Authors), both SIL Open Font License 1.1.') }),
     ]),
@@ -375,12 +381,10 @@ function howToKey() {
 
 /* ------------------------------------------------------------------ the lock on the helper */
 
-/** A small padlock, closed or open. */
-function padlock(open) {
+/** A small open padlock for the card's heading. */
+function padlock() {
   const span = el('span', { class: 'lock-ico', 'aria-hidden': 'true' });
-  span.innerHTML = open
-    ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.7"/></svg>'
-    : '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  span.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.7"/></svg>';
   return span;
 }
 
@@ -388,15 +392,15 @@ function padlock(open) {
 function lockBlock() {
   const set = Lock.hasLock();
   return el('div', { class: 'lock-card' + (set ? ' set' : ' ask') }, [
-    el('div', { class: 'row line lock-head' }, [padlock(true), el('h3', { text: t('Keep the helper for you only') })]),
+    el('div', { class: 'row line lock-head' }, [padlock(), el('h3', { text: t('Keep the helper for you only') })]),
     el('p', { class: 'small', text: set
-      ? t('The helper is locked with your password and open on this device. Your other devices ask for the password once. Others can still ask Claude in Theology, with a key of their own; your key is never used for that.')
-      : t('Right now the helper shows to anyone who opens the app on this device. Choose a password, and it shows only after you type it: once on each of your devices. Others can still ask Claude in Theology, with a key of their own; your key is never used for that.') }),
+      ? t('The helper is locked with your password and open on this device. A locked device shows no sign of it: to unlock one, open Settings there and tap the words "AI helper" five times. Others can still ask Claude in Theology, with a key of their own; your key is never used for that.')
+      : t('Right now the helper shows to anyone who opens the app on this device. Choose a password, and it shows only after you type it, once on each of your devices; a locked device shows no sign of it. Others can still ask Claude in Theology, with a key of their own; your key is never used for that.') }),
     el('div', { class: 'row' }, set ? [
       el('button', { class: 'btn small', type: 'button', text: t('Lock on this device'), onclick: async () => {
-        if (!(await confirmBox(t('Lock the helper on this device? Only the password opens it again.'), t('Lock')))) return;
+        if (!(await confirmBox(t('Lock the helper on this device? Nothing of it shows here until the password is typed again: tap the words "AI helper" five times under Settings.'), t('Lock')))) return;
         await Lock.close();
-        toast(t('Locked on this device. Type the password to use the helper again.'));
+        toast(t('Locked on this device. To open it again, tap the words "AI helper" five times under Settings.'));
       } }),
       el('button', { class: 'btn small ghost', type: 'button', text: t('Change the password'), onclick: () => passwordSheet(true) }),
       el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove the lock'), onclick: async () => {
@@ -412,28 +416,37 @@ function lockBlock() {
 
 /**
  * The section where the helper is locked, or was never the minister's
- * (a visitor's device): Claude in Theology with a key of one's own, and, on a
- * device that knows the lock, the way in.
+ * (a visitor's device): Claude in Theology with a key of one's own, and
+ * nothing that says there is more. On a device that knows the lock, five
+ * quick taps on the heading "AI helper" open the sheet for the password; no
+ * word on the screen says so (the minister reads it on an unlocked device
+ * and in the help page's part for him).
  */
 function guestAiSection(container) {
   const keyField = keyBox({
     label: t('Your Anthropic key'), setting: 'guestAiKey', placeholder: t('Paste your Anthropic key (sk-ant-…)'), checkText: t('Check key'),
     onCheck: async () => { await AI.checkKey('theology'); toast(t('The key works. Claude is ready in Theology.')); },
   });
-  container.append(section(t('AI helper'), [
-    Lock.hasLock() ? el('div', { class: 'lock-card locked' }, [
-      el('div', { class: 'row line lock-head' }, [padlock(false), el('h3', { text: t('The helper is locked on this device') })]),
-      el('p', { class: 'small', text: t('Reading the Guide, the suggestions, the translations and the reflection guide wait for your password.') }),
-      el('div', { class: 'row' }, [
-        el('button', { class: 'btn small', type: 'button', text: t('Unlock'), onclick: () => unlockSheet() }),
-        el('button', { class: 'btn small ghost', type: 'button', text: t('I forgot the password'), onclick: () => forgotSheet() }),
-      ]),
-    ]) : null,
+  const sec = section(t('AI helper'), [
     el('p', { class: 'small', text: t('In Theology, Claude (the AI from Anthropic) can write the background of a book, a chapter or a passage, in line with the Catechism. It works with a key of your own: you pay Anthropic only for what you use, usually under 20 US cents an answer, and the key stays on this device, out of any backup.') }),
     howToKey(),
     keyField,
     el('p', { class: 'muted small', text: t('What goes to Anthropic to answer: the verses or the chapter, the app\'s own introduction to the book and the Catechism sections that quote it. Anthropic processes it to answer and does not train its models on it. The answer is a help for study, not Church doctrine.') }),
-  ]));
+  ]);
+  if (Lock.hasLock()) secretTap(sec.querySelector('h2'), () => unlockSheet());
+  container.append(sec);
+}
+
+/** Five quick taps (within a second and a half of each other) on `node` call `fn`. The node gives no sign of it. */
+function secretTap(node, fn) {
+  let taps = 0, last = 0;
+  node.classList.add('tap-quiet');
+  node.addEventListener('click', () => {
+    const now = Date.now();
+    taps = now - last < 1500 ? taps + 1 : 1;
+    last = now;
+    if (taps >= 5) { taps = 0; fn(); }
+  });
 }
 
 /** A box for the password, with Show / Hide beside it. `shown` says whether it starts readable. */
@@ -463,7 +476,7 @@ function passwordSheet(change) {
     try {
       await Lock.setPassword(pw.input.value);
       s.close();
-      toast(change ? t('The password is changed. Your other devices ask for it once.') : t('The helper is yours alone now. This device stays unlocked; your other devices ask for the password once.'));
+      toast(change ? t('The password is changed. On your other devices, tap the words "AI helper" five times under Settings and type it.') : t('The helper is yours alone now. This device stays unlocked. On another device, tap the words "AI helper" five times under Settings and type the password.'));
     } catch (e) {
       save.disabled = false;
       hint.textContent = e.message || String(e);
@@ -472,6 +485,7 @@ function passwordSheet(change) {
   });
   s.body.append(
     el('p', { class: 'small', text: t('A few words you will remember, like a short line from a hymn. Write it down where you keep passwords: without it the helper stays locked, and only your sync code can remove the lock.') }),
+    el('p', { class: 'small', text: t('A locked device shows nothing of the helper. To unlock one, open Settings there and tap the words "AI helper" five times: this sheet opens for the password.') }),
     el('label', { class: 'f' }, [t('Password'), pw.row]),
     hint,
     el('div', { class: 'row end' }, [el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => s.close() }), save]),
@@ -694,10 +708,8 @@ function syncSection(container) {
         cat: n.catechism ? '' : t(' (not loaded here)'),
       }) }),
       el('div', { class: 'row' }, [
-        // the code opens everything, so a locked device keeps it out of sight (lock.js): only the password shows it
-        Lock.hasLock() && !Lock.unlocked()
-          ? el('span', { class: 'muted small', text: t('The code shows once the helper is unlocked (Settings → AI helper).') })
-          : el('button', { class: 'btn small', type: 'button', text: t('Show the code'), onclick: () => codeSheet(st.code) }),
+        // the code opens everything, so a locked device keeps it out of sight, without a word about it (lock.js)
+        ...[Lock.hasLock() && !Lock.unlocked() ? null : el('button', { class: 'btn small', type: 'button', text: t('Show the code'), onclick: () => codeSheet(st.code) })].filter(Boolean),
         el('button', { class: 'btn small ghost', type: 'button', text: t('Stop syncing on this device'), onclick: async () => {
           if (await confirmBox(t('Stop syncing on this device? Everything stays on it, and the copy on the server stays for your other devices. You can join again later with the code.'), t('Stop syncing'))) {
             await Sync.disable();
