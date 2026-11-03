@@ -547,7 +547,10 @@ export function render(root, s) {
     el('span', { class: 'step-n', text: n }),
     el('div', { class: 'step-text' }, [el('h3', { text: title }), hint ? el('p', { class: 'muted small', text: hint }) : null]),
   ]);
-  page.append(sec(1, t('The Church\'s reflection guide'), t('The one-page PDF for the evening. Claude copies its title, text word and questions onto the slides, word for word.')));
+  const open = AI.unlocked();   // reading the PDF is Claude's work, the minister's own (lock.js)
+  page.append(sec(1, t('The Church\'s reflection guide'), open
+    ? t('The one-page PDF for the evening. Claude copies its title, text word and questions onto the slides, word for word.')
+    : t('The slides take the title and text word from the preparation, and the Church\'s four usual questions.')));
   const fromLine = el('p', { class: 'small reflect-from' });
   const picker = pdfPicker(async file => {
     const g = await readPdf(file);
@@ -558,11 +561,15 @@ export function render(root, s) {
     toast(t('Taken from the reflection guide: the title, the text word and {n} questions.', { n: (g.questions || []).length }));
     render(root, s);
   });
-  page.append(el('div', { class: 'row' }, [
-    el('button', { class: 'btn ghost ai-btn', type: 'button', onclick: picker.pick }, [spark(), r.from ? t('Load another reflection guide') : t('Load the reflection guide (PDF)')]),
-    picker.input,
-  ]), fromLine);
-  fromLine.textContent = r.from ? t('Taken from “{name}”, {date}.', { name: r.from.name || 'PDF', date: fmtDate(r.from.at) }) : t('Without it the slides take the title and text from the preparation, and the Church\'s four usual questions.');
+  if (open) {
+    page.append(el('div', { class: 'row' }, [
+      el('button', { class: 'btn ghost ai-btn', type: 'button', onclick: picker.pick }, [spark(), r.from ? t('Load another reflection guide') : t('Load the reflection guide (PDF)')]),
+      picker.input,
+    ]));
+  }
+  page.append(fromLine);
+  fromLine.textContent = r.from ? t('Taken from “{name}”, {date}.', { name: r.from.name || 'PDF', date: fmtDate(r.from.at) }) : open ? t('Without it the slides take the title and text from the preparation, and the Church\'s four usual questions.') : '';
+  fromLine.hidden = !fromLine.textContent;
   fromLine.classList.toggle('muted', !r.from);
 
   // ---- 2. what the slides say

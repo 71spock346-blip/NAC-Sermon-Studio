@@ -363,6 +363,20 @@ label.f .row.line { width: 100%; }
 .fields > label.f { margin: 0; }
 /* a key box (settings.js keyBox): the key on a line of its own at the full width, so it can be read on a phone;
    Show and the check go under it and wrap rather than squeeze the box, and a long button name wraps inside its button */
+/* the lock on the AI helper (settings.js lockBlock, guestAiSection; lock.js): a light-blue card, a padlock in its heading */
+.lock-card { background: var(--card); border-radius: var(--radius-s); padding: 12px 14px 12px; margin: 0 0 12px; }
+.lock-card.ask { box-shadow: inset 3px 0 0 var(--accent); }
+.lock-card .lock-head { gap: 10px; align-items: center; }
+.lock-card .lock-head h3 { margin: 0; font: 700 16px/1.3 var(--display); color: var(--head-ink); }
+.lock-card .lock-ico { display: inline-flex; color: var(--accent-text); flex: 0 0 auto; }
+.lock-card p.small { margin: 8px 0 0; color: var(--ink-2); }
+.lock-card .row { margin-top: 10px; }
+.pw-row { width: 100%; gap: 8px; }
+.pw-row .pw-input { flex: 1 1 auto; min-width: 0; font-size: 17px; letter-spacing: .02em; }
+.pw-row .key-show { display: inline-grid; place-items: center; flex: 0 0 auto; }
+.pw-row .key-show > span { grid-area: 1 / 1; }
+.pw-row .key-show > span + span, .pw-row .key-show.on > span:first-child { visibility: hidden; }
+.pw-row .key-show.on > span + span { visibility: visible; }
 .keybox { margin: 6px 0 10px; }
 .keybox > label.f { margin: 0; }
 .keybox .key-state { margin: 6px 0 0; color: var(--ink-2); }

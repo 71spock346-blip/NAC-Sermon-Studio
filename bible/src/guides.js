@@ -394,6 +394,16 @@ async function read(file) {
 
 /** Where to go when there is no key yet. */
 export function noKey() {
+  if (!AI.unlocked()) {
+    // the helper is locked here (lock.js): what is open is Theology, with a key of the visitor's own
+    const s = sheet(t('A key of your own is needed'));
+    s.body.append(
+      el('p', { text: t('In Theology, Claude answers with a key of your own from Anthropic: you pay only for what you use, usually under 20 US cents an answer, and the key stays on this device.') }),
+      el('p', { class: 'small' }, [t('Get the key at console.anthropic.com and paste it under Settings → AI helper. The settings page has the steps.')]),
+      el('div', { class: 'row end' }, [el('a', { class: 'btn', href: '#settings', text: t('Open Settings'), onclick: () => s.close() })]),
+    );
+    return;
+  }
   const s = sheet(t('Your Anthropic key is needed'));
   s.body.append(
     el('p', { text: t('Claude reads the Guide, makes the suggestions and writes the theology with a key of your own, so that you pay only for what you use and the key stays on this device.') }),
@@ -441,6 +451,9 @@ function monthName(m) {
 export function card({ onPrepare, onChange }) {
   const groups = months();
   const wrap = el('details', { class: 'guide-card', open: true });
+  // loading a Guide is Claude's work, so it is the minister's own (lock.js): a locked device only shows the Guides it has
+  const canLoad = AI.unlocked();
+  if (!groups.length && !canLoad) return null;
   if (!groups.length) {
     wrap.append(
       el('summary', { text: t('Divine Service Guide') }),
@@ -476,12 +489,12 @@ export function card({ onPrepare, onChange }) {
       ]) : null,
       el('p', { class: 'small muted', text: t('Tap a service to start its preparation, or to open the one already started. Loaded {date} from "{file}".', { date: fmtDate(current.loadedAt), file: current.fileName || t('a PDF') }) }),
       el('div', { class: 'list' }, current.services.map((_, i) => serviceRow(current, i, onPrepare))),
-      missing ? el('p', { class: 'small guide-twin', text: missing === 'af'
+      missing && canLoad ? el('p', { class: 'small guide-twin', text: missing === 'af'
         ? t('Do you have this Guide in Afrikaans too? Load it as well. Each service is then linked to the same one in English, and each preparation can follow either language.')
         : t('Do you have this Guide in English too? Load it as well. Each service is then linked to the same one in Afrikaans, and each preparation can follow either language.') }) : null,
       el('div', { class: 'row' }, [
-        missing ? el('button', { class: 'btn small', type: 'button', text: missing === 'af' ? t('Load the Afrikaans Guide (PDF)') : t('Load the English Guide (PDF)'), onclick: loadOne }) : null,
-        el('button', { class: 'btn small ghost', type: 'button', text: t('Load another Guide'), onclick: loadOne }),
+        missing && canLoad ? el('button', { class: 'btn small', type: 'button', text: missing === 'af' ? t('Load the Afrikaans Guide (PDF)') : t('Load the English Guide (PDF)'), onclick: loadOne }) : null,
+        canLoad ? el('button', { class: 'btn small ghost', type: 'button', text: t('Load another Guide'), onclick: loadOne }) : null,
         el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove this Guide'), onclick: async () => {
           if (await confirmBox(t('Remove "{title}" from this device? Preparations made from it keep their text; you can load the PDF again later.', { title: current.title }), t('Remove'), true)) {
             await deleteGuide(current.id);

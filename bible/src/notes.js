@@ -117,6 +117,8 @@ function shownLang(n) {
 function langRow(n, x, redraw) {
   const job = working.get(n.id);
   const own = noteLang(n);
+  const open = AI.unlocked();   // translating is Claude's work, the minister's own (lock.js); locked, the switch only flips between the texts the note has
+  if (!open && !(n.alt && n.alt.lang && n.alt.lang !== own)) return null;
   const button = l => el('button', {
     type: 'button', text: l.toUpperCase(), title: langName(l), class: x.lang === l ? 'on' : null, 'aria-pressed': String(x.lang === l),
     disabled: !!job, onclick: () => choose(n, l, redraw),
@@ -131,7 +133,7 @@ function langRow(n, x, redraw) {
       ? t('The note in {language} was changed after this translation.', { language: langName(own) })
       : n.alt.edited ? t('Translated by Claude from {language}, then changed by you.', { language: langName(own) })
         : t('Translated by Claude from {language}.', { language: langName(own) }) }));
-    if (stale) row.append(el('button', { class: 'btn small ghost', type: 'button', text: t('Translate again'), onclick: () => translate(n, x.lang, redraw) }));
+    if (stale && open) row.append(el('button', { class: 'btn small ghost', type: 'button', text: t('Translate again'), onclick: () => translate(n, x.lang, redraw) }));
   }
   return row;
 }
@@ -146,6 +148,7 @@ function choose(n, l, redraw) {
 /** Claude translates the note into `l`; the translation is kept in the note, in place of an earlier one. */
 async function translate(n, l, redraw) {
   if (working.has(n.id)) return;
+  if (!AI.unlocked()) { toast(t('Translating a note is part of the helper, which is locked on this device.'), true); return; }
   if (!AI.ready()) { toast(t('Add your Anthropic key under Settings → AI helper first.'), true); return; }
   if (n.alt && n.alt.lang === l && n.alt.edited
     && !(await confirmBox(t('Translate again? Your own changes to the note in {language} are replaced.', { language: langName(l) }), t('Translate again')))) return;
@@ -198,8 +201,10 @@ export function card(n, onChange) {
           el('button', { class: 'btn small ghost', type: 'button', text: t('Edit'), 'aria-label': t('Edit the note on {ref}', { ref: refLabel(n) }), onclick: () => editNote(n, onChange, { alt: x.translated }) }),
         ]),
       ]),
-      langRow(n, x, draw),
-      x.title ? el('div', { class: 'note-title', lang: x.lang, text: x.title }) : null,
+      ...[
+        langRow(n, x, draw),
+        x.title ? el('div', { class: 'note-title', lang: x.lang, text: x.title }) : null,
+      ].filter(Boolean),   // a DOM append() writes a bare null as the word "null"
       el('div', { class: 'note-body', lang: x.lang, text: x.body }),
     );
   };
@@ -272,8 +277,8 @@ export function editNote(note, onSaved, { alt = false } = {}) {
     saveBtn,
   ]);
   s.body.append(
-    inAlt ? el('p', { class: 'small muted', text: t('You are changing the note in {language}. The note in {other} stays as it is.', { language: langName(n.alt.lang), other: langName(own) }) })
-      : n.alt ? el('p', { class: 'small muted', text: t('This note also has a translation into {language}. It stays as it is until you translate it again.', { language: langName(n.alt.lang) }) }) : null,
+    ...[inAlt ? el('p', { class: 'small muted', text: t('You are changing the note in {language}. The note in {other} stays as it is.', { language: langName(n.alt.lang), other: langName(own) }) })
+      : n.alt ? el('p', { class: 'small muted', text: t('This note also has a translation into {language}. It stays as it is until you translate it again.', { language: langName(n.alt.lang) }) }) : null].filter(Boolean),
     el('label', { class: 'f' }, [t('Verse(s)'), refInput, refHint]),
     el('div', { class: 'fields two' }, [
       el('label', { class: 'f' }, [t('Kind'), kindSel]),

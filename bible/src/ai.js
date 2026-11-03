@@ -47,6 +47,13 @@
  *                     Christians read it and whether that agrees with New
  *                     Apostolic teaching
  *
+ * The helper is the minister's own (lock.js): every job here runs only on a
+ * device where his password was typed, except insight() and
+ * translateInsight(), which Theology offers to anyone, with a key of their
+ * own (settings.guestAiKey) while the helper is locked. activeKey() picks the
+ * key a request may use; the minister's key never goes out while the helper
+ * is locked, whatever the screen shows.
+ *
  * All of them ask for an answer in a fixed JSON shape, streamed so a long answer does
  * not time out. What is sent (the Guide, the Catechism sections, the text and
  * the person's notes) is processed by Anthropic to answer; nothing of it goes
@@ -66,6 +73,9 @@ import { parseRef, formatRef, bookName } from './books.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
 import { mainPoints } from './guides.js';
+import * as Lock from './lock.js';
+
+export { unlocked, locked, hasLock } from './lock.js';
 
 const API = 'https://api.anthropic.com/v1';
 const API_VERSION = '2026-10-21';
@@ -122,7 +132,20 @@ export function humourOf(s) {
 
 export function humourLabel(id) { return HUMOUR_LABEL[id] || HUMOUR_LABEL.some; }
 
-export function ready() { return !!(state.settings.aiKey || '').trim(); }
+/*
+ * The key a request may use. 'owner' (the usual) is the minister's own key,
+ * only while the helper is unlocked on this device. 'theology' is what
+ * Theology offers to anyone: the minister's key when unlocked, else the
+ * visitor's own key on this device, never the minister's.
+ */
+export function activeKey(scope = 'owner') {
+  if (Lock.unlocked()) return (state.settings.aiKey || '').trim();
+  if (scope === 'theology') return (state.settings.guestAiKey || '').trim();
+  return '';
+}
+
+/** Can a request of this kind go out from this device: is it allowed here, and is there a key for it? */
+export function ready(scope = 'owner') { return !!activeKey(scope); }
 
 export function model() {
   return MODELS.find(m => m.id === state.settings.aiModel) || MODELS[0];
@@ -133,9 +156,13 @@ export function modelLabel(id) {
   return m ? m.label : (id || 'Claude');
 }
 
-function headers() {
-  const key = (state.settings.aiKey || '').trim();
-  if (!key) throw new Error(t('Add your Anthropic key under Settings → AI helper first.'));
+function headers(scope) {
+  const key = activeKey(scope);
+  if (!key) {
+    if (Lock.unlocked()) throw new Error(t('Add your Anthropic key under Settings → AI helper first.'));
+    if (scope === 'theology') throw new Error(t('To ask Claude here, add a key of your own under Settings → AI helper first.'));
+    throw new Error(t('The helper is locked on this device. Unlock it under Settings → AI helper.'));
+  }
   return {
     'content-type': 'application/json',
     'x-api-key': key,
@@ -170,10 +197,10 @@ export function fmtCost(c) {
   return c < 0.01 ? t('under 1 US cent') : t('about ${amount}', { amount: c.toFixed(2) });
 }
 
-/** Does the key work? Lists the models it may use. */
-export async function checkKey() {
+/** Does the key work? Lists the models it may use. `scope` says which key: see activeKey(). */
+export async function checkKey(scope = 'owner') {
   let r;
-  try { r = await fetch(`${API}/models?limit=5`, { headers: headers() }); }
+  try { r = await fetch(`${API}/models?limit=5`, { headers: headers(scope) }); }
   catch (e) { throw new Error(t('No connection to Anthropic. Check your network and try again.')); }
   if (!r.ok) throw apiError(r.status, await r.text());
   return true;
@@ -184,10 +211,12 @@ export async function checkKey() {
  * blocks, the last of which may be marked for the prompt cache), `content`
  * the user turn (text and document blocks), `schema` the JSON shape the
  * answer must take. The answer is streamed;
- * onProgress(chars) reports how much has arrived, `signal` cancels.
+ * onProgress(chars) reports how much has arrived, `signal` cancels. `scope`
+ * says whose key may go with it (activeKey): 'owner' unless Theology asks.
  * Resolves to {data, usage, model}.
  */
-export async function run({ system, content, schema, effort = 'medium', maxTokens = 16000, signal, onProgress }) {
+export async function run({ system, content, schema, effort = 'medium', maxTokens = 16000, signal, onProgress, scope = 'owner' }) {
+  const head = headers(scope);   // before anything is built: no key, or a locked helper, stops the request here
   const body = {
     model: model().id,
     max_tokens: maxTokens,
@@ -199,7 +228,7 @@ export async function run({ system, content, schema, effort = 'medium', maxToken
   };
   let r;
   try {
-    r = await fetch(`${API}/messages`, { method: 'POST', headers: headers(), body: JSON.stringify(body), signal });
+    r = await fetch(`${API}/messages`, { method: 'POST', headers: head, body: JSON.stringify(body), signal });
   } catch (e) {
     if (e && e.name === 'AbortError') throw e;
     throw new Error(t('No connection to Anthropic. Check your network and try again.'));
@@ -1425,7 +1454,7 @@ export async function insight(level, ref, { passage = null, intro = '', lang: l 
   const r = await run({
     system,
     content: [{ type: 'text', text: parts.join('\n\n\n') }],
-    schema: INSIGHT_SCHEMA, effort: 'medium', maxTokens: 16000, signal, onProgress,
+    schema: INSIGHT_SCHEMA, effort: 'medium', maxTokens: 16000, signal, onProgress, scope: 'theology',
   });
   return tidyInsight(r, lang);
 }
@@ -1575,7 +1604,7 @@ export async function translateInsight(d, to, { signal, onProgress } = {}) {
   const r = await run({
     system: translateAnswerSystem(to),
     content: [{ type: 'text', text: `THE PIECES\n${JSON.stringify(pieces, null, 1)}` }],
-    schema: PIECES_SCHEMA, effort: 'low', maxTokens: 32000, signal, onProgress,
+    schema: PIECES_SCHEMA, effort: 'low', maxTokens: 32000, signal, onProgress, scope: 'theology',
   });
   const got = new Map();
   for (const p of Array.isArray(r.data && r.data.pieces) ? r.data.pieces : []) {

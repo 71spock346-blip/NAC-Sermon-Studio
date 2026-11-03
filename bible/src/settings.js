@@ -2,7 +2,9 @@
  * Settings: the language of the app, the API.Bible key and which of its
  * Bibles to show, the person's name and congregation, book-name language,
  * backup, offline texts, and the copyright notices the bundled texts and
- * API.Bible ask for.
+ * API.Bible ask for. The AI helper's section also holds the lock on the
+ * helper (lock.js): choosing the password, unlocking a device, and, for
+ * anyone else, the key of their own for Claude in Theology.
  */
 import { el, clear, toast, confirmBox, download, today, sheet, busy, fmtDate, seg, copyText, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
 import { t, tn, LANGS, requestLang } from './i18n.js';
@@ -11,6 +13,7 @@ import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
 import * as AI from './ai.js';
 import * as Sync from './sync.js';
+import * as Lock from './lock.js';
 import { BOOKS } from './books.js';
 
 export const VERSION = '0.2.0';
@@ -315,8 +318,15 @@ function keyBox({ label, setting, placeholder, checkText, onCheck }) {
   ]);
 }
 
-/** The AI helper: the Anthropic key, which Claude to ask, and the language of the suggestions. */
+/**
+ * The AI helper. Claude's help is the minister's own (lock.js): the whole
+ * section, with the lock's own card at its top, shows only where the helper
+ * is unlocked. Everywhere else the section offers what is open to anyone:
+ * asking Claude in Theology with a key of their own, and, on a device that
+ * knows the lock, the way to unlock the rest.
+ */
 function aiSection(container) {
+  if (!Lock.unlocked()) { guestAiSection(container); return; }
   const S = state.settings;
   const keyField = keyBox({
     label: t('Anthropic key'), setting: 'aiKey', placeholder: t('Paste your Anthropic key (sk-ant-…)'), checkText: t('Check key'),
@@ -334,15 +344,9 @@ function aiSection(container) {
   styleBox.addEventListener('change', async () => { await saveSetting('aiStyle', styleBox.value.trim()); toast(styleBox.value.trim() ? t('Saved. Claude will follow it.') : t('Note removed.')); });
 
   container.append(section(t('AI helper'), [
+    lockBlock(),
     el('p', { class: 'small', text: t('Claude, the AI from Anthropic, can read the monthly Divine Service Guide into the Prepare tab and suggest answers for a preparation: the context of the text, key words, Catechism sections, cross references, sermon thoughts and the build of the sermon. It works with a key of your own, so you pay Anthropic only for what you use (roughly R10 to read a month\'s Guide and a few rand for a set of suggestions) and the key stays on this device, out of any backup.') }),
-    el('details', { class: 'small' }, [
-      el('summary', { text: t('How to get a key') }),
-      el('ol', {}, [
-        el('li', {}, [t('Open '), el('a', { href: 'https://console.anthropic.com', target: '_blank', rel: 'noopener', text: 'console.anthropic.com' }), t(' and create an account, or sign in.')]),
-        el('li', { text: t('Under Billing, add some credit; it is prepaid, and $5 to $10 lasts months.') }),
-        el('li', { text: t('Under API Keys, create a key, copy it (it is shown once) and paste it below. Then tap "Check key".') }),
-      ]),
-    ]),
+    howToKey(),
     keyField,
     el('div', { class: 'fields two' }, [
       el('label', { class: 'f' }, [t('Which Claude'), modelSel]),
@@ -355,6 +359,200 @@ function aiSection(container) {
     el('label', { class: 'f' }, [t('Your way of preaching (optional)'), styleBox, el('span', { class: 'hint muted small', text: t('A few lines in your own words: what you like to do, what you avoid, where your pictures come from. Claude follows it in every suggestion.') })]),
     el('p', { class: 'muted small', text: t('What goes to Anthropic to answer: the Guide PDF when you load one, the text word with its chapter, the Catechism sections that belong to it, your own notes on that preparation, who is listening and this note on how you preach. Anthropic processes it to answer and does not train its models on it. Nothing is put on the public site, and the suggestions are a starting point: the sermon remains yours.') }),
   ]));
+}
+
+/** The steps to a key at Anthropic, folded away. */
+function howToKey() {
+  return el('details', { class: 'small' }, [
+    el('summary', { text: t('How to get a key') }),
+    el('ol', {}, [
+      el('li', {}, [t('Open '), el('a', { href: 'https://console.anthropic.com', target: '_blank', rel: 'noopener', text: 'console.anthropic.com' }), t(' and create an account, or sign in.')]),
+      el('li', { text: t('Under Billing, add some credit; it is prepaid, and $5 to $10 lasts months.') }),
+      el('li', { text: t('Under API Keys, create a key, copy it (it is shown once) and paste it below. Then tap "Check key".') }),
+    ]),
+  ]);
+}
+
+/* ------------------------------------------------------------------ the lock on the helper */
+
+/** A small padlock, closed or open. */
+function padlock(open) {
+  const span = el('span', { class: 'lock-ico', 'aria-hidden': 'true' });
+  span.innerHTML = open
+    ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.7"/></svg>'
+    : '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  return span;
+}
+
+/** The card at the top of the unlocked section: choose a password, or manage the lock that is set. */
+function lockBlock() {
+  const set = Lock.hasLock();
+  return el('div', { class: 'lock-card' + (set ? ' set' : ' ask') }, [
+    el('div', { class: 'row line lock-head' }, [padlock(true), el('h3', { text: t('Keep the helper for you only') })]),
+    el('p', { class: 'small', text: set
+      ? t('The helper is locked with your password and open on this device. Your other devices ask for the password once. Others can still ask Claude in Theology, with a key of their own; your key is never used for that.')
+      : t('Right now the helper shows to anyone who opens the app on this device. Choose a password, and it shows only after you type it: once on each of your devices. Others can still ask Claude in Theology, with a key of their own; your key is never used for that.') }),
+    el('div', { class: 'row' }, set ? [
+      el('button', { class: 'btn small', type: 'button', text: t('Lock on this device'), onclick: async () => {
+        if (!(await confirmBox(t('Lock the helper on this device? Only the password opens it again.'), t('Lock')))) return;
+        await Lock.close();
+        toast(t('Locked on this device. Type the password to use the helper again.'));
+      } }),
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Change the password'), onclick: () => passwordSheet(true) }),
+      el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove the lock'), onclick: async () => {
+        if (!(await confirmBox(t('Remove the lock? The helper then shows on every device that has your key, to anyone who opens the app there.'), t('Remove the lock'), true))) return;
+        await Lock.remove();
+        toast(t('The lock is removed.'));
+      } }),
+    ] : [
+      el('button', { class: 'btn small', type: 'button', text: t('Choose a password'), onclick: () => passwordSheet(false) }),
+    ]),
+  ]);
+}
+
+/**
+ * The section where the helper is locked, or was never the minister's
+ * (a visitor's device): Claude in Theology with a key of one's own, and, on a
+ * device that knows the lock, the way in.
+ */
+function guestAiSection(container) {
+  const keyField = keyBox({
+    label: t('Your Anthropic key'), setting: 'guestAiKey', placeholder: t('Paste your Anthropic key (sk-ant-…)'), checkText: t('Check key'),
+    onCheck: async () => { await AI.checkKey('theology'); toast(t('The key works. Claude is ready in Theology.')); },
+  });
+  container.append(section(t('AI helper'), [
+    Lock.hasLock() ? el('div', { class: 'lock-card locked' }, [
+      el('div', { class: 'row line lock-head' }, [padlock(false), el('h3', { text: t('The helper is locked on this device') })]),
+      el('p', { class: 'small', text: t('Reading the Guide, the suggestions, the translations and the reflection guide wait for your password.') }),
+      el('div', { class: 'row' }, [
+        el('button', { class: 'btn small', type: 'button', text: t('Unlock'), onclick: () => unlockSheet() }),
+        el('button', { class: 'btn small ghost', type: 'button', text: t('I forgot the password'), onclick: () => forgotSheet() }),
+      ]),
+    ]) : null,
+    el('p', { class: 'small', text: t('In Theology, Claude (the AI from Anthropic) can write the background of a book, a chapter or a passage, in line with the Catechism. It works with a key of your own: you pay Anthropic only for what you use, usually under 20 US cents an answer, and the key stays on this device, out of any backup.') }),
+    howToKey(),
+    keyField,
+    el('p', { class: 'muted small', text: t('What goes to Anthropic to answer: the verses or the chapter, the app\'s own introduction to the book and the Catechism sections that quote it. Anthropic processes it to answer and does not train its models on it. The answer is a help for study, not Church doctrine.') }),
+  ]));
+}
+
+/** A box for the password, with Show / Hide beside it. `shown` says whether it starts readable. */
+function passwordBox(shown) {
+  const input = el('input', { type: shown ? 'text' : 'password', class: 'pw-input', placeholder: t('Your password'), autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', 'aria-label': t('Password') });
+  const showBtn = el('button', { class: 'btn small ghost key-show' + (shown ? ' on' : ''), type: 'button', onclick: () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    showBtn.classList.toggle('on', show);
+    input.focus();
+  } }, [el('span', { text: t('Show') }), el('span', { text: t('Hide') })]);
+  return { input, showBtn, row: el('div', { class: 'row line pw-row' }, [input, showBtn]) };
+}
+
+/** Choosing the password, or changing it (`change`). This device stays unlocked; the others ask once. */
+function passwordSheet(change) {
+  const s = sheet(change ? t('Change the password') : t('Choose a password'));
+  const pw = passwordBox(true);   // shown while it is chosen, so a slip is seen
+  const usual = t('At least {n} characters. Capital letters do not matter.', { n: Lock.MIN_LENGTH });
+  const hint = el('p', { class: 'hint small muted', text: usual });
+  const save = el('button', { class: 'btn', type: 'button', text: t('Save') });
+  pw.input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save.click(); } });
+  pw.input.addEventListener('input', () => { if (hint.classList.contains('error')) { hint.textContent = usual; hint.classList.remove('error'); } });   // typing on clears the complaint
+  save.addEventListener('click', async () => {
+    if (Lock.tidy(pw.input.value).length < Lock.MIN_LENGTH) { hint.textContent = t('Too short: at least {n} characters.', { n: Lock.MIN_LENGTH }); hint.classList.add('error'); pw.input.focus(); return; }
+    save.disabled = true;
+    try {
+      await Lock.setPassword(pw.input.value);
+      s.close();
+      toast(change ? t('The password is changed. Your other devices ask for it once.') : t('The helper is yours alone now. This device stays unlocked; your other devices ask for the password once.'));
+    } catch (e) {
+      save.disabled = false;
+      hint.textContent = e.message || String(e);
+      hint.classList.add('error');
+    }
+  });
+  s.body.append(
+    el('p', { class: 'small', text: t('A few words you will remember, like a short line from a hymn. Write it down where you keep passwords: without it the helper stays locked, and only your sync code can remove the lock.') }),
+    el('label', { class: 'f' }, [t('Password'), pw.row]),
+    hint,
+    el('div', { class: 'row end' }, [el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => s.close() }), save]),
+  );
+  setTimeout(() => pw.input.focus(), 30);
+}
+
+let misses = 0;   // wrong passwords typed since the app opened: each one waits a little longer
+
+/** Typing the password on this device. */
+export function unlockSheet() {
+  const s = sheet(t('Unlock the helper'));
+  const pw = passwordBox(false);
+  const hint = el('p', { class: 'hint small muted' });
+  const go = el('button', { class: 'btn', type: 'button', text: t('Unlock') });
+  pw.input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go.click(); } });
+  pw.input.addEventListener('input', () => { if (hint.classList.contains('error')) { hint.textContent = ''; hint.classList.remove('error'); } });
+  go.addEventListener('click', async () => {
+    if (!pw.input.value.trim()) { pw.input.focus(); return; }
+    go.disabled = true;
+    hint.classList.remove('error');
+    hint.textContent = t('Checking…');
+    try {
+      if (await Lock.open(pw.input.value)) {
+        s.close();
+        toast(t('Unlocked. The helper stays open on this device until you lock it.'));
+        return;
+      }
+      misses++;
+      hint.textContent = misses >= 3 ? t('That is not the password. Wait a moment and try again.') : t('That is not the password.');
+      hint.classList.add('error');
+      pw.input.select();
+      await new Promise(r => setTimeout(r, Math.min(10, misses) * 1000));   // a wrong guess costs a wait, longer each time
+    } catch (e) {
+      hint.textContent = e.message || String(e);
+      hint.classList.add('error');
+    }
+    go.disabled = false;
+  });
+  s.body.append(
+    el('p', { class: 'small', text: t('Type the password you chose. This device then stays unlocked until you lock it.') }),
+    el('label', { class: 'f' }, [t('Password'), pw.row]),
+    hint,
+    el('div', { class: 'row end' }, [
+      el('button', { class: 'btn ghost', type: 'button', text: t('I forgot the password'), onclick: () => { s.close(); forgotSheet(); } }),
+      go,
+    ]),
+  );
+  setTimeout(() => pw.input.focus(), 30);
+}
+
+/**
+ * The way back when the password is forgotten: another device that is
+ * still unlocked can change it; failing that, the sync code of this device
+ * removes the lock. The code is shown only on an unlocked device, so someone
+ * holding a locked phone cannot read it off and use it here.
+ */
+function forgotSheet() {
+  const s = sheet(t('Forgot the password'));
+  const st = Sync.getStatus();
+  const input = el('input', { type: 'text', class: 'sync-input', placeholder: 'ABCDE-FGHJK-LMNPQ-RSTUV', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', 'aria-label': t('Sync code') });
+  const hint = el('p', { class: 'hint small muted' });
+  input.addEventListener('input', () => { input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/(.{5})(?=.)/g, '$1-'); hint.textContent = ''; hint.classList.remove('error'); });
+  const go = el('button', { class: 'btn danger', type: 'button', text: t('Remove the lock'), disabled: !st.on });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go.click(); } });
+  go.addEventListener('click', async () => {
+    const code = Sync.parseCode(input.value);
+    if (!code || code !== st.code) { hint.textContent = t('That is not this device\'s sync code.'); hint.classList.add('error'); input.focus(); return; }
+    await Lock.remove();
+    s.close();
+    toast(t('The lock is removed. Choose a new password under Settings → AI helper when you like.'));
+  });
+  s.body.append(
+    el('p', { class: 'small', text: t('On a device where the helper is still unlocked, open Settings → AI helper and tap "Change the password".') }),
+    el('p', { class: 'small', text: t('If every device is locked, type your sync code here. It removes the lock: the helper is open again wherever your key is, and you can choose a new password.') }),
+    ...[st.on ? null : el('p', { class: 'small error', text: t('This device is not in your sync, so the code cannot be checked here. Join your sync first, or unlock on another device.') })].filter(Boolean),
+    el('label', { class: 'f sync-join' }, [t('Sync code'), input]),
+    hint,
+    el('div', { class: 'row end' }, [el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => s.close() }), go]),
+  );
+  if (st.on) setTimeout(() => input.focus(), 30);
 }
 
 /** What YouVersion says about the licence of a Bible the key may not read yet. */
@@ -496,7 +694,10 @@ function syncSection(container) {
         cat: n.catechism ? '' : t(' (not loaded here)'),
       }) }),
       el('div', { class: 'row' }, [
-        el('button', { class: 'btn small', type: 'button', text: t('Show the code'), onclick: () => codeSheet(st.code) }),
+        // the code opens everything, so a locked device keeps it out of sight (lock.js): only the password shows it
+        Lock.hasLock() && !Lock.unlocked()
+          ? el('span', { class: 'muted small', text: t('The code shows once the helper is unlocked (Settings → AI helper).') })
+          : el('button', { class: 'btn small', type: 'button', text: t('Show the code'), onclick: () => codeSheet(st.code) }),
         el('button', { class: 'btn small ghost', type: 'button', text: t('Stop syncing on this device'), onclick: async () => {
           if (await confirmBox(t('Stop syncing on this device? Everything stays on it, and the copy on the server stays for your other devices. You can join again later with the code.'), t('Stop syncing'))) {
             await Sync.disable();

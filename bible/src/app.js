@@ -191,6 +191,7 @@ async function start() {
   route();
   hideSplash();
   document.addEventListener('sb-sync', onSynced);
+  document.addEventListener('sb-lock', route);   // the helper was unlocked or locked here (lock.js): the screen shows or hides Claude's part
   Sync.start();
   keepData();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
