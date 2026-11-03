@@ -1100,4 +1100,13 @@ export const AF = {
   "And {n} more sections in the Catechism tab.": "En nog {n} afdelings in die Kategismus-oortjie.",
   "Kept with your study. Sync takes it to your other devices.": "Saam met jou studie bewaar. Sinkronisering neem dit na jou ander toestelle.",
   "Removed.": "Verwyder.",
+  "The new answer is first. The earlier one is kept under it.": "Die nuwe antwoord is eerste. Die vroeëre een word daaronder gehou.",
+  "An earlier answer": "'n Vroeëre antwoord",
+  "{n} earlier answers": "{n} vroeëre antwoorde",
+  "Asking again never throws an answer away. Earlier answers stay here until you remove them.": "As jy weer vra, word geen antwoord weggegooi nie. Vroeëre antwoorde bly hier totdat jy hulle verwyder.",
+  "Put this one first": "Sit hierdie een eerste",
+  "This answer is first now. The other one is kept under it.": "Hierdie antwoord is nou eerste. Die ander een word daaronder gehou.",
+  "Remove the earlier answer written {date}? It goes from all your devices.": "Verwyder die vroeëre antwoord wat op {date} geskryf is? Dit verdwyn van al jou toestelle af.",
+  "Remove this answer? The earlier answer, written {date}, takes its place.": "Verwyder hierdie antwoord? Die vroeëre antwoord, geskryf op {date}, kom in sy plek.",
+  "Remove what Claude wrote on {place}? It goes from all your devices.": "Verwyder wat Claude oor {place} geskryf het? Dit verdwyn van al jou toestelle af.",
 };
