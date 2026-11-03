@@ -33,9 +33,13 @@ a white page on a pale ground, with the small blue emblem in its corner.
 
 `icons/emblem-line.svg` is the official white line emblem, traced from
 `icons/emblem-white.png`; the app draws it through a CSS mask (`.emblem`), so it takes
-the colour of the text around it. `icons/emblem.svg` and the PNG icons are the same
-emblem on a blue tile (`icon-maskable-512.png` with room for an Android launcher's
-shape). The welcome screen in `index.html` (styled as the blue title slide) shows once
+the colour of the text around it. The app icon is the official NAC icon: a square of
+the Church blue with the white emblem 89% of its height, centred (`icons/emblem.svg`,
+the browser tab; `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`). In
+`icon-maskable-512.png` the whole emblem stays inside the central circle (40% radius)
+that every Android launcher shape keeps. The icon links carry `?v=2` in `manifest.json`,
+`index.html`, `help.html` and `sw.js`; raise it whenever the icons change, so browsers
+and installed apps fetch the new ones. The welcome screen in `index.html` (styled as the blue title slide) shows once
 each time the app is opened and fades when `app.js` has drawn the first screen.
 
 ## Two languages
