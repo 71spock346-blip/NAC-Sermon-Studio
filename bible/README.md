@@ -63,9 +63,10 @@ all point to `--font`, so one line changes the letters. "White" is that look,
 Appearance, or the reader's "Aa" button) is mirrored in localStorage so the page paints
 in the right colours before the database is open. "Easy-read" swaps Montserrat for
 plain letters (Verdana where the device has it) in the whole app, with more room in the
-reading text. Under 760px the tabs are a bar under the thumb and
-the text runs full width on white; from 760px they are a side menu and each screen is
-a white page on a pale ground, with the small blue emblem in its corner.
+reading text. Under 760px the tabs are a bar under the thumb (five of them: Read,
+Notes, Prepare, Catechism and More, which lists the other six sections, `src/more.js`) and
+the text runs full width on white; from 760px they are a side menu with every section and
+each screen is a white page on a pale ground, with the small blue emblem in its corner.
 
 `icons/emblem-line.svg` is the official white line emblem, traced from
 `icons/emblem-white.png`; the app draws it through a CSS mask (`.emblem`), so it takes
@@ -148,8 +149,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   letters lack) or as a Doctrine note. In the reader,
   "Theology" in the verse bar opens a sheet on the chosen verses and the button beside
   the chapter title opens the chapter. A PC has "Theology" in the side menu; the phone's
-  bar keeps its six tabs (a seventh does not fit at 360px), so there it is reached from
-  the reader, and Read stays lit.
+  bar keeps five tabs, so there it is listed under More and reached from the reader as
+  well, and More stays lit.
 - **The helper is the minister's own.** `src/lock.js`: under Settings → AI helper the
   minister chooses a password; the app keeps a PBKDF2 hash of it (`settings.helperLock`,
   which travels with the sync and the backup) and remembers an unlocked device in
@@ -234,8 +235,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   lists the cards in the app's language (or the other's when only that booklet is
   loaded); `#liturgy/<key>` is one card, with an EN | AF switch when both are loaded, the
   reader's text sizes under "Aa" and a screen wake lock. A PC has Liturgy in the side
-  menu; the phone's bar keeps six tabs, so there it sits at the top of Prepare, which
-  stays lit. `node tools/test_booklet.mjs booklet.pdf` reads a PDF in Node and prints
+  menu; the phone's bar keeps five tabs, so there it is listed under More and sits at
+  the top of Prepare as well, and More stays lit. `node tools/test_booklet.mjs booklet.pdf` reads a PDF in Node and prints
   the cards (after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`).
 - **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
   in IndexedDB on the device (`src/store.js`). At start the app asks the browser to keep
@@ -332,6 +333,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/liturgy.js` – the Liturgy tab: the altar booklet's cards, loading and removing a booklet, the EN | AF switch, the screen wake lock
 - `src/booklet.js` – reads the altar booklet's PDF into cards (pdf.js on the device, then a pure parse of the pages)
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
+- `src/more.js` – the phone's More tab: the six sections its bar has no room for, one under the other
 - `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
