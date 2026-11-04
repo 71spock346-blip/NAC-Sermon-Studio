@@ -16,7 +16,7 @@ import { t } from './i18n.js';
  * which tells nobody, so they are not sent back again.
  */
 const DB_NAME = 'nac-study-bible';
-const DB_VERSION = 9;
+const DB_VERSION = 10;   // 10: the reminders store. A new store needs a new version, or a device that already has the database never gets it
 const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync', 'theology', 'liturgy', 'seating', 'choir', 'reminders'];
 
 let dbPromise = null;
