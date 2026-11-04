@@ -14,8 +14,8 @@
  * Prepare as well; this page gives each a front door of its own. On a PC the
  * More tab is not shown (styles.css), though #more still draws this page.
  *
- * The Church's MIS is a section like the others (mis.js). On a device that
- * opens the MIS in its own tab, its row here opens that tab straight away.
+ * The Church's MIS is a section like the others (mis.js); its row here also
+ * opens the site itself straight away, as the menu button does.
  */
 import { $, el, clear } from './ui.js';
 import { t } from './i18n.js';
@@ -31,7 +31,7 @@ export const MORE = [
   ['seating', () => t('Who sits where, and who serves')],
   ['choir', () => t('The choir programme')],
   ['reminders', () => t('Birthdays and anniversaries, with a greeting ready')],
-  ['mis', () => Mis.outside() ? t('The Church\'s MIS, in its own tab') : t('The Church\'s MIS, inside the app')],   // the line follows the device's choice (mis.js)
+  ['mis', () => t('The Church\'s MIS')],
   ['settings', () => t('Language, letters, sync and keys')],
 ];
 
@@ -53,8 +53,9 @@ export function render(container) {
     ]);
   };
   for (const [key, line] of MORE) {
-    const out = key === 'mis' && Mis.outside();   // this device opens the MIS in its own tab (mis.js)
-    list.append(row($('#tab-btn-' + key), line, out ? { class: 'more-row ext', href: Mis.URL, target: '_blank', rel: 'noopener' } : { class: 'more-row', href: '#' + key }, out ? '↗' : '›'));
+    // the MIS row opens the section, as the others do, and the site itself at once (mis.js)
+    const mis = key === 'mis';
+    list.append(row($('#tab-btn-' + key), line, mis ? { class: 'more-row ext', href: '#mis', onclick: Mis.open } : { class: 'more-row', href: '#' + key }, mis ? '↗' : '›'));
   }
   container.append(
     el('div', { class: 'docbar' }, [el('h2', { text: t('More|tab') })]),

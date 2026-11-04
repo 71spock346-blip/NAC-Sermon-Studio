@@ -18,7 +18,7 @@
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;if(sessionStorage.getItem('sb-splash'))document.documentElement.dataset.splash='off';}catch(e){}</script>
 <!-- Montserrat, the letters of the app, kept with it and fetched first so the words do not jump -->
 <link rel="preload" href="vendor/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=54">
+<link rel="stylesheet" href="styles.css?v=55">
 </head>
 <body>
 <!-- The welcome screen, like the blue title slide: shown while the app starts, gone after a moment or a tap (app.js hideSplash). -->
@@ -61,7 +61,7 @@
       <button type="button" role="tab" id="tab-btn-seating" aria-controls="tab-seating" data-tab="seating"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="10" width="18" height="7" rx="2"/><path d="M6 10V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4M6 17v3M18 17v3"/></svg></span><span class="lbl" data-t="Seating">Seating</span></button>
       <button type="button" role="tab" id="tab-btn-choir" aria-controls="tab-choir" data-tab="choir"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="18" r="3"/><path d="M10 18V5l9-2v12"/><circle cx="16" cy="15" r="3"/></svg></span><span class="lbl" data-t="Choir">Choir</span></button>
       <button type="button" role="tab" id="tab-btn-reminders" aria-controls="tab-reminders" data-tab="reminders"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="3.7" r="1.1" fill="currentColor" stroke="none"/><path d="M12 5.4v2.1"/><path d="M5.7 12.3a6.3 6.3 0 0 1 12.6 0z"/><path d="M5.7 12.3 7.1 19.7a1 1 0 0 0 1 .8h7.8a1 1 0 0 0 1-.8l1.4-7.4z"/></svg></span><span class="lbl" data-t="Reminders">Reminders</span></button>
-      <!-- the Church's MIS, shown inside the app (mis.js); on a device that opens it in its own tab, this button opens the tab (app.js) -->
+      <!-- the Church's MIS (mis.js): this button opens the section and the site itself at once (app.js) -->
       <button type="button" role="tab" id="tab-btn-mis" aria-controls="tab-mis" data-tab="mis"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h4.5A2.5 2.5 0 0 1 21 5.5v13a2.5 2.5 0 0 1-2.5 2.5H14"/><path d="M9.5 16.5 14 12 9.5 7.5"/><path d="M14 12H3"/></svg></span><span class="lbl">MIS</span></button>
       <button type="button" role="tab" id="tab-btn-settings" aria-controls="tab-settings" data-tab="settings"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span><span class="lbl" data-t="Settings">Settings</span></button>
       <button type="button" role="tab" id="tab-btn-more" aria-controls="tab-more" data-tab="more"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span><span class="lbl" data-t="More|tab">More</span></button>
@@ -96,6 +96,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="vendor/jspdf.umd.min.js?v=9" defer></script>
-<script type="module" src="src/app.js?v=54"></script>
+<script type="module" src="src/app.js?v=55"></script>
 </body>
 </html>

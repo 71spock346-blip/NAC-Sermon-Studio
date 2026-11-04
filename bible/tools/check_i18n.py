@@ -41,7 +41,6 @@ INDIRECT = [
     'All ages together', 'Children', 'Young people (teens)', 'Young adults', 'Families with children', 'Mostly older members',
     'None', 'A little, where it fits', 'A bit more', 'None in this service',
     'English', 'Afrikaans',
-    'Inside the app', 'In its own tab',   # mis.js: where the MIS opens on this device
 ]
 
 

@@ -200,8 +200,8 @@ async function start() {
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeColor);
   Cat.load().catch(() => {});
   for (const b of $$('.tabs button')) b.addEventListener('click', () => {
-    if (b.dataset.tab === 'mis' && Mis.outside()) { Mis.open(); return; }   // this device opens the MIS in its own tab (mis.js)
     location.hash = '#' + b.dataset.tab;
+    if (b.dataset.tab === 'mis') Mis.open();   // the MIS section is the way back; the site itself opens at once (mis.js)
   });
   $('.tabs').addEventListener('keydown', tabKeys);
   $('.skip').addEventListener('click', e => { e.preventDefault(); $('#content').focus(); });
