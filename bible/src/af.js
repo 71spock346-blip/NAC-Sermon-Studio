@@ -16,7 +16,6 @@
  */
 export const AF = {
   // ---- the frame: tabs, header, menu (index.html, app.js)
-  "NAC Study Bible": "NAK Studiebybel",
   "Study Bible": "Studiebybel",
   "New Apostolic Church": "Nuwe Apostoliese Kerk",
   "Skip to content": "Spring na die inhoud",
@@ -898,7 +897,7 @@ export const AF = {
 
   // about
   "About": "Oor die app",
-  "NAC Study Bible {version}. A personal study tool for preparing divine services. ": "NAK Studiebybel {version}. 'n Persoonlike studiehulpmiddel vir die voorbereiding van godsdienste. ",
+  "Study Bible {version}. A personal study tool for preparing divine services. ": "Studiebybel {version}. 'n Persoonlike studiehulpmiddel vir die voorbereiding van godsdienste. ",
   "Read the help page": "Lees die hulpblad",
   "King James Version (1769 text) with the Apocrypha: public domain. Text from the SWORD KJVA module via scrollmapper/bible_databases.": "King James Version (1769-teks) met die Apokriewe: publieke domein. Teks uit die SWORD KJVA-module via scrollmapper/bible_databases.",
   "World English Bible with the Deuterocanon: public domain, ebible.org. \"World English Bible\" is a trademark of eBible.org.": "World English Bible met die Deuterokanonieke boeke: publieke domein, ebible.org. \"World English Bible\" is 'n handelsmerk van eBible.org.",

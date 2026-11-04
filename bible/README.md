@@ -1,4 +1,4 @@
-# NAC Study Bible
+# Study Bible
 
 A personal study bible for a New Apostolic Church minister: Scripture in several
 translations, the person's own notes on verses, an index of where the Catechism of

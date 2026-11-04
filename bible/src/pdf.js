@@ -254,7 +254,7 @@ export function sermonPdf(s) {
   if (s.illustrations) { w.heading(t('Illustrations and experiences')); w.para(s.illustrations); }
   if (s.reflection) { w.heading(t('After the service')); w.para(s.reflection); }
 
-  const who = [state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  ·  ');
+  const who = [state.settings.name, t('Study Bible')].filter(Boolean).join('  ·  ');
   w.footer(who);
   return { blob: doc.output('blob'), name: fileName(s, '-sermon'), title: title };
 }
@@ -354,7 +354,7 @@ export function sermonTextPdf(s, { outline = null } = {}) {
     w.para(t('Built by {model}, {date}. A starting point: the sermon is yours.', { model: modelLabel(c.outline.model), date: fmtDate(c.outline.at) }), { size: 8, color: MUTED, after: 1 });
   }
 
-  const who = [state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  ·  ');
+  const who = [state.settings.name, t('Study Bible')].filter(Boolean).join('  ·  ');
   w.footer(who);
   return { blob: doc.output('blob'), name: fileName(s, '-full-sermon'), title };
 }
@@ -543,7 +543,7 @@ export function breakdownPdf(s) {
   }
   w.para(t('Divine Service Guide © New Apostolic Church International. Broken down by {model} for your own preparation; a starting point, not the sermon.', { model: modelLabel(a.model) }), { size: 8, color: MUTED, after: 1 });
 
-  const who = [state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  ·  ');
+  const who = [state.settings.name, t('Study Bible')].filter(Boolean).join('  ·  ');
   w.footer(who);
   return { blob: doc.output('blob'), name: fileName(s, '-guide'), title };
 }
@@ -593,7 +593,7 @@ export function facilitatorPdf(inp, slides) {
     w.space(4);
   }
 
-  w.footer([state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  \u00b7  '));
+  w.footer([state.settings.name, t('Study Bible')].filter(Boolean).join('  \u00b7  '));
   const name = [W.evening, inp.evening, '-', W.notes].filter(Boolean).join(' ').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim() + '.pdf';
   return { blob: doc.output('blob'), name, title };
 }
@@ -640,7 +640,7 @@ export function theologyPdf(page) {
   }
   run();
 
-  w.footer(s([state.settings.name, t('NAC Study Bible')].filter(Boolean).join('  \u00b7  ')));
+  w.footer(s([state.settings.name, t('Study Bible')].filter(Boolean).join('  \u00b7  ')));
   return { blob: doc.output('blob'), name: page.file, title: page.title };
 }
 

@@ -268,7 +268,6 @@ header.top .btn:not(.ghost) { background: var(--brand-ink); color: #0168b5; bord
 header.top .seg, nav.side .seg { background: rgba(255, 255, 255, .14); }
 header.top .seg button, nav.side .seg button { color: var(--brand-ink-2); }
 header.top .seg button.on, nav.side .seg button.on { background: var(--brand-on); color: var(--brand-on-ink); box-shadow: none; }
-h1 .t-short { display: none; }
 main { padding: 12px 12px calc(16px + var(--tabbar) + var(--update-h, 0px)); outline: none; }
 .tab { max-width: 880px; margin: 0 auto; }
 #tab-read { max-width: 760px; }
@@ -712,8 +711,6 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
   :root { --top: 58px; --tabbar: calc(64px + env(safe-area-inset-bottom)); }
   :root[data-theme="white"] { --bg: #ffffff; --shadow-card: 0 0 0 1px rgba(16, 56, 96, .13), 0 2px 8px rgba(16, 56, 96, .06); }
   body { font-size: 16px; }
-  h1 .t-long { display: none; }
-  h1 .t-short { display: inline; }
   main { padding: 12px 12px calc(20px + var(--tabbar) + var(--update-h, 0px)); }
 
   .tabs {

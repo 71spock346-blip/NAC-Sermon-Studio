@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>NAC Study Bible</title>
+<title>Study Bible</title>
 <meta name="description" content="A personal study bible for preparing divine services: Scripture, your own notes, the Catechism's references and a guided sermon preparation.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0168b5">
@@ -18,7 +18,7 @@
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;if(sessionStorage.getItem('sb-splash'))document.documentElement.dataset.splash='off';}catch(e){}</script>
 <!-- Montserrat, the letters of the app, kept with it and fetched first so the words do not jump -->
 <link rel="preload" href="vendor/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=50">
+<link rel="stylesheet" href="styles.css?v=51">
 </head>
 <body>
 <!-- The welcome screen, like the blue title slide: shown while the app starts, gone after a moment or a tap (app.js hideSplash). -->
@@ -37,7 +37,7 @@
 <a class="skip" href="#content" data-t="Skip to content">Skip to content</a>
 <div class="shell">
   <header class="top">
-    <h1><span class="emblem" aria-hidden="true"></span><span class="t-long" data-t="NAC Study Bible">NAC Study Bible</span><span class="t-short" data-t="Study Bible">Study Bible</span></h1>
+    <h1><span class="emblem" aria-hidden="true"></span><span data-t="Study Bible">Study Bible</span></h1>
     <div class="actions">
       <div class="seg mini lang-switch" role="group" aria-label="Language" data-t-aria="Language">
         <button type="button" data-lang="en" aria-pressed="true" title="English">EN</button>
@@ -88,6 +88,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="vendor/jspdf.umd.min.js?v=9" defer></script>
-<script type="module" src="src/app.js?v=50"></script>
+<script type="module" src="src/app.js?v=51"></script>
 </body>
 </html>

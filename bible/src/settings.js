@@ -201,7 +201,7 @@ export function render(container) {
   // ---- about
   container.append(section(t('About'), [
     el('p', { class: 'small' }, [
-      t('NAC Study Bible {version}. A personal study tool for preparing divine services. ', { version: Update.versionText(VERSION) }),
+      t('Study Bible {version}. A personal study tool for preparing divine services. ', { version: Update.versionText(VERSION) }),
       el('a', { href: 'help.html', text: t('Read the help page') }), '.',
     ]),
     el('div', { class: 'row' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Check for a newer version'), onclick: async e => {

@@ -107,7 +107,7 @@ function tabKeys(e) {
 /** Puts the page's own words (tabs, header, menu) in the chosen language and marks the switch. */
 function applyLang(l) {
   setLang(l);
-  document.title = t('NAC Study Bible');
+  document.title = t('Study Bible');
   translatePage();
   const v = $('#nav-version');
   if (v) v.textContent = t('Version {v}', { v: Update.versionText(Settings.VERSION) });
