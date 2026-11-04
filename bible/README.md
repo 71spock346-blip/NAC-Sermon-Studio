@@ -73,13 +73,16 @@ trying the import; the real listings are personal data and are never committed.
 
 ## The Church's MIS
 
-The MIS entry at the foot of the side menu (on a phone under More, just before Settings) is a
-plain link to the Church's MIS, https://mis.nac-sa.org.za/sign-in, opened in its own
-tab with `rel="noopener"` (`index.html` `.menu-links`, `more.js` LINKS). The site is not
-shown inside the app on purpose: inside a frame its sign-in cookie would be a third-party
-cookie, which phones block, and the Church's confidential system should not be framed by
-a public site. The app never sees or keeps the MIS password; the person signs in on the
-site as always.
+The MIS section (`src/mis.js`; in the side menu before Settings, on a phone under More)
+shows the Church's MIS, https://mis.nac-sa.org.za/sign-in, inside the app in a frame.
+The site allows it (no X-Frame-Options and no Content-Security-Policy on its pages,
+checked 2026-11-04). The sign-in happens on the site; the app cannot see what is typed
+and keeps no password. The site signs in with a cookie, which inside another site is a
+third-party cookie: Safari on an iPhone blocks it and other browsers send it only when
+the site marks it for cross-site use, so the sign-in may not hold in the frame. Each
+device therefore remembers a choice (`localStorage` `sb-mis`, never synced): inside the
+app, or in the site's own tab, where it always works; with the second the menu button
+and the More row open the tab straight away (`rel="noopener"`).
 
 ## Coming from the standalone apps
 
@@ -103,7 +106,7 @@ Appearance, or the reader's "Aa" button) is mirrored in localStorage so the page
 in the right colours before the database is open. "Easy-read" swaps Montserrat for
 plain letters (Verdana where the device has it) in the whole app, with more room in the
 reading text. Under 760px the tabs are a bar under the thumb (five of them: Read,
-Notes, Prepare, Catechism and More, which lists the other seven sections and the MIS link, `src/more.js`) and
+Notes, Prepare, Catechism and More, which lists the other eight sections, `src/more.js`) and
 the text runs full width on white; from 760px they are a side menu with every section and
 each screen is a white page on a pale ground, with the small blue emblem in its corner.
 
@@ -372,7 +375,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/liturgy.js` – the Liturgy tab: the altar booklet's cards, loading and removing a booklet, the EN | AF switch, the screen wake lock
 - `src/booklet.js` – reads the altar booklet's PDF into cards (pdf.js on the device, then a pure parse of the pages)
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
-- `src/more.js` – the phone's More tab: the seven sections its bar has no room for, one under the other, and the link to the Church's MIS
+- `src/more.js` – the phone's More tab: the eight sections its bar has no room for, one under the other
+- `src/mis.js` – the MIS section: the Church's site inside the app, or in its own tab on a device that needs that
 - `src/reminders.js` – the Reminders tab; `src/reminders-lib.js` (the listing PDFs, the roster, phone numbers, the dates coming up), `src/reminders-templates.js` (the greetings), `src/reminders-ics.js` (the calendar file), `src/reminders-sheet.js` (Excel out and back)
 - `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
