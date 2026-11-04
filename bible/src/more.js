@@ -13,6 +13,13 @@
  * Theology is still reached from the reader and Liturgy from the top of
  * Prepare as well; this page gives each a front door of its own. On a PC the
  * More tab is not shown (styles.css), though #more still draws this page.
+ *
+ * After the sections come the outside sites the side menu links to (index.html
+ * .menu-links): the Church's MIS, which is its own site and not a part of the
+ * app. Its row opens the site in its own tab, where the person signs in as
+ * always; the app never sees the password. On this page the row comes just
+ * before Settings: as the last row it sat under the bar on a phone the size
+ * of an iPhone, and had to be scrolled to.
  */
 import { $, el, clear } from './ui.js';
 import { t } from './i18n.js';
@@ -30,23 +37,35 @@ export const MORE = [
   ['settings', () => t('Language, letters, sync and keys')],
 ];
 
+/** The outside sites under the sections, each with one line on what it is: the key names its link in the side menu (#link-mis), which gives the address, the icon and the name. */
+export const LINKS = [
+  ['mis', () => t('The Church\'s MIS. Opens in its own tab; sign in there as always.')],
+];
+
 /** Is this section one of those listed under More? Then the More tab is lit while it is open. */
 export function isMore(tab) {
   return MORE.some(([key]) => key === tab);
 }
 
-/** The More page: a row per section. The icon and the name come from the section's own button in the side menu, so they stay the same. */
+/** The More page: a row per section, and the outside links just before Settings. The icon and the name come from the section's own button or link in the side menu, so they stay the same. */
 export function render(container) {
   clear(container);
   const list = el('nav', { class: 'more-list', 'aria-label': t('More|tab') });
-  for (const [key, line] of MORE) {
-    const tab = $('#tab-btn-' + key);
-    const name = tab.querySelector('.lbl-long') || tab.querySelector('.lbl');
-    list.append(el('a', { class: 'more-row', href: '#' + key }, [
-      el('span', { class: 'ico', 'aria-hidden': 'true' }, tab.querySelector('.ico svg').cloneNode(true)),
+  const row = (from, line, attrs, mark) => {
+    const name = from.querySelector('.lbl-long') || from.querySelector('.lbl');
+    return el('a', attrs, [
+      el('span', { class: 'ico', 'aria-hidden': 'true' }, from.querySelector('.ico svg').cloneNode(true)),
       el('span', { class: 'grow' }, [el('b', { text: name.textContent }), el('span', { class: 'muted small', text: line() })]),
-      el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
-    ]));
+      el('span', { class: 'chev', 'aria-hidden': 'true', text: mark }),
+    ]);
+  };
+  const links = LINKS.map(([key, line]) => {
+    const link = $('#link-' + key);
+    return row(link, line, { class: 'more-row ext', href: link.href, target: '_blank', rel: 'noopener' }, '↗');
+  });
+  for (const [key, line] of MORE) {
+    if (key === 'settings') list.append(...links);
+    list.append(row($('#tab-btn-' + key), line, { class: 'more-row', href: '#' + key }, '›'));
   }
   container.append(
     el('div', { class: 'docbar' }, [el('h2', { text: t('More|tab') })]),

@@ -18,7 +18,7 @@
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;if(sessionStorage.getItem('sb-splash'))document.documentElement.dataset.splash='off';}catch(e){}</script>
 <!-- Montserrat, the letters of the app, kept with it and fetched first so the words do not jump -->
 <link rel="preload" href="vendor/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=52">
+<link rel="stylesheet" href="styles.css?v=53">
 </head>
 <body>
 <!-- The welcome screen, like the blue title slide: shown while the app starts, gone after a moment or a tap (app.js hideSplash). -->
@@ -64,6 +64,10 @@
       <button type="button" role="tab" id="tab-btn-settings" aria-controls="tab-settings" data-tab="settings"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></span><span class="lbl" data-t="Settings">Settings</span></button>
       <button type="button" role="tab" id="tab-btn-more" aria-controls="tab-more" data-tab="more"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span><span class="lbl" data-t="More|tab">More</span></button>
     </div>
+    <!-- Outside sites, under the sections: the Church's MIS is its own site, not a part of the app, so this is a plain link that opens it in its own tab (a phone lists it under More, just before Settings, more.js). The app never sees or keeps the MIS password; the person signs in on the site as always. -->
+    <div class="menu-links">
+      <a id="link-mis" class="ext" href="https://mis.nac-sa.org.za/sign-in" target="_blank" rel="noopener" title="The Church's MIS. Opens in its own tab." data-t-title="The Church's MIS. Opens in its own tab."><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h4.5A2.5 2.5 0 0 1 21 5.5v13a2.5 2.5 0 0 1-2.5 2.5H14"/><path d="M9.5 16.5 14 12 9.5 7.5"/><path d="M14 12H3"/></svg></span><span class="lbl">MIS</span><span class="ext-mark" aria-hidden="true">↗</span></a>
+    </div>
     <div class="nav-foot">
       <div class="seg mini lang-switch" role="group" aria-label="Language" data-t-aria="Language">
         <button type="button" data-lang="en" aria-pressed="true" title="English">EN</button>
@@ -93,6 +97,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="vendor/jspdf.umd.min.js?v=9" defer></script>
-<script type="module" src="src/app.js?v=52"></script>
+<script type="module" src="src/app.js?v=53"></script>
 </body>
 </html>

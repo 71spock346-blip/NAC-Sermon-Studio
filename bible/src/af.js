@@ -35,6 +35,9 @@ export const AF = {
   "The background to a book, a chapter or verses": "Die agtergrond van 'n boek, 'n hoofstuk of verse",
   "Language, letters, sync and keys": "Taal, letters, sinkronisasie en sleutels",
   "Birthdays and anniversaries, with a greeting ready": "Verjaardae en huweliksherdenkings, met 'n gelukwens gereed",
+  // the Church's MIS, an outside site linked under the sections (index.html .menu-links, more.js LINKS)
+  "The Church's MIS. Opens in its own tab; sign in there as always.": "Die Kerk se MIS. Maak in sy eie oortjie oop; meld daar aan soos altyd.",
+  "The Church's MIS. Opens in its own tab.": "Die Kerk se MIS. Maak in sy eie oortjie oop.",
   "Help": "Hulp",
   "Help and manual": "Hulp en handleiding",
   "Language": "Taal",
