@@ -382,6 +382,8 @@ async function exportPeople(list, scope) {
 
 function drawImport(body) {
   const year = el('input', { type: 'number', value: String(new Date().getFullYear()), min: '1900', max: '2200', style: 'max-width: 8em' });
+  // November's layout of the listing has no Month column: the month is then taken from the file's name, or from this
+  const month = el('select', { style: 'max-width: 12em' }, Array.from({ length: 12 }, (_, i) => el('option', { value: String(i + 1), text: Lib.monthName(i + 1, lang()), selected: i === new Date().getMonth() })));
   const file = el('input', { type: 'file', accept: 'application/pdf,.pdf', multiple: true, hidden: true });
   const results = el('div');
   file.addEventListener('change', async () => {
@@ -393,12 +395,27 @@ function drawImport(body) {
     let working = current;
     for (const f of files) {
       try {
-        const parsed = Lib.parseListing(await Lib.readListingPdf(new Uint8Array(await f.arrayBuffer())));
-        if (!parsed.rows.length) { results.append(el('p', { class: 'hint error', text: t('{file}: no listing rows found. Is this a Birthday or Marriage Anniversary listing?', { file: f.name }) })); continue; }
+        const pages = await Lib.readListingPdf(new Uint8Array(await f.arrayBuffer()));
+        const namedMonth = Lib.monthInText(f.name);
+        const parsed = Lib.parseListing(pages, { month: namedMonth || Number(month.value) });
+        if (!parsed.rows.length) {
+          // say why, so a scan, the wrong file and a changed layout can be told apart from the phone
+          const why = Lib.describeListing(pages);
+          const text = why.reason === 'noText'
+            ? t('{file}: there is no text in this PDF — it looks like a scan or a picture. Export the listing from the system as a PDF rather than printing or photographing it.', { file: f.name })
+            : why.reason === 'noHeader'
+              ? t('{file}: the column headings (Member No, Title, Surname … Section Name) were not found, so this does not look like the Birthday or Marriage Anniversary listing. Its first line reads: “{sample}”', { file: f.name, sample: why.sample })
+              : t('{file}: the headings were found but none of the {n} lines under them could be read. The first reads: “{sample}”', { file: f.name, n: parsed.skipped.length, sample: String(parsed.skipped[0] || '').slice(0, 90) });
+          results.append(el('p', { class: 'hint error', text }));
+          continue;
+        }
         const m = Lib.mergeListing(working, parsed, Number(year.value) || new Date().getFullYear());
         working = m.people;
         const what = parsed.type === 'birthday' ? tn(parsed.rows.length, '{n} birthday', '{n} birthdays') : tn(parsed.rows.length, '{n} anniversary', '{n} anniversaries');
-        results.append(el('p', { class: 'small', text: t('{file}: {what} read — {added} new, {updated} updated.', { file: f.name, what, added: m.added, updated: m.updated }) + (parsed.skipped.length ? ' ' + tn(parsed.skipped.length, '{n} line could not be read and was left out.', '{n} lines could not be read and were left out.') : '') }));
+        const monthNote = !parsed.monthless ? ''
+          : namedMonth ? ' ' + t('This listing has no month column; {month} was taken from the file’s name.', { month: Lib.monthName(namedMonth, lang()) })
+            : ' ' + t('This listing has no month column; {month} was taken from the month chosen above.', { month: Lib.monthName(Number(month.value), lang()) });
+        results.append(el('p', { class: 'small', text: t('{file}: {what} read — {added} new, {updated} updated.', { file: f.name, what, added: m.added, updated: m.updated }) + (parsed.skipped.length ? ' ' + tn(parsed.skipped.length, '{n} line could not be read and was left out.', '{n} lines could not be read and were left out.') : '') + monthNote }));
       } catch (e) { results.append(el('p', { class: 'hint error', text: `${f.name}: ${e.message || t('That file could not be read.')}` })); }
     }
     let written = 0;
@@ -408,8 +425,11 @@ function drawImport(body) {
 
   body.append(section(t('Load a listing'), [
     el('p', { class: 'small', text: t('Add the Birthday Listing and Marriage Anniversary Listing PDFs. A member already on the list is updated, not added again, so a fresh listing can be loaded every month. The files are read here on the device.') }),
-    el('div', { class: 'fields' }, [el('label', {}, [el('span', { text: t('Year the printed ages and years refer to') }), year])]),
-    el('p', { class: 'small muted', text: t('The listing prints an age, not a birth year. Set the year it was drawn up in, so the ages stay right in later years.') }),
+    el('div', { class: 'fields' }, [
+      el('label', {}, [el('span', { text: t('Year the printed ages and years refer to') }), year]),
+      el('label', {}, [el('span', { text: t('Month of the listing, when the file does not say') }), month]),
+    ]),
+    el('p', { class: 'small muted', text: t('The listing prints an age, not a birth year. Set the year it was drawn up in, so the ages stay right in later years. Some listings have no month column: the month is then read from the file’s name (“… November.pdf”), or failing that taken from the choice above.') }),
     el('div', { class: 'row' }, [el('button', { class: 'btn', type: 'button', text: t('Choose the PDFs'), onclick: () => file.click() }), file]),
     results,
   ]));

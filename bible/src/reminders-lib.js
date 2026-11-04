@@ -331,9 +331,23 @@ export const whatsappShareLink = message => `https://wa.me/?text=${encodeURIComp
  */
 const LINE_TOLERANCE = 3;
 
+/**
+ * Some report tools hand pdf.js one string for several cells, the gap between
+ * them a run of spaces ("Member No    Title    Surname"). Such an item is cut
+ * at the gaps and each piece given its share of the width, so the columns can
+ * still be told apart; a single space inside a name is left alone.
+ */
+function splitWide(it) {
+  if (!/\s{2,}/.test(it.str.trim())) return [it];
+  const per = it.width / Math.max(it.str.length, 1), out = [], re = /\S+(?: \S+)*/g;
+  let m;
+  while ((m = re.exec(it.str))) out.push({ str: m[0], x: it.x + m.index * per, y: it.y, width: m[0].length * per });
+  return out;
+}
+
 function groupIntoLines(items) {
   const lines = [];
-  for (const it of items) {
+  for (const raw of items) for (const it of splitWide(raw)) {
     if (!it.str.trim()) continue;
     const line = lines.find(l => Math.abs(l.y - it.y) <= LINE_TOLERANCE);
     if (line) line.items.push(it); else lines.push({ y: it.y, items: [it] });
@@ -343,33 +357,97 @@ function groupIntoLines(items) {
   return lines.map(l => l.items);
 }
 
-/** The header line as column bands, each from its header's left edge to the next header's: right for left-aligned text and right-aligned numbers alike. */
-function detectColumns(line, expected) {
-  const found = expected.map(label => line.find(i => i.str.trim() === label));
-  if (found.some(f => !f)) return null;
-  return found.map((it, i) => ({ label: expected[i], start: it.x, end: i + 1 < found.length ? found[i + 1].x : Infinity }));
+/**
+ * The headings. Two layouts of the listing have been seen: August's, with a
+ * Month column, and November's, without one (the month is then in the file's
+ * name) but with the member's address in Building, Street No, Street Name and
+ * Suburb columns, which are not read. REQUIRED must all be on the header line;
+ * OPTIONAL is read where it is; any other heading on the line gets a band of
+ * its own so its cells cannot spill into a column that is read.
+ */
+const REQUIRED = ['Member No', 'Title', 'Surname', 'First Names', 'Day'];
+const TAIL = ['Contact Number', 'Section No', 'Section Name'];
+const OPTIONAL = ['Month'];
+const HEADERS = { birthday: [...REQUIRED, 'Age', ...TAIL], anniversary: [...REQUIRED, 'Years Married', ...TAIL] };
+const COUNT_COLUMN = { birthday: 'Age', anniversary: 'Years Married' };
+
+/** The run of pieces on the line that read as the label together ("Member" + "No" as well as "Member No"): [from, to] or null. */
+function findLabel(items, used, label) {
+  for (let s = 0; s < items.length; s++) {
+    if (used[s]) continue;
+    let text = '';
+    for (let e = s; e < items.length; e++) {
+      text = (text + ' ' + items[e].str.trim()).trim();
+      if (text === label) return [s, e];
+      if (!label.startsWith(text)) break;
+    }
+  }
+  return null;
+}
+
+/**
+ * The header line as column bands, each from its heading's left edge to the
+ * next heading's: right for left-aligned text and right-aligned numbers alike.
+ * Null when a required heading is missing, which is how a data line, the
+ * page's furniture and another report altogether are told from the header.
+ */
+function detectColumns(line, required) {
+  const items = line.filter(i => i.str.trim());
+  const used = new Array(items.length).fill(false);
+  const heads = [];
+  for (const label of [...required, ...OPTIONAL]) {
+    const span = findLabel(items, used, label);
+    if (!span) { if (required.includes(label)) return null; continue; }
+    for (let k = span[0]; k <= span[1]; k++) used[k] = true;
+    heads.push({ label, x: items[span[0]].x });
+  }
+  items.forEach((it, k) => { if (!used[k]) heads.push({ label: '·' + it.str.trim(), x: it.x }); });   // Building, Street Name … : kept apart, not read
+  heads.sort((a, b) => a.x - b.x);
+  return heads.map((h, i) => ({ label: h.label, start: h.x, end: i + 1 < heads.length ? heads[i + 1].x : Infinity }));
+}
+
+function overlap(it, c) {
+  return Math.min(it.x + Math.max(it.width, 1), c.end) - Math.max(it.x, c.start);
 }
 
 function assign(item, columns) {
   let best = columns[0], bestScore = -Infinity;
   for (const c of columns) {
-    const score = Math.min(item.x + Math.max(item.width, 1), c.end) - Math.max(item.x, c.start);
+    const score = overlap(item, c);
     if (score > bestScore) { best = c; bestScore = score; }   // a tie goes to the earlier column
   }
   return best;
 }
 
+/**
+ * The November layout prints two cells as one string where only a space
+ * separates them: "750432 BR" (member number and title), "57 HOUSE" (age and
+ * building). An item that lies across two bands is dealt out word by word,
+ * each word placed by its share of the item's width; one that sits in a single
+ * band, as every name does, is kept whole.
+ */
+function pieces(it, columns) {
+  if (!/\s/.test(it.str.trim()) || columns.filter(c => overlap(it, c) > 2).length < 2) return [it];
+  const per = it.width / Math.max(it.str.length, 1), out = [], re = /\S+/g;
+  let m;
+  while ((m = re.exec(it.str))) out.push({ str: m[0], x: it.x + m.index * per, y: it.y, width: m[0].length * per });
+  return out;
+}
+
 /** Every page into rows {cells, raw}; the header repeats on each page and is re-read as it comes. */
-export function extractRows(pages, expectedHeaders) {
+export function extractRows(pages, requiredHeaders) {
   const rows = [];
   let columns = null;
   for (const items of pages) {
     for (const line of groupIntoLines(items)) {
-      const header = detectColumns(line, expectedHeaders);
+      const header = detectColumns(line, requiredHeaders);
       if (header) { columns = header; continue; }
       if (!columns) continue;
       const cells = Object.fromEntries(columns.map(c => [c.label, '']));
-      for (const it of line) { const c = assign(it, columns); cells[c.label] = (cells[c.label] + ' ' + it.str.trim()).trim(); }
+      for (const it of line) for (const piece of pieces(it, columns)) { const c = assign(piece, columns); cells[c.label] = (cells[c.label] + ' ' + piece.str.trim()).trim(); }
+      // the backstop for a member number and title still together
+      const mt = /^(\d+)\s+(\S.*)$/.exec(cells['Member No'] || '');
+      if (mt && !cells['Title']) { cells['Member No'] = mt[1]; cells['Title'] = mt[2]; }
       const raw = line.map(i => i.str.trim()).filter(Boolean).join(' ');
       if (raw) rows.push({ cells, raw });
     }
@@ -377,12 +455,7 @@ export function extractRows(pages, expectedHeaders) {
   return rows;
 }
 
-const COMMON = ['Member No', 'Title', 'Surname', 'First Names', 'Month', 'Day'];
-const TAIL = ['Contact Number', 'Section No', 'Section Name'];
-const HEADERS = { birthday: [...COMMON, 'Age', ...TAIL], anniversary: [...COMMON, 'Years Married', ...TAIL] };
-const COUNT_COLUMN = { birthday: 'Age', anniversary: 'Years Married' };
-
-/** Which listing this is, from its distinctive header. */
+/** Tells the two listings apart by the heading only one of them has. */
 export function detectListingType(pages) {
   const text = pages.flat().map(i => i.str).join(' ');
   if (text.includes('Years Married')) return 'anniversary';
@@ -393,14 +466,36 @@ export function detectListingType(pages) {
 const clean = v => String(v || '').replace(/\s+/g, ' ').trim();
 const digitsOnly = v => String(v || '').replace(/\D/g, '');
 
-/** A listing's text items as {type, rows, skipped}; a row missing its number, month or day is reported, not dropped in silence. */
-export function parseListing(pages, forcedType) {
-  const type = forcedType || detectListingType(pages);
-  if (!type) return { type: 'birthday', rows: [], skipped: [t('Could not recognise this as a listing PDF.')] };
+/** The first month named in full in a text, as a word of its own ("Marriage" is not March): 1–12, or undefined. */
+export function monthInText(text) {
+  for (const word of String(text || '').split(/[^A-Za-zéë]+/)) {
+    if (word.length < 3) continue;
+    const w = word.toLowerCase();
+    for (const names of [MONTH_NAMES_EN, MONTH_NAMES_AF]) {
+      const i = names.findIndex(m => m.toLowerCase() === w);
+      if (i >= 0) return i + 1;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The rows of a listing. Rows missing a member number, month or day are
+ * reported as skipped rather than dropped quietly. `options.month` stands in
+ * where the listing has no Month column (November's layout); `monthless`
+ * says that it was used, so the screen can say where the month came from.
+ */
+export function parseListing(pages, options = {}) {
+  const opts = typeof options === 'string' ? { type: options } : options;
+  const type = opts.type || detectListingType(pages);
+  if (!type) return { type: 'birthday', rows: [], skipped: [t('Could not recognise this as a listing PDF.')], monthless: false };
   const rows = [], skipped = [];
+  let monthless = false;
   for (const { cells, raw } of extractRows(pages, HEADERS[type])) {
     const memberNo = digitsOnly(cells['Member No']);
-    const month = parseMonth(cells['Month']);
+    const hasMonthColumn = 'Month' in cells;
+    const month = hasMonthColumn ? parseMonth(cells['Month']) : opts.month;
+    if (!hasMonthColumn) monthless = true;
     const day = Number(digitsOnly(cells['Day']));
     if (!memberNo || !month || !day || day < 1 || day > 31) { skipped.push(raw); continue; }
     const count = digitsOnly(cells[COUNT_COLUMN[type]]);
@@ -410,7 +505,21 @@ export function parseListing(pages, forcedType) {
       sectionNo: clean(cells['Section No']), sectionName: clean(cells['Section Name']),
     });
   }
-  return { type, rows, skipped };
+  return { type, rows, skipped, monthless };
+}
+
+/**
+ * Why a PDF gave no rows, for the message: 'noText' (a scan or a picture, with
+ * no text to read), 'noHeader' (text, but never the listing's column headings)
+ * or 'allSkipped' (the headings, but no line under them could be read). The
+ * sample is the first line of text, so the message can show what was seen.
+ */
+export function describeListing(pages) {
+  const lines = pages.flatMap(groupIntoLines);
+  if (!lines.length) return { reason: 'noText', sample: '' };
+  const hasHeader = lines.some(l => detectColumns(l, HEADERS.birthday) || detectColumns(l, HEADERS.anniversary));
+  const sample = lines[0].map(i => i.str.trim()).filter(Boolean).join(' ').slice(0, 90);
+  return { reason: hasHeader ? 'allSkipped' : 'noHeader', sample };
 }
 
 /**

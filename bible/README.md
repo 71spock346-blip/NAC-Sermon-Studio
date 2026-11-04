@@ -68,7 +68,7 @@ greeting marked sent (so two ministers greeting from one list see each other's),
 `settings` and `template:<id>` the tab's settings and the person's own wordings.
 Settings left blank fall back to the app's own name, congregation and language. A
 section filter lets ministers who share one congregation each see their own members.
-`tools/fixtures/reminders-*.pdf` are two fictional listings in the office's layout for
+`tools/fixtures/reminders-*.pdf` are fictional listings in the office's two layouts (August's, with a Month column; November's, without one and with address columns, the member number and title in one cell) for
 trying the import; the real listings are personal data and are never committed.
 
 ## The Church's MIS
@@ -385,7 +385,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
 - `vendor/pdfjs/` – pdf.js 5.4.624 (Apache 2.0; `vendor/pdfjs.LICENSE`), fetched only when an altar booklet or a listing is loaded
 - `vendor/write-excel-file.min.js`, `vendor/read-excel-file.min.js` – write-excel-file and read-excel-file (MIT; `vendor/excel.LICENSE`), fetched only when a spreadsheet is made or read
-- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_booklet.mjs` for the altar booklet, `fixtures/` the fictional listing PDFs for the Reminders tab
+- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_booklet.mjs` for the altar booklet, `fixtures/` the fictional listing PDFs for the Reminders tab, in both layouts the office has printed (with a Month column, and November’s without one)
 
 ## Rebuilding the data
 
