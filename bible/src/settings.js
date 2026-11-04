@@ -14,6 +14,7 @@ import * as Cat from './catechism.js';
 import * as AI from './ai.js';
 import * as Sync from './sync.js';
 import * as Lock from './lock.js';
+import * as Update from './update.js';
 import { BOOKS } from './books.js';
 
 export const VERSION = '0.2.0';
@@ -170,9 +171,17 @@ export function render(container) {
   // ---- about
   container.append(section(t('About'), [
     el('p', { class: 'small' }, [
-      t('NAC Study Bible {version}. A personal study tool for preparing divine services. ', { version: VERSION }),
+      t('NAC Study Bible {version}. A personal study tool for preparing divine services. ', { version: Update.versionText(VERSION) }),
       el('a', { href: 'help.html', text: t('Read the help page') }), '.',
     ]),
+    el('div', { class: 'row' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Check for a newer version'), onclick: async e => {
+      const b = e.currentTarget;
+      b.disabled = true;
+      const answer = await Update.checkNow();   // 'newer' shows the bar at the bottom
+      b.disabled = false;
+      if (answer === 'same') toast(t('This is the newest version.'));
+      else if (answer === 'offline') toast(t('The site could not be reached just now. Try again when you are online.'), true);
+    } })]),
     el('ul', { class: 'small muted' }, [
       el('li', { text: t('King James Version (1769 text) with the Apocrypha: public domain. Text from the SWORD KJVA module via scrollmapper/bible_databases.') }),
       el('li', { text: t('World English Bible with the Deuterocanon: public domain, ebible.org. "World English Bible" is a trademark of eBible.org.') }),
