@@ -1241,3 +1241,204 @@ body.showing { overflow: hidden; }
   body.printing-seating #seating-print { display: block; }
   body.printing-seating #seating-print svg { width: 210mm; height: 297mm; }
 }
+
+
+/* ----------------------------------------------------------------- choir
+   The Choir Programme Planner's own stylesheet, every rule held inside
+   #tab-choir so the tab keeps the look it had as its own app without
+   reaching any other screen. Its tab classes are renamed to match the
+   ported markup (.choir-tabs, .choir-pane, #choir-<name>). */
+#tab-choir .choir-bar { justify-content: flex-end; margin: 0 0 10px; }
+
+#tab-choir { box-sizing: border-box; }
+#tab-choir [hidden] { display: none !important; }
+#tab-choir h1 .t-short { display: none; }
+#tab-choir main { max-width: 1100px; margin: 0 auto; padding: 14px; }
+
+#tab-choir .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+#tab-choir .card h3 { margin: 0; font-size: 16px; }
+#tab-choir .card h3.sub { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 16px 0 6px; }
+#tab-choir .card h4 { margin: 8px 0 4px; font-size: 13px; }
+#tab-choir .card.choir-pane { border-top: 3px solid var(--accent); border-top-left-radius: 0; border-top-right-radius: 0; }
+
+#tab-choir .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+#tab-choir .fields.days { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
+#tab-choir label.f { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+#tab-choir label.f.inline { flex-direction: row; align-items: center; gap: 6px; }
+#tab-choir input[type=text], #tab-choir input[type=date], #tab-choir input[type=time], #tab-choir input[type=number], #tab-choir input[type=search], #tab-choir select, #tab-choir textarea {
+  font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); min-width: 0; width: 100%;
+}
+#tab-choir textarea { resize: vertical; }
+#tab-choir .pickrow { display: flex; gap: 6px; }
+
+#tab-choir .choir-tabs { display: flex; gap: 4px; align-items: flex-end; overflow-x: auto; }
+#tab-choir .choir-tabs button { flex: 1 0 auto; display: flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: 14px; font-weight: 700; padding: 10px 12px; border: 1px solid var(--line); border-bottom: none; border-radius: 10px 10px 0 0; background: #e9ecf1; color: #4b5563; cursor: pointer; white-space: nowrap; }
+#tab-choir .choir-tabs button:hover { background: #dde2ea; color: var(--ink); }
+#tab-choir .choir-tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+#tab-choir .choir-tabs .ico { display: none; }
+#tab-choir .choir-tabs .ico svg { display: block; width: 24px; height: 24px; }
+
+#tab-choir .btn { font: inherit; text-decoration: none; display: inline-block; line-height: normal; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; white-space: nowrap; }
+#tab-choir .btn.ghost { background: #fff; color: var(--accent); }
+#tab-choir .btn.small { padding: 5px 10px; font-size: 13px; }
+#tab-choir .btn:disabled { opacity: .5; cursor: default; }
+#tab-choir .icon { border: none; background: transparent; font-size: 18px; line-height: 1; cursor: pointer; color: var(--muted); padding: 2px 6px; flex: 0 0 auto; }
+#tab-choir .icon.del:hover { color: var(--danger); }
+
+#tab-choir .docbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+#tab-choir .docbar .spacer { flex: 1 1 auto; }
+#tab-choir .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+#tab-choir .row.line { flex-wrap: nowrap; margin-top: 4px; }
+#tab-choir .row.line input { flex: 1 1 auto; width: auto; }
+#tab-choir .row.search { gap: 6px; }
+#tab-choir .row.search input[type=search] { flex: 2 1 220px; }
+#tab-choir .row.search select { flex: 1 1 130px; width: auto; }
+#tab-choir .grow { flex: 1 1 auto; }
+#tab-choir .muted { color: var(--muted); margin: 6px 0; }
+#tab-choir .small { font-size: 12px; }
+
+#tab-choir .section { border: 1px solid var(--line); border-radius: 8px; padding: 8px; margin: 10px 0; background: #fcfdff; }
+#tab-choir .section-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+#tab-choir .section-head .section-label { font-weight: 700; color: var(--accent); flex: 1 1 160px; width: auto; }
+#tab-choir .section-head select { flex: 0 1 190px; width: auto; }
+#tab-choir .section-head input[type=date], #tab-choir .section-head input[type=time] { flex: 0 1 150px; width: auto; }
+#tab-choir .section.practice .section-head input[type=text] { flex: 1 1 150px; width: auto; }
+#tab-choir .prow .ability { flex: 0 0 66px; }
+/* zero flex-basis so the columns line up down the list whatever the title length */
+#tab-choir .prow .grow { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#tab-choir .prow .note { flex: 1 1 0; }
+#tab-choir #add-section { flex: 1 1 220px; width: auto; max-width: 320px; }
+#tab-choir .rows { margin-top: 6px; }
+#tab-choir .prow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 4px 0; border-top: 1px solid #eef0f3; }
+#tab-choir .prow:first-child { border-top: none; }
+#tab-choir .prow.on { background: var(--soft); border-radius: 6px; }
+#tab-choir .prow.done .r-ref, #tab-choir .prow.done .grow { opacity: .55; text-decoration: line-through; }
+#tab-choir .prow .num { width: 18px; text-align: right; color: var(--muted); font-size: 12px; }
+#tab-choir .prow .time { width: 46px; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent); }
+#tab-choir .prow select { flex: 0 1 150px; width: auto; }
+#tab-choir .prow .note { flex: 1 1 130px; width: auto; }
+#tab-choir .prow .mins { width: 62px; flex: 0 0 auto; }
+#tab-choir .prow .slotlabel { width: 70px; flex: 0 0 auto; }
+#tab-choir .prow .unit { font-size: 12px; color: var(--muted); }
+#tab-choir .prow .tick { width: auto; }
+#tab-choir .prow.silence { color: var(--muted); font-size: 13px; }
+
+#tab-choir .reffield { display: flex; gap: 6px; align-items: center; flex: 2 1 260px; min-width: 0; }
+#tab-choir .reffield .ref { width: 86px; flex: 0 0 auto; font-weight: 700; }
+#tab-choir .reffield .find { flex: 0 0 auto; }
+#tab-choir .hymn-title { flex: 1 1 auto; min-width: 0; font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#tab-choir .hymn-title.warn { color: var(--danger); }
+
+#tab-choir .crew { display: grid; gap: 6px; }
+#tab-choir .crow { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(100px, 1.2fr) minmax(100px, 1.2fr); gap: 6px; align-items: center; }
+#tab-choir .crow .crole { font-size: 13px; font-weight: 600; }
+#tab-choir .pblock { margin-bottom: 10px; }
+#tab-choir .grid7 { display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr)); gap: 4px; align-items: center; }
+#tab-choir .grid7 .glabel { font-size: 12px; color: var(--muted); }
+#tab-choir .grid7 input { padding: 4px 5px; font-size: 13px; }
+
+#tab-choir .results { margin-top: 8px; max-height: 62vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+#tab-choir .result { display: flex; gap: 8px; align-items: baseline; width: 100%; text-align: left; font: inherit; background: #fff; border: none; border-bottom: 1px solid #eef0f3; padding: 8px 10px; cursor: pointer; }
+#tab-choir .result:hover { background: var(--soft); }
+#tab-choir .result.open { background: var(--soft); }
+#tab-choir .result .r-ref { flex: 0 0 62px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+#tab-choir .result .r-title { flex: 1 1 auto; }
+#tab-choir .results .editor { padding: 10px; background: #f8fafc; border-bottom: 1px solid #eef0f3; }
+
+#tab-choir .pills { display: flex; gap: 4px; flex-wrap: wrap; }
+#tab-choir .pill { font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); white-space: nowrap; }
+#tab-choir .pill.slot { border-color: #b9d4ef; color: #1d5c8f; }
+#tab-choir .pill.season { border-color: #cdbfe8; color: #5b3fa0; }
+#tab-choir .pill.organ { border-color: #cbd5e1; }
+#tab-choir .pill.note { border-color: #f0d9a8; color: #8a5a00; }
+/* an ability pill takes its colour from the rating itself, which the
+   conductor sets in the Hymns tab */
+#tab-choir .pill.ability.missing { font-style: italic; }
+#tab-choir .btn.on { background: var(--accent); color: var(--accent-ink); }
+#tab-choir #ability-editor { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+#tab-choir #ability-editor input[type=color] { flex: 0 0 auto; width: 42px; height: 30px; padding: 0 2px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+#tab-choir #ability-editor .count { flex: 0 0 78px; text-align: right; }
+
+#tab-choir .chips { gap: 5px; }
+#tab-choir .chip { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--muted); cursor: pointer; }
+#tab-choir .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+#tab-choir .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: flex; align-items: flex-start; justify-content: center; padding: 20px 12px; z-index: 20; }
+#tab-choir .picker-card { background: #fff; border-radius: 12px; width: min(680px, 100%); max-height: 90vh; display: flex; flex-direction: column; padding: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.28); }
+#tab-choir .picker-head { display: flex; gap: 8px; align-items: center; }
+#tab-choir .picker-card .results { flex: 1 1 auto; max-height: none; }
+
+#tab-choir .badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #14532d; background: #dcfce7; border: 1px solid #86efac; border-radius: 999px; padding: 2px 8px; }
+#tab-choir .toast { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 20px); background: #111827; color: #fff; padding: 9px 14px; border-radius: 999px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 30; max-width: 92vw; text-align: center; }
+#tab-choir .toast.show { opacity: 1; transform: translate(-50%, 0); }
+#tab-choir .toast.error { background: var(--danger); }
+
+/* ---------------------------------------------------------------- phone
+   The phone is a first-class device here, not a fallback: the tabs become a
+   bar under the thumb, every target is big enough to hit while standing, and
+   the hymn picker rises from the bottom like a native sheet. */
+@media (max-width: 700px) {
+  #tab-choir main { padding: 10px; padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  #tab-choir h1 .t-long { display: none; }
+  #tab-choir h1 .t-short { display: inline; }
+
+  #tab-choir .choir-tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; gap: 0;
+    background: #fff; border-top: 1px solid var(--line); overflow: visible;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, .1); padding-bottom: env(safe-area-inset-bottom);
+  }
+  #tab-choir .choir-tabs button {
+    flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; min-height: 58px;
+    padding: 7px 2px 6px; font-size: 10.5px; font-weight: 600; white-space: nowrap;
+    border: none; border-radius: 0; background: transparent; color: var(--muted);
+  }
+  #tab-choir .choir-tabs button:hover { background: transparent; }
+  #tab-choir .choir-tabs button.active { background: transparent; color: var(--accent); }
+  #tab-choir .choir-tabs .ico { display: block; padding: 2px 12px; border-radius: 999px; line-height: 0; }
+  #tab-choir .choir-tabs button.active .ico { background: #dceafa; }
+  #tab-choir .card.choir-pane { border-top: 1px solid var(--line); border-radius: 10px; }
+  #tab-choir .toast { bottom: calc(78px + env(safe-area-inset-bottom)); }
+
+  /* 16px stops a phone browser zooming the page when a field is focused */
+  #tab-choir input[type=text], #tab-choir input[type=date], #tab-choir input[type=time], #tab-choir input[type=number], #tab-choir input[type=search], #tab-choir select, #tab-choir textarea { font-size: 16px; padding: 9px 10px; }
+  /* 44px tall, so a button can be hit while standing at a music stand */
+  #tab-choir .btn, #tab-choir .btn.small { padding: 13px 15px; font-size: 14px; line-height: 1.25; }
+  #tab-choir .chip { padding: 9px 14px; font-size: 14px; }
+  #tab-choir .icon { padding: 8px 12px; font-size: 22px; min-width: 44px; min-height: 44px; }
+  #tab-choir .prow .tick { width: 22px; height: 22px; }
+
+  /* the hymn picker as a sheet off the bottom edge */
+  #tab-choir .overlay { align-items: flex-end; padding: 0; }
+  #tab-choir .picker-card {
+    width: 100%; max-height: 88vh; border-radius: 14px 14px 0 0; padding: 12px 12px 0;
+    padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -6px 24px rgba(0, 0, 0, .28);
+  }
+  #tab-choir .picker-card .results { border-left: none; border-right: none; border-radius: 0; }
+  #tab-choir .result { padding: 12px 10px; }
+
+  #tab-choir .crow { grid-template-columns: 1fr; gap: 3px; }
+  #tab-choir .crow .crole { margin-top: 8px; }
+  #tab-choir .grid7 { grid-template-columns: 52px repeat(3, minmax(0, 1fr)); }
+  #tab-choir #ability-editor .count { flex: 0 0 auto; }
+
+  /* a section's delete is pinned beside its name rather than wrapping below */
+  #tab-choir .section-head { position: relative; padding-right: 46px; }
+  #tab-choir .section-head > .del { position: absolute; right: -6px; top: 0; }
+  #tab-choir .section-head select { flex: 1 1 auto; }
+  #tab-choir .section.practice .section-head input[type=text] { flex: 1 1 100%; }
+
+  /* each hymn gets three tidy lines, with the delete pinned to the top right
+     instead of taking a line of its own */
+  #tab-choir .prow { position: relative; padding: 7px 30px 7px 0; }
+  #tab-choir .prow .del { position: absolute; right: -8px; top: 0; }
+  #tab-choir .prow > select { flex: 1 1 auto; }
+  #tab-choir .reffield { flex: 1 1 100%; flex-wrap: wrap; }
+  #tab-choir .reffield .ref { width: 82px; }
+  #tab-choir .hymn-title { flex: 1 1 120px; white-space: normal; }
+  #tab-choir .prow .note { flex: 1 1 100%; }
+  #tab-choir .prow .ability { flex: 0 0 auto; }
+  #tab-choir .prow .grow { white-space: normal; }
+  #tab-choir .results { max-height: 60vh; }
+  #tab-choir .row.search select { flex: 1 1 45%; }
+}
+

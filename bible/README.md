@@ -29,6 +29,26 @@ is saved, so two people are never editing each other's half-finished plan.
 the pieces of a layout) and `seating-pdf.js` (the sheet) are the standalone app's own
 code, carried over as it was.
 
+## The choir programme
+
+The Choir tab is the conductor's Choir Programme Planner, which was also an app of its
+own: the hymn index of 1317 entries, the music programme, the timed before-service
+running order, the festive preparation form and the practices, each printed as the
+workbook printed it. `choir-app.js` is that app's own code, handed its storage instead
+of reaching for localStorage, and `choir-markup.js` is its page, with its six panes
+renamed (`choir-tabs`, `choir-pane`, `#choir-<name>`) so they cannot be mistaken for
+this app's tabs. Its stylesheet is held inside `#tab-choir`.
+
+Each service is a row of its own in the `choir` store, with the conductor's settings
+and hymn edits beside it, so two devices that each write a programme keep both rather
+than the last one to save winning.
+
+## Coming from the two standalone apps
+
+Settings has "Bring in a file from the old apps": save a backup in the standalone
+Seating or Choir planner and load it here, and the layouts, plans, roster and choir
+programmes come across and travel with the sync from then on.
+
 ## How it looks
 
 `styles.css` is the whole look, dressed like the Church's slides: the NAC blue

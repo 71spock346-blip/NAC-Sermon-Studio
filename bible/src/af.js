@@ -1310,4 +1310,12 @@ export const AF = {
   "New section": "Nuwe afdeling",
   "Drag the pieces on the plan. Tap one to change it.": "Sleep die stukke op die plan. Tik op een om dit te verander.",
   "seating plans|part": "sitplekplanne",
+
+  /* ---- the choir programme (choir.js) ---- */
+  "Choir": "Koor",
+  "The choir programme": "Die koorprogram",
+  "choir programmes|part": "koorprogramme",
+  "{n} choir programmes added.": "{n} koorprogramme bygevoeg.",
+  "Not a choir planner backup file": "Nie 'n koorbeplanner-rugsteunl\u00eaer nie",
+  "Not a seating planner backup file": "Nie 'n sitplekbeplanner-rugsteunl\u00eaer nie",
 };

@@ -8,6 +8,8 @@
  */
 import { el, clear, toast, confirmBox, download, today, sheet, busy, fmtDate, seg, copyText, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
 import { t, tn, LANGS, requestLang } from './i18n.js';
+import * as Seating from './seating.js';
+import * as ChoirTab from './choir.js';
 import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts, saveCatechismText, deleteCatechismText } from './store.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
@@ -144,6 +146,34 @@ export function render(container) {
       } }),
       el('button', { class: 'btn small ghost', type: 'button', text: t('Load backup file'), onclick: () => fileInput.click() }),
       fileInput,
+    ]),
+  ]));
+
+  // ---- the two apps that used to stand on their own
+  const oldInput = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
+  oldInput.addEventListener('change', async () => {
+    const f = oldInput.files[0];
+    oldInput.value = '';
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (Array.isArray(data.services)) {
+        const r = await ChoirTab.importStandalone(data);
+        toast(t('{n} choir programmes added.', { n: r.services }));
+      } else if (Array.isArray(data.plans) && Array.isArray(data.roster)) {
+        const r = await Seating.importStandalone(data);
+        toast(t('Brought in: {layouts} layouts and {plans} seating plans.', { layouts: r.layouts, plans: r.plans }));
+      } else {
+        toast(t('That file is from neither of the two apps.'), true);
+      }
+      render(root);
+    } catch (e) { toast(e.message || t('That file could not be read.'), true); }
+  });
+  container.append(section(t('The seating and choir apps'), [
+    el('p', { class: 'small', text: t('The Seating & Communion Planner and the Choir Programme Planner are tabs here now. If you used either of them on its own, open it, save a backup file there, and load that file here: the congregations\u2019 layouts, the saved plans, the roster and the choir programmes come across, and from then on they travel with your sync.') }),
+    el('div', { class: 'row' }, [
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Bring in a file from the old apps'), onclick: () => oldInput.click() }),
+      oldInput,
     ]),
   ]));
 

@@ -14,7 +14,8 @@
  * header on a phone and in the side menu on a PC, and under Settings; a change
  * redraws the open screen in the other language.
  *
- * #seating opens the seating and communion plan, #seating/<id> a saved one.
+ * #seating opens the seating and communion plan, #seating/<id> a saved one,
+ * and #choir the choir programme.
  *
  * #sync/<code> is the link a sync QR code or "Copy link" carries: it opens
  * Settings and offers to join with that code (sync.js keeps the devices the
@@ -32,6 +33,7 @@ import * as Cat from './catechism.js';
 import * as Theology from './theology.js';
 import * as Liturgy from './liturgy.js';
 import * as Seating from './seating.js';
+import * as ChoirTab from './choir.js';
 import * as Settings from './settings.js';
 import * as Sync from './sync.js';
 
@@ -42,6 +44,7 @@ const TABS = {
   reflect: Prepare.renderReflect,
   liturgy: Liturgy.render,
   seating: Seating.render,
+  choir: ChoirTab.render,
   catechism: Cat.render,
   theology: Theology.render,
   settings: Settings.render,
