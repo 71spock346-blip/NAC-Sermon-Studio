@@ -71,6 +71,16 @@ section filter lets ministers who share one congregation each see their own memb
 `tools/fixtures/reminders-*.pdf` are two fictional listings in the office's layout for
 trying the import; the real listings are personal data and are never committed.
 
+## The Church's MIS
+
+The MIS entry at the foot of the side menu (on a phone under More, just before Settings) is a
+plain link to the Church's MIS, https://mis.nac-sa.org.za/sign-in, opened in its own
+tab with `rel="noopener"` (`index.html` `.menu-links`, `more.js` LINKS). The site is not
+shown inside the app on purpose: inside a frame its sign-in cookie would be a third-party
+cookie, which phones block, and the Church's confidential system should not be framed by
+a public site. The app never sees or keeps the MIS password; the person signs in on the
+site as always.
+
 ## Coming from the standalone apps
 
 Settings has "Bring in a file from the old apps": save a backup in the standalone
@@ -93,7 +103,7 @@ Appearance, or the reader's "Aa" button) is mirrored in localStorage so the page
 in the right colours before the database is open. "Easy-read" swaps Montserrat for
 plain letters (Verdana where the device has it) in the whole app, with more room in the
 reading text. Under 760px the tabs are a bar under the thumb (five of them: Read,
-Notes, Prepare, Catechism and More, which lists the other seven sections, `src/more.js`) and
+Notes, Prepare, Catechism and More, which lists the other seven sections and the MIS link, `src/more.js`) and
 the text runs full width on white; from 760px they are a side menu with every section and
 each screen is a white page on a pale ground, with the small blue emblem in its corner.
 
@@ -362,7 +372,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/liturgy.js` – the Liturgy tab: the altar booklet's cards, loading and removing a booklet, the EN | AF switch, the screen wake lock
 - `src/booklet.js` – reads the altar booklet's PDF into cards (pdf.js on the device, then a pure parse of the pages)
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
-- `src/more.js` – the phone's More tab: the seven sections its bar has no room for, one under the other
+- `src/more.js` – the phone's More tab: the seven sections its bar has no room for, one under the other, and the link to the Church's MIS
 - `src/reminders.js` – the Reminders tab; `src/reminders-lib.js` (the listing PDFs, the roster, phone numbers, the dates coming up), `src/reminders-templates.js` (the greetings), `src/reminders-ics.js` (the calendar file), `src/reminders-sheet.js` (Excel out and back)
 - `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
