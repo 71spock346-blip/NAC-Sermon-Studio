@@ -72,6 +72,7 @@ def table():
     start = text.index('{', text.index('export const AF'))   # the header comment may mention a brace
     body = text[start:text.rindex('}') + 1]
     body = re.sub(r'^\s*//.*$', '', body, flags=re.M)     # comment lines between the entries
+    body = re.sub(r'^\s*/\*.*?\*/\s*$', '', body, flags=re.M)   # and the /* ---- heading ---- */ lines of the seating and choir parts
     body = re.sub(r',(\s*)}', r'\1}', body)                  # the trailing comma JavaScript allows
     return json.loads(body)
 

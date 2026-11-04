@@ -16,8 +16,9 @@
  * when only that booklet is loaded; #liturgy/<key> opens one card, with an
  * EN | AF switch when both booklets are loaded. While a card is open the
  * screen is asked to stay awake. On a PC Liturgy has its own place in the
- * side menu; the phone's bar keeps its six tabs, so there it is reached from
- * the top of Prepare, and Prepare stays lit while it is open (app.js).
+ * side menu; the phone's bar keeps five tabs, so there it is listed under
+ * More (more.js) and reached from the top of Prepare as well, and More stays
+ * lit while it is open (app.js).
  */
 import { el, clear, toast, confirmBox, busy, seg, sheet, fmtDate, SIZES } from './ui.js';
 import { state, saveLiturgy, deleteLiturgy, saveSetting } from './store.js';
@@ -52,7 +53,7 @@ export function icon() {
   return span;
 }
 
-/** The link to Liturgy at the top of the Prepare list: the phone's bar has no Liturgy tab (styles.css hides this on a PC). */
+/** The link to Liturgy at the top of the Prepare list: the phone's bar has no Liturgy tab, only More (styles.css hides this on a PC). */
 export function shortcut() {
   return el('a', { class: 'lit-shortcut', href: '#liturgy' }, [
     icon(),
