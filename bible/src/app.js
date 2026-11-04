@@ -16,7 +16,9 @@
  *
  * #seating opens the seating and communion plan, #seating/<id> a saved one,
  * and #choir the choir programme. #more is the phone's fifth tab (more.js):
- * the sections the bar has no room for, one under the other.
+ * the sections the bar has no room for, one under the other. #reminders is
+ * the birthdays and anniversaries (#reminders/people the roster,
+ * #reminders/import the listings).
  *
  * #sync/<code> is the link a sync QR code or "Copy link" carries: it opens
  * Settings and offers to join with that code (sync.js keeps the devices the
@@ -35,6 +37,7 @@ import * as Theology from './theology.js';
 import * as Liturgy from './liturgy.js';
 import * as Seating from './seating.js';
 import * as ChoirTab from './choir.js';
+import * as Reminders from './reminders.js';
 import * as Settings from './settings.js';
 import * as More from './more.js';   // the phone's More tab: the sections its bar has no room for
 import * as Sync from './sync.js';
@@ -48,6 +51,7 @@ const TABS = {
   liturgy: Liturgy.render,
   seating: Seating.render,
   choir: ChoirTab.render,
+  reminders: Reminders.render,
   catechism: Cat.render,
   theology: Theology.render,
   settings: Settings.render,
@@ -76,7 +80,7 @@ function route() {
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
-    // the phone's bar lists six of the sections under More, so More stays lit while one of them is open (a PC shows every section, and no More)
+    // the phone's bar lists seven of the sections under More, so More stays lit while one of them is open (a PC shows every section, and no More)
     b.classList.toggle('also', b.dataset.tab === 'more' && More.isMore(tab));
   }
   for (const panel of $$('main .tab')) panel.hidden = panel.id !== 'tab-' + tab;

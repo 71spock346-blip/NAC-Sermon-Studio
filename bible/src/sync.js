@@ -26,7 +26,7 @@ import { state, db, DEFAULT_SETTINGS, SECRET, DEVICE_ONLY, onChange, getCatechis
 import { mergeCollection, mergeSettings, mergeSingle } from './merge.js';
 import * as Cat from './catechism.js';
 
-export const PARTS = ['notes', 'sermons', 'settings', 'texts', 'catechism', 'guides', 'theology', 'liturgy', 'seating', 'choir'];
+export const PARTS = ['notes', 'sermons', 'settings', 'texts', 'catechism', 'guides', 'theology', 'liturgy', 'seating', 'choir', 'reminders'];
 const API = 'api/sync';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no 0, O, 1 or I: nothing to mistake when typing
 const CODE_LENGTH = 20;
@@ -197,6 +197,7 @@ async function localPayload(part) {
     case 'liturgy': return { v: 1, items: state.liturgy, deleted: state.deleted.liturgy };
     case 'seating': return { v: 1, items: state.seating, deleted: state.deleted.seating };
     case 'choir': return { v: 1, items: state.choir, deleted: state.deleted.choir };
+    case 'reminders': return { v: 1, items: state.reminders, deleted: state.deleted.reminders };
     case 'texts': return { v: 1, items: await db.all('texts'), deleted: state.deleted.texts };
     case 'settings': {
       const rows = {};
@@ -211,8 +212,8 @@ async function localPayload(part) {
   throw new Error('unknown part ' + part);
 }
 
-const STAMP = { notes: r => r.updated || '', sermons: r => r.updated || '', guides: r => r.loadedAt || '', texts: r => r.at || '', theology: r => r.updated || '', liturgy: r => r.loadedAt || '', seating: r => r.updated || '', choir: r => r.updated || '' };
-const KEY = { notes: r => r.id, sermons: r => r.id, guides: r => r.id, texts: r => r.key, theology: r => r.id, liturgy: r => r.id, seating: r => r.id, choir: r => r.id };
+const STAMP = { notes: r => r.updated || '', sermons: r => r.updated || '', guides: r => r.loadedAt || '', texts: r => r.at || '', theology: r => r.updated || '', liturgy: r => r.loadedAt || '', seating: r => r.updated || '', choir: r => r.updated || '', reminders: r => r.updated || '' };
+const KEY = { notes: r => r.id, sermons: r => r.id, guides: r => r.id, texts: r => r.key, theology: r => r.id, liturgy: r => r.id, seating: r => r.id, choir: r => r.id, reminders: r => r.id };
 
 /**
  * Merges the server copy into this device and says what must go back:

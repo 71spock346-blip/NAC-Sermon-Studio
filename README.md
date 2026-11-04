@@ -1,6 +1,6 @@
 # NAC Sermon Studio
 
-Three small web apps for a New Apostolic Church congregation, deployed from one static
+Small web apps for a New Apostolic Church congregation, deployed from one static
 site:
 
 - **Seating & Communion Planner** — who sits where and who serves communion, described
@@ -16,12 +16,16 @@ site:
   from `bible/`, live at https://nac-study-bible.vercel.app. See
   [`bible/README.md`](bible/README.md).
 
-The Study Bible is also where the other two now live: the Seating & Communion Planner
-is its **Seating** tab and the Choir Programme Planner its **Choir** tab, so one app
-holds a minister's Bible, the congregation's seating and the choir's programmes, and
-all three ride the Study Bible's sync between a person's devices. The two standalone
-apps stay where they are, at their own addresses, for anyone already using them; their
-backups load into the Study Bible under Settings.
+The Study Bible is also where the others now live: the Seating & Communion Planner
+is its **Seating** tab, the Choir Programme Planner its **Choir** tab, and the
+Congregation Reminders app (birthdays and wedding anniversaries from the office's
+listing PDFs, with WhatsApp greetings ready to send; its own repository is
+[weddings-and-birdays](https://github.com/71spock346-blip/weddings-and-birdays)) its
+**Reminders** tab, so one app holds a minister's Bible, the congregation's seating, the
+choir's programmes and the congregants' dates, and all of them ride the Study Bible's
+sync between a person's devices. The standalone apps stay where they are, at their own
+addresses, for anyone already using them; their backups load into the Study Bible under
+Settings.
 
 Each app is its own Vercel project on this one repository, so a push to the production
 branch redeploys all of them.

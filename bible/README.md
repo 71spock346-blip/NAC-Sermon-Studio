@@ -43,11 +43,40 @@ Each service is a row of its own in the `choir` store, with the conductor's sett
 and hymn edits beside it, so two devices that each write a programme keep both rather
 than the last one to save winning.
 
-## Coming from the two standalone apps
+## Birthdays and anniversaries
+
+The Reminders tab is the Congregation Reminders app (repository `weddings-and-birdays`,
+live on GitHub Pages) brought in as a tab. It reads the church office's Birthday Listing
+and Marriage Anniversary Listing PDFs on the device (`reminders-lib.js`: pdf.js text
+items, grouped into lines by y and into columns by the header's x positions, so a
+surname such as VAN DER MERWE is never guessed at), keeps one roster keyed on the member
+number (a new listing updates, never duplicates; the printed age becomes a birth year so
+it stays right next year; a husband and wife are paired on surname, date and year), and
+shows the dates coming up with a greeting for each (`reminders-templates.js`: the
+wordings in English and Afrikaans, with and without a verse, filled in with the name,
+the count and the sender). "Open in WhatsApp" is a `wa.me` link with the message in it.
+`reminders-ics.js` writes the roster as a calendar file with a yearly rule and an alarm,
+so the phone's calendar rings whether or not the app is open; `reminders-sheet.js`
+exports the members without a number to Excel for a priest to fill in and reads the
+sheet back, taking only the three columns they were asked for, matched on the member
+number. The two Excel libraries (`vendor/write-excel-file.min.js`,
+`vendor/read-excel-file.min.js`, MIT) are fetched only when a sheet is made or read.
+
+`reminders.js` is the tab. Everything is rows in the `reminders` store, so it travels
+with the sync and the backup: `person:<memberNo>` the roster, `sent:<eventId>` a
+greeting marked sent (so two ministers greeting from one list see each other's), and
+`settings` and `template:<id>` the tab's settings and the person's own wordings.
+Settings left blank fall back to the app's own name, congregation and language. A
+section filter lets ministers who share one congregation each see their own members.
+`tools/fixtures/reminders-*.pdf` are two fictional listings in the office's layout for
+trying the import; the real listings are personal data and are never committed.
+
+## Coming from the standalone apps
 
 Settings has "Bring in a file from the old apps": save a backup in the standalone
-Seating or Choir planner and load it here, and the layouts, plans, roster and choir
-programmes come across and travel with the sync from then on.
+Seating or Choir planner or the Congregation Reminders app and load it here, and the
+layouts, plans, roster, choir programmes or congregants and sent marks come across and
+travel with the sync from then on.
 
 ## How it looks
 
@@ -64,7 +93,7 @@ Appearance, or the reader's "Aa" button) is mirrored in localStorage so the page
 in the right colours before the database is open. "Easy-read" swaps Montserrat for
 plain letters (Verdana where the device has it) in the whole app, with more room in the
 reading text. Under 760px the tabs are a bar under the thumb (five of them: Read,
-Notes, Prepare, Catechism and More, which lists the other six sections, `src/more.js`) and
+Notes, Prepare, Catechism and More, which lists the other seven sections, `src/more.js`) and
 the text runs full width on white; from 760px they are a side menu with every section and
 each screen is a white page on a pale ground, with the small blue emblem in its corner.
 
@@ -321,7 +350,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `api/sync.js` – the sync server (Vercel function, Vercel Blob); `package.json` holds its one dependency
 - `icons/` – the emblem (SVG and the PNG sizes a phone's home screen wants; `emblem-white.png` and `emblem-blue.png` for the slides)
 - `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#notes`,
-  `#prepare/<id>`, `#reflect/<id>`, `#catechism/3.4.1`, `#theology/ROM/8`, `#liturgy/baptism`, `#settings`)
+  `#prepare/<id>`, `#reflect/<id>`, `#catechism/3.4.1`, `#theology/ROM/8`, `#liturgy/baptism`, `#reminders/people`, `#settings`)
 - `src/books.js` – the 80 books, English and Afrikaans names, reference parsing
 - `src/i18n.js`, `src/af.js` – the language of the interface: `t()` and the Afrikaans table
 - `src/store.js` – IndexedDB, in-memory state, backup, change events and deletion markers for sync
@@ -333,7 +362,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/liturgy.js` – the Liturgy tab: the altar booklet's cards, loading and removing a booklet, the EN | AF switch, the screen wake lock
 - `src/booklet.js` – reads the altar booklet's PDF into cards (pdf.js on the device, then a pure parse of the pages)
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
-- `src/more.js` – the phone's More tab: the six sections its bar has no room for, one under the other
+- `src/more.js` – the phone's More tab: the seven sections its bar has no room for, one under the other
+- `src/reminders.js` – the Reminders tab; `src/reminders-lib.js` (the listing PDFs, the roster, phone numbers, the dates coming up), `src/reminders-templates.js` (the greetings), `src/reminders-ics.js` (the calendar file), `src/reminders-sheet.js` (Excel out and back)
 - `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
@@ -343,8 +373,9 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `vendor/pptxgen.bundle.js` – PptxGenJS 4.0.1 with JSZip 3.10.1 inside (MIT), loaded only when a PowerPoint file is made
 - `vendor/fonts/` – Montserrat, variable (SIL OFL 1.1), Latin and Latin-extended subsets, the letters of the app; Caladea and Carlito (SIL OFL 1.1), standing in for Cambria and Calibri on the slides of a reflection evening
 - `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
-- `vendor/pdfjs/` – pdf.js 5.4.624 (Apache 2.0; `vendor/pdfjs.LICENSE`), fetched only when an altar booklet is loaded
-- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_booklet.mjs` for the altar booklet
+- `vendor/pdfjs/` – pdf.js 5.4.624 (Apache 2.0; `vendor/pdfjs.LICENSE`), fetched only when an altar booklet or a listing is loaded
+- `vendor/write-excel-file.min.js`, `vendor/read-excel-file.min.js` – write-excel-file and read-excel-file (MIT; `vendor/excel.LICENSE`), fetched only when a spreadsheet is made or read
+- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_booklet.mjs` for the altar booklet, `fixtures/` the fictional listing PDFs for the Reminders tab
 
 ## Rebuilding the data
 

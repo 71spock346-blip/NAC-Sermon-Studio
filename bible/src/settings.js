@@ -10,6 +10,7 @@ import { el, clear, toast, confirmBox, download, today, sheet, busy, fmtDate, se
 import { t, tn, LANGS, requestLang } from './i18n.js';
 import * as Seating from './seating.js';
 import * as ChoirTab from './choir.js';
+import * as Reminders from './reminders.js';
 import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts, saveCatechismText, deleteCatechismText } from './store.js';
 import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
@@ -164,14 +165,17 @@ export function render(container) {
       } else if (Array.isArray(data.plans) && Array.isArray(data.roster)) {
         const r = await Seating.importStandalone(data);
         toast(t('Brought in: {layouts} layouts and {plans} seating plans.', { layouts: r.layouts, plans: r.plans }));
+      } else if (data.people && typeof data.people === 'object' && 'sent' in data) {
+        const r = await Reminders.importStandalone(data);
+        toast(t('Brought in: {people} and {sent}.', { people: tn(r.people, '{n} congregant', '{n} congregants'), sent: tn(r.sent, '{n} greeting marked sent', '{n} greetings marked sent') }));
       } else {
-        toast(t('That file is from neither of the two apps.'), true);
+        toast(t('That file is from none of the three apps.'), true);
       }
       render(root);
     } catch (e) { toast(e.message || t('That file could not be read.'), true); }
   });
-  container.append(section(t('The seating and choir apps'), [
-    el('p', { class: 'small', text: t('The Seating & Communion Planner and the Choir Programme Planner are tabs here now. If you used either of them on its own, open it, save a backup file there, and load that file here: the congregations\u2019 layouts, the saved plans, the roster and the choir programmes come across, and from then on they travel with your sync.') }),
+  container.append(section(t('The seating, choir and reminders apps'), [
+    el('p', { class: 'small', text: t('The Seating & Communion Planner, the Choir Programme Planner and the Congregation Reminders app are tabs here now. If you used any of them on its own, open it, save a backup file there, and load that file here: the congregations’ layouts, the saved plans, the roster, the choir programmes and the birthday list come across, and from then on they travel with your sync.') }),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small ghost', type: 'button', text: t('Bring in a file from the old apps'), onclick: () => oldInput.click() }),
       oldInput,

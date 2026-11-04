@@ -11,7 +11,7 @@
  * (/api/sync): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-04-plans-more';
+var VERSION = 'bible-2026-11-04-reminders';
 var SHELL = [
   './',
   'index.html',
@@ -55,10 +55,16 @@ var SHELL = [
   'src/choir-library.js',
   'src/choir-model.js',
   'src/choir-pdf.js',
+  'src/reminders.js',
+  'src/reminders-lib.js',
+  'src/reminders-templates.js',
+  'src/reminders-ics.js',
+  'src/reminders-sheet.js',
   // pdf.js (vendor/pdfjs/) is fetched the first time a booklet is loaded and kept from then on (cache-first)
   'vendor/jspdf.umd.min.js?v=1',
   'vendor/qrcode.mjs',
   'vendor/pptxgen.bundle.js?v=1',
+  // the spreadsheet libraries are fetched the first time a sheet is made or read, and kept from then on (cache-first)
   'vendor/fonts/montserrat-latin-wght-normal.woff2',
   'vendor/fonts/montserrat-latin-wght-italic.woff2',
   // the look-alikes of Cambria and Calibri, for the slides of a reflection evening on a device without them

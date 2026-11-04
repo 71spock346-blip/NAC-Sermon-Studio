@@ -720,7 +720,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
   }
   /*
    * Five tabs share the bar equally: Read, Notes, Prepare, Catechism and
-   * More, which lists the other six sections (more.js; the rule that hides
+   * More, which lists the other seven sections (more.js; the rule that hides
    * them from the bar is with the Theology styles below). A tab with a long
    * name (Kategismus) is never narrower than its name, so on a narrow phone
    * it takes a little more room from the short ones instead of being cut;
@@ -1144,9 +1144,9 @@ body.showing { overflow: hidden; }
 [data-read="easy"] .th-sec h4, [data-read="easy"] .th-save h4, [data-read="easy"] .th-earlier > h4, [data-read="easy"] .th-facts dt { text-transform: none; letter-spacing: .02em; font-size: 14px; }
 [data-read="easy"] .th-quote { font-style: normal; line-height: 1.85; }
 @media (max-width: 759.98px) {
-  /* the phone's bar keeps five tabs: these six sections are listed under More (more.js), and More stays lit while one of them is open */
+  /* the phone's bar keeps five tabs: these seven sections are listed under More (more.js), and More stays lit while one of them is open */
   .tabs button[data-tab="reflect"], .tabs button[data-tab="liturgy"], .tabs button[data-tab="theology"],
-  .tabs button[data-tab="seating"], .tabs button[data-tab="choir"], .tabs button[data-tab="settings"] { display: none; }
+  .tabs button[data-tab="seating"], .tabs button[data-tab="choir"], .tabs button[data-tab="reminders"], .tabs button[data-tab="settings"] { display: none; }
   .tabs button.also { color: var(--accent-text); }
   .tabs button.also .ico { background: var(--accent); color: var(--accent-ink); }
   .th-books { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1475,3 +1475,32 @@ body.showing { overflow: hidden; }
   #tab-choir .row.search select { flex: 1 1 45%; }
 }
 
+
+/* ---------------------------------------------------------------- reminders
+   The birthdays and anniversaries tab (reminders.js). It uses the app's
+   list, pill and sheet; these are the few things of its own: the three
+   counts at the top, the glyph beside a date, and the row's second line. */
+.rem-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0 6px; }
+.rem-stat { background: var(--surface); box-shadow: var(--shadow-card); border-radius: var(--radius); padding: 10px 12px; }
+.rem-stat .n { font: 700 24px/1.1 var(--display); color: var(--head-ink); }
+.rem-stat .l { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.rem-note { margin: 8px 0 0; color: var(--c-amber); }
+.rem-day { display: flex; align-items: baseline; gap: 10px; }
+.rem-day .rem-when { font-weight: 600; color: var(--accent-text); font-size: 13px; }
+.rem-item { align-items: center; }
+.rem-item.sent { opacity: .6; }
+.rem-glyph { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-text); }
+.rem-glyph svg { width: 22px; height: 22px; }
+.rem-who { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rem-name { font-weight: 700; color: var(--head-ink); overflow-wrap: anywhere; }
+.rem-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 13px; color: var(--muted); }
+.rem-memberno { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.pill.rem-nonum { color: var(--danger); border-color: transparent; background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.rem-chips { margin: 8px 0; }
+.rem-send { margin-top: 10px; }
+.rem-send .btn { flex: 1 1 auto; }
+.btn.rem-wa { background: #25d366; border-color: #25d366; color: #05291a; }
+.btn.rem-wa.disabled { opacity: .45; pointer-events: none; }
+.rem-listhead { margin-top: 10px; }
+.rem-ph { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }
+@media (max-width: 759.98px) { .rem-stat .n { font-size: 21px; } .rem-stat { padding: 9px 10px; } }

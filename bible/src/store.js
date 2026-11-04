@@ -17,7 +17,7 @@ import { t } from './i18n.js';
  */
 const DB_NAME = 'nac-study-bible';
 const DB_VERSION = 9;
-const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync', 'theology', 'liturgy', 'seating', 'choir'];
+const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync', 'theology', 'liturgy', 'seating', 'choir', 'reminders'];
 
 let dbPromise = null;
 
@@ -39,6 +39,7 @@ function openDb() {
       if (!db.objectStoreNames.contains('liturgy')) db.createObjectStore('liturgy', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('seating')) db.createObjectStore('seating', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('choir')) db.createObjectStore('choir', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('reminders')) db.createObjectStore('reminders', { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -119,13 +120,14 @@ export const state = {
   liturgy: [],            // the altar booklet read from its PDF (liturgy.js, booklet.js), one row per language: id 'en' or 'af'
   seating: [],            // the seating planner (seating.js): the congregations' layouts, the saved plans and the roster of ministers
   choir: [],              // the choir programme (choir.js): one row per service, with the conductor's settings and hymn edits beside them
-  deleted: { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, catechism: '' },   // id -> when it was deleted here (ISO), kept so sync can pass the deletion on
+  reminders: [],          // birthdays and anniversaries (reminders.js): one row per member, per greeting marked sent, the tab's settings and each of the minister's own wordings
+  deleted: { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, reminders: {}, catechism: '' },   // id -> when it was deleted here (ISO), kept so sync can pass the deletion on
 };
 
 /* ---- who wants to know about a change (sync.js) ---- */
 const listeners = new Set();
 
-/** fn(part, {lazy}) is called after every write the person makes; part is 'notes', 'sermons', 'settings', 'texts', 'catechism', 'guides', 'theology', 'liturgy', 'seating' or 'choir'. */
+/** fn(part, {lazy}) is called after every write the person makes; part is 'notes', 'sermons', 'settings', 'texts', 'catechism', 'guides', 'theology', 'liturgy', 'seating', 'choir' or 'reminders'. */
 export function onChange(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
@@ -150,9 +152,9 @@ async function saveDeleted() {
 }
 
 function pruneDeleted(deleted) {
-  const d = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, catechism: '', ...(deleted || {}) };
+  const d = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, reminders: {}, catechism: '', ...(deleted || {}) };
   const cutoff = new Date(Date.now() - KEEP_DELETED_DAYS * 86400000).toISOString();
-  for (const part of ['notes', 'sermons', 'texts', 'guides', 'theology', 'liturgy', 'seating', 'choir']) {
+  for (const part of ['notes', 'sermons', 'texts', 'guides', 'theology', 'liturgy', 'seating', 'choir', 'reminders']) {
     const m = d[part] && typeof d[part] === 'object' ? d[part] : {};
     d[part] = Object.fromEntries(Object.entries(m).filter(([, at]) => typeof at === 'string' && at > cutoff));
   }
@@ -161,13 +163,14 @@ function pruneDeleted(deleted) {
 }
 
 export async function load() {
-  const [notes, sermons, settings, textKeys, catMeta, guides, deleted, theology, liturgy, seating, choir] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta'), db.all('guides'), db.get('sync', 'deleted'), db.all('theology'), db.all('liturgy'), db.all('seating'), db.all('choir')]);
+  const [notes, sermons, settings, textKeys, catMeta, guides, deleted, theology, liturgy, seating, choir, reminders] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta'), db.all('guides'), db.get('sync', 'deleted'), db.all('theology'), db.all('liturgy'), db.all('seating'), db.all('choir'), db.all('reminders')]);
   state.catechism = catMeta ? catMeta.value : null;
   state.guides = guides;
   state.theology = theology.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
   state.liturgy = liturgy.sort((a, b) => a.id.localeCompare(b.id));
   state.seating = seating.sort((a, b) => a.id.localeCompare(b.id));
   state.choir = choir.sort((a, b) => a.id.localeCompare(b.id));
+  state.reminders = reminders.sort((a, b) => a.id.localeCompare(b.id));
   state.deleted = pruneDeleted(deleted && deleted.value);
   state.texts = {};
   for (const k of textKeys) {
@@ -437,6 +440,29 @@ export async function deleteChoir(id) {
   changed('choir');
 }
 
+/* ---- reminders: birthdays and anniversaries (reminders.js) ----
+   One row per member ('person:<memberNo>'), so two priests each adding a
+   number keep both; one per greeting marked sent ('sent:<event>'), so a
+   greeting sent from the phone shows as sent on the PC; the tab's settings
+   ('settings') and each of the minister's own wordings ('template:<id>'). */
+export async function saveReminder(row) {
+  row.updated = new Date().toISOString();
+  const i = state.reminders.findIndex(x => x.id === row.id);
+  if (i >= 0) state.reminders[i] = row; else state.reminders.push(row);
+  state.reminders.sort((a, b) => a.id.localeCompare(b.id));
+  if (state.deleted.reminders[row.id]) { delete state.deleted.reminders[row.id]; await saveDeleted(); }
+  await db.put('reminders', row);
+  changed('reminders');
+  return row;
+}
+
+export async function deleteReminder(id) {
+  state.reminders = state.reminders.filter(x => x.id !== id);
+  await db.del('reminders', id);
+  await markDeleted('reminders', id);
+  changed('reminders');
+}
+
 /* ---- theology: what Claude wrote on a passage, a chapter or a book ----
    One row per place and language ('en:PSA.23.1-3', 'af:PSA.23', 'en:PSA').
    Asking again keeps the answer it replaces in the row's `earlier` list
@@ -472,6 +498,7 @@ export async function exportAll() {
     theology: state.theology,
     seating: state.seating,
     choir: state.choir,
+    reminders: state.reminders,
     settings: Object.fromEntries(Object.entries(state.settings).filter(([k]) => !SECRET.has(k))),
   };
 }
@@ -538,6 +565,20 @@ export async function importAll(data) {
     state.seating.sort((a, b) => a.id.localeCompare(b.id));
     changed('seating');
   }
+  let reminders = 0;
+  for (const x of data.reminders || []) {
+    if (!x || !x.id) continue;
+    const mine = state.reminders.find(y => y.id === x.id);
+    if (!mine || (x.updated || '') > (mine.updated || '')) {
+      await db.put('reminders', x);
+      if (mine) Object.assign(mine, x); else state.reminders.push(x);
+      reminders++;
+    }
+  }
+  if (reminders) {
+    state.reminders.sort((a, b) => a.id.localeCompare(b.id));
+    changed('reminders');
+  }
   for (const [k, v] of Object.entries(data.settings || {})) {
     if (SECRET.has(k)) continue;
     if (!(k in DEFAULT_SETTINGS)) continue;
@@ -547,7 +588,7 @@ export async function importAll(data) {
   state.sermons.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   if (notes) changed('notes');
   if (sermons) changed('sermons');
-  return { notes, sermons, theology, seating, choir };
+  return { notes, sermons, theology, seating, choir, reminders };
 }
 
 /** Erases this device only: no deletion markers, so the other devices and the copy on the server keep everything. */
@@ -564,7 +605,8 @@ export async function wipeAll() {
   state.liturgy = [];
   state.seating = [];
   state.choir = [];
-  state.deleted = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, catechism: '' };
+  state.reminders = [];
+  state.deleted = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, reminders: {}, catechism: '' };
 }
 
 /* ---- what came from another device (sync.js) ----
@@ -603,6 +645,7 @@ export async function applyRemoteList(part, put, remove, deleted) {
   if (part === 'liturgy') list.sort((a, b) => a.id.localeCompare(b.id));
   if (part === 'seating') list.sort((a, b) => a.id.localeCompare(b.id));
   if (part === 'choir') list.sort((a, b) => a.id.localeCompare(b.id));
+  if (part === 'reminders') list.sort((a, b) => a.id.localeCompare(b.id));
   if (deleted) { state.deleted[part] = deleted; await saveDeleted(); }
 }
 
