@@ -36,6 +36,7 @@ import * as Seating from './seating.js';
 import * as ChoirTab from './choir.js';
 import * as Settings from './settings.js';
 import * as Sync from './sync.js';
+import * as Update from './update.js';   // a newer version of the app on the site: a bar offers to load it
 
 const TABS = {
   read: Reader.render,
@@ -109,7 +110,7 @@ function applyLang(l) {
   document.title = t('NAC Study Bible');
   translatePage();
   const v = $('#nav-version');
-  if (v) v.textContent = t('Version {v}', { v: Settings.VERSION });
+  if (v) v.textContent = t('Version {v}', { v: Update.versionText(Settings.VERSION) });
   for (const b of $$('.lang-switch button')) {
     const on = b.dataset.lang === lang();
     b.classList.toggle('on', on);
@@ -205,6 +206,7 @@ async function start() {
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+  Update.start();
 }
 
 start().catch(e => {

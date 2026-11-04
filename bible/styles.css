@@ -269,7 +269,7 @@ header.top .seg, nav.side .seg { background: rgba(255, 255, 255, .14); }
 header.top .seg button, nav.side .seg button { color: var(--brand-ink-2); }
 header.top .seg button.on, nav.side .seg button.on { background: var(--brand-on); color: var(--brand-on-ink); box-shadow: none; }
 h1 .t-short { display: none; }
-main { padding: 12px 12px calc(16px + var(--tabbar)); outline: none; }
+main { padding: 12px 12px calc(16px + var(--tabbar) + var(--update-h, 0px)); outline: none; }
 .tab { max-width: 880px; margin: 0 auto; }
 #tab-read { max-width: 760px; }
 #tab-prepare { max-width: 900px; }
@@ -469,12 +469,26 @@ nav.side .lang-switch { align-self: flex-start; margin-bottom: 4px; }
 .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 13px; min-height: 34px; border-radius: 999px; border: 1px solid var(--btn-line); background: var(--surface); color: var(--ink-2); cursor: pointer; transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
 .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 
-.toast { position: fixed; left: 50%; bottom: calc(18px + var(--tabbar)); transform: translate(-50%, 12px); background: var(--bar); color: var(--bar-ink); padding: 10px 18px; border-radius: 999px; font-size: 15px; font-weight: 700; opacity: 0; pointer-events: none; transition: opacity .18s ease-out, transform .18s ease-out; z-index: 40; width: max-content; max-width: min(92vw, 560px); text-align: center; box-shadow: var(--shadow-pop); }
+.toast { position: fixed; left: 50%; bottom: calc(18px + var(--tabbar) + var(--update-h, 0px)); transform: translate(-50%, 12px); background: var(--bar); color: var(--bar-ink); padding: 10px 18px; border-radius: 999px; font-size: 15px; font-weight: 700; opacity: 0; pointer-events: none; transition: opacity .18s ease-out, transform .18s ease-out; z-index: 40; width: max-content; max-width: min(92vw, 560px); text-align: center; box-shadow: var(--shadow-pop); }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.error { background: var(--danger); color: #fff; }
 .toast.action { pointer-events: auto; }
 .toast-undo { margin-left: 12px; background: transparent; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); color: inherit; border-radius: 999px; padding: 3px 11px; font: inherit; font-weight: 600; cursor: pointer; }
 .toast-undo:hover { background: color-mix(in srgb, currentColor 15%, transparent); }
+
+/* A newer version of the app is on the site (update.js): a bar above the phone's tab bar, under any sheet and the slides.
+   --update-h is its height, so the messages, the verse bar and the end of the page stay clear of it. */
+.update-bar { position: fixed; left: 50%; bottom: calc(12px + var(--tabbar)); transform: translateX(-50%); z-index: 26; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; width: max-content; max-width: min(calc(100vw - 24px), 620px); padding: 10px 12px 10px 16px; border-radius: 16px; background: var(--bar); color: var(--bar-ink); box-shadow: var(--shadow-pop); font-size: 15px; font-weight: 700; line-height: 1.35; animation: fade .2s ease-out; }
+.update-icon svg { width: 22px; height: 22px; }
+.update-text { flex: 1 1 14em; min-width: 0; }
+.update-actions { display: flex; gap: 8px; margin-left: auto; }
+.update-actions button { font: inherit; font-weight: 700; min-height: 40px; padding: 6px 16px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.update-now { background: var(--bar-ink); color: var(--bar); border: 0; }
+.update-now:disabled { opacity: .8; cursor: default; }
+.update-later { background: transparent; color: inherit; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); }
+@media (hover: hover) and (pointer: fine) { .update-later:hover { background: color-mix(in srgb, currentColor 15%, transparent); } }
+@media (min-width: 760px) { .update-bar { left: calc(50% + 112px); max-width: min(calc(100vw - 272px), 720px); } }   /* in the middle of the page, beside the side menu */
+@media (min-width: 1100px) { .update-bar { left: calc(50% + 126px); max-width: min(calc(100vw - 300px), 720px); } }
 
 /* ------------------------------------------------------------ lists */
 .list { display: flex; flex-direction: column; margin-top: 8px; border-radius: var(--radius); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-card); }
@@ -549,7 +563,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .chapter-notes { margin-top: 8px; }
 
 /* the bar that appears when verses are selected */
-.vactions { position: sticky; bottom: calc(10px + var(--tabbar)); z-index: 6; background: var(--bar); color: var(--bar-ink); border-radius: 14px; padding: 8px 10px; margin-top: 12px; box-shadow: var(--shadow-pop); }
+.vactions { position: sticky; bottom: calc(10px + var(--tabbar) + var(--update-h, 0px)); z-index: 6; background: var(--bar); color: var(--bar-ink); border-radius: 14px; padding: 8px 10px; margin-top: 12px; box-shadow: var(--shadow-pop); }
 .vactions .vlabel { display: flex; align-items: center; gap: 6px; font-size: 14px; min-height: 32px; }
 .vactions .vlabel b { flex: 1 1 auto; font: 700 16px/1.25 var(--display); }
 .vactions .vlabel .icon { color: var(--bar-ink); opacity: .8; }
@@ -700,7 +714,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
   body { font-size: 16px; }
   h1 .t-long { display: none; }
   h1 .t-short { display: inline; }
-  main { padding: 12px 12px calc(20px + var(--tabbar)); }
+  main { padding: 12px 12px calc(20px + var(--tabbar) + var(--update-h, 0px)); }
 
   .tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; gap: 0;
@@ -793,7 +807,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
   nav.side .nav-foot { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding: 16px 12px 0; font-size: 13px; color: var(--brand-label); }
   nav.side .nav-foot a { font-weight: 700; color: var(--brand-ink); text-decoration: none; }
   nav.side .nav-foot a:hover { text-decoration: underline; }
-  main { padding: 28px 36px 48px; }
+  main { padding: 28px 36px calc(48px + var(--update-h, 0px)); }
   .page { position: relative; background: var(--surface); box-shadow: var(--shadow-card); border-radius: 14px; padding: 28px 34px 56px; margin-bottom: 16px; }
   .page.reader { padding: 24px 38px 56px; }
   /* the small blue emblem in the corner of each page, as on the white slides */
@@ -810,7 +824,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 @media (min-width: 1100px) {
   .shell { grid-template-columns: 252px minmax(0, 1fr); }
   nav.side { padding: 28px 16px 18px; }
-  main { padding: 32px 40px 56px; }
+  main { padding: 32px 40px calc(56px + var(--update-h, 0px)); }
 }
 /* With "Beside" on, the text keeps to the left so the BibleSA window can sit on the right of the screen. */
 @media (min-width: 1200px) { body.beside .tab { margin-left: 0; } }
