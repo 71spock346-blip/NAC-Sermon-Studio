@@ -39,7 +39,8 @@ import * as Seating from './seating.js';
 import * as ChoirTab from './choir.js';
 import * as Reminders from './reminders.js';
 import * as Settings from './settings.js';
-import * as More from './more.js';   // the phone's More tab: the sections its bar has no room for
+import * as More from './more.js';
+import * as Mis from './mis.js';   // the phone's More tab: the sections its bar has no room for
 import * as Sync from './sync.js';
 import * as Update from './update.js';   // a newer version of the app on the site: a bar offers to load it
 
@@ -55,6 +56,7 @@ const TABS = {
   catechism: Cat.render,
   theology: Theology.render,
   settings: Settings.render,
+  mis: Mis.render,
   more: More.render,
 };
 
@@ -197,7 +199,10 @@ async function start() {
   applyRead(state.settings.readMode || 'book');
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeColor);
   Cat.load().catch(() => {});
-  for (const b of $$('.tabs button')) b.addEventListener('click', () => { location.hash = '#' + b.dataset.tab; });
+  for (const b of $$('.tabs button')) b.addEventListener('click', () => {
+    if (b.dataset.tab === 'mis' && Mis.outside()) { Mis.open(); return; }   // this device opens the MIS in its own tab (mis.js)
+    location.hash = '#' + b.dataset.tab;
+  });
   $('.tabs').addEventListener('keydown', tabKeys);
   $('.skip').addEventListener('click', e => { e.preventDefault(); $('#content').focus(); });
   for (const b of $$('.lang-switch button')) b.addEventListener('click', () => switchLang(b.dataset.lang));
