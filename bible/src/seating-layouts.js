@@ -20,7 +20,7 @@ const scope = {};
   'use strict';
 
   var W = 1100, H = 800;
-  var INK = '#000', HATCH = '#D9B23A', SELECT = '#1565C0', EDIT = '#D81B60';
+  var SELECT = '#1565C0', EDIT = '#D81B60';   // the two colours that carry meaning on screen: the thing selected, the thing being edited
 
   var GEZINA = {
     id: 'gezina', name: 'Gezina', builtin: true,
@@ -180,19 +180,30 @@ const scope = {};
     return out;
   }
 
+  /* ------------------------------------------------------------ drawing
+     The plan is drawn so that it reads the same on a white page, in the
+     app's dark theme and on paper. Everything that is the drawing's own -
+     outlines, numbers, the hatching of a station, the cups - is drawn in
+     the page's ink (currentColor) on the page's paper, so a theme changes
+     them together. Only the congregation's own colours are literal: the
+     section fills, the altar, and a minister's colour on a seat; the text
+     on those is chosen against that fill, not against the theme. */
+
   function text(x, y, s, size, o) {
     o = o || {};
     var lines = String(s == null ? '' : s).split('\n');
     var attrs = ' font-size="' + size + '" text-anchor="middle" dominant-baseline="central"' +
-      (o.bold ? ' font-weight="bold"' : '') + (o.fill ? ' fill="' + o.fill + '"' : '') + (o.extra || '');
+      ' font-weight="' + (o.bold ? '700' : o.weight || '500') + '"' +
+      (o.fill ? ' fill="' + o.fill + '"' : '') + (o.spacing ? ' letter-spacing="' + o.spacing + '"' : '') + (o.extra || '');
     if (lines.length === 1) return '<text x="' + x + '" y="' + y + '"' + attrs + '>' + esc(s) + '</text>';
     var lh = size * 1.15, y0 = y - lh * (lines.length - 1) / 2;
     return '<text x="' + x + '" y="' + y0 + '"' + attrs + '>' + lines.map(function (l, i) {
       return '<tspan x="' + x + '"' + (i ? ' dy="' + lh + '"' : '') + '>' + esc(l) + '</tspan>';
     }).join('') + '</text>';
   }
-  function rect(x, y, w, h, fill, sw, stroke) {
-    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + fill + '" stroke="' + (stroke || INK) + '" stroke-width="' + sw + '"/>';
+  function rect(x, y, w, h, fill, sw, stroke, rx) {
+    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"' + (rx ? ' rx="' + rx + '"' : '') +
+      ' fill="' + fill + '" stroke="' + (stroke || 'currentColor') + '" stroke-width="' + sw + '"/>';
   }
   function blockPath(b) {
     var s = Math.min(b.cutSize || 0, b.w, b.h), x = b.x, y = b.y, w = b.w, h = b.h;
@@ -202,88 +213,131 @@ const scope = {};
     if (b.cut === 'bl' && s) return 'M' + x + ' ' + y + ' H' + (x + w) + ' V' + (y + h) + ' H' + (x + s) + ' L' + x + ' ' + (y + h - s) + ' Z';
     return 'M' + x + ' ' + y + ' h' + w + ' v' + h + ' h' + (-w) + ' Z';
   }
-  function cup(cx, cy) {
-    return '<g><circle cx="' + cx + '" cy="' + cy + '" r="9" fill="#e6e6e6" stroke="#333" stroke-width="2"/>' +
-      '<circle cx="' + cx + '" cy="' + cy + '" r="4" fill="none" stroke="#333" stroke-width="1.2"/>' +
-      '<line x1="' + (cx - 9) + '" y1="' + cy + '" x2="' + (cx + 9) + '" y2="' + cy + '" stroke="#333" stroke-width="1.2"/></g>';
+  /** A communion cup seen from above: the rim, the bowl, and the foot's edge. */
+  function cup(cx, cy, ink) {
+    return '<g fill="none" stroke="' + ink + '">' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="9" fill="rgba(255,255,255,.85)" stroke-width="1.6"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="5.2" stroke-width="1.2"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="1.6" fill="' + ink + '" stroke="none"/></g>';
   }
-  function dark(hex) {
+  /** Relative luminance, so text can be chosen against a fill. */
+  function lum(hex) {
     var m = /^#([0-9a-f]{6})$/i.exec(hex || '');
-    if (!m) return false;
-    var n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
-    return (r * 299 + g * 587 + b * 114) / 1000 < 110;
+    if (!m) return 1;
+    var n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(function (v) {
+      v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function dark(hex) { return lum(hex) < 0.35; }
+  /** Text colour for a literal fill: near-black on a light one, white on a dark one. */
+  function onFill(hex) { return dark(hex) ? '#ffffff' : '#111111'; }
+  /** A deeper line of the same hue, for a block's own edge. */
+  function edgeOf(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return 'currentColor';
+    var n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255, k = 0.62;
+    return 'rgb(' + Math.round(r * k) + ',' + Math.round(g * k) + ',' + Math.round(b * k) + ')';
   }
 
   /**
    * Render a layout (with a plan's assignments) as an SVG string.
    * opts: interactive, selected {type,id}, idPrefix, colorOf(name) -> hex,
-   *       edit (bool), editSel {type,id}
+   *       edit (bool), editSel {type,id},
+   *       paper / seat / ink: the page's colours (default: the theme's, via
+   *       CSS variables with white-page fallbacks), font: a family for a
+   *       drawing that will not sit in a page (the PDF).
    */
   function render(layout, plan, opts) {
     opts = opts || {};
     plan = plan || {};
     var it = !!opts.interactive, edit = !!opts.edit, sel = opts.selected, esel = opts.editSel;
     var pid = opts.idPrefix || 'p', seats = plan.seats || {}, colorOf = opts.colorOf || function () { return null; };
+    var ink = opts.ink || 'currentColor';
+    var paper = opts.paper || 'var(--plan-paper, #ffffff)';
+    var seatPaper = opts.seat || 'var(--plan-seat, #ffffff)';
+    var lineW = { outline: 3, block: 2.25, seat: 1.75, fine: 1.25 };
     var out = [];
     var hit = function (type, id, extra) { return it ? ' class="hit ' + type + '" data-' + type + '="' + esc(id) + '" tabindex="0" role="button"' + (extra || '') : ''; };
     var ehit = function (type, id) { return edit ? ' class="ed" data-edit="' + type + ':' + esc(id) + '"' : ''; };
     var isE = function (type, id) { return edit && esel && esel.type === type && esel.id === id; };
     var estroke = function (type, id, sw) { return isE(type, id) ? ' stroke="' + EDIT + '" stroke-width="' + (sw + 3) + '" stroke-dasharray="8 5"' : ''; };
+    var label = esc(layout.name || 'Floor plan');
 
     out.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '"' +
-      ' font-family="Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif" fill="#000">');
-    out.push('<defs><pattern id="' + pid + '-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
-      '<line x1="0" y1="0" x2="0" y2="6" stroke="' + HATCH + '" stroke-width="2.5"/></pattern></defs>');
-    out.push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"' + (edit ? ' data-edit="none:0"' : '') + '/>');
+      ' role="img" aria-label="' + label + '"' +
+      (opts.font ? ' font-family="' + esc(opts.font) + '"' : '') +
+      ' color="' + (opts.ink || 'currentColor') + '" fill="' + ink + '" stroke-linejoin="round" stroke-linecap="round">');
+    // the hatching of a serving station: fine diagonals in the page's ink, so it reads as a mark and not as a fourth section colour
+    out.push('<defs><pattern id="' + pid + '-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+      '<line x1="0" y1="0" x2="0" y2="7" stroke="' + ink + '" stroke-width="1.6" opacity=".55"/></pattern></defs>');
+    out.push('<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="' + paper + '" stroke="none"' + (edit ? ' data-edit="none:0"' : '') + '/>');
     if (edit && layout.background && layout.background.dataUrl && layout.background.show !== false) {
       out.push('<image href="' + layout.background.dataUrl + '" x="0" y="0" width="' + W + '" height="' + H + '" preserveAspectRatio="xMidYMid meet" opacity="' + (layout.background.opacity || 0.5) + '" data-edit="none:0"/>');
     }
 
+    /* --- the rooms and seating blocks: each edged in a deeper tone of its own fill --- */
     (layout.blocks || []).forEach(function (b) {
-      out.push('<g' + ehit('block', b.id) + '><path d="' + blockPath(b) + '" fill="' + (b.fill || '#fff') + '" stroke="' + INK + '" stroke-width="4"' + estroke('block', b.id, 4) + '/>');
-      if (b.label) out.push(text(b.x + b.w / 2 + (b.labelDx || 0), b.y + b.h / 2 + (b.labelDy || 0), b.label, b.fontSize || 30));
+      var own = b.fill || '#ffffff', plain = /^#f{6}$/i.test(own);
+      var fill = plain ? seatPaper : own, edge = plain ? ink : edgeOf(own);
+      out.push('<g' + ehit('block', b.id) + '><path d="' + blockPath(b) + '" fill="' + fill + '" stroke="' + edge + '" stroke-width="' + lineW.block + '"' + estroke('block', b.id, lineW.block) + '/>');
+      if (b.label) out.push(text(b.x + b.w / 2 + (b.labelDx || 0), b.y + b.h / 2 + (b.labelDy || 0), b.label, b.fontSize || 30, { fill: plain ? ink : onFill(own), weight: '600' }));
       out.push('</g>');
     });
 
+    /* --- the altar, with its cups --- */
     var a = layout.altar;
     if (a) {
-      out.push('<g' + ehit('altar', 'altar') + '>' + '<rect x="' + a.x + '" y="' + a.y + '" width="' + a.w + '" height="' + a.h + '" fill="' + (a.fill || '#B1510F') + '" stroke="' + INK + '" stroke-width="4"' + estroke('altar', 'altar', 4) + '/>');
+      var af = a.fill || '#B1510F';
+      out.push('<g' + ehit('altar', 'altar') + '>' + '<rect x="' + a.x + '" y="' + a.y + '" width="' + a.w + '" height="' + a.h + '" rx="3" fill="' + af + '" stroke="' + edgeOf(af) + '" stroke-width="' + lineW.block + '"' + estroke('altar', 'altar', lineW.block) + '/>');
       var inn = a.inner;
-      out.push(rect(inn.x, inn.y, inn.w, inn.h, a.fill || '#B1510F', 4));
-      out.push(text(inn.x + inn.w / 2, inn.y + inn.h / 2, a.label || 'Altar', 26, { fill: '#fff' }));
-      var cups = plan.cups || layout.cups || { left: 0, right: 0 }, cy = inn.y + inn.h / 2 + 9;
-      cupRow(clamp(cups.left, 0, MAX_CUPS), inn.x - 4, -1, cy).forEach(function (c) { out.push(cup(c.cx, c.cy)); });
-      cupRow(clamp(cups.right, 0, MAX_CUPS), inn.x + inn.w + 4, 1, cy).forEach(function (c) { out.push(cup(c.cx, c.cy)); });
+      out.push('<rect x="' + inn.x + '" y="' + inn.y + '" width="' + inn.w + '" height="' + inn.h + '" rx="2" fill="none" stroke="' + onFill(af) + '" stroke-width="' + lineW.fine + '" opacity=".9"/>');
+      out.push(text(inn.x + inn.w / 2, inn.y + inn.h / 2, a.label || 'Altar', 24, { fill: onFill(af), weight: '600', spacing: '.5' }));
+      var cups = plan.cups || layout.cups || { left: 0, right: 0 }, cy = inn.y + inn.h / 2 + 9, cupInk = onFill(af) === '#ffffff' ? '#3a2410' : '#111111';
+      cupRow(clamp(cups.left, 0, MAX_CUPS), inn.x - 4, -1, cy).forEach(function (c) { out.push(cup(c.cx, c.cy, cupInk)); });
+      cupRow(clamp(cups.right, 0, MAX_CUPS), inn.x + inn.w + 4, 1, cy).forEach(function (c) { out.push(cup(c.cx, c.cy, cupInk)); });
       out.push('</g>');
     }
 
+    /* --- fixed positions, such as the conductor and the organist --- */
     (layout.markers || []).forEach(function (m) {
-      out.push('<g' + ehit('marker', m.id) + '>' + rect(m.x, m.y, MARKER, MARKER, '#fff', 2.5) + text(m.x + MARKER / 2, m.y + MARKER / 2 + 1, m.id, 20, { bold: true }) +
-        (isE('marker', m.id) ? rect(m.x - 3, m.y - 3, MARKER + 6, MARKER + 6, 'none', 3, EDIT) : '') + '</g>');
+      out.push('<g' + ehit('marker', m.id) + '>' + rect(m.x, m.y, MARKER, MARKER, seatPaper, lineW.seat, ink, 4) +
+        text(m.x + MARKER / 2, m.y + MARKER / 2 + 1, m.id, 18, { bold: true, fill: ink }) +
+        (isE('marker', m.id) ? rect(m.x - 3, m.y - 3, MARKER + 6, MARKER + 6, 'none', 3, EDIT, 6) : '') + '</g>');
     });
 
+    /* --- the ministers' seats --- */
     (layout.seats || []).forEach(function (s) {
-      var w = s.w || SEAT_W, h = s.h || SEAT_H, name = seats[s.id] || '', col = name ? (colorOf(name) || '#fff') : '#fff';
+      var w = s.w || SEAT_W, h = s.h || SEAT_H, name = seats[s.id] || '', own = name ? (colorOf(name) || '') : '';
+      var fill = own || seatPaper, textInk = own ? onFill(own) : ink;
       var isSel = sel && sel.type === 'seat' && sel.id === s.id, show = !s.quiet || name || it;
       out.push('<g' + hit('seat', s.id, ' aria-label="Seat ' + esc(s.id) + (name ? ': ' + esc(name) : ' (empty)') + '"') + ehit('seat', s.id) + '>');
       if (name) out.push('<title>' + esc('Seat ' + s.id + ': ' + name) + '</title>');
-      out.push(rect(s.x, s.y, w, h, col, isSel ? 5 : 2.5, isSel ? SELECT : INK));
-      if (show) out.push(text(s.x + w / 2, s.y + h / 2 + 1, s.id, w > 36 ? 19 : 20, { bold: true, fill: dark(col) ? '#fff' : (s.quiet && !name ? '#7a8ea3' : '#000') }));
-      if (isE('seat', s.id)) out.push(rect(s.x - 3, s.y - 3, w + 6, h + 6, 'none', 3, EDIT));
+      out.push(rect(s.x, s.y, w, h, fill, isSel ? 4 : lineW.seat, isSel ? SELECT : (own ? edgeOf(own) : ink), 4));
+      if (show) out.push(text(s.x + w / 2, s.y + h / 2 + 1, s.id, w > 36 ? 18 : 19, { bold: true, fill: textInk, extra: (s.quiet && !name) ? ' opacity=".45"' : '' }));
+      if (isE('seat', s.id)) out.push(rect(s.x - 3, s.y - 3, w + 6, h + 6, 'none', 3, EDIT, 7));
       out.push('</g>');
     });
 
+    /* --- the serving stations: the minister's colour under a hatch of ink --- */
     var st = plan.stations || {};
     stationsFor(layout, plan).forEach(function (s) {
       var val = (st[s.group] || [])[s.index], txt = val == null ? '' : String(val), key = s.group + '-' + s.index;
-      var occupant = txt ? seats[txt] : '', col = occupant ? (colorOf(occupant) || '#fff') : '#fff';
+      var occupant = txt ? seats[txt] : '', own = occupant ? (colorOf(occupant) || '') : '';
       var isSel = sel && sel.type === 'station' && sel.id === key, half = STATION / 2;
       out.push('<g transform="rotate(' + s.rot + ' ' + s.cx + ' ' + s.cy + ')"' + hit('station', key, ' aria-label="Serving station ' + esc(key) + (txt ? ': seat ' + esc(txt) : ' (empty)') + '"') + '>');
-      out.push(rect(s.cx - half, s.cy - half, STATION, STATION, col, 0, 'none'));
-      out.push(rect(s.cx - half, s.cy - half, STATION, STATION, 'url(#' + pid + '-hatch)', isSel ? 5 : 2.5, isSel ? SELECT : INK));
-      if (txt) out.push(text(s.cx, s.cy + 1, txt, 20, { bold: true, fill: dark(col) ? '#fff' : '#000' }));
+      out.push(rect(s.cx - half, s.cy - half, STATION, STATION, own || seatPaper, 0, 'none', 4));
+      out.push(rect(s.cx - half, s.cy - half, STATION, STATION, 'url(#' + pid + '-hatch)', isSel ? 4 : lineW.seat, isSel ? SELECT : ink, 4));
+      if (txt) {
+        // a small plate behind the number, so it stays readable over the hatching; turned back upright on an angled station
+        out.push('<g transform="rotate(' + (-s.rot) + ' ' + s.cx + ' ' + s.cy + ')">');
+        out.push('<rect x="' + (s.cx - 11) + '" y="' + (s.cy - 9) + '" width="22" height="18" rx="3" fill="' + (own || seatPaper) + '" stroke="none"/>');
+        out.push(text(s.cx, s.cy + 1, txt, 17, { bold: true, fill: own ? onFill(own) : ink }));
+        out.push('</g>');
+      }
       out.push('</g>');
     });
+
     if (edit) {
       layout.stationGroups.forEach(function (g) {
         var r = 26;
@@ -305,7 +359,7 @@ const scope = {};
   global.Layout = {
     W: W, H: H, GEZINA: GEZINA, BUILTIN: BUILTIN, MAX_STATIONS: MAX_STATIONS, MAX_CUPS: MAX_CUPS,
     SEAT_W: SEAT_W, SEAT_H: SEAT_H,
-    render: render, esc: esc, clamp: clamp, clone: clone, dark: dark,
+    render: render, esc: esc, clamp: clamp, clone: clone, dark: dark, onFill: onFill,
     seatIds: seatIds, defaultStations: defaultStations, blankStations: blankStations, stationsFor: stationsFor, newId: newId, blankLayout: blankLayout
   };
 })(scope);

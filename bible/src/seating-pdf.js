@@ -30,6 +30,15 @@ const scope = { Layout, get jspdf() { return window.jspdf; } };
   function cell(x, y, w, h, fill) {
     return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + fill + '" stroke="#000" stroke-width="0.6"/>';
   }
+  /** Text that fits a cell: smaller when it must be, cut with an ellipsis when it still will not. */
+  function fitted(s, width, size) {
+    var est = function (str, sz) { return str.length * sz * 0.52; };
+    var sz = size;
+    while (sz > 7 && est(s, sz) > width) sz -= 0.5;
+    if (est(s, sz) <= width) return { s: s, size: sz };
+    var n = Math.max(1, Math.floor(width / (sz * 0.52)) - 1);
+    return { s: s.slice(0, n) + '\u2026', size: sz };
+  }
   // rows: [{cells:[...], fills:[...], header}] ; cols: widths
   function table(x, y, cols, rows, title) {
     var rowH = 18, size = 9.5, out = [], cy = y, totalW = cols.reduce(function (a, b) { return a + b; }, 0);
@@ -39,7 +48,10 @@ const scope = { Layout, get jspdf() { return window.jspdf; } };
       r.cells.forEach(function (c, i) {
         var fill = r.header ? '#BFBFBF' : ((r.fills && r.fills[i]) || '#FFFFFF');
         out.push(cell(cx, cy, cols[i], rowH, fill));
-        if (c != null && c !== '') out.push(text(cx + 4, cy + rowH / 2, c, size, { bold: !!r.header, fill: global.Layout.dark(fill) ? '#fff' : '#000' }));
+        if (c != null && c !== '') {
+          var f = fitted(String(c), cols[i] - 8, size);
+          out.push(text(cx + 4, cy + rowH / 2, f.s, f.size, { bold: !!r.header, fill: global.Layout.dark(fill) ? '#fff' : '#000' }));
+        }
         cx += cols[i];
       });
       cy += rowH;
@@ -66,7 +78,7 @@ const scope = { Layout, get jspdf() { return window.jspdf; } };
     out.push(text(MARGIN, MARGIN + 36, subtitle(plan, layout), 14));
 
     var planW = A4_W - 2 * MARGIN, planH = planW * L.H / L.W, planY = MARGIN + 54;
-    out.push(L.render(layout, plan, { idPrefix: 'pdf', colorOf: colorOf })
+    out.push(L.render(layout, plan, { idPrefix: 'pdf', colorOf: colorOf, ink: '#111111', paper: '#ffffff', seat: '#ffffff', font: 'Helvetica Neue, Helvetica, Arial, sans-serif' })
       .replace('<svg ', '<svg x="' + MARGIN + '" y="' + planY + '" ').replace('width="' + L.W + '" height="' + L.H + '"', 'width="' + planW + '" height="' + planH + '"'));
 
     // Legend of sections
@@ -121,7 +133,7 @@ const scope = { Layout, get jspdf() { return window.jspdf; } };
   function fileName(plan, layout) { return ['Seating', slug(layout && layout.name), plan.date, slug(plan.service)].filter(Boolean).join('_') + '.pdf'; }
 
   function createPdf(layout, plan, colorOf) {
-    return svgToPng(buildPageSvg(layout, plan, colorOf), 3).then(function (png) {
+    return svgToPng(buildPageSvg(layout, plan, colorOf), 4).then(function (png) {   // ~290 dpi on A4: crisp on paper, still a small file
       var jsPDF = global.jspdf && global.jspdf.jsPDF;
       if (!jsPDF) throw new Error('The PDF library did not load.');
       var doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4', compress: true });
