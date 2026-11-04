@@ -13,6 +13,22 @@ parts of the sync between the person's devices (see "Sync" below).
 On a phone, open the link and use "Add to Home Screen". The user manual is
 `help.html` (the Help button in the app).
 
+## Seating and communion
+
+The Seating tab is the congregation's seating and communion plan: the floor plan of
+the building, with the ministers put into the numbered seats and the hatched serving
+stations, and the A4 sheet that comes out of it for WhatsApp. It was the standalone
+Seating & Communion Planner and is now part of this app, which is what makes the
+difference: the congregations' layouts, the saved plans and the roster of ministers
+are rows in the `seating` store, so they travel with the sync and the backup. A layout
+traced on a PC is on the phone and on the rector's devices without anyone sending a
+file. The plan being worked on is the one thing that stays on its own device, until it
+is saved, so two people are never editing each other's half-finished plan.
+
+`seating-layouts.js` (the built-in congregations and the SVG), `seating-editor.js` (drag
+the pieces of a layout) and `seating-pdf.js` (the sheet) are the standalone app's own
+code, carried over as it was.
+
 ## How it looks
 
 `styles.css` is the whole look, dressed like the Church's slides: the NAC blue

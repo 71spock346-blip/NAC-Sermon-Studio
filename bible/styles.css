@@ -1194,3 +1194,50 @@ body.showing { overflow: hidden; }
   .lit-row { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 12px 0; }
   .lit-page .docbar .seg { order: 3; }   /* under the title when the two do not fit side by side */
 }
+
+/* ---------------------------------------------------------------- seating
+   The seating and communion plan. The drawing itself carries the
+   congregation's own colours, so the page around it stays in the app's. */
+.seating-plan .plan-tools { margin-bottom: 6px; }
+.plan-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+#plan { width: var(--plan-zoom, 100%); touch-action: pan-x pan-y; }
+#plan.editing { touch-action: none; }
+#plan svg { display: block; width: 100%; height: auto; background: #fff; border-radius: 10px; }
+#plan .hit { cursor: pointer; }
+#plan .hit:hover rect, #plan .hit:focus-visible rect { stroke: var(--accent); stroke-width: 4; }
+#plan .hit:focus { outline: none; }
+#plan .ed { cursor: move; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 13px; height: 13px; border: 1px solid #000; vertical-align: -2px; margin-right: 5px; background: var(--sw, #fff); }
+.legend .hatch::before { background: repeating-linear-gradient(45deg, #fff 0 2px, #D9B23A 2px 4px); }
+.seating-grid { width: 100%; border-collapse: collapse; font-size: 14px; }
+.seating-grid th, .seating-grid td { border: 1px solid var(--line); padding: 3px 4px; text-align: left; }
+.seating-grid th { background: var(--surface-2); font-weight: 600; color: var(--ink-2); }
+.seating-grid td.num { width: 30px; text-align: center; font-weight: 700; }
+.seating-grid select, .seating-grid input { padding: 6px; }
+.chip.seat-chip { font-weight: 600; border: 1px solid var(--line-strong); }
+.chip.seat-chip.num { min-width: 46px; text-align: center; }
+.chip.seat-chip.on { outline: 3px solid var(--accent); outline-offset: 1px; }
+.stepper { display: inline-flex; align-items: center; gap: 6px; }
+.stepper output { min-width: 22px; text-align: center; font-weight: 700; }
+.seating-roster, .seating-sections, .seating-plans { list-style: none; padding: 0; margin: 8px 0; }
+.seating-roster li, .seating-sections li, .seating-plans li { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.seating-roster input.rank { width: 70px; flex: 0 0 70px; }
+.seating-roster input[type=text]:not(.rank), .seating-sections input[type=text] { flex: 1 1 120px; }
+.seating-plans li .btn { flex: 1 1 auto; justify-content: flex-start; text-align: left; }
+.swatches { display: inline-flex; gap: 4px; align-items: center; }
+.swatch { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line-strong); cursor: pointer; padding: 0; }
+.swatch.on { outline: 3px solid var(--accent); outline-offset: 1px; }
+#seating-print { display: none; }
+
+@media (max-width: 760px) {
+  .seating-roster input.rank { width: 62px; flex: 0 0 62px; }
+  .swatch { width: 32px; height: 32px; }
+}
+
+/* The sheet is the plan alone, on its own A4 page. */
+@media print {
+  body.printing-seating > *:not(#seating-print) { display: none !important; }
+  body.printing-seating #seating-print { display: block; }
+  body.printing-seating #seating-print svg { width: 210mm; height: 297mm; }
+}
