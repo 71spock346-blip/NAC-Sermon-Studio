@@ -74,15 +74,22 @@ trying the import; the real listings are personal data and are never committed.
 ## The Church's MIS
 
 The MIS section (`src/mis.js`; in the side menu before Settings, on a phone under More)
-shows the Church's MIS, https://mis.nac-sa.org.za/sign-in, inside the app in a frame.
-The site allows it (no X-Frame-Options and no Content-Security-Policy on its pages,
-checked 2026-11-04). The sign-in happens on the site; the app cannot see what is typed
-and keeps no password. The site signs in with a cookie, which inside another site is a
-third-party cookie: Safari on an iPhone blocks it and other browsers send it only when
-the site marks it for cross-site use, so the sign-in may not hold in the frame. Each
-device therefore remembers a choice (`localStorage` `sb-mis`, never synced): inside the
-app, or in the site's own tab, where it always works; with the second the menu button
-and the More row open the tab straight away (`rel="noopener"`).
+opens the Church's MIS, https://mis.nac-sa.org.za/sign-in. The menu button and the More
+row show the section and open the site at once; the section is the place to come back
+to, with a button to open it again. In the installed app (`display-mode: standalone`, or
+`navigator.standalone` on an iPhone) the app's own window goes to the site, 0.6 s after
+the tap so that a save still waiting on a typed change is written first: a phone shows
+the site over the app with a way back (Done on an iPhone, ✕ on Android), a PC shows it
+in the app's window with a bar at the top whose ✕ returns to the app. In a browser tab
+the site opens in a tab of its own (`noopener`). The sign-in happens on the site; the
+app cannot see what is typed and keeps no password.
+
+The site allows being shown inside another page (no X-Frame-Options and no
+Content-Security-Policy on its pages, checked 2026-11-04), and the first version held
+it in a frame; the sign-in went through but the site did not move on, because it signs
+in with a cookie, which inside another site's page is a third-party cookie that the
+browser holds back (Safari always, Chrome and Edge unless the site marks it for
+cross-site use). A page of its own is the only place the cookie holds.
 
 ## Coming from the standalone apps
 
@@ -376,7 +383,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/booklet.js` – reads the altar booklet's PDF into cards (pdf.js on the device, then a pure parse of the pages)
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
 - `src/more.js` – the phone's More tab: the eight sections its bar has no room for, one under the other
-- `src/mis.js` – the MIS section: the Church's site inside the app, or in its own tab on a device that needs that
+- `src/mis.js` – the MIS section: opens the Church's site over the installed app, or in a tab of its own from a browser
 - `src/reminders.js` – the Reminders tab; `src/reminders-lib.js` (the listing PDFs, the roster, phone numbers, the dates coming up), `src/reminders-templates.js` (the greetings), `src/reminders-ics.js` (the calendar file), `src/reminders-sheet.js` (Excel out and back)
 - `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article

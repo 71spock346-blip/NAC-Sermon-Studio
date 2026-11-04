@@ -1199,21 +1199,11 @@ body.showing { overflow: hidden; }
 .more-row .chev { color: var(--muted); font-size: 24px; line-height: 1; flex: 0 0 auto; }
 .more-row.ext .chev { font-size: 20px; }   /* the arrow of a link that opens outside the app */
 
-/* ------------------------------------------------------------ MIS: the Church's site inside the app (mis.js) */
-.mis-bar { margin-bottom: 6px; }
-.mis-choice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 8px; }
-.mis-note { margin: 0 0 10px; line-height: 1.5; }
-.mis-help { margin: 0 0 8px; line-height: 1.5; }
+/* ------------------------------------------------------------ MIS: the way to the Church's site (mis.js) */
+.mis-note { margin: 0 0 10px; line-height: 1.5; max-width: 60ch; }
+.mis-help { margin: 12px 0 8px; line-height: 1.5; max-width: 60ch; }
 .mis-help summary { cursor: pointer; }
 .mis-help p { margin: 6px 0 0; }
-/* the section fills the screen under the header and above the bar, and the frame takes what the bar at the top leaves */
-#tab-mis:not([hidden]) { display: flex; flex-direction: column; min-height: calc(100dvh - var(--top) - var(--tabbar) - 32px); }
-.mis-frame { display: block; flex: 1 1 auto; width: 100%; min-height: 320px; border: 0; border-radius: var(--radius); background: #fff; box-shadow: var(--shadow-card); }
-@media (min-width: 760px) {
-  #tab-mis { max-width: none; }   /* the site gets the whole width of the page */
-  #tab-mis:not([hidden]) { min-height: calc(100dvh - 88px); }
-  .mis-frame { min-height: 480px; }
-}
 .more-row:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 @media (hover: hover) and (pointer: fine) { .more-row:hover { background: var(--card); } }
 .more-foot { margin: 20px 0 0; }
