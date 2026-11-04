@@ -15,7 +15,8 @@
  * redraws the open screen in the other language.
  *
  * #seating opens the seating and communion plan, #seating/<id> a saved one,
- * and #choir the choir programme.
+ * and #choir the choir programme. #more is the phone's fifth tab (more.js):
+ * the sections the bar has no room for, one under the other.
  *
  * #sync/<code> is the link a sync QR code or "Copy link" carries: it opens
  * Settings and offers to join with that code (sync.js keeps the devices the
@@ -35,6 +36,7 @@ import * as Liturgy from './liturgy.js';
 import * as Seating from './seating.js';
 import * as ChoirTab from './choir.js';
 import * as Settings from './settings.js';
+import * as More from './more.js';   // the phone's More tab: the sections its bar has no room for
 import * as Sync from './sync.js';
 import * as Update from './update.js';   // a newer version of the app on the site: a bar offers to load it
 
@@ -49,6 +51,7 @@ const TABS = {
   catechism: Cat.render,
   theology: Theology.render,
   settings: Settings.render,
+  more: More.render,
 };
 
 function route() {
@@ -73,8 +76,8 @@ function route() {
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
-    // the phone's bar has no Theology or Liturgy tab (they are reached from the reader and from Prepare), so there Read or Prepare stays lit
-    b.classList.toggle('also', (tab === 'theology' && b.dataset.tab === 'read') || (tab === 'liturgy' && b.dataset.tab === 'prepare'));
+    // the phone's bar lists six of the sections under More, so More stays lit while one of them is open (a PC shows every section, and no More)
+    b.classList.toggle('also', b.dataset.tab === 'more' && More.isMore(tab));
   }
   for (const panel of $$('main .tab')) panel.hidden = panel.id !== 'tab-' + tab;
   const container = $('#tab-' + tab);
@@ -92,7 +95,7 @@ function route() {
 function tabKeys(e) {
   const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: 'first', End: 'last' };
   if (!(e.key in keys)) return;
-  const buttons = $$('.tabs button').filter(b => b.offsetParent !== null);   // the tabs shown: the phone has no Theology or Liturgy tab
+  const buttons = $$('.tabs button').filter(b => b.offsetParent !== null);   // the tabs shown: the phone's bar has five, the PC's menu has no More
   const i = buttons.findIndex(b => b === document.activeElement);
   if (i < 0) return;
   e.preventDefault();

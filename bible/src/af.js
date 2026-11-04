@@ -28,6 +28,12 @@ export const AF = {
   "Prepare|short": "Voorberei",
   "Catechism": "Kategismus",
   "Settings": "Verstellings",
+  // the phone's fifth tab and its page (more.js)
+  "More|tab": "Meer",
+  "The other parts of the app.": "Die ander dele van die app.",
+  "Slides and questions for the evening": "Skyfies en vrae vir die aand",
+  "The background to a book, a chapter or verses": "Die agtergrond van 'n boek, 'n hoofstuk of verse",
+  "Language, letters, sync and keys": "Taal, letters, sinkronisasie en sleutels",
   "Help": "Hulp",
   "Help and manual": "Hulp en handleiding",
   "Language": "Taal",
