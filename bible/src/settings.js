@@ -219,6 +219,7 @@ export function render(container) {
       if (answer === 'same') toast(t('This is the newest version.'));
       else if (answer === 'offline') toast(t('The site could not be reached just now. Try again when you are online.'), true);
     } })]),
+    el('p', { class: 'muted small', text: t('A newer version never needs the app to be removed and installed again: the app says when one is ready, and "Update now" keeps everything on the device.') }),
     el('ul', { class: 'small muted' }, [
       el('li', { text: t('King James Version (1769 text) with the Apocrypha: public domain. Text from the SWORD KJVA module via scrollmapper/bible_databases.') }),
       el('li', { text: t('World English Bible with the Deuterocanon: public domain, ebible.org. "World English Bible" is a trademark of eBible.org.') }),
@@ -852,6 +853,7 @@ function syncSection(container) {
           el('button', { class: 'btn small', type: 'button', text: t('Turn on sync'), onclick: turnOn }),
           el('button', { class: 'btn small ghost', type: 'button', text: t('I have a code'), onclick: () => joinSheet() }),
         ]),
+        headsUp(false),
       );
       return;
     }
@@ -886,6 +888,7 @@ function syncSection(container) {
         } }),
       ]),
       el('label', { class: 'check sync-keys' }, [carry, el('span', { class: 'grow', text: t('Carry my keys too (API.Bible, YouVersion and Anthropic), locked with the code, so I need not paste them again on the other device.') })]),
+      headsUp(true),
     ]));
   };
 
@@ -905,6 +908,21 @@ function syncSection(container) {
       b.fail(e.message || t('Sync could not be turned on.'));
     }
   }
+}
+
+/**
+ * What removing the app from a device does, and the way back. Jerome asked
+ * for this line (2026-11-05) after he removed and re-added the app on his
+ * phone and found it empty: a phone keeps the app's storage only as long as
+ * the app is installed, and nothing had told him so.
+ */
+function headsUp(on) {
+  return el('p', { class: 'small heads-up' }, [
+    el('b', { text: t('Good to know') + ': ' }),
+    on
+      ? t('if the app is removed from this device, or the browser clears its data, everything on the device goes with it. Your code brings it all back: install the app again, then Settings → Sync → "I have a code". Keep the code where you keep passwords; a backup file is a second way back.')
+      : t('if the app is removed from this device, or the browser clears its data, everything on it is gone. With sync on, your code brings it all back after you install the app again; a backup file does the same by hand.'),
+  ]);
 }
 
 /** The code in large letters with its QR square, for the other device. */

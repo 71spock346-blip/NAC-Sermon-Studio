@@ -942,6 +942,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 
 /* ---- sync between devices (Settings): the status line, the code in large letters, its QR square, the box to type one ---- */
 .sync-status { margin-top: 4px; }
+.sec p.heads-up { margin-top: 12px; padding: 8px 12px; border-radius: var(--radius-s); background: var(--card); box-shadow: inset 3px 0 0 var(--accent); color: var(--ink-2); }   /* what removing the app does (settings.js headsUp) */
 .sync-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c-green); flex: 0 0 auto; }
 .sync-dot.busy { background: var(--c-amber); animation: sync-pulse 1s ease-in-out infinite alternate; }
 .sync-dot.error { background: var(--danger); }
