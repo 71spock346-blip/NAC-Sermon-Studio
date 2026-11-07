@@ -34,8 +34,19 @@ import { langOf } from './ai.js';
 
 const API = 'https://api.elevenlabs.io';
 
-/** A voice every ElevenLabs account has, for a person who has not chosen one yet. */
-export const DEFAULT_VOICE = { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George' };
+/*
+ * The voices to read with when the person has not chosen one under Settings:
+ * Jerome's own, cloned at ElevenLabs, one for each language (he gave their
+ * ids on 2026-11-07). A cloned voice belongs to the account that made it, so
+ * with another person's key these two are "not found": the reading then
+ * falls back to the English voice that person chose, or to George, a voice
+ * every ElevenLabs account has.
+ */
+export const STANDARD_VOICES = {
+  en: { id: 'kuuBVXdil4y3mjB6lpZp', name: 'Jerome (English)' },
+  af: { id: 'dqSHftR9KTiUwAUvZKkv', name: 'Jerome (Afrikaans)' },
+};
+export const FALLBACK_VOICE = { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George' };
 
 const PIECE = 3000;            // letters per request: under every model's and plan's limit
 const CHARS_PER_MINUTE = 900;  // what a calm reading covers in a minute, about 150 words
@@ -154,10 +165,23 @@ export function forgetKey() { cache.plan = null; cache.voices = null; cache.mode
 
 /* ------------------------------------------------------------------ the text */
 
-/** The chosen voice for a language, or the default. */
+/** The standard voice for a language, named as the account's list names it once that list is read. */
+export function standardVoice(l) {
+  const d = STANDARD_VOICES[l] || STANDARD_VOICES.en;
+  const listed = (cache.voices || []).find(v => v.id === d.id);
+  return { id: d.id, name: listed ? listed.name : t(d.name), standard: true };
+}
+
+/** The voice for a language: the one chosen under Settings, else the standard one. */
 export function voiceFor(l) {
-  const v = l === 'af' ? state.settings.voiceAf : state.settings.voiceEn;
-  return v && v.id ? v : (l === 'af' && state.settings.voiceEn && state.settings.voiceEn.id ? state.settings.voiceEn : DEFAULT_VOICE);
+  const own = l === 'af' ? state.settings.voiceAf : state.settings.voiceEn;
+  return own && own.id ? own : standardVoice(l);
+}
+
+/** The voice to read with when the standard one is not in this account: the English voice the person chose, else George. */
+export function fallbackVoice(l) {
+  const en = state.settings.voiceEn;
+  return l === 'af' && en && en.id ? en : FALLBACK_VOICE;
 }
 
 /** A heading in the language of the preparation: an Afrikaans sermon is announced in Afrikaans whatever the app speaks. */
@@ -218,10 +242,51 @@ export function script(s, { outline = null } = {}) {
   if (c.application) push(w('Application for the congregation'), withExtras(c.application, c.after.application));
   if (c.conclusion) push(w('Conclusion'), withExtras(c.conclusion, c.after.conclusion));
 
-  const text = parts.empty ? '' : clean(blocks.join('\n\n'), l);
+  return scripted(parts.empty ? '' : clean(blocks.join('\n\n'), l), l, parts.title);
+}
+
+/**
+ * The Guide's article as it will be read, in the same shape as script(): the
+ * date and the service, the Bible text, the title, the message, the
+ * introduction, the parts under their own headings, the Context box, the
+ * Summary and the reading, with the headings in the Guide's language.
+ */
+export function guideScript(service, guide) {
+  const l = guide && guide.language === 'af' ? 'af' : 'en';
+  const w = k => word(l, k);
+  const blocks = [];
+  const push = (label, body) => {
+    const text = String(body || '').trim();
+    if (!text) return;
+    blocks.push((label ? label.replace(/[\s.:]+$/, '') + '.\n' : '') + text);
+  };
+  const when = [service.dateText || spokenDate(service.date, l), service.label].filter(Boolean).join(', ');
+  if (when) push('', when + '.');
+  if (service.reference) push('', service.reference + '.');
+  if (service.bibleText) push('', service.bibleText);
+  if (service.title) push('', service.title);
+  if (service.message) push(w('Message '), service.message);
+  if (service.introduction) push(w('Introduction'), service.introduction);
+  for (const sec of service.sections || []) push(sec.heading || '', sec.body);
+  if (service.context) push(w('Context|box'), service.context);
+  if ((service.summary || []).length) push(w('Summary'), service.summary.join('\n\n'));
+  if (service.reading) push('', w('Reading: {reading}.').replace('{reading}', service.reading));
+  const text = clean(blocks.join('\n\n'), l).replace(/\s*\((?:CNAC|KNAK)\s*[\d.]+(?:\s*[,;]\s*[\d.]+)*\)/g, '');   // "(CNAC 9.6.3)" is for the eye, not the ear
+  return scripted(text, l, service.title || service.reference || (guide && guide.title) || '');
+}
+
+/** A date as the Guide's language says it, for an article whose printed date was not read. */
+function spokenDate(iso, l) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return isNaN(d) ? '' : d.toLocaleDateString(l === 'af' ? 'af-ZA' : 'en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/** The script object every reading starts from. */
+function scripted(text, l, title) {
   const chars = text.length;
   return {
-    text, lang: l, title: parts.title, chars,
+    text, lang: l, title, chars,
     words: text ? text.split(/\s+/).length : 0,
     minutes: Math.max(1, Math.round(chars / CHARS_PER_MINUTE)),
     pieces: pieces(text),
@@ -287,16 +352,28 @@ function modelProblem(e) {
 }
 
 /**
- * Reads the sermon: every piece to ElevenLabs in turn, the answers joined
- * into one MP3. onProgress(i, n) says which piece is on its way; `signal`
- * stops it. Resolves to the recording: {blob, chars, voice, model, lang,
- * at, key, source, title, minutes}.
+ * Reads the sermon, from the boxes or from the outline. Resolves to the
+ * recording: {blob, chars, voice, model, lang, at, key, source, title,
+ * minutes}. onProgress(i, n) says which piece is on its way; `signal` stops it.
  */
 export async function make(s, { outline = null, signal, onProgress } = {}) {
   headers();   // no key stops here, before anything is built
   const sc = script(s, { outline });
   if (!sc.text) throw new Error(t('There is nothing to read yet: write the introduction, the main points, the application or the conclusion first.'));
-  const voice = voiceFor(sc.lang);
+  return speak(sc, { signal, onProgress, source: outline ? 'outline' : 'boxes' });
+}
+
+/** Reads the Guide's article for one service, in the Guide's language. */
+export async function makeGuide(service, guide, { signal, onProgress } = {}) {
+  headers();
+  const sc = guideScript(service, guide);
+  if (!sc.text) throw new Error(t('There is nothing to read in this article.'));
+  return speak(sc, { signal, onProgress, source: 'guide' });
+}
+
+/** Every piece of a script to ElevenLabs in turn, the answers joined into one MP3. */
+async function speak(sc, { signal, onProgress, source }) {
+  let voice = voiceFor(sc.lang);
   const known = await models().catch(() => null);
   const candidates = modelsFor(sc.lang, state.settings.voiceQuality, known);
   const speed = SPEED[state.settings.voiceSpeed] || 1;
@@ -325,6 +402,7 @@ export async function make(s, { outline = null, signal, onProgress } = {}) {
       if (r.ok) { parts.push(await r.arrayBuffer()); break; }
       const err = apiError(r.status, await r.text());
       const next = candidates[candidates.indexOf(model) + 1];
+      if (err.code === 'voice_not_found' && voice.standard) { voice = fallbackVoice(sc.lang); continue; }   // the standard voice is another account's: one this account has
       if (modelProblem(err) && next) { model = next; continue; }                       // this account has no such model: the next one
       if (settings && err.status === 422 && /speed|voice_settings/i.test(err.message)) { settings = null; continue; }   // the model takes no speed: read at the usual pace
       throw err;
@@ -335,7 +413,7 @@ export async function make(s, { outline = null, signal, onProgress } = {}) {
     blob: new Blob(parts, { type: 'audio/mpeg' }),
     chars: sc.chars, words: sc.words, minutes: sc.minutes,
     voice: { id: voice.id, name: voice.name }, model, lang: sc.lang,
-    at: new Date().toISOString(), key: sc.key, source: outline ? 'outline' : 'boxes', title: sc.title,
+    at: new Date().toISOString(), key: sc.key, source, title: sc.title,
   };
 }
 
@@ -343,15 +421,17 @@ function stopped() { return new Error(t('Reading stopped.')); }
 
 /* ------------------------------------------------------------------ the recording kept on the device */
 
-export async function recording(sermonId) { return (await db.get('audio', sermonId)) || null; }
+/* The key of a recording in the audio store: a preparation's id for its sermon, this for the Guide's article of service i (store.js deleteGuide removes them with the Guide). */
+export const guideKey = (guide, i) => `guide:${guide.id}:${i}`;
 
-export async function keep(sermonId, rec) { await db.put('audio', { ...rec, id: sermonId }); }
+export async function recording(id) { return (await db.get('audio', id)) || null; }
 
-export async function forget(sermonId) { await db.del('audio', sermonId); }
+export async function keep(id, rec) { await db.put('audio', { ...rec, id }); }
 
-/** The name of the saved MP3: the date and the text word, like the PDFs. */
-export function fileName(s, rec) {
-  const d = s.date || 'undated';
-  const r = (rec.title || '').replace(/[^\w]+/g, '-');
-  return `${d}-${r || 'sermon'}-read.mp3`.replace(/-+/g, '-');
+export async function forget(id) { await db.del('audio', id); }
+
+/** The name of the saved MP3: the date and the text word or title, like the PDFs. */
+export function fileName(date, title) {
+  const r = String(title || '').replace(/[^\w]+/g, '-');
+  return `${date || 'undated'}-${r || 'sermon'}-read.mp3`.replace(/-+/g, '-');
 }
