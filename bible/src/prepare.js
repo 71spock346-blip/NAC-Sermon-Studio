@@ -714,13 +714,15 @@ function renderEditor(root, s) {
     if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
     panel.append(el('p', { class: 'muted small ai-how', text: t('"Use" puts a piece into Notes from the Guide; the passages go to Cross references; ticked sections print.') + ' ' + howEdit() }));
     if (a.thread) panel.append(group(t('The thread'), [item('', () => a.thread, () => { add('core', a.thread); toast(t('Added to Core thought.')); }, null, null, { on: a, body: 'thread' })], null, t('What the whole article drives at.')));
-    // the pieces, under the Guide's own headings
+    // the pieces, under the Guide's own headings, as the Guide in its language prints them (Guides.headingIn)
+    const link = Guides.findService(s);
+    const L = link ? link.guide.language : AI.langOf(s);
     const groups = [];
     for (const p of a.parts || []) {
       const last = groups[groups.length - 1];
       if (last && last.heading === p.heading) last.parts.push(p); else groups.push({ heading: p.heading, parts: [p] });
     }
-    for (const g of groups) panel.append(group(g.heading || t('The article'), g.parts.map(piece)));
+    for (const g of groups) panel.append(group(Guides.headingIn(g.heading, L) || t('The article'), g.parts.map(piece)));
     panel.append(el('p', { class: 'muted small', text: t('Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }));
     breakBox.append(panel);
   }
@@ -741,7 +743,7 @@ function renderEditor(root, s) {
   if (guideIntro) {
     const art = el('div', { class: 'guide-art', hidden: true });
     const readBtn = el('button', { class: 'btn small ghost', type: 'button', text: t('Read'), 'aria-expanded': 'false', onclick: () => {
-      if (art.hidden) { if (!art.firstChild) art.append(Guides.articlePart(guideIntro)); art.hidden = false; readBtn.textContent = t('Hide'); readBtn.setAttribute('aria-expanded', 'true'); }
+      if (art.hidden) { if (!art.firstChild) art.append(Guides.articlePart(guideIntro, introLink.guide.language)); art.hidden = false; readBtn.textContent = t('Hide'); readBtn.setAttribute('aria-expanded', 'true'); }
       else { art.hidden = true; readBtn.textContent = t('Read'); readBtn.setAttribute('aria-expanded', 'false'); }
     } });
     container.append(el('div', { class: 'guide-row' }, [

@@ -1188,7 +1188,7 @@ const BREAKDOWN_SCHEMA = {
       items: {
         type: 'object', additionalProperties: false, required: ['heading', 'quote', 'said', 'insight', 'bible', 'catechism'],
         properties: {
-          heading: { type: 'string', description: 'The heading of the article this piece stands under, as the Guide prints it: "Message", "Introduction", the section\'s own heading, or "Context"' },
+          heading: { type: 'string', description: 'The heading of the article this piece stands under, as the Guide prints it: "Message", "Introduction", the section\'s own heading, or "Context"; in an Afrikaans Guide "Boodskap", "Inleiding" or "Agtergrond"' },
           quote: { type: 'string', description: 'The sentence, or the two or three sentences that make one thought, word for word as the Guide prints them' },
           said: { type: 'string', description: 'What it says, in plain words: one or two short sentences' },
           insight: { type: 'string', description: 'What it gives the sermon: the thought behind it, what it means for the people, what it asks of them; one to three short sentences' },
