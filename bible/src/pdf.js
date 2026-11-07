@@ -24,8 +24,9 @@ import { t, locale } from './i18n.js';
 import { fmtDate } from './ui.js';
 import { state } from './store.js';
 import * as Cat from './catechism.js';
-import { audienceOf, audienceLabel, modelLabel } from './ai.js';
+import { audienceOf, audienceLabel, modelLabel, langOf } from './ai.js';
 import * as S from './slides.js';
+import { findService, headingIn } from './guides.js';   // the Guide's headings over the breakdown, in the Guide's language
 
 const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
 const INK = [29, 43, 56];
@@ -536,11 +537,13 @@ export function breakdownPdf(s) {
   w.rule();
 
   if (a.thread) { w.heading(t('The thread')); w.para(a.thread); }
+  const link = findService(s);
+  const L = link ? link.guide.language : langOf(s);
   let heading = null;
   for (const p of a.parts) {
     if ((p.heading || '') !== heading) {
       heading = p.heading || '';
-      if (heading) w.heading(heading);
+      if (heading) w.heading(headingIn(heading, L));
     }
     w.ensure(16);   // a piece's words and the start of its plain words stay on one page
     w.para(`\u201c${p.quote}\u201d`, { serif: true, style: 'italic', size: 11, after: 1 });
