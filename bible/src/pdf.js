@@ -296,19 +296,29 @@ function fromOutline(s, a) {
 }
 
 /**
+ * The sermon in reading order, shared by the PDF below and by the voice that
+ * reads it aloud (speech.js): {c, ref, title, empty}, from the boxes of the
+ * preparation or, with `outline`, as Claude built it (s.build, with the
+ * person's changes).
+ */
+export function sermonParts(s, { outline = null } = {}) {
+  const c = outline ? fromOutline(s, outline) : fromBoxes(s);
+  const ref = refLabel(s);
+  return { c, ref, title: s.title || s.theme || ref || t('The sermon'), empty: !c.intro && !c.points.length && !c.application && !c.conclusion };
+}
+
+/**
  * The sermon itself, in reading order and in large clear type, to read from:
  * the text word, the introduction, the main points, the summary, the
  * application and the conclusion, with each illustration under the part it
  * serves. From the boxes of the preparation, or, with `outline`, as Claude
- * built it (s.build, with the person's changes), with where the person's
- * thoughts went at the end.
+ * built it, with where the person's thoughts went at the end.
  */
 export function sermonTextPdf(s, { outline = null } = {}) {
-  const c = outline ? fromOutline(s, outline) : fromBoxes(s);
-  if (!c.intro && !c.points.length && !c.application && !c.conclusion) throw new Error(t('There is nothing to print yet: write the introduction, the main points, the application or the conclusion first.'));
+  const { c, ref, title, empty } = sermonParts(s, { outline });
+  if (empty) throw new Error(t('There is nothing to print yet: write the introduction, the main points, the application or the conclusion first.'));
   const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
   const w = new Writer(doc, 22);
-  const ref = refLabel(s);
   const read = { size: 12, leading: 1.5, after: 3 };   // the running text: large, with room between the lines
   const extras = list => {
     for (const x of list) {
@@ -326,7 +336,6 @@ export function sermonTextPdf(s, { outline = null } = {}) {
     w.y += 7;
   }
   if (s.text) w.para(s.text, { serif: true, style: 'italic', size: 12, leading: 1.4, after: 3 });
-  const title = s.title || s.theme || ref || t('The sermon');
   if (s.title || s.theme || !ref) {
     w.font(18, 'bold', INK);
     for (const line of doc.splitTextToSize(title, w.width)) { w.ensure(8); doc.text(line, w.m, w.y + 5); w.y += 8; }
