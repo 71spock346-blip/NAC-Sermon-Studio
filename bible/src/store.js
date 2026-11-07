@@ -16,8 +16,8 @@ import { t } from './i18n.js';
  * which tells nobody, so they are not sent back again.
  */
 const DB_NAME = 'nac-study-bible';
-const DB_VERSION = 10;   // 10: the reminders store. A new store needs a new version, or a device that already has the database never gets it
-const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync', 'theology', 'liturgy', 'seating', 'choir', 'reminders'];
+const DB_VERSION = 11;   // 11: the audio store (the sermon read aloud, speech.js); 10: the reminders store. A new store needs a new version, or a device that already has the database never gets it
+const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync', 'theology', 'liturgy', 'seating', 'choir', 'reminders', 'audio'];
 
 let dbPromise = null;
 
@@ -40,6 +40,7 @@ function openDb() {
       if (!db.objectStoreNames.contains('seating')) db.createObjectStore('seating', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('choir')) db.createObjectStore('choir', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('reminders')) db.createObjectStore('reminders', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('audio')) db.createObjectStore('audio', { keyPath: 'id' });   // the sermon read aloud (speech.js): one recording per preparation, this device only
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -89,6 +90,11 @@ export const DEFAULT_SETTINGS = {
   aiLang: 'en',           // language of the suggestions: 'en' or 'af'; a preparation can choose its own
   aiHumour: 'some',       // how much humour the suggested sermon may carry: 'none', 'some' or 'more' (see HUMOUR in ai.js)
   aiStyle: '',            // the person's own note on how they preach, sent with every request for suggestions
+  voiceKey: '',           // ElevenLabs key for reading the sermon aloud (speech.js), same rules as apiKey
+  voiceEn: null,          // the voice that reads an English sermon: {id, name} from the account, or null for the default
+  voiceAf: null,          // the voice for an Afrikaans sermon, or null for the English one
+  voiceSpeed: 'normal',   // 'slower', 'normal' or 'faster'
+  voiceQuality: 'best',   // 'best' (the newest model) or 'cheaper' (the turbo model, half the characters)
   helperLock: null,       // the lock on the AI helper (lock.js): {v, salt, hash, iter, at}, a hash of the minister's password, never the password; travels with sync and backup
   helperOpen: '',         // the lock's `at` once the password was typed on this device: the helper is open here. Device only (see lock.js)
   guestAiKey: '',         // a visitor's own Anthropic key for Theology while the helper is locked; this device only, never in a backup or the sync
@@ -99,7 +105,7 @@ export const DEFAULT_SETTINGS = {
 };
 
 /** The keys never leave the device in a backup file. Sync carries them only when the person ticks "Carry my keys" (locked with the code). */
-export const SECRET = new Set(['apiKey', 'yvKey', 'aiKey', 'guestAiKey', 'helperOpen']);
+export const SECRET = new Set(['apiKey', 'yvKey', 'aiKey', 'guestAiKey', 'helperOpen', 'voiceKey']);
 
 /** Settings that belong to this screen rather than to the person: a phone and a PC may well differ. Sync leaves them alone. */
 export const DEVICE_ONLY = new Set(['theme', 'fontSize', 'helperOpen', 'guestAiKey']);   // helperOpen and guestAiKey: a device is unlocked by hand, and a visitor's key stays with the visitor (lock.js)
@@ -227,6 +233,7 @@ export async function saveSermon(sermon) {
 export async function deleteSermon(id) {
   state.sermons = state.sermons.filter(s => s.id !== id);
   await db.del('sermons', id);
+  await db.del('audio', id).catch(() => {});   // its recording goes with it (speech.js)
   await markDeleted('sermons', id);
   changed('sermons');
 }
