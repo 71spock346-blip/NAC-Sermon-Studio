@@ -62,8 +62,8 @@
  * or, with the outline's own "Read aloud", as Claude built it; the recording
  * stays with the preparation on this device.
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, today, fit, lineBox, busy, isTouch, seg, download } from './ui.js';
-import { t, tn, locale } from './i18n.js';
+import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, today, fit, lineBox, busy, isTouch, seg } from './ui.js';
+import { t, tn } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveSermon, deleteSermon } from './store.js';
 import * as Bible from './bible.js';
@@ -75,6 +75,7 @@ import * as AI from './ai.js';
 import * as Reflect from './reflect.js';
 import * as Liturgy from './liturgy.js';
 import * as Speech from './speech.js';
+import { listenCard } from './listen.js';
 
 export const OCCASIONS = [
   'Sunday divine service', 'Midweek divine service', 'Divine service for the departed',
@@ -347,8 +348,8 @@ function renderEditor(root, s) {
     savedBadge.hidden = false;
     setTimeout(() => { savedBadge.hidden = true; }, 1500);
   }, 500);
-  let staleCheck = null;   // set once the player is drawn: it says when the sermon has changed since it was read (speech.js)
-  const touch = () => { save(); if (staleCheck) staleCheck(); };
+  let sermonCard = null;   // the player under Print or save (listen.js): it says when the sermon has changed since it was read
+  const touch = () => { save(); if (sermonCard) sermonCard.check(); };
   const inputs = {};   // key -> its box, so a suggestion can be put into it
 
   // the title of a section of the sermon, above its box: styled as a heading (see #tab-prepare .f-title in styles.css)
@@ -600,6 +601,18 @@ function renderEditor(root, s) {
         render(clear(root), ['prepare', s.id]);
       }
       const both = twin ? [link, twin].sort((a, b) => (a.guide.language === 'en' ? 0 : 1) - (b.guide.language === 'en' ? 0 : 1)) : [];
+      // the article read by an ElevenLabs voice (speech.js, listen.js), in the Guide's language; the recording stays with this Guide on this device
+      const hear = listenCard({
+        title: t('Hear the Guide'), id: Speech.guideKey(link.guide, link.i), quiet: true,
+        noKey: t('An ElevenLabs voice can read the Guide\'s article to you. Add your ElevenLabs key under Settings → Read aloud first.'),
+        empty: t('There is nothing to read in this article.'),
+        script: () => Speech.guideScript(link.service, link.guide),
+        read: (opts, o) => Speech.makeGuide(link.service, link.guide, o),
+        fileName: rec => Speech.fileName(link.service.date, `${t('Guide')}-${rec.title}`),
+        from: () => t('from the Guide'),
+        stale: t('The article has changed since this was read.'),
+        reading: t('Reading the Guide aloud'), ready: t('The Guide is ready to hear.'), failed: t('The Guide could not be read.'),
+      });
       guideBox.append(...[
         el('div', { class: 'row line guide-link guide-from' }, [
           el('span', { class: 'small grow' }, [el('b', { text: t('From the Guide: ') }), `${link.service.dateText || fmtDate(link.service.date)} · ${link.service.title || link.service.label}`]),
@@ -611,6 +624,7 @@ function renderEditor(root, s) {
           seg(both.map(x => [x.guide.id, Guides.editionLabel(x.guide)]), link.guide.id, id => { if (id !== link.guide.id) follow(); }, { label: t('Language of the Guide') }),
         ]) : null,
         art,
+        hear.box,
       ].filter(Boolean));
     } else if (Guides.all().length) {
       guideBox.append(el('div', { class: 'row' }, [
@@ -890,7 +904,7 @@ function renderEditor(root, s) {
     // the outline as one sermon to read, with the illustrations under the points they serve (pdf.js sermonTextPdf)
     const pdf = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Save as PDF'), onclick: () => run(x => Pdf.sermonTextPdf(x, { outline: a }), 'download') }) : null;
     const printBtn = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(x => Pdf.sermonTextPdf(x, { outline: a }), 'print') }) : null;
-    const hear = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Read aloud'), onclick: () => readAloud({ outline: a }) }) : null;   // the voice reads the outline as one sermon (speech.js)
+    const hear = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Read aloud'), onclick: () => { if (sermonCard) sermonCard.read({ outline: a }); } }) : null;   // the voice reads the outline as one sermon (speech.js)
     buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, pdf, printBtn, hear, el('span', { class: 'muted small grow', text: a
       ? t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
       : t('Claude proposes how to build this sermon from the text, the message, your notes and your thoughts on the main points, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') })]));
@@ -1402,84 +1416,20 @@ function renderEditor(root, s) {
     outRow(t('Cue cards'), Pdf.cueCardPdf, false),
   ]));
 
-  // ---- hear the sermon (speech.js): the same text as "The sermon", read by an ElevenLabs voice; the recording stays with this preparation on this device
-  const listen = el('div', { class: 'listen' });
-  container.append(listen);
-  const num = n => Number(n || 0).toLocaleString(locale());
-  let listenUrl = '';
-  let shown = null;   // what the block shows: the recording with its "changed since" line, or the estimate while there is none
-  const estimate = sc => sc.text
-    ? t('About {words} words, {minutes} minutes of listening, {chars} characters of your ElevenLabs plan.', { words: num(sc.words), minutes: sc.minutes, chars: num(sc.chars) })
-    : t('Write the introduction, the main points, the application or the conclusion first.');
-  const recKey = rec => (rec.source === 'outline' && s.build ? Speech.script(s, { outline: s.build }) : Speech.script(s)).key;
-  staleCheck = debounce(() => {
-    if (!shown) return;
-    if (!shown.rec) { const sc = Speech.script(s); shown.line.textContent = estimate(sc); shown.btn.disabled = !sc.text; return; }
-    const changed = shown.rec.key !== recKey(shown.rec);
-    shown.stale.hidden = !changed;
-    shown.again.classList.toggle('ghost', !changed);
-  }, 800);
-  async function renderListen() {
-    clear(listen);
-    shown = null;
-    if (listenUrl) { URL.revokeObjectURL(listenUrl); listenUrl = ''; }
-    listen.append(el('h3', { text: t('Hear the sermon') }));
-    if (!Speech.ready()) {
-      listen.append(
-        el('p', { class: 'small', text: t('An ElevenLabs voice can read the sermon to you: the text word, the introduction, the main points, the summary, the application and the conclusion, as "The sermon" prints them. Add your ElevenLabs key under Settings → Read aloud first.') }),
-        el('div', { class: 'row' }, [el('a', { class: 'btn small ghost', href: '#settings', text: t('Open Settings') })]));
-      return;
-    }
-    const rec = await Speech.recording(s.id).catch(() => null);
-    const sc = Speech.script(s);
-    if (!rec) {
-      const line = el('p', { class: 'small', text: estimate(sc) });
-      const btn = el('button', { class: 'btn small', type: 'button', text: t('Read aloud'), disabled: !sc.text, onclick: () => readAloud({}) });
-      shown = { rec: null, line, btn };
-      listen.append(line, el('div', { class: 'row' }, [btn, el('span', { class: 'muted small', text: t('Voice: {name}.', { name: Speech.voiceFor(sc.lang).name }) })]));
-      return;
-    }
-    listenUrl = URL.createObjectURL(rec.blob);
-    const changed = rec.key !== recKey(rec);
-    const stale = el('p', { class: 'small stale', text: t('The sermon has changed since this was read.'), hidden: !changed });
-    const again = el('button', { class: changed ? 'btn small' : 'btn small ghost', type: 'button', text: t('Read again'), onclick: () => readAloud(rec.source === 'outline' && s.build ? { outline: s.build } : {}) });
-    shown = { rec, stale, again };
-    listen.append(
-      el('audio', { controls: true, src: listenUrl, preload: 'metadata' }),
-      el('p', { class: 'muted small', text: t('Read {date} by {voice}, {from}. {chars} characters, about {minutes} minutes.', { date: fmtDate(rec.at), voice: rec.voice.name, from: rec.source === 'outline' ? t('from the outline') : t('from the boxes'), chars: num(rec.chars), minutes: rec.minutes }) }),
-      stale,
-      el('div', { class: 'row' }, [
-        again,
-        el('button', { class: 'btn small ghost', type: 'button', text: t('Save as MP3'), onclick: () => { const name = Speech.fileName(s, rec); download(rec.blob, name); toast(t('Saved ') + name); } }),
-        el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: async () => {
-          if (!(await confirmBox(t('Remove this recording? Reading it again uses your ElevenLabs characters again.'), t('Remove'), true))) return;
-          await Speech.forget(s.id);
-          toast(t('Recording removed.'));
-          renderListen();
-        } }),
-      ]));
-  }
-  /** Reads the sermon, from the boxes or from the outline, and keeps the recording with this preparation. */
-  async function readAloud({ outline = null } = {}) {
-    if (!Speech.ready()) { toast(t('Add your ElevenLabs key under Settings → Read aloud first.'), true); return; }
-    const ctrl = new AbortController();
-    const wait = busy(t('Reading the sermon aloud'), () => ctrl.abort());
-    wait.say(t('Making the voice… this takes a moment.'));
-    try {
-      const rec = await Speech.make(s, { outline, signal: ctrl.signal, onProgress: (i, n) => { if (n > 1) wait.say(t('Part {i} of {n}…', { i, n })); } });
-      await Speech.keep(s.id, rec);
-      wait.done();
-      await renderListen();
-      listen.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const audio = listen.querySelector('audio');
-      if (audio) audio.play().catch(() => {});   // a phone may want a tap on Play instead
-      toast(t('The sermon is ready to hear.'));
-    } catch (e) {
-      if (ctrl.signal.aborted) { wait.done(); return; }
-      wait.fail(e.message || t('The sermon could not be read.'));
-    }
-  }
-  renderListen();
+  // ---- hear the sermon (speech.js, listen.js): the same text as "The sermon", read by an ElevenLabs voice; the recording stays with this preparation on this device
+  sermonCard = listenCard({
+    title: t('Hear the sermon'), id: s.id,
+    noKey: t('An ElevenLabs voice can read the sermon to you: the text word, the introduction, the main points, the summary, the application and the conclusion, as "The sermon" prints them. Add your ElevenLabs key under Settings → Read aloud first.'),
+    empty: t('Write the introduction, the main points, the application or the conclusion first.'),
+    script: rec => (rec && rec.source === 'outline' && s.build ? Speech.script(s, { outline: s.build }) : Speech.script(s)),
+    read: ({ outline = null } = {}, o) => Speech.make(s, { outline, ...o }),
+    againWith: rec => (rec.source === 'outline' && s.build ? { outline: s.build } : {}),
+    fileName: rec => Speech.fileName(s.date, rec.title),
+    from: rec => (rec.source === 'outline' ? t('from the outline') : t('from the boxes')),
+    stale: t('The sermon has changed since this was read.'),
+    reading: t('Reading the sermon aloud'), ready: t('The sermon is ready to hear.'), failed: t('The sermon could not be read.'),
+  });
+  container.append(sermonCard.box);
 
   // ---- 8. reflection
   container.append(step(8, t('After the service'), t('A few honest lines while it is fresh. They make the next preparation better.'),
