@@ -42,6 +42,7 @@ INDIRECT = [
     'All ages together', 'Children', 'Young people (teens)', 'Young adults', 'Families with children', 'Mostly older members',
     'None', 'A little, where it fits', 'A bit more', 'None in this service',
     'English', 'Afrikaans',
+    'Slower', 'Faster', 'Best', 'Cheaper',
 ]
 
 
