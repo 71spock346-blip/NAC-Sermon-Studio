@@ -1,13 +1,14 @@
 /*
  * Settings: the language of the app, the API.Bible key and which of its
  * Bibles to show, the person's name and congregation, book-name language,
+ * the ElevenLabs voice that reads the sermon aloud (speech.js),
  * backup, offline texts, and the copyright notices the bundled texts and
  * API.Bible ask for. The AI helper's section also holds the lock on the
  * helper (lock.js): choosing the password, unlocking a device, and, for
  * anyone else, the key of their own for Claude in Theology.
  */
 import { el, clear, toast, confirmBox, download, today, sheet, busy, fmtDate, seg, copyText, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
-import { t, tn, LANGS, requestLang } from './i18n.js';
+import { t, tn, LANGS, requestLang, locale } from './i18n.js';
 import * as Seating from './seating.js';
 import * as ChoirTab from './choir.js';
 import * as Reminders from './reminders.js';
@@ -18,6 +19,7 @@ import * as AI from './ai.js';
 import * as Sync from './sync.js';
 import * as Lock from './lock.js';
 import * as Update from './update.js';
+import * as Speech from './speech.js';
 import { BOOKS } from './books.js';
 
 export const VERSION = '0.2.0';
@@ -121,6 +123,7 @@ export function render(container) {
   myTextsSection(trans);
   catechismSection(container);
   aiSection(container);
+  voiceSection(container);
 
   // ---- backup
   const fileInput = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
@@ -419,6 +422,122 @@ function howToKey() {
       el('li', {}, [t('Open '), el('a', { href: 'https://console.anthropic.com', target: '_blank', rel: 'noopener', text: 'console.anthropic.com' }), t(' and create an account, or sign in.')]),
       el('li', { text: t('Under Billing, add some credit; it is prepaid, and $5 to $10 lasts months.') }),
       el('li', { text: t('Under API Keys, create a key, copy it (it is shown once) and paste it below. Then tap "Check key".') }),
+    ]),
+  ]);
+}
+
+/* ------------------------------------------------------------------ read aloud (speech.js) */
+
+/**
+ * The ElevenLabs voice that reads the sermon under "Print or save": the key
+ * (the same box as the other keys), what the plan has left, the voice for
+ * each language with a sample to hear, the speed and the quality. The
+ * voices of the account are listed when the key is checked, and again each
+ * time Settings opens with a key on the device.
+ */
+function voiceSection(container) {
+  const S = state.settings;
+  let list = null;   // the voices of the account, once read
+  const num = n => Number(n || 0).toLocaleString(locale());
+  const planLine = el('p', { class: 'muted small plan-line', role: 'status' });
+  const showPlan = p => {
+    planLine.textContent = p ? t('{used} of {limit} characters used this month. It starts again on {date}.', { used: num(p.used), limit: num(p.limit), date: p.reset ? fmtDate(p.reset) : '…' }) + (p.tier ? ` (${p.tier})` : '') : '';
+  };
+  const listHint = el('p', { class: 'muted small', text: t('Tap "Check key" to list the voices of your account.') });
+  const keyField = keyBox({
+    label: t('ElevenLabs key'), setting: 'voiceKey', placeholder: t('Paste your ElevenLabs key (sk_…)'), checkText: t('Check key'),
+    onCheck: async () => {
+      Speech.forgetKey();
+      const r = await Speech.checkKey();
+      showPlan(r.plan);
+      fillVoices(r.voices);
+      if (r.partial) toast(t('The key works, but it may not list your voices or show your plan: make a new key at elevenlabs.io and leave its access as it is.'));
+      else toast(r.plan ? t('The key works. {left} of {limit} characters left this month.', { left: num(r.plan.left), limit: num(r.plan.limit) }) : t('The key works.'));
+    },
+  });
+  keyField.querySelector('input').addEventListener('change', () => { Speech.forgetKey(); showPlan(null); fillVoices(null); });   // after the box saved the new key
+
+  /** A voice as the list names it: its name, then what ElevenLabs says of it (male, British, warm). */
+  const voiceLabel = v => {
+    const L = v.labels || {};
+    const bits = [L.gender === 'male' ? t('male') : L.gender === 'female' ? t('female') : L.gender, L.accent, L.descriptive || L.age].filter(Boolean);
+    return bits.length ? `${v.name} – ${bits.join(', ')}` : v.name;
+  };
+  const sel = {};
+  const option = (v, chosen) => el('option', { value: v.id, text: voiceLabel(v), selected: !!(chosen && chosen.id === v.id) });
+  function fillVoices(voices) {
+    list = voices;
+    for (const [setting, box] of Object.entries(sel)) {
+      clear(box);
+      const chosen = state.settings[setting];
+      box.append(el('option', { value: '', text: setting === 'voiceAf' ? t('The same as for English') : Speech.DEFAULT_VOICE.name, selected: !(chosen && chosen.id) }));
+      const mine = (voices || []).filter(v => v.own), theirs = (voices || []).filter(v => !v.own);
+      if (mine.length) box.append(el('optgroup', { label: t('My voices') }, mine.map(v => option(v, chosen))));
+      if (theirs.length) box.append(el('optgroup', { label: t('ElevenLabs voices') }, theirs.map(v => option(v, chosen))));
+      if (chosen && chosen.id && !(voices || []).some(v => v.id === chosen.id)) box.append(option(chosen, chosen));   // chosen on another device, or no longer in the list
+    }
+    listHint.hidden = !!(voices && voices.length);
+  }
+  const voiceSelect = setting => {
+    const box = el('select', {});
+    box.addEventListener('change', async () => {
+      const v = (list || []).find(x => x.id === box.value) || (state.settings[setting] && state.settings[setting].id === box.value ? state.settings[setting] : null);
+      await saveSetting(setting, v ? { id: v.id, name: v.name } : null);
+      toast(t('Voice: {name}.', { name: v ? v.name : (setting === 'voiceAf' ? t('the same as for English') : Speech.DEFAULT_VOICE.name) }));
+    });
+    sel[setting] = box;
+    return box;
+  };
+  // a sample of the chosen voice, from the list (ElevenLabs' own clip: it costs nothing)
+  let player = null;
+  const sample = setting => el('button', { class: 'btn small ghost', type: 'button', text: t('Hear a sample'), onclick: () => {
+    const id = sel[setting].value || (setting === 'voiceAf' && S.voiceEn && S.voiceEn.id ? S.voiceEn.id : Speech.DEFAULT_VOICE.id);
+    const v = (list || []).find(x => x.id === id);
+    if (!v || !v.preview) { toast(t('Tap "Check key" first: the samples come with the list of voices.'), true); return; }
+    if (player) { player.pause(); player = null; }
+    player = new Audio(v.preview);
+    player.play().catch(() => toast(t('The sample could not play.'), true));
+  } });
+  const voiceField = (label, setting, hint) => el('div', { class: 'voice-field' }, [
+    el('label', { class: 'f' }, [label, voiceSelect(setting)]),
+    el('div', { class: 'row' }, [sample(setting)]),
+    hint ? el('span', { class: 'hint muted small', text: hint }) : null,
+  ]);
+  const speedSeg = seg(Speech.SPEEDS, Speech.SPEEDS.some(x => x[0] === S.voiceSpeed) ? S.voiceSpeed : 'normal', v => saveSetting('voiceSpeed', v), { block: true, label: t('Speed') });
+  const qualitySeg = seg(Speech.QUALITIES, S.voiceQuality === 'cheaper' ? 'cheaper' : 'best', v => saveSetting('voiceQuality', v), { block: true, label: t('Voice quality') });
+
+  container.append(section(t('Read aloud'), [
+    el('p', { class: 'small', text: t('An ElevenLabs voice can read the sermon to you, under "Print or save" in a preparation: the text word, the introduction, the main points, the summary, the application and the conclusion, as "The sermon" prints them, in English or in Afrikaans. It works with a key of your own: you pay ElevenLabs for the characters it reads, and the key stays on this device, out of any backup.') }),
+    el('p', { class: 'small', text: t('A sermon of about 1,500 words is about 8,000 characters (every letter, space and full stop counts). The free plan gives 10,000 a month, enough for one sermon; the Starter plan (about $6 a month) gives 75,000, about nine sermons. A recording is kept on this device, so listening again costs nothing.') }),
+    howToVoiceKey(),
+    keyField,
+    planLine,
+    el('div', { class: 'fields two' }, [
+      voiceField(t('Voice for English'), 'voiceEn', null),
+      voiceField(t('Voice for Afrikaans'), 'voiceAf', t('Any voice can read Afrikaans. For a South African sound, add an Afrikaans voice from the Voice Library at elevenlabs.io to your voices; it then shows here.')),
+    ]),
+    listHint,
+    el('div', { class: 'fields two' }, [
+      el('label', { class: 'f' }, [t('Speed'), speedSeg, el('span', { class: 'hint muted small', text: t('How fast the voice reads. "Slower" helps to hear every word.') })]),
+      el('label', { class: 'f' }, [t('Voice quality'), qualitySeg, el('span', { class: 'hint muted small', text: t('"Best" is the newest ElevenLabs voice and counts one character per letter. "Cheaper" counts half a character per letter and sounds a little less natural.') })]),
+    ]),
+    el('p', { class: 'muted small', text: t('What goes to ElevenLabs: the text of the sermon, nothing else. ElevenLabs keeps the recordings in your account\'s history, where you can delete them.') }),
+  ]));
+  fillVoices(null);
+  if (Speech.ready()) {
+    Speech.voices().then(fillVoices).catch(() => {});
+    Speech.plan().then(showPlan).catch(() => {});
+  }
+}
+
+/** The steps to a key at ElevenLabs, folded away. */
+function howToVoiceKey() {
+  return el('details', { class: 'small' }, [
+    el('summary', { text: t('How to get a key') }),
+    el('ol', {}, [
+      el('li', {}, [t('Open '), el('a', { href: 'https://elevenlabs.io', target: '_blank', rel: 'noopener', text: 'elevenlabs.io' }), t(' and create an account, or sign in.')]),
+      el('li', { text: t('Under your name at the bottom left, choose "API keys" and create a key. Leave its access as it is. Copy it: it is shown once.') }),
+      el('li', { text: t('Paste the key below and tap "Check key".') }),
     ]),
   ]);
 }

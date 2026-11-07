@@ -334,6 +334,18 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   itself and the cue cards (A5 landscape: each main point with its main thoughts under it, picked
   by `mainThoughts`, and the minister's own thought in blue; a point never splits over two cards)
   with the vendored jsPDF.
+- **Read aloud.** `src/speech.js` has an ElevenLabs voice read the sermon, the same text
+  as "The sermon" (`pdf.js sermonParts`), straight from the browser with the person's own
+  key (`settings.voiceKey`, kept on the device like the other keys). The text goes in
+  pieces of about 3,000 characters cut between paragraphs, each with the text before and
+  after it so the voice runs on, and the MP3 pieces are joined into one recording kept in
+  the `audio` store (one per preparation, this device only, never in sync or a backup)
+  with a mark of the text, so the screen says when the sermon has changed since. The
+  newest model that reads Afrikaans (`eleven_v4`; "Cheaper" takes `eleven_v4_turbo`) is
+  used, with the older models as fallbacks when an account has no such model; the
+  headings are spoken in the language of the preparation. Settings → Read aloud holds the
+  key, what the plan has left, the voice for each language with a sample, the speed and
+  the quality.
 - **Reflection evening.** "Reflection evening" has its own place in the side menu
   (`#reflect`, `prepare.js renderReflect`): load the Church's reflection guide, the
   evenings with slides, and the latest services held. `src/reflect.js` is the screen
@@ -388,6 +400,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
+- `src/speech.js` – read aloud: the sermon spoken by an ElevenLabs voice, the pieces it goes in, the recording kept on the device
 - `src/reflect.js`, `src/slides.js` – the reflection evening: the screen and the show; the slide layout, the facilitator's notes and the PowerPoint file
 - `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)
