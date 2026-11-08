@@ -20,11 +20,14 @@
  * read in the other language to compare. Under step 2, "Break down the
  * article" asks Claude (ai.js) to take the article apart sentence by
  * sentence: what each one says in plain words, what it gives the sermon,
- * and the Bible passages and Catechism sections that bring depth to it.
- * The Guide's introduction can be read
- * under step 3, beside the person's own. "Suggest the sermon" under step 4
- * asks for the build itself: introduction, main points, application,
- * conclusion and illustrations; "Suggest answers" under step 5 asks for the
+ * and the Bible passages and Catechism sections that bring depth to it;
+ * its panel shows the article piece by piece with the Use buttons, or as
+ * one piece in plain words to read, and prints either as a study sheet or
+ * as the whole article in plain words (plain.js, pdf.js plainArticlePdf). The
+ * Guide's introduction can be read under step 3, beside the person's own.
+ * "Suggest the sermon" under step 4 asks for the build itself:
+ * introduction, main points, application, conclusion and illustrations;
+ * "Suggest answers" under step 5 asks for the
  * context of the text, key words, Catechism sections, cross references and
  * what the text gives each main point. Each suggestion comes with a
  * "Use" button, so nothing lands in the notes that the person did not choose,
@@ -76,6 +79,7 @@ import * as Reflect from './reflect.js';
 import * as Liturgy from './liturgy.js';
 import * as Speech from './speech.js';
 import { listenCard } from './listen.js';
+import { plainParts } from './plain.js';
 
 export const OCCASIONS = [
   'Sunday divine service', 'Midweek divine service', 'Divine service for the departed',
@@ -110,6 +114,18 @@ const short = (text, n = 90) => { const v = String(text || '').trim().replace(/\
 
 const STATUS = [['draft', 'Draft'], ['ready', 'Ready'], ['held', 'Held']];
 const STATUS_LABEL = Object.fromEntries(STATUS);
+
+/* How the breakdown's panel shows the article on this device: 'pieces' (with the Use buttons) or 'plain' (as one piece in plain words, plain.js). */
+let breakViewNow = null;
+function breakView() {
+  if (breakViewNow) return breakViewNow;
+  try { breakViewNow = localStorage.getItem('sb-break-view') === 'plain' ? 'plain' : 'pieces'; } catch (e) { breakViewNow = 'pieces'; }
+  return breakViewNow;
+}
+function setBreakView(v) {
+  breakViewNow = v;
+  try { localStorage.setItem('sb-break-view', v); } catch (e) { /* private mode: the choice holds while the page is open */ }
+}
 
 function blank() {
   const congregation = state.settings.congregation || '';
@@ -722,24 +738,43 @@ function renderEditor(root, s) {
       s.breakdown = null; touch(); renderBreak();
       toast(t('Breakdown removed.'), false, () => { s.breakdown = a; touch(); renderBreak(); });
     } }) : null;
-    const pdf = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Save as PDF'), onclick: () => run(Pdf.breakdownPdf, 'download') }) : null;
-    const printBtn = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(Pdf.breakdownPdf, 'print') }) : null;
-    breakBox.append(el('div', { class: 'row ai-head' }, [btn, drop, pdf, printBtn, el('span', { class: 'muted small grow', text: a
+    breakBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
       ? t('Broken down {date} by {model}{cost}. The Guide\'s words stay as they are; the rest is a starting point.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
       : t('Claude takes the Guide\'s article apart sentence by sentence: what each one says in plain words, what it gives the sermon, and the Bible passages and Catechism sections that bring depth to it. You choose what to keep.') })]));
     if (!a) return;
+    const view = breakView();   // 'pieces' or 'plain': how the article is shown below
     const panel = el('details', { class: 'ai-panel', open: true });
-    panel.append(el('summary', { text: t('The article, piece by piece') }));
+    panel.append(el('summary', { text: view === 'plain' ? t('The article in plain words') : t('The article, piece by piece') }));
     if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
     panel.append(el('p', { class: 'muted small ai-how', text: t('"Use" puts a piece into Notes from the Guide; the passages go to Cross references; ticked sections print.') + ' ' + howEdit() }));
+    // two printed outputs: the study sheet piece by piece, and the whole article in plain words as one piece (the Guide's own paragraph breaks come from the article)
+    const link = Guides.findService(s);
+    panel.append(el('div', { class: 'ai-sec bd-out' }, [
+      el('div', { class: 'row line ai-sec-head' }, [el('h4', { text: t('Print or save') }), el('span', { class: 'grow' })]),
+      el('div', { class: 'outputs' }, [
+        outRow(t('Piece by piece'), Pdf.breakdownPdf, true),
+        outRow(t('The article in plain words'), x => Pdf.plainArticlePdf(x, { service: link ? link.service : null }), true),
+      ]),
+      el('p', { class: 'muted small bd-out-hint', text: t('Piece by piece: the study sheet, the Guide\'s words with the notes under each. The article in plain words: the whole article as one piece, in plain words only.') }),
+    ]));
     if (a.thread) panel.append(group(t('The thread'), [item('', () => a.thread, () => { add('core', a.thread); toast(t('Added to Core thought.')); }, null, null, { on: a, body: 'thread' })], null, t('What the whole article drives at.')));
-    // the pieces, under the Guide's own headings
-    const groups = [];
-    for (const p of a.parts || []) {
-      const last = groups[groups.length - 1];
-      if (last && last.heading === p.heading) last.parts.push(p); else groups.push({ heading: p.heading, parts: [p] });
+    // the article itself, two ways: piece by piece with the Use buttons, or as one piece in plain words to read on the screen (plain.js); the choice holds on this device
+    panel.append(el('div', { class: 'row bd-view' }, [
+      seg([['pieces', 'Piece by piece'], ['plain', 'In plain words']], view, v => { setBreakView(v); renderBreak(); }, { label: t('How the article is shown') }),
+    ]));
+    if (view === 'plain') {
+      panel.append(el('p', { class: 'muted small ai-how', text: t('The whole article as one piece, in plain words only. The Use buttons are under Piece by piece.') }));
+      const plain = plainParts(a, link ? link.service : null);
+      panel.append(el('div', { class: 'guide-article bd-plain' }, plain.flatMap(g => [g.heading ? el('h5', { text: g.heading }) : null, ...g.paragraphs.map(p => el('p', { text: p }))])));
+    } else {
+      // the pieces, under the Guide's own headings
+      const groups = [];
+      for (const p of a.parts || []) {
+        const last = groups[groups.length - 1];
+        if (last && last.heading === p.heading) last.parts.push(p); else groups.push({ heading: p.heading, parts: [p] });
+      }
+      for (const g of groups) panel.append(group(g.heading || t('The article'), g.parts.map(piece)));
     }
-    for (const g of groups) panel.append(group(g.heading || t('The article'), g.parts.map(piece)));
     panel.append(el('p', { class: 'muted small', text: t('Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }));
     breakBox.append(panel);
   }
@@ -1403,13 +1438,15 @@ function renderEditor(root, s) {
       else { Pdf.download(r); toast(t('Saved ') + r.name); }
     } catch (e) { toast(e.message || t('The PDF could not be built.'), true); }
   }
-  /** One printed output: its name, then Save as PDF, Print and, on a phone that can, Share. */
-  const outRow = (label, make, share) => el('div', { class: 'row out-row' }, [
-    el('span', { class: 'out-label', text: label }),
-    el('button', { class: 'btn small', type: 'button', text: t('Save as PDF'), onclick: () => run(make, 'download') }),
-    el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(make, 'print') }),
-    share && Pdf.canShare() ? el('button', { class: 'btn small ghost', type: 'button', text: t('Share'), onclick: () => run(make, 'share') }) : null,
-  ]);
+  /** One printed output: its name, then Save as PDF, Print and, on a phone that can, Share. A declaration: the breakdown's panel above uses it too. */
+  function outRow(label, make, share) {
+    return el('div', { class: 'row out-row' }, [
+      el('span', { class: 'out-label', text: label }),
+      el('button', { class: 'btn small', type: 'button', text: t('Save as PDF'), onclick: () => run(make, 'download') }),
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(make, 'print') }),
+      share && Pdf.canShare() ? el('button', { class: 'btn small ghost', type: 'button', text: t('Share'), onclick: () => run(make, 'share') }) : null,
+    ]);
+  }
   container.append(el('div', { class: 'outputs' }, [
     outRow(t('Sermon notes'), Pdf.sermonPdf, true),
     outRow(t('The sermon'), Pdf.sermonTextPdf, true),

@@ -224,7 +224,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   language, and `switchEdition` moves it to the other one, changing only what still holds the Guide's
   own words; "Break down the article" under step 2 takes that article apart sentence by
   sentence (the Guide's words, the plain words, what it gives the sermon, and a Bible passage or
-  Catechism section where one brings depth, each with a Use button, plus a study-sheet PDF);
+  Catechism section where one brings depth, each with a Use button, plus a study-sheet PDF and the
+  whole article in plain words as one PDF, `src/plain.js`);
   "Suggest answers" under step 5 of a preparation returns the context of
   the text, key words, Catechism sections, cross references and sermon thoughts, each with
   a "Use" button; "Suggest the sermon" under step 4 returns the build itself (introduction,
