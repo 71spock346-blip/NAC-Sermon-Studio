@@ -42,6 +42,7 @@ INDIRECT = [
     'None', 'A little, where it fits', 'A bit more', 'None in this service',
     'English', 'Afrikaans',
     'Slower', 'Faster', 'Best', 'Cheaper',
+    'Jerome (English)', 'Jerome (Afrikaans)',
 ]
 
 

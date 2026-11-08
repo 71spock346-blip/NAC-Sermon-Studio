@@ -378,6 +378,7 @@ export async function saveGuide(guide) {
 export async function deleteGuide(id) {
   state.guides = state.guides.filter(g => g.id !== id);
   await db.del('guides', id);
+  for (const k of await db.keys('audio').catch(() => [])) if (String(k).startsWith(`guide:${id}:`)) await db.del('audio', k).catch(() => {});   // its articles read aloud go with it (speech.js guideKey)
   await markDeleted('guides', id);
   changed('guides');
 }

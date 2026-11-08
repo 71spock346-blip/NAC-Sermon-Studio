@@ -470,7 +470,7 @@ function voiceSection(container) {
     for (const [setting, box] of Object.entries(sel)) {
       clear(box);
       const chosen = state.settings[setting];
-      box.append(el('option', { value: '', text: setting === 'voiceAf' ? t('The same as for English') : Speech.DEFAULT_VOICE.name, selected: !(chosen && chosen.id) }));
+      box.append(el('option', { value: '', text: Speech.standardVoice(setting === 'voiceAf' ? 'af' : 'en').name, selected: !(chosen && chosen.id) }));
       const mine = (voices || []).filter(v => v.own), theirs = (voices || []).filter(v => !v.own);
       if (mine.length) box.append(el('optgroup', { label: t('My voices') }, mine.map(v => option(v, chosen))));
       if (theirs.length) box.append(el('optgroup', { label: t('ElevenLabs voices') }, theirs.map(v => option(v, chosen))));
@@ -483,7 +483,7 @@ function voiceSection(container) {
     box.addEventListener('change', async () => {
       const v = (list || []).find(x => x.id === box.value) || (state.settings[setting] && state.settings[setting].id === box.value ? state.settings[setting] : null);
       await saveSetting(setting, v ? { id: v.id, name: v.name } : null);
-      toast(t('Voice: {name}.', { name: v ? v.name : (setting === 'voiceAf' ? t('the same as for English') : Speech.DEFAULT_VOICE.name) }));
+      toast(t('Voice: {name}.', { name: v ? v.name : Speech.standardVoice(setting === 'voiceAf' ? 'af' : 'en').name }));
     });
     sel[setting] = box;
     return box;
@@ -491,7 +491,7 @@ function voiceSection(container) {
   // a sample of the chosen voice, from the list (ElevenLabs' own clip: it costs nothing)
   let player = null;
   const sample = setting => el('button', { class: 'btn small ghost', type: 'button', text: t('Hear a sample'), onclick: () => {
-    const id = sel[setting].value || (setting === 'voiceAf' && S.voiceEn && S.voiceEn.id ? S.voiceEn.id : Speech.DEFAULT_VOICE.id);
+    const id = sel[setting].value || Speech.standardVoice(setting === 'voiceAf' ? 'af' : 'en').id;
     const v = (list || []).find(x => x.id === id);
     if (!v || !v.preview) { toast(t('Tap "Check key" first: the samples come with the list of voices.'), true); return; }
     if (player) { player.pause(); player = null; }
@@ -507,7 +507,7 @@ function voiceSection(container) {
   const qualitySeg = seg(Speech.QUALITIES, S.voiceQuality === 'cheaper' ? 'cheaper' : 'best', v => saveSetting('voiceQuality', v), { block: true, label: t('Voice quality') });
 
   container.append(section(t('Read aloud'), [
-    el('p', { class: 'small', text: t('An ElevenLabs voice can read the sermon to you, under "Print or save" in a preparation: the text word, the introduction, the main points, the summary, the application and the conclusion, as "The sermon" prints them, in English or in Afrikaans. It works with a key of your own: you pay ElevenLabs for the characters it reads, and the key stays on this device, out of any backup.') }),
+    el('p', { class: 'small', text: t('An ElevenLabs voice can read the sermon to you, under "Print or save" in a preparation: the text word, the introduction, the main points, the summary, the application and the conclusion, as "The sermon" prints them, in English or in Afrikaans. Under step 2 it reads the Guide\'s article too. It works with a key of your own: you pay ElevenLabs for the characters it reads, and the key stays on this device, out of any backup.') }),
     el('p', { class: 'small', text: t('A sermon of about 1,500 words is about 8,000 characters (every letter, space and full stop counts). The free plan gives 10,000 a month, enough for one sermon; the Starter plan (about $6 a month) gives 75,000, about nine sermons. A recording is kept on this device, so listening again costs nothing.') }),
     howToVoiceKey(),
     keyField,
@@ -516,12 +516,13 @@ function voiceSection(container) {
       voiceField(t('Voice for English'), 'voiceEn', null),
       voiceField(t('Voice for Afrikaans'), 'voiceAf', t('Any voice can read Afrikaans. For a South African sound, add an Afrikaans voice from the Voice Library at elevenlabs.io to your voices; it then shows here.')),
     ]),
+    el('p', { class: 'muted small', text: t('With no voice chosen, the app reads with the standard voices: Jerome\'s own, cloned at ElevenLabs. They work with his key only; another key falls back to George, a voice every account has.') }),
     listHint,
     el('div', { class: 'fields two' }, [
       el('label', { class: 'f' }, [t('Speed'), speedSeg, el('span', { class: 'hint muted small', text: t('How fast the voice reads. "Slower" helps to hear every word.') })]),
       el('label', { class: 'f' }, [t('Voice quality'), qualitySeg, el('span', { class: 'hint muted small', text: t('"Best" is the newest ElevenLabs voice and counts one character per letter. "Cheaper" counts half a character per letter and sounds a little less natural.') })]),
     ]),
-    el('p', { class: 'muted small', text: t('What goes to ElevenLabs: the text of the sermon, nothing else. ElevenLabs keeps the recordings in your account\'s history, where you can delete them.') }),
+    el('p', { class: 'muted small', text: t('What goes to ElevenLabs: the text of the sermon or of the Guide\'s article, nothing else. ElevenLabs keeps the recordings in your account\'s history, where you can delete them.') }),
   ]));
   fillVoices(null);
   if (Speech.ready()) {

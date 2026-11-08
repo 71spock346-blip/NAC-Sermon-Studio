@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=59">
+<link rel="stylesheet" href="styles.css?v=61">
 </head>
 <body class="help">
 <header class="top">
@@ -259,6 +259,7 @@ side by side: the Bible text, the title and message, the introduction, the main 
     the language of the app.</li>
   <li><b>Hear the sermon:</b> under "Print or save", <b>Read aloud</b> has an ElevenLabs voice read the sermon to you,
     the same text as "The sermon", in English or in Afrikaans, with the headings in the language of the preparation.
+    Under step 2, <b>Hear the Guide</b> reads the Guide's article the same way, in the Guide's language.
     The recording stays on this device: listen again as often as you like, save it as an MP3, or read it again after
     a change (the app says when the sermon has changed since). It needs a key of your own under Settings → Read
     aloud (see "The voice that reads the sermon" below).</li>
@@ -426,7 +427,9 @@ on your device and are never included in a backup.</p>
 <p><b>ElevenLabs</b> makes the voice that reads a sermon aloud. Open <a href="https://elevenlabs.io" target="_blank" rel="noopener">elevenlabs.io</a>,
 create an account or sign in, choose "API keys" under your name at the bottom left and create a key (leave its access
 as it is; the key is shown once). Paste it under Settings → Read aloud and tap "Check key": it lists the voices of your
-account, and you choose one for English and one for Afrikaans, hear a sample of each, and set the speed. Any voice
+account, and you choose one for English and one for Afrikaans, hear a sample of each, and set the speed. Without a
+choice, the app reads with Jerome's own voices, cloned at ElevenLabs, one for English and one for Afrikaans; with
+another account's key they fall back to George, a voice every account has. Any voice
 can read Afrikaans; for a South African sound, add an Afrikaans voice from the Voice Library at elevenlabs.io to your
 voices. You pay ElevenLabs for the characters it reads: a sermon of about 1,500 words is about 8,000 characters; the
 free plan gives 10,000 a month, the Starter plan (about $6 a month) 75,000. A recording is kept on the device, so
@@ -706,6 +709,8 @@ samevatting.</p>
     app.</li>
   <li><b>Luister na die preek:</b> onder "Druk of stoor" laat <b>Lees hardop</b> 'n ElevenLabs-stem die preek vir jou
     lees, dieselfde teks as "Die preek", in Engels of in Afrikaans, met die opskrifte in die taal van die voorbereiding.
+    Onder stap 2 lees <b>Luister na die Handleiding</b> die Handleiding se artikel op dieselfde manier, in die
+    Handleiding se taal.
     Die opname bly op hierdie toestel: luister weer so dikwels as wat jy wil, stoor dit as 'n MP3, of lees dit weer ná
     'n verandering (die app sê wanneer die preek sedertdien verander het). Dit het 'n sleutel van jou eie nodig onder
     Verstellings → Lees hardop (sien "Die stem wat die preek lees" hieronder).</li>
@@ -880,7 +885,9 @@ kontroleer dan die sleutel weer. Sleutels word net op jou toestel gestoor en is 
 skep 'n rekening of meld aan, kies "API keys" onder jou naam links onder en maak 'n sleutel (laat sy toegang soos dit
 is; die sleutel word een keer gewys). Plak dit onder Verstellings → Lees hardop en tik op "Kontroleer sleutel": dit lys
 die stemme van jou rekening, en jy kies een vir Engels en een vir Afrikaans, luister na 'n voorbeeld van elk, en stel
-die spoed. Enige stem kan Afrikaans lees; vir 'n Suid-Afrikaanse klank, voeg 'n Afrikaanse stem uit die Voice Library
+die spoed. Sonder 'n keuse lees die program met Jerome se eie stemme, by ElevenLabs gekloon, een vir Engels en een
+vir Afrikaans; met 'n ander rekening se sleutel val hulle terug op George, 'n stem wat elke rekening het. Enige stem
+kan Afrikaans lees; vir 'n Suid-Afrikaanse klank, voeg 'n Afrikaanse stem uit die Voice Library
 by elevenlabs.io by jou stemme. Jy betaal ElevenLabs vir die karakters wat dit lees: 'n preek van omtrent 1 500 woorde
 is omtrent 8 000 karakters; die gratis plan gee 10 000 per maand, die Starter-plan (omtrent $6 per maand) 75 000. 'n
 Opname word op die toestel gehou, dus kos dit niks om weer te luister nie. Net die teks van die preek gaan na
