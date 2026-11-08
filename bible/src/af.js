@@ -994,6 +994,12 @@ export const AF = {
   "Print": "Druk",
   "The Guide, piece by piece": "Die Handleiding, stuk vir stuk",
   "There is no breakdown of the article yet.": "Daar is nog geen ontleding van die artikel nie.",
+  "Piece by piece": "Stuk vir stuk",
+  "The article in plain words": "Die artikel in eenvoudige woorde",
+  "Piece by piece is the study sheet: the Guide's words, the plain words, the insight and the passages. The article in plain words is the whole article as one piece, in plain words only, to read in one go.": "Stuk vir stuk is die studieblad: die Handleiding se woorde, die eenvoudige woorde, die insig en die gedeeltes. Die artikel in eenvoudige woorde is die hele artikel as een stuk, net in eenvoudige woorde, om in een slag te lees.",
+  "The Guide in plain words": "Die Handleiding in eenvoudige woorde",
+  "The breakdown has no plain words to print yet.": "Die ontleding het nog geen eenvoudige woorde om te druk nie.",
+  "Divine Service Guide © New Apostolic Church International. Put in plain words by {model} for your own preparation; the Guide's own words stand in the booklet.": "Handleiding vir Godsdienste © Nuwe Apostoliese Kerk Internasionaal. Deur {model} in eenvoudige woorde gestel vir jou eie voorbereiding; die Handleiding se eie woorde staan in die boekie.",
   "Divine Service Guide © New Apostolic Church International. Broken down by {model} for your own preparation; a starting point, not the sermon.": "Handleiding vir Godsdienste © Nuwe Apostoliese Kerk Internasionaal. Deur {model} ontleed vir jou eie voorbereiding; 'n beginpunt, nie die preek nie.",
   // ---- the reflection evening (reflect.js, prepare.js, ai.js)
   "Reflection evening": "Besinningsaand",
