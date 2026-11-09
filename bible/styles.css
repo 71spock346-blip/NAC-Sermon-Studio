@@ -507,6 +507,10 @@ nav.side .lang-switch { align-self: flex-start; margin-bottom: 4px; }
 .item.pick { display: block; width: 100%; }
 .item.pick .note-head { margin-bottom: 2px; }
 .list > p.muted { padding: 14px; margin: 0; }
+/* "Show held services (n)" / "Hide held services": a quiet row in a list of services, where the held ones show (guides.js heldToggle) */
+.item.held-toggle { justify-content: center; gap: 8px; background: var(--surface-2); color: var(--accent-text); font-size: 14px; font-weight: 600; }
+.held-toggle .held-ico { display: inline-flex; flex: 0 0 auto; }
+.held-toggle .held-ico svg { display: block; width: 18px; height: 18px; }
 
 /* ------------------------------------------------------------ reader */
 .readbar { position: sticky; top: var(--top); z-index: 3; background: var(--bg); padding: 2px 0 8px; margin: -2px 0 10px; border-bottom: 1px solid var(--line); }
