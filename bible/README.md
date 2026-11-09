@@ -330,7 +330,11 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   service, and 9 the slides for the reflection evening. `guides.js prefill` puts each part of the article into its own step;
   `guides.js upgrade` moves the Summary and Context of a preparation made before
   November 2026 out of "Notes from the Guide" into steps 6 and 5 while those notes are
-  still the Guide's own words.
+  still the Guide's own words. A service whose preparation is marked Held leaves both
+  lists under Prepare (the Guide's services and the preparations) until "Show held
+  services" is tapped (`guides.js heldToggle`, at the top of the Guide's list and at the
+  end of the preparations, where the held ones show); the choice lasts while the app is
+  open, and the search still finds held services.
 - **PDF.** `src/pdf.js` draws the sermon notes (A4, in the order of the steps), the sermon
   itself and the cue cards (A5 landscape: each main point with its main thoughts under it, picked
   by `mainThoughts`, and the minister's own thought in blue; a point never splits over two cards)

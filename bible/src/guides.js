@@ -450,10 +450,9 @@ export function noKey() {
 
 /* ---------------------------------------------------------------- the card in the Prepare list */
 
-function serviceRow(guide, i, onPrepare) {
+function serviceRow(guide, i, onPrepare, done = preparationsFor(guide, i)) {
   const svc = guide.services[i];
   const ref = refOf(svc);
-  const done = preparationsFor(guide, i);
   const row = el('button', { class: 'item svc', type: 'button', onclick: () => {
     if (done.length) { location.hash = `#prepare/${done[0].id}`; return; }
     onPrepare(guide, i);
@@ -466,6 +465,31 @@ function serviceRow(guide, i, onPrepare) {
     done.length ? el('span', { class: 'pill status ' + (done[0].status || 'draft'), text: t(done[0].status === 'ready' ? 'Ready' : done[0].status === 'held' ? 'Held' : 'Draft') }) : el('span', { class: 'pill link', text: t('Prepare') }),
   ]);
   return row;
+}
+
+/* A service already held is out of the way: it leaves the list once its preparation is marked Held, and comes
+   back while "Show held services" is on. That choice holds while the app is open; the next start hides them again. */
+let heldShown = false;
+
+const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.9 5.2A9.7 9.7 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.6 3.5M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/></svg>';
+
+/**
+ * The row in a list of services that shows or hides the n services already
+ * held: "Show held services (n)" while they are hidden, "Hide held services"
+ * while they show. Used by the Guide's card and by the list of preparations.
+ */
+export function heldToggle(n, open, onToggle) {
+  return el('button', { class: 'item held-toggle', type: 'button', 'aria-expanded': open ? 'true' : 'false', onclick: onToggle }, [
+    el('span', { class: 'held-ico', html: open ? EYE_OFF : EYE }),
+    el('span', { text: open ? t('Hide held services') : t('Show held services ({n})', { n }) }),
+  ]);
+}
+
+/** After a list is drawn again: the focus back on its new "Show held services" row, so a keyboard stays where it was. */
+export function refocus(root) {
+  const b = root.querySelector('.held-toggle');
+  if (b) b.focus({ preventScroll: true });
 }
 
 /* The month and language the card shows while the app is open: the last chosen on the card, or the Guide just
@@ -517,6 +541,12 @@ export function card({ onPrepare, onChange }) {
     count.textContent = ' · ' + tn(current.services.length, '{n} service', '{n} services') + (both ? ' · ' + t('English and Afrikaans') : '');
     // the same Guide in the other language, not loaded yet: the button to load it
     const missing = !otherEdition(current) && { en: 'af', af: 'en' }[current.language];
+    // the services already held stay out of the list until asked for (heldToggle), the way their pill reads
+    const rows = current.services.map((_, i) => ({ i, done: preparationsFor(current, i) }));
+    const isHeld = r => r.done.length > 0 && r.done[0].status === 'held';
+    const held = rows.filter(isHeld).length;
+    const visible = held && !heldShown ? rows.filter(r => !isHeld(r)) : rows;
+    const toggle = held ? heldToggle(held, heldShown, () => { heldShown = !heldShown; draw(); refocus(body); }) : null;
     clear(body);
     body.append(...[
       month.editions.length > 1 ? el('div', { class: 'row line guide-langs' }, [
@@ -524,7 +554,9 @@ export function card({ onPrepare, onChange }) {
         seg(month.editions.map(g => [g.id, editionLabel(g)]), current.id, id => { current = month.editions.find(g => g.id === id) || current; keep = current.language; remember(); draw(); }, { label: t('Language of the Guide') }),
       ]) : null,
       el('p', { class: 'small muted', text: t('Tap a service to start its preparation, or to open the one already started. Loaded {date} from "{file}".', { date: fmtDate(current.loadedAt), file: current.fileName || t('a PDF') }) }),
-      el('div', { class: 'list' }, current.services.map((_, i) => serviceRow(current, i, onPrepare))),
+      el('div', { class: 'list' }, visible.length || !held
+        ? [toggle, ...visible.map(r => serviceRow(current, r.i, onPrepare, r.done))]   // held services come early in the month, so they show under the row that brings them
+        : [el('p', { class: 'muted', text: t('All services in this Guide are held.') }), toggle]),
       missing && canLoad ? el('p', { class: 'small guide-twin', text: missing === 'af'
         ? t('Do you have this Guide in Afrikaans too? Load it as well. Each service is then linked to the same one in English, and each preparation can follow either language.')
         : t('Do you have this Guide in English too? Load it as well. Each service is then linked to the same one in Afrikaans, and each preparation can follow either language.') }) : null,

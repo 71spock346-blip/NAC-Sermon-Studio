@@ -536,6 +536,11 @@ export const AF = {
   "Linked to the English Guide of the same month.": "Gekoppel aan die Engelse Handleiding van dieselfde maand.",
   "Linked to the Afrikaans Guide of the same month.": "Gekoppel aan die Afrikaanse Handleiding van dieselfde maand.",
   "Tap a service to start its preparation, or to open the one already started. Loaded {date} from \"{file}\".": "Tik op 'n godsdiens om sy voorbereiding te begin, of om die een wat reeds begin is oop te maak. Gelaai {date} uit \"{file}\".",
+  // the services already held, out of the way in the Prepare list (guides.js heldToggle, prepare.js renderList)
+  "Show held services ({n})": "Wys dienste wat gehou is ({n})",
+  "Hide held services": "Verberg dienste wat gehou is",
+  "All services in this Guide are held.": "Al die godsdienste in hierdie Handleiding is gehou.",
+  "All your services are held.": "Al jou godsdienste is gehou.",
   "The {title} has a service on {reference}: it is listed first.": "Die {title} het 'n godsdiens oor {reference}: dit word eerste gelys.",
   "The service in the Guide": "Die godsdiens in die Handleiding",
   "Message ": "Boodskap ",

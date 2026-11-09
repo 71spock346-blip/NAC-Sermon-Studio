@@ -200,14 +200,22 @@ export function render(container, route) {
 }
 
 /* ---------------------------------------------------------------- the list */
+
+/* The services already held, out of the way in the list until "Show held services" is tapped (as in the Guide's
+   card, guides.js heldToggle); the choice holds while the app is open. A search finds them all the same. */
+let heldShown = false;
+
 function renderList(container) {
   const search = el('input', { type: 'search', placeholder: t('Search by text, congregation or theme…'), 'aria-label': t('Search preparations'), autocomplete: 'off' });
   const list = el('div', { class: 'list' });
   function show() {
     clear(list);
     const q = search.value.trim().toLowerCase();
-    const items = state.sermons.filter(s => !q || [s.refText, s.congregation, s.theme, s.title, s.occasion, s.date].join(' ').toLowerCase().includes(q));
-    if (!items.length) list.append(el('p', { class: 'muted', text: state.sermons.length ? t('Nothing matches.') : t('No preparations yet. Tap "New preparation", or select verses in the reader and choose "Prepare a service".') }));
+    const found = state.sermons.filter(s => !q || [s.refText, s.congregation, s.theme, s.title, s.occasion, s.date].join(' ').toLowerCase().includes(q));
+    const held = q ? 0 : found.filter(s => s.status === 'held').length;
+    const items = held && !heldShown ? found.filter(s => s.status !== 'held') : found;
+    if (!found.length) list.append(el('p', { class: 'muted', text: state.sermons.length ? t('Nothing matches.') : t('No preparations yet. Tap "New preparation", or select verses in the reader and choose "Prepare a service".') }));
+    else if (!items.length) list.append(el('p', { class: 'muted', text: t('All your services are held.') }));
     for (const s of items) {
       list.append(el('a', { class: 'item sermon', href: `#prepare/${s.id}` }, [
         el('div', { class: 'when' }, [el('b', { text: fmtDate(s.date, true) || t('No date') }), el('span', { class: 'muted small', text: [s.congregation, t(s.occasion)].filter(Boolean).join(' · ') })]),
@@ -219,6 +227,8 @@ function renderList(container) {
         el('span', { class: 'pill status ' + (s.status || 'draft'), text: t(STATUS_LABEL[s.status] || 'Draft') }),
       ]));
     }
+    // held services are the oldest, at the end of the list: the row that brings them back stands where they show
+    if (held) list.append(Guides.heldToggle(held, heldShown, () => { heldShown = !heldShown; show(); Guides.refocus(list); }));
   }
   search.addEventListener('input', show);
   container.append(
