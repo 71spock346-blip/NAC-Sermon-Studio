@@ -336,9 +336,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   end of the preparations, where the held ones show); the choice lasts while the app is
   open, and the search still finds held services.
 - **PDF.** `src/pdf.js` draws the sermon notes (A4, in the order of the steps), the sermon
-  itself and the cue cards (A5 landscape: each main point with its main thoughts under it, picked
-  by `mainThoughts`, and the minister's own thought in blue; a point never splits over two cards)
-  with the vendored jsPDF.
+  itself and the cue cards (A5 portrait, the size of the minister's cards on the altar: the
+  introduction and each main point with its main thoughts under it, picked by `mainThoughts`, and
+  the minister's own thought in blue; a point never splits over two cards; while the minister's own
+  introduction is empty, the Guide's stands there, marked as the Guide's) with the vendored jsPDF.
 - **Read aloud.** `src/speech.js` has an ElevenLabs voice read the sermon, the same text
   as "The sermon" (`pdf.js sermonParts`), straight from the browser with the person's own
   key (`settings.voiceKey`, kept on the device like the other keys). The text goes in

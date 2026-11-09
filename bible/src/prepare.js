@@ -10,7 +10,7 @@
  * application, the conclusion); then the person's own 7 illustrations and
  * experiences, and 8 a reflection after the service. Everything saves as it
  * is typed. Two printed outputs come from it, in the same order: the full
- * sermon notes and cue cards for the pulpit.
+ * sermon notes and A5 cue cards for the altar.
  *
  * Helpers sit alongside the form. A loaded Divine Service Guide (guides.js)
  * fills each step from its part of the article in one tap and keeps the
@@ -1438,7 +1438,7 @@ function renderEditor(root, s) {
   ]));
 
   // ---- output
-  container.append(step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue cards are for the pulpit, in large type: each main point with its main thoughts under it, and your own thought on the point in blue.')));
+  container.append(step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar, in large type: the introduction and each main point with its main thoughts under it, and your own thought on the point in blue.')));
   async function run(make, how) {
     try {
       await Cat.loadText().catch(() => false);
@@ -1460,7 +1460,8 @@ function renderEditor(root, s) {
   container.append(el('div', { class: 'outputs' }, [
     outRow(t('Sermon notes'), Pdf.sermonPdf, true),
     outRow(t('The sermon'), Pdf.sermonTextPdf, true),
-    outRow(t('Cue cards'), Pdf.cueCardPdf, false),
+    // while the person's own introduction is empty, the cards carry the Guide's (pdf.js cueIntro)
+    outRow(t('Cue cards'), x => Pdf.cueCardPdf(x, { service: (Guides.findService(x) || {}).service }), false),
   ]));
 
   // ---- hear the sermon (speech.js, listen.js): the same text as "The sermon", read by an ElevenLabs voice; the recording stays with this preparation on this device
