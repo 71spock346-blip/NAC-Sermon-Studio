@@ -334,7 +334,12 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   lists under Prepare (the Guide's services and the preparations) until "Show held
   services" is tapped (`guides.js heldToggle`, at the top of the Guide's list and at the
   end of the preparations, where the held ones show); the choice lasts while the app is
-  open, and the search still finds held services.
+  open, and the search still finds held services. The editor folds: every step is a
+  section whose heading row opens and closes it (`prepare.js step`), a closed step says
+  in one line what it holds, and a bar of the steps in the pinned heading (a column
+  beside the page from 1480px) jumps to any step, marks the ones with something in
+  them and the one on the screen; the steps open on a device are remembered for each
+  preparation (`localStorage sb-prep-open`).
 - **PDF.** `src/pdf.js` draws the sermon notes (A4, in the order of the steps), the sermon
   itself and the cue cards (A5 landscape: each main point with its main thoughts under it, picked
   by `mainThoughts`, and the minister's own thought in blue; a point never splits over two cards)

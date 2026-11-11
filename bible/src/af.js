@@ -235,6 +235,23 @@ export const AF = {
   "Saved": "Gestoor",
   "Saved ": "Gestoor ",
 
+  // the steps fold, and the step bar jumps between them (prepare.js step, the foot of renderEditor)
+  "The service": "Die godsdiens",
+  "The date, the congregation and the occasion": "Die datum, die gemeente en die geleentheid",
+  "Nothing yet": "Nog niks",
+  "Intro": "Inleiding",
+  "Points": "Punte",
+  "After": "Daarna",
+  "Evening": "Aand",
+  "Steps": "Stappe",
+  "Open all": "Maak almal oop",
+  "Close all": "Maak almal toe",
+  "Claude's suggestions": "Claude se voorstelle",
+  "The slides are made.": "Die skyfies is gemaak.",
+  "No slides yet.": "Nog geen skyfies nie.",
+  "{n} main point": "{n} hoofpunt",
+  "{n} main points": "{n} hoofpunte",
+
   // step 1
   "The text word": "Die tekswoord",
   "Read it slowly, more than once, and pray before writing anything. Fetch the text from a translation, or type it in yourself.": "Lees dit stadig, meer as een keer, en bid voordat jy iets skryf. Haal die teks uit 'n vertaling, of tik dit self in.",

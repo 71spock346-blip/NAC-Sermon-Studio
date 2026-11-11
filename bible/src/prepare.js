@@ -64,6 +64,15 @@
  * ElevenLabs voice read that same sermon aloud (speech.js), from the boxes
  * or, with the outline's own "Read aloud", as Claude built it; the recording
  * stays with the preparation on this device.
+ *
+ * The page is long, so it folds (November 2026): every step is a section
+ * whose heading row opens and closes it, and a closed step says in one line
+ * what it holds, so the person sees at a glance what is written and what is
+ * still to come. A bar of the steps (chips under the pinned heading on a
+ * phone, a column beside the page on a wide PC) jumps to any step and shows
+ * which steps have something in them and which one is on the screen. The
+ * steps open on this device are remembered for each preparation (step() and
+ * the step bar at the foot of renderEditor).
  */
 import { el, clear, toast, sheet, confirmBox, fmtDate, debounce, nextSunday, today, fit, lineBox, busy, isTouch, seg } from './ui.js';
 import { t, tn } from './i18n.js';
@@ -186,10 +195,12 @@ function sectionsForRef(ref) {
 
 export function render(container, route) {
   clear(container);
+  container.classList.remove('editing');   // the editor's step bar takes room beside the page on a wide PC (styles.css)
   if (route[1]) {
     const s = state.sermons.find(x => x.id === route[1]);
     if (s) {
       if (Guides.upgrade(s)) saveSermon(s).catch(() => {});   // made before the Guide's Context and Summary had steps of their own
+      container.classList.add('editing');
       return renderEditor(container, s);
     }
     toast(t('That preparation was not found.'), true);
@@ -375,7 +386,7 @@ function renderEditor(root, s) {
     setTimeout(() => { savedBadge.hidden = true; }, 1500);
   }, 500);
   let sermonCard = null;   // the player under Print or save (listen.js): it says when the sermon has changed since it was read
-  const touch = () => { save(); if (sermonCard) sermonCard.check(); };
+  const touch = () => { save(); if (sermonCard) sermonCard.check(); refreshSteps(); };
   const inputs = {};   // key -> its box, so a suggestion can be put into it
 
   // the title of a section of the sermon, above its box: styled as a heading (see #tab-prepare .f-title in styles.css)
@@ -423,14 +434,105 @@ function renderEditor(root, s) {
     inputs[key] = input;
     return el('label', { class: 'f' + (opts.cls ? ' ' + opts.cls : '') }, [opts.noClear ? title(label) : head(label, key, input), input, opts.hint ? el('span', { class: 'hint muted small', text: opts.hint }) : null]);
   }
-  /** A step's heading; with `onClear` it carries "Clear this step" at the right. */
-  function step(n, title, hint, onClear) {
-    return el('div', { class: 'step-head' }, [
-      el('span', { class: 'step-n', text: n }),
-      el('div', { class: 'step-text' }, [el('h3', { text: title }), hint ? el('p', { class: 'muted small', text: hint }) : null]),
-      onClear ? el('button', { class: 'btn small ghost step-clear', type: 'button', text: t('Clear this step'), onclick: onClear }) : null,
-    ]);
+  /* ---- the steps fold
+   * Each step is a section with a heading row that opens and closes it.
+   * Closed, the row says in one line what the step holds (STEPS below);
+   * open, it shows the hint and the boxes. What is appended to `container`
+   * after step() goes into that step, until the next step(). The step bar
+   * at the foot of the editor jumps between them.
+   */
+  const sections = [];
+  const has = v => !!(v || '').trim();
+  const none = () => t('Nothing yet');
+  const names = list => list.filter(([ok]) => ok).map(([, name]) => name);
+  const withAi = (text, a) => (a && AI.unlocked() ? `${text} · ${t('Claude\'s suggestions')}` : text);   // a suggestion panel waits inside
+  const STEPS = {
+    service: { short: t('Service'), filled: () => true,
+      summary: () => [fmtDate(s.date, true), (s.congregation || '').trim(), s.occasion ? t(s.occasion) : '', s.audience ? t(AI.audienceLabel(s.audience)) : ''].filter(Boolean).join(' · ') || t('The date, the congregation and the occasion') },
+    1: { short: t('Text'), filled: () => !!s.ref || has(s.refText) || has(s.text),
+      summary: () => (s.ref || has(s.refText) ? [s.ref ? formatRef(s.ref, lang) : s.refText.trim(), (s.translation || '').trim()].filter(Boolean).join(' · ') : none()) },
+    2: { short: t('Title'), filled: () => has(s.title) || has(s.theme) || has(s.core) || has(s.guide),
+      summary: () => withAi(short(s.title) || short(s.theme) || short(s.core) || short(s.guide) || none(), s.breakdown) },
+    3: { short: t('Intro'), filled: () => has(s.intro), summary: () => short(s.intro) || none() },
+    4: { short: t('Points'), filled: () => (s.points || []).some(p => p && !emptyPoint(p)),
+      summary: () => {
+        const pts = (s.points || []).filter(p => p && !emptyPoint(p));
+        const heads = pts.map(p => (p.heading || '').trim()).filter(Boolean);
+        return withAi(pts.length ? tn(pts.length, '{n} main point', '{n} main points') + (heads.length ? ': ' + heads.join(' · ') : '') : none(), s.build);
+      } },
+    5: { short: t('Context'), filled: () => has(s.context) || has(s.keywords) || !!(s.catechism || []).length || has(s.crossRefs),
+      summary: () => withAi(names([[has(s.context), t('Context')], [has(s.keywords), t('Key words')], [(s.catechism || []).length, tn((s.catechism || []).length, '{n} Catechism section', '{n} Catechism sections')], [has(s.crossRefs), t('Cross references')]]).join(' · ') || none(), s.ai) },
+    6: { short: t('Summary'), filled: () => has(s.summary) || has(s.application) || has(s.conclusion),
+      summary: () => names([[has(s.summary), t('Summary')], [has(s.application), t('Application')], [has(s.conclusion), t('Conclusion')]]).join(' · ') || none() },
+    7: { short: t('Illustrations'), filled: () => has(s.illustrations), summary: () => short(s.illustrations) || none() },
+    print: { short: t('Print'), filled: () => true, summary: () => [t('Sermon notes'), t('The sermon'), t('Cue cards'), t('Hear the sermon')].join(' · ') },
+    8: { short: t('After'), filled: () => has(s.reflection), summary: () => short(s.reflection) || none() },
+    9: { short: t('Evening'), filled: () => Reflect.hasSlides(s), summary: () => (Reflect.hasSlides(s) ? t('The slides are made.') : t('No slides yet.')) },
+  };
+  /** The blue circle of a step: its number, the tick of "Print or save", or a calendar for the service itself. */
+  function stepMark(n) {
+    if (n !== 'service') return el('span', { class: 'step-n', text: n });
+    const m = el('span', { class: 'step-n ico', 'aria-hidden': 'true' });
+    m.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>';
+    return m;
   }
+  /**
+   * A step: its heading row (the number, the title, the one-line summary
+   * while it is closed, the hint while it is open, "Clear this step" with
+   * `onClear`) and the body that holds what comes next. `n` is the step's
+   * number, '✓' for "Print or save" or 'service' for the service details.
+   */
+  function step(n, title, hint, onClear) {
+    const key = n === '✓' ? 'print' : String(n);
+    const info = STEPS[key];
+    const body = el('div', { class: 'step-body', id: `step-body-${key}-${++headCount}` });
+    const sum = el('span', { class: 'step-sum' });
+    const toggle = el('button', { class: 'step-toggle', type: 'button', 'aria-expanded': 'true', 'aria-controls': body.id }, [
+      stepMark(n),
+      el('span', { class: 'step-text' }, [el('span', { class: 'step-title', text: title }), sum]),
+      el('span', { class: 'step-chev', 'aria-hidden': 'true' }),
+    ]);
+    const clearBtn = onClear ? el('button', { class: 'btn small ghost step-clear', type: 'button', text: t('Clear this step'), onclick: onClear }) : null;
+    const head = el('div', { class: 'step-head fold open' }, [el('h3', { class: 'step-h' }, toggle), clearBtn, hint ? el('p', { class: 'step-hint muted small', text: hint }) : null]);
+    const sec = el('section', { class: 'step', dataset: { step: key } }, [head, body]);
+    const it = { key, n, title, short: info.short, sec, body, toggle, chip: null, open: true, filled: info.filled };
+    /** Opens or closes the step. */
+    it.set = open => {
+      it.open = !!open;
+      body.hidden = !it.open;
+      head.classList.toggle('open', it.open);
+      toggle.setAttribute('aria-expanded', it.open ? 'true' : 'false');
+      if (clearBtn) clearBtn.hidden = !it.open;
+      it.refresh();
+    };
+    /** The summary line while the step is closed, and the mark in the bar: solid while the step has something in it. */
+    it.refresh = () => {
+      sum.textContent = it.open ? '' : info.summary();
+      const f = !!info.filled();
+      if (it.chip) it.chip.classList.toggle('filled', f);
+    };
+    toggle.addEventListener('click', () => { it.set(!it.open); rememberSteps(); if (it.open) setCurrent(it); });
+    sections.push(it);
+    page.append(sec);
+    container = body;
+    return it;
+  }
+  /** The folded headings and the step bar follow what is typed (touch). */
+  function refreshSteps() { for (const it of sections) it.refresh(); }
+  // which steps of which preparation are open on this device
+  const OPEN_KEY = 'sb-prep-open';
+  function openSteps() { try { return JSON.parse(localStorage.getItem(OPEN_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function rememberSteps() {
+    const all = openSteps();
+    delete all[s.id];
+    all[s.id] = sections.filter(x => x.open).map(x => x.key);   // the preparation used last goes to the end: the oldest is dropped first
+    const ids = Object.keys(all);
+    while (ids.length > 40) delete all[ids.shift()];
+    try { localStorage.setItem(OPEN_KEY, JSON.stringify(all)); } catch (e) { /* private mode: the steps fold afresh next time */ }
+    allWord();
+  }
+  let allWord = () => {};   // the "Open all" / "Close all" button follows the steps (set with the bar)
+  let setCurrent = () => {};
   /**
    * Empties every box of a step after a confirmation, with Undo in the
    * toast. `extra` clears and restores what is not a plain box (ticks, points).
@@ -456,19 +558,20 @@ function renderEditor(root, s) {
   // ---- header
   const statusSel = el('select', { class: 'status-sel', 'aria-label': t('Status of this preparation') }, STATUS.map(([v, l]) => el('option', { value: v, text: t(l), selected: (s.status || 'draft') === v })));
   statusSel.addEventListener('change', () => { s.status = statusSel.value; touch(); });
-  root.append(
-    el('div', { class: 'crumbs' }, [el('a', { href: '#prepare', text: t('‹ All preparations') })]),
-    el('div', { class: 'prep-head' }, [el('div', { class: 'docbar' }, [
-      el('h2', { text: s.ref ? formatRef(s.ref, lang) : t('Service preparation') }),
-      savedBadge,
-      el('div', { class: 'spacer' }),
-      statusSel,
-    ])]));
-  // the form itself sits on a page under the pinned heading
-  const container = el('div', { class: 'page' });
-  root.append(container);
+  const prepHead = el('div', { class: 'prep-head' }, [el('div', { class: 'docbar' }, [
+    el('h2', { text: s.ref ? formatRef(s.ref, lang) : t('Service preparation') }),
+    savedBadge,
+    el('div', { class: 'spacer' }),
+    statusSel,
+  ])]);
+  root.append(el('div', { class: 'crumbs' }, [el('a', { href: '#prepare', text: t('‹ All preparations') })]), prepHead);
+  // the form itself sits on a page under the pinned heading, one folding step after the other (step() above)
+  const page = el('div', { class: 'page' });
+  root.append(page);
+  let container = page;
 
-  // ---- service details
+  // ---- service details: the first section, with the people who listen
+  step('service', t('The service'), null);
   const occSel = el('select', {}, [...OCCASIONS, ...(OCCASIONS.includes(s.occasion) || !s.occasion ? [] : [s.occasion])].map(o => el('option', { value: o, text: t(o), selected: o === s.occasion })));
   occSel.addEventListener('change', () => { s.occasion = occSel.value; touch(); syncHumour(); });
   container.append(el('div', { class: 'fields three' }, [
@@ -520,7 +623,7 @@ function renderEditor(root, s) {
   });
 
   // ---- 1. text word
-  container.append(step(1, t('The text word'), t('Read it slowly, more than once, and pray before writing anything. Fetch the text from a translation, or type it in yourself.')));
+  step(1, t('The text word'), t('Read it slowly, more than once, and pray before writing anything. Fetch the text from a translation, or type it in yourself.'));
   const refInput = el('input', { type: 'text', value: s.ref ? formatRef(s.ref, lang) : (s.refText || ''), placeholder: t('e.g. Psalm 130:7 or Lukas 8:16-18') });
   const refHint = el('span', { class: 'hint muted small' });
   const transSel = el('select', {});
@@ -580,8 +683,8 @@ function renderEditor(root, s) {
     ]));
 
   // ---- 2. the title and message, as the Guide prints them under its Bible text; the Guide's article is at hand here
-  container.append(step(2, t('Title and message'), t('As the Guide gives them: first the title, then the message. Then write the core thought in your own words. The Guide gives the direction; the sermon is how it reaches this congregation.'),
-    () => clearStep(2, t('the title and message'), ['title', 'theme', 'core', 'guide'])));
+  step(2, t('Title and message'), t('As the Guide gives them: first the title, then the message. Then write the core thought in your own words. The Guide gives the direction; the sermon is how it reaches this congregation.'),
+    () => clearStep(2, t('the title and message'), ['title', 'theme', 'core', 'guide']));
   const guideBox = el('div', { class: 'guide-row' });
   container.append(guideBox);
   function renderGuide() {
@@ -798,8 +901,8 @@ function renderEditor(root, s) {
   );
 
   // ---- 3. the introduction: the sermon opens as the Guide's article does; the Guide's own introduction can be read beside it
-  container.append(step(3, t('Introduction'), t('As in the Guide, the sermon opens with an introduction. Make the people feel welcome and open the door to the text.'),
-    () => clearStep(3, t('the introduction'), ['intro'])));
+  step(3, t('Introduction'), t('As in the Guide, the sermon opens with an introduction. Make the people feel welcome and open the door to the text.'),
+    () => clearStep(3, t('the introduction'), ['intro']));
   const introLink = Guides.findService(s);
   const guideIntro = introLink ? (introLink.service.introduction || '').trim() : '';
   if (guideIntro) {
@@ -816,13 +919,13 @@ function renderEditor(root, s) {
   container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }));
 
   // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
-  container.append(step(4, t('Main points'), AI.unlocked()
+  step(4, t('Main points'), AI.unlocked()
     ? t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear.')
     : t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences.'),
     () => clearStep(4, t('the main points'), [], {
       clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
       restore: kept => { s.points = kept; renderPoints(); },
-    })));
+    }));
   const buildBox = el('div', { class: 'ai-box build-box' });
   container.append(buildBox);
   async function askBuild() {
@@ -1131,11 +1234,11 @@ function renderEditor(root, s) {
   }
 
   // ---- 5. the context: the setting of the text, as the Guide's Context box gives it, with the key words, the Catechism and cross references
-  container.append(step(5, t('Context: understand the text'), t('Like the Guide\'s Context box: the setting of the text. Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'),
+  step(5, t('Context: understand the text'), t('Like the Guide\'s Context box: the setting of the text. Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'),
     () => clearStep(5, t('the context'), ['context', 'keywords', 'crossRefs'], {
       clear: () => { const kept = s.catechism || []; s.catechism = []; renderCatechism(); renderTicks(); return kept; },
       restore: kept => { s.catechism = kept; renderCatechism(); renderTicks(); },
-    })));
+    }));
   const aiBox = el('div', { class: 'ai-box' });
   container.append(aiBox);
   const catChoice = el('select', { class: 'small' }, [
@@ -1412,8 +1515,8 @@ function renderEditor(root, s) {
   renderAi();
 
   // ---- 6. the summary and conclusion: the Guide ends with its Summary; the sermon gathers its points up and leads to the altar
-  container.append(step(6, t('Summary and conclusion'), t('The Guide ends with a summary. Gather the main points up in a few short lines, say what they ask of us this week, and lead to the altar.'),
-    () => clearStep(6, t('the summary and conclusion'), ['summary', 'application', 'conclusion'])));
+  step(6, t('Summary and conclusion'), t('The Guide ends with a summary. Gather the main points up in a few short lines, say what they ask of us this week, and lead to the altar.'),
+    () => clearStep(6, t('the summary and conclusion'), ['summary', 'application', 'conclusion']));
   container.append(
     field(t('Summary'), 'summary', { rows: 3, placeholder: t('The main points in a few short lines, to gather them up at the end') }),
     field(t('Application for the congregation'), 'application', { rows: 4, placeholder: t('What does this ask of us this week? Name it for the people in front of you.') }),
@@ -1421,8 +1524,8 @@ function renderEditor(root, s) {
   );
 
   // ---- 7. illustrations: the person's own experiences, which the Guide leaves to the minister
-  container.append(step(7, t('Illustrations and experiences'), t('A true experience says more than an explanation. Bring one in from your notes, or write it here.'),
-    () => clearStep(7, t('illustrations'), ['illustrations'])));
+  step(7, t('Illustrations and experiences'), t('A true experience says more than an explanation. Bring one in from your notes, or write it here.'),
+    () => clearStep(7, t('illustrations'), ['illustrations']));
   const illus = field(t('Illustrations'), 'illustrations', { rows: 5, placeholder: t('A story, an experience, a picture that makes the point visible') });
   const illusArea = illus.querySelector('textarea');
   container.append(illus, el('div', { class: 'row' }, [
@@ -1438,7 +1541,7 @@ function renderEditor(root, s) {
   ]));
 
   // ---- output
-  container.append(step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue cards are for the pulpit, in large type: each main point with its main thoughts under it, and your own thought on the point in blue.')));
+  step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue cards are for the pulpit, in large type: each main point with its main thoughts under it, and your own thought on the point in blue.'));
   async function run(make, how) {
     try {
       await Cat.loadText().catch(() => false);
@@ -1479,12 +1582,12 @@ function renderEditor(root, s) {
   container.append(sermonCard.box);
 
   // ---- 8. reflection
-  container.append(step(8, t('After the service'), t('A few honest lines while it is fresh. They make the next preparation better.'),
-    () => clearStep(8, t('after the service'), ['reflection'])));
+  step(8, t('After the service'), t('A few honest lines while it is fresh. They make the next preparation better.'),
+    () => clearStep(8, t('after the service'), ['reflection']));
   container.append(field(t('Reflection'), 'reflection', { rows: 4, placeholder: t('What spoke? What would you do differently? What did the congregation give back?') }));
 
   // ---- 9. the reflection evening: the congregation looks back on this service, with slides (reflect.js)
-  container.append(step(9, t('Reflection evening'), t('An evening when the congregation looks back on this service and talks about it. The slides show the sermon, its text word, the main points from the Guide and the questions, one at a time.')));
+  step(9, t('Reflection evening'), t('An evening when the congregation looks back on this service and talks about it. The slides show the sermon, its text word, the main points from the Guide and the questions, one at a time.'));
   const made = Reflect.hasSlides(s);
   container.append(el('div', { class: 'row' }, [
     el('a', { class: 'btn small', href: `#reflect/${s.id}`, text: made ? t('Open the slides') : t('Make the slides') }),
@@ -1500,6 +1603,60 @@ function renderEditor(root, s) {
       }
     } }),
   ]));
+
+  // ---- the step bar: a chip for every step, in the pinned heading (a column beside the page on a wide PC, styles.css)
+  const nav = el('nav', { class: 'steps', 'aria-label': t('Steps') });
+  for (const it of sections) {
+    it.chip = el('button', { type: 'button', class: 'step-chip', title: it.title, onclick: () => goTo(it) }, [stepMark(it.n), el('span', { class: 'step-chip-name', text: it.short })]);
+    nav.append(it.chip);
+  }
+  const allBtn = el('button', { type: 'button', class: 'step-chip all', onclick: () => {
+    const open = !sections.every(x => x.open);
+    for (const it of sections) it.set(open);
+    rememberSteps();
+  } });
+  allWord = () => { allBtn.textContent = sections.every(x => x.open) ? t('Close all') : t('Open all'); };
+  nav.append(allBtn);
+  prepHead.append(nav);
+  const motion = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+  const stickyBottom = () => prepHead.getBoundingClientRect().bottom;
+  /** Marks the step on the screen in the bar; on a phone the bar scrolls sideways to show it. */
+  setCurrent = it => {
+    for (const x of sections) {
+      x.chip.classList.toggle('on', x === it);
+      if (x === it) x.chip.setAttribute('aria-current', 'true'); else x.chip.removeAttribute('aria-current');
+    }
+    if (nav.scrollWidth > nav.clientWidth + 1) nav.scrollTo({ left: it.chip.offsetLeft - (nav.clientWidth - it.chip.offsetWidth) / 2, behavior: motion() });
+  };
+  let spyPause = 0;
+  /** Opens a step and brings its heading to just under the pinned heading. */
+  function goTo(it) {
+    if (!it.open) { it.set(true); rememberSteps(); }
+    setCurrent(it);
+    spyPause = Date.now() + 900;   // the smooth scroll passes other steps: the bar keeps to the one chosen
+    const top = it.sec.getBoundingClientRect().top + window.scrollY - stickyBottom() - 10;
+    window.scrollTo({ top: Math.max(0, top), behavior: motion() });
+    if (!isTouch()) it.toggle.focus({ preventScroll: true });
+  }
+  /** As the page scrolls, the bar marks the step whose heading was passed last. */
+  function spy() {
+    if (!page.isConnected) { window.removeEventListener('scroll', spy); return; }   // the editor was drawn again, or left
+    if (Date.now() < spyPause || page.offsetParent === null) return;
+    const y = stickyBottom() + 30;
+    let cur = sections[0];
+    for (const it of sections) if (it.sec.getBoundingClientRect().top <= y) cur = it;
+    if (!cur.chip.classList.contains('on')) setCurrent(cur);
+  }
+  window.addEventListener('scroll', spy, { passive: true });
+  // the steps open last time on this device; a new preparation opens its service and text word, another one the first step of 1 to 7 with nothing in it yet
+  const saved = openSteps()[s.id];
+  let opens;
+  if (Array.isArray(saved)) opens = saved;
+  else if (!s.ref && !has(s.refText) && !has(s.text) && !has(s.title) && !has(s.theme)) opens = ['service', '1'];
+  else { const first = sections.find(x => /^[1-7]$/.test(x.key) && !x.filled()); opens = first ? [first.key] : []; }
+  for (const it of sections) it.set(opens.includes(it.key));
+  allWord();
+  spy();
 }
 
 /** The pencil on the button that opens a suggestion for changing its words (the Notes tab's pen). */
