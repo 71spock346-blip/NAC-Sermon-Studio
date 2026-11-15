@@ -17,8 +17,9 @@
  * the sheet as read, the rector's choices and the file itself (so the file
  * can be written on any of his devices), and one row of the tab's settings
  * ('settings': the congregation, his code in the ministers' list, the names
- * of his priests as he wants them shown, the service times, which events go
- * to the calendar, and the feed's key). They travel with the sync and the
+ * of his priests as he wants them shown, with any he added or took off, the
+ * service times, which events go to the calendar, and the feed's key). A
+ * month also keeps his own events (a service at another congregation). They travel with the sync and the
  * backup. #plan opens the latest month, #plan/2025-10 one month.
  */
 import { el, clear, toast, sheet, confirmBox, download, copyText, seg } from './ui.js';
@@ -29,7 +30,7 @@ import * as L from './plan-lib.js';
 import * as Pdf from './pdf.js';
 import { programmePdf } from './plan-pdf.js';
 
-const DEFAULTS = { congregation: '', myCode: '', roster: [], sundayTime: '09:00', midweekTime: '19:30', eventDefaults: 'all', calKey: '', calId: '', calOn: false, calAt: '' };
+const DEFAULTS = { congregation: '', myCode: '', roster: [], hidden: [], sundayTime: '09:00', midweekTime: '19:30', eventDefaults: 'all', calKey: '', calId: '', calOn: false, calAt: '' };
 const EVENT_CHOICES = [['services', 'Services only'], ['district', 'Services and district events'], ['all', 'Also meetings and deadlines'], ['none', 'Nothing until I tick it']];
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -54,7 +55,7 @@ async function saveSettings(patch) {
 }
 
 /** The plan of a month as plan-lib wants it: the sheet as read plus the rector's choices. */
-const planOf = row => ({ ...row.parsed, month: row.month, year: row.year, services: row.services || {}, events: row.events || {}, extraDays: row.extraDays || [] });
+const planOf = row => ({ ...row.parsed, month: row.month, year: row.year, services: row.services || {}, events: row.events || {}, extraDays: row.extraDays || [], own: row.own || [] });
 
 function compute(row) {
   const s = settings();
@@ -128,7 +129,7 @@ async function openFile(file) {
   }
   if (!parsed || !parsed.days.length) throw new Error((parsed && parsed.problems[0]) || t('No days were found in this sheet.'));
   const myCode = s.myCode || L.guessMyCode(parsed);
-  const roster = L.mergeRoster(s.roster, parsed, myCode);
+  const roster = L.mergeRoster(s.roster, parsed, myCode, s.hidden);
   await saveSettings({ myCode, roster, congregation });
   const id = `plan:${parsed.year}-${L.pad(parsed.month)}`;
   const have = state.plans.find(r => r.id === id);
@@ -136,7 +137,7 @@ async function openFile(file) {
   const row = {
     id, kind: 'plan', month, year, title, fileName: file.name, sheetPath, file: toBase64(bytes),
     parsed: { headerRows, columns, days, ministers, notes, problems, first, last },
-    services: have ? have.services || {} : {}, events: have ? have.events || {} : {}, extraDays: have ? have.extraDays || [] : [],
+    services: have ? have.services || {} : {}, events: have ? have.events || {} : {}, extraDays: have ? have.extraDays || [] : [], own: have ? have.own || [] : [],
   };
   await savePlan(row);
   current = id;
@@ -297,6 +298,7 @@ function servicesCard(row, c) {
       ]),
       el('span', { class: 'grow plan-what' }, [
         state_,
+        s.movedFrom ? el('span', { class: 'small muted plan-note', text: t('The Wednesday service, moved from {day}', { day: L.shortDate(s.movedFrom, locale()) }) }) : null,
         s.visiting.length && !s.off ? el('span', { class: 'small muted plan-note', text: t('{who} at {congregation}', { who: s.visiting.map(v => v.label).join(', '), congregation: c.settings.congregation }) }) : null,
         ...notes.map(n => el('span', { class: 'small muted plan-note', text: n })),
       ]),
@@ -381,7 +383,7 @@ function addDaySheet(row, c) {
 
 function eventsCard(row, c) {
   const list = el('div', { class: 'list plan-list' });
-  const KIND = { service: t('Service'), district: t('District'), meeting: t('Meeting'), admin: t('Deadline') };
+  const KIND = { service: t('Service'), district: t('District'), meeting: t('Meeting'), admin: t('Deadline'), own: t('Own') };
   for (const e of c.list) {
     const id = 'ev-' + e.id.replace(/[^a-z0-9]+/gi, '-');
     const tick = el('input', { type: 'checkbox', id });
@@ -391,17 +393,54 @@ function eventsCard(row, c) {
       await savePlan(row);
       queueFeed();
     });
-    list.append(el('label', { class: 'item plan-event', for: id }, [
-      tick,
-      el('span', { class: 'plan-when' }, [el('b', { text: L.shortDate(e.date, locale()) }), el('span', { class: 'muted small', text: e.start ? e.start + (e.end ? '–' + e.end : '') : e.lastDay ? t('to {date}', { date: L.shortDate(e.lastDay, locale()) }) : t('all day') })]),
-      el('span', { class: 'grow' }, [el('span', { text: e.title }), ' ', el('span', { class: 'pill kind ' + e.kind, text: KIND[e.kind] })]),
-    ]));
+    const when = el('span', { class: 'plan-when' }, [el('b', { text: L.shortDate(e.date, locale()) }), el('span', { class: 'muted small', text: e.start ? e.start + (e.end ? '–' + e.end : '') : e.lastDay ? t('to {date}', { date: L.shortDate(e.lastDay, locale()) }) : t('all day') })]);
+    const what = el('span', { class: 'grow' }, [el('span', { text: e.title }), ' ', el('span', { class: 'pill kind ' + e.kind, text: KIND[e.kind] })]);
+    if (e.kind === 'own') {
+      // the rector's own event: its tick as on the other rows, and a button to change or remove it
+      list.append(el('div', { class: 'item plan-event' }, [el('label', { class: 'plan-event-own', for: id }, [tick, when, what]), el('button', { class: 'btn small ghost', type: 'button', text: t('Change'), onclick: () => ownSheet(row, c, e.id.slice(4)) })]));
+    } else list.append(el('label', { class: 'item plan-event', for: id }, [tick, when, what]));
   }
   const on = c.list.filter(e => e.on).length;
+  const add = el('button', { class: 'btn small ghost', type: 'button', text: t('Add an event'), onclick: () => ownSheet(row, c, '') });
   return section(t('In the calendar'), [
-    el('p', { class: 'small', text: t('What goes into your calendar from this month: {on} of {n} ticked. Untick what you do not need; the standard is set under Settings.', { on, n: c.list.length }) }),
+    el('p', { class: 'small', text: t('What goes into your calendar from this month: {on} of {n} ticked. Untick what you do not need; the standard is set under Settings. Add what is yours alone, such as a service you hold at another congregation.', { on, n: c.list.length }) }),
     list,
-  ]);
+  ], { actions: [add] });
+}
+
+/** An event of the rector's own, new or to change: a day, a time, what it is. It goes into the calendar and onto the priests' programme. */
+function ownSheet(row, c, id) {
+  const cur = id ? (row.own || []).find(e => e.id === id) : null;
+  const sh = sheet(cur ? t('Change the event') : t('Add an event'));
+  const title = el('input', { type: 'text', value: cur ? cur.title : '', placeholder: t('Divine service at Sinoville'), autocomplete: 'off' });
+  const date = el('input', { type: 'date', min: c.plan.first, max: c.plan.last, value: cur ? cur.date : '' });
+  const start = el('input', { type: 'time', value: cur ? cur.start || '' : '' });
+  const end = el('input', { type: 'time', value: cur ? cur.end || '' : '' });
+  const note = el('textarea', { rows: '2', placeholder: t('A line for the calendar (optional)') });
+  note.value = cur ? cur.note || '' : '';
+  const save = el('button', { class: 'btn', type: 'button', text: cur ? t('Save') : t('Add'), onclick: async () => {
+    if (!date.value || !title.value.trim()) { toast(t('Give the day and what it is.'), true); return; }
+    const e = { id: cur ? cur.id : Date.now().toString(36), date: date.value, start: start.value, end: end.value, title: title.value.trim(), note: note.value.trim() };
+    row.own = [...(row.own || []).filter(x => x.id !== e.id), e].sort((x, y) => x.date.localeCompare(y.date) || (x.start || '').localeCompare(y.start || ''));
+    await savePlan(row);
+    queueFeed();
+    sh.close();
+    redraw();
+  } });
+  const remove = cur ? el('button', { class: 'btn ghost danger', type: 'button', text: t('Remove'), onclick: async () => {
+    row.own = (row.own || []).filter(x => x.id !== cur.id);
+    await savePlan(row);
+    queueFeed();
+    sh.close();
+    redraw();
+  } }) : null;
+  sh.body.append(...[
+    el('p', { class: 'small', text: t('Something of your own for the calendar and the priests\' programme: a service you hold at another congregation, a visit, a meeting.') }),
+    field(t('What'), title),
+    el('div', { class: 'fields two' }, [field(t('Date'), date), field(t('From'), start), field(t('Until'), end)]),
+    field(t('Note'), note),
+    el('div', { class: 'row end' }, [remove, save]),
+  ].filter(Boolean));
 }
 
 /* ---- sending */
@@ -512,7 +551,7 @@ function settingsSheet(row) {
   code.addEventListener('change', async () => {
     const myCode = code.value.trim().toUpperCase();
     const patch = { myCode };
-    if (row) patch.roster = L.mergeRoster(s.roster, planOf(row), myCode);
+    if (row) patch.roster = L.mergeRoster(s.roster, planOf(row), myCode, s.hidden);
     await saveSettings(patch);
     sh.close(); settingsSheet(row); redraw();
   });
@@ -521,16 +560,51 @@ function settingsSheet(row) {
   const mid = el('input', { type: 'time', value: s.midweekTime });
   mid.addEventListener('change', () => saveSettings({ midweekTime: mid.value }).then(() => { queueFeed(); redraw(); }));
   const defaults = seg(EVENT_CHOICES, s.eventDefaults, v => saveSettings({ eventDefaults: v }).then(() => { queueFeed(); redraw(); }), { block: true, label: t('Which events go into the calendar') });
+  // the ministers: the section's codes from the sheet, less those taken off, plus those added by hand; each with the name the priests should see
   const roster = el('div', { class: 'plan-roster' });
-  for (const r of s.roster) {
-    const label = el('input', { type: 'text', value: r.label || '' });
-    label.addEventListener('change', async () => {
-      const list = settings().roster.map(x => (x.code === r.code ? { ...x, label: label.value.trim() || L.ministerLabel(x) } : x));
-      await saveSettings({ roster: list });
-      queueFeed(); redraw();
-    });
-    roster.append(el('div', { class: 'row line plan-roster-row' }, [el('code', { class: 'plan-code', text: r.code }), label]));
-  }
+  const drawRoster = () => {
+    clear(roster);
+    const cur = settings();
+    for (const r of cur.roster) {
+      const label = el('input', { type: 'text', value: r.label || '' });
+      label.addEventListener('change', async () => {
+        const list = settings().roster.map(x => (x.code === r.code ? { ...x, label: label.value.trim() || L.ministerLabel(x) } : x));
+        await saveSettings({ roster: list });
+        queueFeed(); redraw();
+      });
+      const remove = el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), title: t('Take this minister off your list'), onclick: async () => {
+        const now = settings();
+        await saveSettings({ roster: now.roster.filter(x => x.code !== r.code), hidden: r.custom ? now.hidden : [...new Set([...(now.hidden || []), r.code])] });
+        drawRoster(); redraw();
+      } });
+      roster.append(el('div', { class: 'row line plan-roster-row' }, [el('code', { class: 'plan-code', text: r.custom && r.code === r.label ? '' : r.code }), label, remove]));
+    }
+    // those taken off the sheet's list, with a way back
+    const gone = row ? (cur.hidden || []).map(code => L.section(planOf(row), cur.myCode).find(m => String(m.code).toUpperCase() === code.toUpperCase())).filter(Boolean) : [];
+    if (gone.length) {
+      roster.append(el('p', { class: 'small muted' }, [
+        t('Removed from the list: {list}', { list: gone.map(m => `${m.code} ${L.ministerLabel(m)}`).join(', ') }), ' ',
+        el('button', { class: 'linklike', type: 'button', text: t('Show again'), onclick: async () => {
+          const now = settings();
+          await saveSettings({ hidden: [], roster: L.mergeRoster(now.roster, planOf(row), now.myCode, []) });
+          drawRoster(); redraw();
+        } }),
+      ]));
+    }
+  };
+  drawRoster();
+  const newName = el('input', { type: 'text', placeholder: 'Pr A Williams', autocomplete: 'off' });
+  const newCode = el('input', { type: 'text', placeholder: t('Code'), style: 'max-width: 6em', autocapitalize: 'characters' });
+  const addRow = el('div', { class: 'row line plan-roster-row' }, [newName, newCode, el('button', { class: 'btn small', type: 'button', text: t('Add a priest'), onclick: async () => {
+    const name = newName.value.trim(), code = newCode.value.trim().toUpperCase();
+    if (!name) { newName.focus(); return; }
+    const key = code || name;
+    const now = settings();
+    if (now.roster.some(x => String(x.code).toUpperCase() === key.toUpperCase())) { toast(t('That code is already in the list.'), true); return; }
+    await saveSettings({ roster: [...now.roster, { code: key, label: name, name, custom: true }], hidden: (now.hidden || []).filter(h => h.toUpperCase() !== key.toUpperCase()) });
+    newName.value = ''; newCode.value = '';
+    drawRoster(); redraw();
+  } })]);
   sh.body.append(...[
     el('div', { class: 'fields two' }, [
       field(t('Your congregation'), cong, t('The heading of your column in the sheet.')),
@@ -539,8 +613,9 @@ function settingsSheet(row) {
       field(t('Midweek service'), mid),
     ]),
     el('h3', { class: 'sub', text: t('Your ministers') }),
-    el('p', { class: 'small', text: s.roster.length ? t('From the sheet\'s ministers\' list. Write each name as the priests should see it.') : t('Open a month\'s file first: the names come from its ministers\' list.') }),
+    el('p', { class: 'small', text: s.roster.length ? t('From the sheet\'s ministers\' list, with any you add. Write each name as the priests should see it; a priest without a code is written into the sheet by name.') : t('Open a month\'s file first: the names come from its ministers\' list.') }),
     roster,
+    addRow,
     el('h3', { class: 'sub', text: t('Calendar') }),
     field(t('Which events go into the calendar'), defaults, t('The standard for a month when its file is opened; each event can still be ticked or unticked.')),
     row ? el('div', { class: 'row end' }, [el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove {month}', { month: L.monthLabel(row.month, row.year, lang()) }), onclick: async () => {

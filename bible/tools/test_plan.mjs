@@ -116,16 +116,34 @@ await test('the roster is the rector and his section, labelled', async () => {
   const kept = L.mergeRoster([{ code: 'C1', label: 'Pr Mark Grey' }], plan, 'C');
   assert.equal(kept.find(r => r.code === 'C1').label, 'Pr Mark Grey');
   assert.equal(kept.length, 4);
+  // one taken off stays off, one added by hand (by name) stays
+  const edited = L.mergeRoster([{ code: 'C1', label: 'Pr Mark Grey' }, { code: 'Pr Williams', label: 'Pr Williams', name: 'Pr Williams', custom: true }], plan, 'C', ['C3']);
+  assert.deepEqual(edited.map(r => r.code), ['C', 'C1', 'C2', 'Pr Williams']);
+  assert.equal(L.whoLabel('Pr Williams', plan, { roster: edited }), 'Pr Williams');
+});
+
+await test('where a closed Wednesday\'s service goes', async () => {
+  assert.equal(L.movedTo('2025-09-24', 'No Service. Service on 25 September'), '2025-09-25');
+  assert.equal(L.movedTo('2025-09-24', 'Geen diens. Diens op Donderdag'), '2025-09-25');
+  assert.equal(L.movedTo('2025-09-24', 'No service. Service on Friday'), '2025-09-26');
+  assert.equal(L.movedTo('2025-09-24', ''), '2025-09-25');
+  assert.equal(L.movedTo('2025-12-31', 'Service on 2 January'), '2026-01-02');
 });
 
 const services = L.serviceDays(plan, settings);
 
-await test('every Sunday and Wednesday is a service day; the holiday Wednesday is off; the DR at the congregation holds that Sunday', async () => {
-  assert.equal(services.length, 11);
-  assert.ok(services.every(s => s.dow === 0 || s.dow === 3));
+await test('every Sunday and Wednesday is a service day; the holiday Wednesday is off and its service moves to the Thursday; the DR at the congregation holds that Sunday', async () => {
+  assert.equal(services.length, 12);
+  assert.ok(services.every(s => s.dow === 0 || s.dow === 3 || s.kind === 'moved'));
   const holiday = services.find(s => s.date === '2025-09-24');
   assert.equal(holiday.off, true);
   assert.equal(holiday.holiday, true);
+  const moved = services.find(s => s.date === '2025-09-25');
+  assert.equal(moved.kind, 'moved');
+  assert.equal(moved.movedFrom, '2025-09-24');
+  assert.equal(moved.time, '19:30');
+  assert.equal(moved.off, false);
+  assert.equal(L.serviceName(moved), 'Midweek service');
   const sun = services.find(s => s.date === '2025-09-28');
   assert.equal(sun.who, '1');
   assert.equal(sun.visiting[0].label, 'DR K Brown');
@@ -137,13 +155,14 @@ await test('every Sunday and Wednesday is a service day; the holiday Wednesday i
 });
 
 await test('the rector\'s choices win over the sheet, and a day can be added', async () => {
-  const chosen = { ...plan, services: { '2025-10-08': { who: 'C1' }, '2025-09-24': { off: false, who: 'C2', time: '18:00' } }, extraDays: ['2025-09-25'] };
+  const chosen = { ...plan, services: { '2025-10-08': { who: 'C1' }, '2025-09-24': { off: false, who: 'C2', time: '18:00' } }, extraDays: ['2025-10-03'] };
   const list = L.serviceDays(chosen, settings);
   assert.equal(list.find(s => s.date === '2025-10-08').who, 'C1');
   const wed = list.find(s => s.date === '2025-09-24');
   assert.equal(wed.off, false);
   assert.equal(wed.time, '18:00');
-  const extra = list.find(s => s.date === '2025-09-25');
+  assert.ok(!list.some(s => s.date === '2025-09-25'), 'held on the Wednesday after all: nothing moves to the Thursday');
+  const extra = list.find(s => s.date === '2025-10-03');
   assert.equal(extra.kind, 'extra');
   assert.equal(extra.time, '19:30');
 });
@@ -152,7 +171,7 @@ const list = L.events(plan, settings, services);
 
 await test('the events: services, district events, meetings and deadlines, with notes on a service day attached to the service', async () => {
   const kinds = list.reduce((m, e) => ({ ...m, [e.kind]: (m[e.kind] || 0) + 1 }), {});
-  assert.equal(kinds.service, 10);
+  assert.equal(kinds.service, 11);   // the moved Thursday service too
   assert.ok(kinds.district >= 4);
   assert.equal(kinds.meeting, 2);   // the module for rectors, all rectors invited
   assert.equal(kinds.admin, 2);     // closing of accounts, twice
@@ -177,6 +196,15 @@ await test('the defaults by kind, and a tick over them', async () => {
   assert.ok(none.every(e => !e.on));
   const ticked = L.events({ ...plan, events: { [none[0].id]: true } }, { ...settings, eventDefaults: 'none' }, services);
   assert.equal(ticked[0].on, true);
+  // the rector's own event is in whatever the default, and lasts an hour and a half in the feed when it has no end
+  const own = L.events({ ...plan, own: [{ id: 'a1', date: '2025-10-22', start: '09:30', end: '', title: 'Divine service at Sinoville', note: '' }] }, { ...settings, eventDefaults: 'none' }, services);
+  const mine = own.find(e => e.kind === 'own');
+  assert.equal(mine.on, true);
+  assert.equal(mine.id, 'own|a1');
+  const ics = L.buildFeed([{ events: own }], { name: 'Sunnyside', now: new Date('2026-11-15T12:00:00Z') });
+  assert.ok(ics.includes('DTSTART:20251022T073000Z'));
+  assert.ok(ics.includes('DTEND:20251022T090000Z'));
+  assert.ok(ics.includes('SUMMARY:Divine service at Sinoville'));
 });
 
 await test('the feed is an iCalendar file with the local times as UTC, whole days for a camp, stable ids', async () => {

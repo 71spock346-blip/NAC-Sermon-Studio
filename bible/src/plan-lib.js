@@ -11,8 +11,9 @@
  * Here that sheet becomes a plan: the title's month and year, each day's
  * date (the sheet gives day numbers only, which roll over where the month
  * changes), the ministers, the district's notes; from it the congregation's
- * service days (Sundays and Wednesdays, and any other day the column marks)
- * with who holds each; the events for the calendar, sorted by kind; and the
+ * service days (Sundays and Wednesdays, the day a holiday Wednesday's
+ * service moves to, and any other day the column marks) with who holds
+ * each; the rector's own events; the events for the calendar, sorted by kind; and the
  * calendar feed and the WhatsApp text that go out. Nothing here touches the
  * database or the page, so each piece can be tried in Node
  * (tools/test_plan.mjs).
@@ -208,12 +209,19 @@ export function section(plan, myCode) {
   return plan.ministers.filter(m => new RegExp(`^${letter}\\d*$`, 'i').test(str(m.code)));
 }
 
-/** The settings' roster brought up to date with the file: new codes are added with a label, labels already given stay. */
-export function mergeRoster(roster, plan, myCode) {
-  const out = (roster || []).map(r => ({ ...r }));
+/**
+ * The settings' roster brought up to date with the file: new codes are added
+ * with a label, labels already given stay, a code the rector took off
+ * (`hidden`) stays off, and a minister he added himself (`custom`, by name
+ * or with a code of his own) stays.
+ */
+export function mergeRoster(roster, plan, myCode, hidden = []) {
+  const gone = new Set((hidden || []).map(h => str(h).toUpperCase()));
+  const out = (roster || []).map(r => ({ ...r })).filter(r => r.custom || !gone.has(str(r.code).toUpperCase()));
   for (const m of section(plan, myCode)) {
+    if (gone.has(str(m.code).toUpperCase())) continue;
     const have = out.find(r => str(r.code).toUpperCase() === str(m.code).toUpperCase());
-    if (have) { if (!have.name) have.name = m.name; have.rank = m.rank; }
+    if (have) { if (!have.name) have.name = m.name; if (!have.custom) have.rank = m.rank; }
     else out.push({ code: str(m.code), label: ministerLabel(m), name: m.name, rank: m.rank });
   }
   return out.sort((a, b) => str(a.code).localeCompare(str(b.code), undefined, { numeric: true }));
@@ -233,20 +241,64 @@ export function whoLabel(who, plan, settings) {
 
 const OFF = /no (morning |evening )?service|geen (oggend|aand)?diens|public holiday|openbare vakansie/i;
 
+/** The texts of a day that concern the congregation: its comments and the cross bookings that name it. */
+const textsOf = (day, cong) => [...day.comments, ...day.cross.filter(c => c.toLowerCase().includes(cong))];
+
+/**
+ * What closes a day: a public holiday in the leaders' columns, or a note
+ * "No service …" about this congregation ("No morning service at Sinoville"
+ * is about Sinoville).
+ */
+function closed(day, texts) {
+  const holiday = Object.values(day.leaders).some(vs => vs.some(v => /public holiday|openbare vakansie/i.test(v)));
+  const offNote = texts.find(x => OFF.test(x) && /no .*service|geen .*diens/i.test(x) && !/\b(at|in|by)\b/i.test(x)) || '';
+  return { holiday, offNote };
+}
+
+/**
+ * Where a closed Wednesday's service goes: the day the note names ("Service
+ * on 25 September", "Diens op Donderdag"), else the day after, as the
+ * congregation does when a public holiday falls on its Wednesday.
+ */
+export function movedTo(date, note) {
+  const s = str(note);
+  const num = /\b(?:on|op)\s+(?:the\s+|die\s+)?(\d{1,2})(?:st|nd|rd|th|de|ste)?(?:\s+([A-Za-z]{3,}))?/i.exec(s);
+  if (num) {
+    const d = dateOf(date);
+    const month = (num[2] && parseMonth(num[2])) || d.getMonth() + 1;
+    const target = iso(month < d.getMonth() + 1 ? d.getFullYear() + 1 : d.getFullYear(), month, Number(num[1]));
+    if (target > date) return target;
+  }
+  const word = /\b(?:on|op)\s+([A-Za-z]{3,})/i.exec(s);
+  if (word && weekdayOf(word[1]) >= 0) { let d = date; for (let i = 0; i < 7; i++) { d = addDays(d, 1); if (dow(d) === weekdayOf(word[1])) return d; } }
+  return addDays(date, 1);
+}
+
 /**
  * The congregation's service days: every Sunday and Wednesday of the plan,
- * and any other day its column marks or the rector added. Each has what the
- * sheet says for that day, a suggestion for who holds it (the column's code,
- * or the district leader the sheet puts in the congregation that day), and
+ * the day a closed Wednesday's service moves to (kind 'moved'), and any
+ * other day its column marks or the rector added. Each has what the sheet
+ * says for that day, a suggestion for who holds it (the column's code, or
+ * the district leader the sheet puts in the congregation that day), and
  * the rector's own choice over it (plan.services[date]).
  */
 export function serviceDays(plan, settings) {
   const cong = str(settings.congregation).toLowerCase();
   const choices = plan.services || {};
   const extra = new Set(plan.extraDays || []);
+  // a Wednesday closed by a holiday or a "No service" note sends its service to another day, unless the rector holds it after all
+  const moved = {};
+  for (const day of plan.days) {
+    if (day.dow !== 3) continue;
+    const { holiday, offNote } = closed(day, textsOf(day, cong));
+    if (!holiday && !offNote) continue;
+    if ((choices[day.date] || {}).off === false) continue;
+    const to = movedTo(day.date, offNote);
+    if (plan.days.some(d => d.date === to && d.dow !== 0 && d.dow !== 3)) moved[to] = day.date;
+  }
   const out = [];
   for (const day of plan.days) {
-    const kind = day.dow === 0 ? 'sunday' : day.dow === 3 ? 'midweek' : (day.mine || extra.has(day.date)) ? 'extra' : '';
+    const kind = day.dow === 0 ? 'sunday' : day.dow === 3 ? 'midweek' : moved[day.date] ? 'moved' : (day.mine || extra.has(day.date)) ? 'extra' : '';
     if (!kind) continue;
     const visiting = [];
     for (const [key, values] of Object.entries(day.leaders)) {
@@ -255,15 +307,13 @@ export function serviceDays(plan, settings) {
         visiting.push({ key, code: m ? str(m.code) : '', label: m ? ministerLabel(m) : plan.columns.leaders.find(l => l.key === key).header });
       }
     }
-    const texts = [...day.comments, ...day.cross.filter(c => c.toLowerCase().includes(cong))];
-    const holiday = Object.values(day.leaders).some(vs => vs.some(v => /public holiday|openbare vakansie/i.test(v)));
-    // "No service. Service on the 25th" closes the day; "No morning service at Sinoville" is about Sinoville, and a code in the column says the service is held
-    const offNote = texts.find(x => OFF.test(x) && /no .*service|geen .*diens/i.test(x) && !/\b(at|in|by)\b/i.test(x));
+    const texts = textsOf(day, cong);
+    const { holiday, offNote } = closed(day, texts);
     const auto = { who: day.mine || (visiting[0] && visiting[0].code) || '', off: holiday || (!!offNote && !day.mine) };
     const choice = choices[day.date] || {};
     const time = choice.time || (kind === 'sunday' ? settings.sundayTime : settings.midweekTime) || '';
     out.push({
-      date: day.date, dow: day.dow, kind, time, visiting, holiday,
+      date: day.date, dow: day.dow, kind, time, visiting, holiday, movedFrom: moved[day.date] || '',
       notes: texts, leaders: day.leaders,
       who: 'who' in choice ? str(choice.who) : auto.who,
       off: 'off' in choice ? !!choice.off : auto.off,
@@ -307,8 +357,8 @@ export const slug = s => str(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replac
 
 /**
  * Everything in the plan that can go in the calendar: the services, with
- * who holds them, and the district's events by kind ('district', 'meeting',
- * 'admin'). A district note on a service day that gives no time of its own
+ * who holds them, the district's events by kind ('district', 'meeting',
+ * 'admin') and the rector's own ('own'). A district note on a service day that gives no time of its own
  * (Thanksgiving Day, Young People Serving Christ Sunday) belongs to that
  * service and is not an event of its own. `on` says whether it goes in:
  * the rector's tick (plan.events[id]), else the setting's default.
@@ -317,7 +367,7 @@ export function events(plan, settings, services) {
   const cong = str(settings.congregation).toLowerCase();
   const defaults = settings.eventDefaults || 'all';
   const ticked = plan.events || {};
-  const onByDefault = kind => defaults === 'all' || (defaults === 'district' && kind !== 'meeting' && kind !== 'admin') || (defaults === 'services' && kind === 'service');
+  const onByDefault = kind => kind === 'own' || defaults === 'all' || (defaults === 'district' && kind !== 'meeting' && kind !== 'admin') || (defaults === 'services' && kind === 'service');
   const out = [];
   const add = e => { e.on = e.id in ticked ? !!ticked[e.id] : onByDefault(e.kind); out.push(e); };
   const byDate = Object.fromEntries(services.map(s => [s.date, s]));
@@ -348,6 +398,8 @@ export function events(plan, settings, services) {
     }
     for (const c of day.cross) if (c.toLowerCase().includes(cong) && (!service || service.off)) add({ id: `${day.date}|district|${slug(c)}`, kind: 'district', date: day.date, start: '', end: '', lastDay: '', title: c, detail: '', who: '' });
   }
+  // the rector's own: a service he holds at another congregation, a visit (plan.own, kind 'own', in by default)
+  for (const e of plan.own || []) add({ id: `own|${e.id}`, kind: 'own', date: e.date, start: str(e.start), end: str(e.end), lastDay: '', title: str(e.title), detail: str(e.note), who: '' });
   return out.sort((a, b) => a.date.localeCompare(b.date) || (a.start || '').localeCompare(b.start || '') || a.kind.localeCompare(b.kind));
 }
 
@@ -360,8 +412,9 @@ const utc = (date, time) => { const [h, m] = time.split(':').map(Number); const 
 /**
  * The calendar feed: every ticked event of every month, as an iCalendar
  * file Google Calendar can follow. A service lasts an hour and a half on a
- * Sunday and an hour in the week; a district event with a start but no
- * end lasts two hours; one with no time is a whole day.
+ * Sunday and an hour in the week; the rector's own event an hour and a
+ * half; a district event with a start but no end lasts two hours; one
+ * with no time is a whole day.
  */
 export function buildFeed(months, { name, now = new Date() } = {}) {
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//NAC Study Bible//Month plan//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
@@ -372,7 +425,7 @@ export function buildFeed(months, { name, now = new Date() } = {}) {
       if (!e.on) continue;
       lines.push('BEGIN:VEVENT', `UID:${e.id.replace(/[^a-z0-9]+/gi, '-')}@nac-study-bible-plan`, `DTSTAMP:${ts}`);
       if (e.start) {
-        const minutes = e.end ? 0 : e.kind === 'service' ? (e.service && e.service.kind === 'sunday' ? 90 : 60) : 120;
+        const minutes = e.end ? 0 : e.kind === 'service' ? (e.service && e.service.kind === 'sunday' ? 90 : 60) : e.kind === 'own' ? 90 : 120;
         const endTime = e.end || `${pad(Math.floor((Number(e.start.slice(0, 2)) * 60 + Number(e.start.slice(3)) + minutes) / 60) % 24)}:${pad((Number(e.start.slice(3)) + minutes) % 60)}`;
         lines.push(`DTSTART:${utc(e.date, e.start)}`, `DTEND:${utc(e.date, endTime)}`);
       } else {
@@ -401,7 +454,7 @@ export function shortDate(date, locale) {
 
 export function serviceName(s) {
   if (s.kind === 'sunday') return t('Sunday service');
-  if (s.kind === 'midweek') return t('Midweek service');
+  if (s.kind === 'midweek' || s.kind === 'moved') return t('Midweek service');
   return t('Divine service');
 }
 

@@ -92,11 +92,12 @@ the conditional-format ranges, the pane and selection and the drawing anchors to
 right. `plan-lib.js` turns the grid into a plan (`parseProgramme`: the month and year
 from the title or the file name, the columns by their headings, the days with their
 leaders, cross bookings and comments, the ministers, the notes), derives the service
-days (every Sunday and Wednesday, plus any day the rector adds; a public holiday is off;
-a leader the sheet puts in the congregation holds that service; a comment with the
-service's own time attaches to it), sorts the sheet's lines into events (service,
-district, meeting, deadline) with the rector's ticks over the defaults, and writes the
-iCalendar feed and the WhatsApp text. `plan-pdf.js` lays the month out as the A4
+days (every Sunday and Wednesday, plus any day the rector adds; a public holiday is off
+and its Wednesday service moves to the day the note names, else the Thursday; a leader
+the sheet puts in the congregation holds that service; a comment with the service's own
+time attaches to it), sorts the sheet's lines into events (service, district, meeting,
+deadline, and the rector's own, such as a service at another congregation) with the
+rector's ticks over the defaults, and writes the iCalendar feed and the WhatsApp text. `plan-pdf.js` lays the month out as the A4
 landscape grid the congregation's programme always was, with a second page listing
 everything in full. `plan.js` is the tab.
 
@@ -104,8 +105,8 @@ What is kept is rows in the `plans` store, so it travels with the sync and the b
 `plan:<year>-<month>` a month (the sheet as read, the rector's choices per date, the
 ticks per event, and the file itself as base64, so the Excel file can be written on any
 device) and `settings` the tab's settings (the congregation, the rector's code, his
-ministers' labels, the service times, which events go into the calendar by default, and
-the feed's key). `api/plan.js` is the feed's Vercel function: PUT with the `X-Plan-Key`
+ministers' labels with any he added or took off, the service times, which events go into
+the calendar by default, and the feed's key). `api/plan.js` is the feed's Vercel function: PUT with the `X-Plan-Key`
 header stores the calendar under the id derived from the key (the first 32 hex digits of
 its SHA-256) in Vercel Blob, GET serves it as `text/calendar`, DELETE removes it; Google
 Calendar subscribes to the GET address once ("Other calendars → From URL") and reads it a
