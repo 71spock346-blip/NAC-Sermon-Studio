@@ -315,7 +315,7 @@ export const slug = s => str(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replac
  */
 export function events(plan, settings, services) {
   const cong = str(settings.congregation).toLowerCase();
-  const defaults = settings.eventDefaults || 'all';
+  const defaults = settings.eventDefaults || 'district';   // Jerome's choice (2026-11-15): the services and the district's events; meetings and deadlines are ticked by hand
   const ticked = plan.events || {};
   const onByDefault = kind => defaults === 'all' || (defaults === 'district' && kind !== 'meeting' && kind !== 'admin') || (defaults === 'services' && kind === 'service');
   const out = [];

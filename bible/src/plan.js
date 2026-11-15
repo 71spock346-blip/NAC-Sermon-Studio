@@ -29,7 +29,7 @@ import * as L from './plan-lib.js';
 import * as Pdf from './pdf.js';
 import { programmePdf } from './plan-pdf.js';
 
-const DEFAULTS = { congregation: '', myCode: '', roster: [], sundayTime: '09:00', midweekTime: '19:30', eventDefaults: 'all', calKey: '', calId: '', calOn: false, calAt: '' };
+const DEFAULTS = { congregation: '', myCode: '', roster: [], sundayTime: '09:00', midweekTime: '19:30', eventDefaults: 'district', calKey: '', calId: '', calOn: false, calAt: '' };
 const EVENT_CHOICES = [['services', 'Services only'], ['district', 'Services and district events'], ['all', 'Also meetings and deadlines'], ['none', 'Nothing until I tick it']];
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
