@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=55">
+<link rel="stylesheet" href="styles.css?v=66">
 </head>
 <body class="help">
 <header class="top">
@@ -34,7 +34,7 @@ Everything you write stays on your own device. There is no account and no server
 <h2>Finding your way</h2>
 <p>On a PC every part of the app is in the blue menu on the left. On a phone the bar at the bottom holds <b>Read</b>,
 <b>Notes</b>, <b>Prepare</b> and <b>Catechism</b>, and a fifth tab, <b>More</b>, lists the rest: Reflection evening,
-Liturgy, Theology, Seating, Choir, Reminders, MIS and Settings. While one of those is open, More stays lit, so a tap on it brings the
+Liturgy, Theology, Seating, Choir, Reminders, Month plan, MIS and Settings. While one of those is open, More stays lit, so a tap on it brings the
 list back.</p>
 <p><b>MIS</b>, before Settings, opens the Church's own MIS site. In the installed app it opens over the app: on a phone
 with a Done or ✕ at the top to come back, on a PC in the app's window with a bar at the top whose ✕ brings the app back.
@@ -222,6 +222,38 @@ after loading a new listing. Your own wordings are kept here too.</p>
 <p>The list, the sent marks, the settings and your wordings go to your other devices through the sync and sit in the
 backup file. A backup from the standalone Congregation Reminders app loads under the app's Settings, "Bring in a
 file from the old apps".</p>
+
+<h2>The month plan</h2>
+<p>Every month the district sends its programme as an Excel sheet: the days of the month, where the District Apostle,
+the Apostle and the District Rector will be, the district's events, and the list of ministers with their codes.
+<b>Month plan</b> (under More on a phone) opens that file. Type your congregation's name once, the heading of your
+column in the sheet, then <b>Choose the Excel file</b>. The app reads the days and the ministers on your device; the
+file goes nowhere. Every Sunday and Wednesday of the month comes up as a service day. A public holiday the sheet marks
+is off, and a Sunday on which the sheet puts the District Rector or the Apostle in your congregation already shows them
+as holding the service.</p>
+<p>Tap a service to say who holds it: yourself, one of your priests, the visiting minister, or a name typed in. The
+same panel has the time (09:00 on a Sunday, 19:30 in the week, both changeable under Settings), a tick for a day
+without a service, and a line for the priests about that day. <b>Add a day</b> puts a service on another day, as when a
+holiday moves it. Your priests' names come from the sheet's ministers' list; under <b>Settings</b> on this tab you write
+each as the priests should see it, and tell the app your own code, the letter your section's codes start with, if it
+did not find it by itself.</p>
+<p><b>Send to the priests</b> gives three things. The <b>Excel file</b> is the district's own file with your
+congregation's column written in: the code of who holds each service, nothing on a day without one, and the rest of the
+sheet left as the district made it. The <b>Programme (PDF)</b> is the month on one page, a grid of the weeks with each
+service, who holds it and the district's events in their days, laid out as the congregation's programme always was. The
+<b>WhatsApp text</b> is the services and events as a message to paste in the priests' group. On a phone each opens the
+share sheet; on a PC it is saved.</p>
+<p><b>In the calendar</b> lists what the month could put in your calendar: the services, the district's events, the
+meetings and the deadlines, each with a tick. The standard for a new month is set under Settings: services only,
+services and district events, everything, or nothing until you tick it. <b>Put the plan in Google Calendar</b> makes a
+feed of the ticked events and shows the steps: once, on the PC, you add the feed's address under "Other calendars →
+From URL" in Google Calendar, and from then on a calendar named after your congregation sits beside your own, on the
+phone too. A change in the app reaches it by itself, within about a day; <b>Send now</b> sends it at once. The address
+is long and random, so only someone who has it sees the plan, and nobody can change it from there. <b>Stop the
+feed</b> ends it.</p>
+<p>The months you opened, your choices and the tab's settings go to your other devices through the sync and sit in the
+backup file, with the district's file itself, so the Excel file can be written from any of them. <b>Next month</b> at
+the foot opens the next programme when it comes; a month that is already here is read again and keeps your choices.</p>
 
 <h2>Preparing a divine service</h2>
 <p>The steps follow the order of the Divine Service Guide's article, so you can go through the booklet and the app
@@ -504,7 +536,7 @@ Alles wat jy skryf, bly op jou eie toestel. Daar is geen rekening en geen bedien
 <h2>Vind jou pad</h2>
 <p>Op 'n rekenaar is elke deel van die app in die blou kieslys links. Op 'n foon hou die balk onderaan <b>Bybel</b>,
 <b>Notas</b>, <b>Voorberei</b> en <b>Kategismus</b>, en 'n vyfde oortjie, <b>Meer</b>, lys die res: Besinningsaand,
-Liturgie, Teologie, Sitplekke, Koor, Herinneringe, MIS en Verstellings. Terwyl een daarvan oop is, bly Meer aan, sodat een tik daarop die
+Liturgie, Teologie, Sitplekke, Koor, Herinneringe, Maandplan, MIS en Verstellings. Terwyl een daarvan oop is, bly Meer aan, sodat een tik daarop die
 lys terugbring.</p>
 <p><b>MIS</b>, voor Verstellings, maak die Kerk se eie MIS-webwerf oop. In die geïnstalleerde app maak dit bo-oor die app
 oop: op 'n foon met 'n Done of ✕ bo-aan om terug te kom, op 'n rekenaar in die app se venster met 'n balk bo-aan waarvan
@@ -677,6 +709,39 @@ watter wyk se datums jy sien. <b>Stoor kalenderlêer</b> skryf elke verjaardag e
 dit weer nadat 'n nuwe lys gelaai is.</p>
 <p>Die lys, die merke, die instellings en jou eie bewoordings gaan deur die sinkronisasie na jou ander toestelle en is
 in die rugsteunlêer. 'n Rugsteun uit die losstaande herinneringe-app laai onder die app se Verstellings.</p>
+
+<h2>Die maandplan</h2>
+<p>Elke maand stuur die distrik sy program as 'n Excel-blad: die dae van die maand, waar die Distriksapostel, die
+Apostel en die Distriksvoorganger sal wees, die distrik se byeenkomste, en die lys bedienaars met hul kodes.
+<b>Maandplan</b> (onder Meer op 'n foon) maak daardie lêer oop. Tik een keer jou gemeente se naam, die opskrif van jou
+kolom in die blad, en dan <b>Kies die Excel-lêer</b>. Die app lees die dae en die bedienaars op jou toestel; die lêer
+gaan nêrens heen. Elke Sondag en Woensdag van die maand kom op as 'n diensdag. 'n Openbare vakansiedag wat die blad
+merk, is sonder diens, en 'n Sondag waarop die blad die Distriksvoorganger of die Apostel in jou gemeente plaas, wys
+hulle reeds as dié wat die diens hou.</p>
+<p>Tik op 'n diens om te sê wie dit hou: jyself, een van jou priesters, die besoekende bedienaar, of 'n naam wat jy
+intik. Dieselfde paneel het die tyd (09:00 op 'n Sondag, 19:30 in die week, albei verstelbaar onder Verstellings), 'n
+merkie vir 'n dag sonder 'n diens, en 'n reël vir die priesters oor daardie dag. <b>Voeg 'n dag by</b> plaas 'n diens
+op 'n ander dag, soos wanneer 'n vakansiedag dit verskuif. Jou priesters se name kom uit die blad se bedienaarslys;
+onder <b>Verstellings</b> op hierdie blad skryf jy elkeen soos die priesters dit moet sien, en sê jy vir die app jou eie
+kode, die letter waarmee jou wyk se kodes begin, as dit dit nie self gevind het nie.</p>
+<p><b>Stuur aan die priesters</b> gee drie dinge. Die <b>Excel-lêer</b> is die distrik se eie lêer met jou gemeente se
+kolom ingeskryf: die kode van wie elke diens hou, niks op 'n dag sonder een nie, en die res van die blad soos die
+distrik dit gemaak het. Die <b>Program (PDF)</b> is die maand op een bladsy, 'n rooster van die weke met elke diens, wie
+dit hou en die distrik se byeenkomste op hul dae, uitgelê soos die gemeente se program altyd was. Die
+<b>WhatsApp-teks</b> is die dienste en byeenkomste as 'n boodskap om in die priesters se groep te plak. Op 'n foon maak
+elkeen die deelblad oop; op 'n rekenaar word dit gestoor.</p>
+<p><b>In die kalender</b> lys wat die maand in jou kalender kan sit: die dienste, die distrik se byeenkomste, die
+vergaderings en die sperdatums, elk met 'n merkie. Die standaard vir 'n nuwe maand word onder Verstellings gestel: net
+dienste, dienste en distriksbyeenkomste, alles, of niks totdat jy dit merk. <b>Sit die plan in Google Kalender</b> maak
+'n voer van die gemerkte byeenkomste en wys die stappe: een keer, op die rekenaar, voeg jy die voer se adres onder
+"Ander kalenders → Vanaf URL" in Google Kalender by, en van dan af sit 'n kalender met jou gemeente se naam naas jou
+eie, ook op die foon. 'n Verandering in die app bereik dit vanself, binne omtrent 'n dag; <b>Stuur nou</b> stuur dit
+dadelik. Die adres is lank en willekeurig, sodat net iemand wat dit het die plan sien, en niemand dit van daar kan
+verander nie. <b>Stop die voer</b> beëindig dit.</p>
+<p>Die maande wat jy oopgemaak het, jou keuses en die blad se verstellings gaan deur die sinkronisasie na jou ander
+toestelle en is in die rugsteunlêer, saam met die distrik se lêer self, sodat die Excel-lêer van enige van hulle geskryf
+kan word. <b>Volgende maand</b> onderaan maak die volgende program oop wanneer dit kom; 'n maand wat reeds hier is,
+word weer gelees en hou jou keuses.</p>
 
 <h2>'n Godsdiens voorberei</h2>
 <p>Die stappe volg die volgorde van die Handleiding vir Godsdienste se artikel, sodat jy die boekie en die app langs

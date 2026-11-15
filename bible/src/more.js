@@ -1,7 +1,7 @@
 /*
  * "More": the fifth tab of the phone's bar.
  *
- * The app has eleven sections. A PC lists them all in the side menu, but a bar
+ * The app has twelve sections. A PC lists them all in the side menu, but a bar
  * the width of a phone holds five names at a size that can be read; with
  * more, the last ones were cut off the edge of the screen. So the phone's
  * bar keeps the four used most (Read, Notes, Prepare, Catechism) and a fifth
@@ -31,6 +31,7 @@ export const MORE = [
   ['seating', () => t('Who sits where, and who serves')],
   ['choir', () => t('The choir programme')],
   ['reminders', () => t('Birthdays and anniversaries, with a greeting ready')],
+  ['plan', () => t('The month\'s services and who holds them')],
   ['mis', () => t('The Church\'s MIS')],
   ['settings', () => t('Language, letters, sync and keys')],
 ];

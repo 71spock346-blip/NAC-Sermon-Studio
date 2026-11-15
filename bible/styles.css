@@ -1227,7 +1227,7 @@ body.showing { overflow: hidden; }
 @media (max-width: 759.98px) {
   /* the phone's bar keeps five tabs: these eight sections are listed under More (more.js), and More stays lit while one of them is open */
   .tabs button[data-tab="reflect"], .tabs button[data-tab="liturgy"], .tabs button[data-tab="theology"],
-  .tabs button[data-tab="seating"], .tabs button[data-tab="choir"], .tabs button[data-tab="reminders"], .tabs button[data-tab="mis"], .tabs button[data-tab="settings"] { display: none; }
+  .tabs button[data-tab="seating"], .tabs button[data-tab="choir"], .tabs button[data-tab="reminders"], .tabs button[data-tab="plan"], .tabs button[data-tab="mis"], .tabs button[data-tab="settings"] { display: none; }
   .tabs button.also { color: var(--accent-text); }
   .tabs button.also .ico { background: var(--accent); color: var(--accent-ink); }
   .th-books { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1592,3 +1592,35 @@ body.showing { overflow: hidden; }
 .rem-listhead { margin-top: 10px; }
 .rem-ph { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }
 @media (max-width: 759.98px) { .rem-stat .n { font-size: 21px; } .rem-stat { padding: 9px 10px; } }
+
+/* ---- the month plan (plan.js): the services with who holds them, the events for the calendar, the feed ---- */
+.plan-bar { margin: -2px 0 12px; }
+.plan-list .item { align-items: flex-start; }
+.plan-row.off { opacity: .72; }
+.plan-when { flex: 0 0 118px; display: flex; flex-direction: column; gap: 2px; }
+.plan-when b { font-size: 15px; }
+.plan-what { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.plan-note { display: block; line-height: 1.35; }
+.plan-event { cursor: pointer; }
+.plan-event input[type="checkbox"] { width: 22px; height: 22px; margin: 2px 2px 0 0; flex: 0 0 auto; accent-color: var(--accent); }
+.plan-event .pill.kind { margin-left: 2px; }
+.pill.kind.service { color: var(--c-blue); }
+.pill.kind.district { color: var(--c-green); }
+.pill.kind.meeting { color: var(--c-purple); }
+.pill.kind.admin { color: var(--c-amber); }
+.plan-chips { margin-top: 4px; }
+.plan-sheet-notes { background: var(--card); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; }
+.plan-sheet-notes p { margin: 4px 0 0; }
+.plan-sheet-notes .eyebrow { margin: 0; }
+.plan-steps { padding-left: 22px; margin: 6px 0 12px; line-height: 1.5; }
+.plan-steps li { margin: 0 0 6px; }
+.plan-url { font-size: 13px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.plan-roster { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 4px; }
+.plan-roster-row { gap: 10px; }
+.plan-code { flex: 0 0 3.2em; font: 700 14px/1 ui-monospace, Menlo, Consolas, monospace; color: var(--accent-text); text-align: center; }
+.plan-notes { margin: 4px 0 0; padding-left: 20px; line-height: 1.45; }
+.plan-notes li { margin: 0 0 5px; }
+@media (max-width: 759.98px) {
+  .plan-when { flex-basis: 104px; }
+  .plan-when b { font-size: 14.5px; }
+}
