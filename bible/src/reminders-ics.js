@@ -11,11 +11,11 @@
 import { t } from './i18n.js';
 import { buildUpcoming, coupleName, firstName, isUsablePhone } from './reminders-lib.js';
 
-/** A text field, per RFC 5545. */
-const escapeText = v => String(v).replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+/** A text field, per RFC 5545. (Also used by the month plan's calendar feed, plan-lib.js.) */
+export const escapeText = v => String(v).replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
 /** Lines fold at 75 octets — counted in bytes, since an accented name costs more than one per letter — or calendar apps refuse the file. */
-function fold(line) {
+export function fold(line) {
   const enc = new TextEncoder();
   if (enc.encode(line).length <= 75) return line;
   const out = [];

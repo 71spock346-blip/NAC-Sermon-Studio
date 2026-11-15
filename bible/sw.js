@@ -8,17 +8,17 @@
  * Settings tab can fetch all of the texts once so the whole Bible is on the
  * device. Requests to API.Bible are not touched here: bible.js keeps those
  * chapters in IndexedDB for 30 days. Nor is the app's own sync server
- * (/api/sync): its answers must always be fresh, so the browser goes to the
+ * (/api/sync, and the month plan's feed /api/plan): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-11a';
+var VERSION = 'bible-2026-11-15a';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=65',
-  'src/app.js?v=65',
+  'styles.css?v=66',
+  'src/app.js?v=66',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -64,6 +64,10 @@ var SHELL = [
   'src/reminders-templates.js',
   'src/reminders-ics.js',
   'src/reminders-sheet.js',
+  'src/plan.js',
+  'src/plan-lib.js',
+  'src/plan-xlsx.js',
+  'src/plan-pdf.js',
   // pdf.js (vendor/pdfjs/) is fetched the first time a booklet is loaded and kept from then on (cache-first)
   'vendor/jspdf.umd.min.js?v=1',
   'vendor/qrcode.mjs',
