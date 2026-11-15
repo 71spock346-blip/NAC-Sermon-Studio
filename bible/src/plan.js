@@ -584,7 +584,7 @@ function settingsSheet(row) {
     if (gone.length) {
       roster.append(el('p', { class: 'small muted' }, [
         t('Removed from the list: {list}', { list: gone.map(m => `${m.code} ${L.ministerLabel(m)}`).join(', ') }), ' ',
-        el('button', { class: 'linklike', type: 'button', text: t('Show again'), onclick: async () => {
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Show again'), onclick: async () => {
           const now = settings();
           await saveSettings({ hidden: [], roster: L.mergeRoster(now.roster, planOf(row), now.myCode, []) });
           drawRoster(); redraw();

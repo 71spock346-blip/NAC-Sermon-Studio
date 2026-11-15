@@ -1610,7 +1610,6 @@ body.showing { overflow: hidden; }
 .pill.kind.admin { color: var(--c-amber); }
 .pill.kind.own { color: var(--accent-text); }
 .plan-event-own { display: flex; flex: 1 1 auto; gap: 12px; align-items: flex-start; min-width: 0; cursor: pointer; }
-.plan-roster-row .linklike { padding: 0; }
 .plan-chips { margin-top: 4px; }
 .plan-sheet-notes { background: var(--card); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; }
 .plan-sheet-notes p { margin: 4px 0 0; }
