@@ -12,6 +12,9 @@
  *                  own thought on it; a point is never split over two cards
  *   Guide breakdown  A4 portrait, the Guide's article piece by piece as
  *                  Claude broke it down: a study sheet to read beside the booklet
+ *   In plain words A4 portrait, large clear type: the Guide's article as one
+ *                  piece in the plain words of that breakdown, under the
+ *                  Guide's headings and with the booklet's paragraph breaks
  *   Facilitator notes  A4 portrait, large clear type: for a reflection
  *                  evening, what to say and do at each slide, slide by slide
  *   Theology       A4 portrait: everything the Theology page shows on a
@@ -26,6 +29,7 @@ import { state } from './store.js';
 import * as Cat from './catechism.js';
 import { audienceOf, audienceLabel, modelLabel } from './ai.js';
 import * as S from './slides.js';
+import { plainParts } from './plain.js';
 
 const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
 const INK = [29, 43, 56];
@@ -555,6 +559,56 @@ export function breakdownPdf(s) {
   const who = [state.settings.name, t('Study Bible')].filter(Boolean).join('  ·  ');
   w.footer(who);
   return { blob: doc.output('blob'), name: fileName(s, '-guide'), title };
+}
+
+/**
+ * The Guide's article in plain words, as one piece (plain.js plainParts):
+ * what the breakdown says each piece says, one after the other under the
+ * Guide's own headings and with the booklet's paragraph breaks, in large
+ * clear type to read in one go. The thread of the whole article opens it.
+ * `service` is the Guide's article the preparation is linked to, for the
+ * paragraph breaks; without it the pieces make paragraphs of three.
+ */
+export function plainArticlePdf(s, { service = null } = {}) {
+  const a = s.breakdown;
+  if (!a || !(a.parts || []).length) throw new Error(t('There is no breakdown of the article yet.'));
+  const groups = plainParts(a, service);
+  if (!groups.length) throw new Error(t('The breakdown has no plain words to print yet.'));
+  const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
+  const w = new Writer(doc, 22);
+  const ref = refLabel(s);
+  const title = t('The Guide in plain words');
+  const read = { size: 12, leading: 1.5, after: 3 };   // the running text: large, with room between the lines, as in "The sermon"
+  const last = { ...read, after: 6 };                   // the last paragraph under a heading: room before the next heading
+  const head = text => [text, { style: 'bold', size: 13, color: BLUE, after: 2, withNext: true }];
+
+  w.font(9, 'normal', MUTED);
+  if (serviceLine(s)) { doc.text(serviceLine(s), w.m, w.y); w.y += 6; }
+  w.font(18, 'bold', INK);
+  doc.text(title, w.m, w.y + 5);
+  w.y += 10;
+  if (s.title || s.theme) w.para(s.title || s.theme, { style: 'bold', size: 12, after: 1 });
+  if (ref) {
+    w.font(12, 'bold', BLUE);
+    doc.text(ref + (s.translation ? `  (${s.translation})` : ''), w.m, w.y + 3);
+    w.y += 7;
+  }
+  if (s.text) w.para(s.text, { serif: true, style: 'italic', size: 12, leading: 1.4, after: 3 });
+  w.rule();
+
+  // the text runs on from page to page; a heading never stands alone at the foot of a page (Writer.flow)
+  const parts = [];
+  if (a.thread) parts.push(head(t('The thread')), [a.thread, last]);
+  for (const g of groups) {
+    if (g.heading) parts.push(head(g.heading));
+    g.paragraphs.forEach((p, i) => parts.push([p, i === g.paragraphs.length - 1 ? last : read]));
+  }
+  w.flow(parts);
+  w.para(t('Divine Service Guide © New Apostolic Church International. Put in plain words by {model} for your own preparation; the Guide\'s own words stand in the booklet.', { model: modelLabel(a.model) }), { size: 8, color: MUTED, after: 1 });
+
+  const who = [state.settings.name, t('Study Bible')].filter(Boolean).join('  ·  ');
+  w.footer(who);
+  return { blob: doc.output('blob'), name: fileName(s, '-guide-plain'), title };
 }
 
 /**
