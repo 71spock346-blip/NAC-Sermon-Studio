@@ -424,3 +424,76 @@ export function plainText(card) {
   }
   return out.join('\n');
 }
+
+/* ---------------------------------------------------------------- the words changed by hand (liturgy.js) */
+
+/*
+ * The minister may change a card's words by hand, when the Church changes a
+ * wording or the booklet has a misprint. The card is edited box by box: the
+ * label, the lines under it, and each block of the words as plain text. The
+ * two functions below turn the boxes back into rows that look like the
+ * parser's, so the card is shown, searched and synced like any other.
+ */
+
+/** The look of most of a block's letters: the style of its longest run. */
+function mainStyle(runs) {
+  let best = '', len = -1;
+  for (const [s, st] of runs || []) if (s.length > len) { best = st || ''; len = s.length; }
+  return best;
+}
+
+/**
+ * The runs of a block after its text was changed in a box: the letters the
+ * person left alone keep their look (italics, small letters), what was typed
+ * over takes the look of the letters it replaced, and letters put in at a
+ * place take the look of the letter before them. So a word changed in the
+ * Lord's Prayer leaves the small italic reference after it as it was.
+ */
+export function restyle(runs, text) {
+  const old = (runs || []).map(r => r[0]).join('');
+  if (!old) return [[text, mainStyle(runs)]];
+  const styles = [];
+  for (const [s, st] of runs) for (let i = 0; i < s.length; i++) styles.push(st || '');
+  let p = 0;
+  while (p < old.length && p < text.length && old[p] === text[p]) p++;
+  let s = 0;
+  while (s < old.length - p && s < text.length - p && old[old.length - 1 - s] === text[text.length - 1 - s]) s++;
+  const middle = p < old.length - s ? styles[p] : styles[Math.max(0, p - 1)];
+  const all = styles.slice(0, p).concat(new Array(Math.max(0, text.length - p - s)).fill(middle), styles.slice(old.length - s));
+  const out = [];
+  for (let i = 0; i < text.length; i++) {
+    const last = out[out.length - 1];
+    if (last && last[1] === all[i]) last[0] += text[i]; else out.push([text[i], all[i]]);
+  }
+  return out;
+}
+
+/**
+ * The rows of a card from its boxes after a change by hand:
+ *   entries = [{label, sub: [line], boxes: [{block, text}]}]
+ * one box per block of the row (block null for a box added by hand). Each
+ * paragraph in a box (a new line) becomes a block of the box's kind, so a
+ * note split in two stays two notes; the first keeps the look of its letters
+ * (restyle). A box left empty is gone, and so is a row with nothing left in it.
+ */
+export function editedRows(entries) {
+  const rows = [];
+  for (const e of entries) {
+    const label = (e.label || '').trim();
+    const sub = (e.sub || []).map(x => x.trim()).filter(Boolean);
+    const blocks = [];
+    for (const { block, text } of e.boxes || []) {
+      const parts = (text || '').split(/\n+/).map(x => x.trim()).filter(Boolean);
+      parts.forEach((part, i) => {
+        blocks.push({
+          k: block ? block.k : 'p',
+          d: block ? block.d || 0 : 0,
+          t: block && i === 0 ? restyle(block.t, part) : [[part, block ? mainStyle(block.t) : '']],
+        });
+      });
+    }
+    if (!label && !sub.length && !blocks.length) continue;
+    rows.push({ label, sub, blocks });
+  }
+  return rows;
+}
