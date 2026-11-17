@@ -1520,7 +1520,7 @@ function renderEditor(root, s) {
   container.append(
     field(t('Summary'), 'summary', { rows: 3, placeholder: t('The main points in a few short lines, to gather them up at the end') }),
     field(t('Application for the congregation'), 'application', { rows: 4, placeholder: t('What does this ask of us this week? Name it for the people in front of you.') }),
-    field(t('Conclusion'), 'conclusion', { rows: 3, placeholder: t('Gather the thoughts and lead to the altar: forgiveness, Holy Communion, the hope we share') }),
+    field(t('Conclusion'), 'conclusion', { rows: 3, placeholder: t('Sum up the main points in a line or two, then lead to the altar: forgiveness, Holy Communion, the hope we share') }),
   );
 
   // ---- 7. illustrations: the person's own experiences, which the Guide leaves to the minister

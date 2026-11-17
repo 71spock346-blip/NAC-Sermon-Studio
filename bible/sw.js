@@ -11,14 +11,14 @@
  * (/api/sync, and the month plan's feed /api/plan): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-15a';
+var VERSION = 'bible-2026-11-17a';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=66',
-  'src/app.js?v=66',
+  'styles.css?v=67',
+  'src/app.js?v=67',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -45,6 +45,8 @@ var SHELL = [
   'src/slides.js',
   'src/liturgy.js',
   'src/booklet.js',
+  'src/handbook.js',
+  'src/handbooks.js',
   'src/update.js',
   'src/more.js',
   'src/mis.js',

@@ -120,7 +120,13 @@ function listPage(container) {
       ]),
     ]));
   }
-  container.append(books, credit());
+  // the full liturgy book of 2024, of which these cards are the short form, lives under Handbooks
+  const book = state.handbooks.find(h => h.key === 'liturgy');
+  container.append(books, el('p', { class: 'small lit-fullbook' }, [
+    book ? t('The full Liturgy book of 2024, with the long form of the service and every act of blessing, is under ') : t('The full Liturgy book of 2024, with the long form of the service and every act of blessing, can be loaded under '),
+    el('a', { href: book ? '#handbooks/liturgy' : '#handbooks', text: t('Handbooks') }),
+    '.',
+  ]), credit());
 }
 
 /** The runs of one block as text, italics and small letters. */
