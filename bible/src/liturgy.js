@@ -227,8 +227,8 @@ function sizeSheet(body) {
  * Edit turns the card into boxes: the label and the lines under it on the
  * left, each block of the words on the right in its own look (a note stays
  * a note, a list item keeps its bullet). Enter starts a new paragraph, a box
- * left empty takes its words away, ✕ a whole row, and "Add a row" puts one
- * at the end. Save turns the boxes back into rows (booklet.js editedRows),
+ * left empty takes its words away, ▲ ▼ move a row up or down, ✕ takes a
+ * whole row away, and "Add a row" puts one at the end. Save turns the boxes back into rows (booklet.js editedRows),
  * keeps them in the card and the booklet's own rows under `orig`; a card
  * changed back to the booklet's words by hand is the booklet's again. The
  * card's `edited` says when; the booklet row's `updated` is what the sync
@@ -261,14 +261,45 @@ function editPage(container, key, l, bk, card) {
       entry.boxes.push({ block: b, ta });
       right.append(node);
     }
-    const remove = el('button', { class: 'icon lit-remove', type: 'button', text: '✕', 'aria-label': t('Remove this row'), title: t('Remove this row'), onclick: () => { entry.node.remove(); entries.splice(entries.indexOf(entry), 1); } });
+    const tools = el('span', { class: 'lit-tools' }, [
+      el('button', { class: 'icon lit-up', type: 'button', text: '▲', 'aria-label': t('Move this row up'), title: t('Move this row up'), onclick: () => move(entry, -1) }),
+      el('button', { class: 'icon lit-down', type: 'button', text: '▼', 'aria-label': t('Move this row down'), title: t('Move this row down'), onclick: () => move(entry, 1) }),
+      el('button', { class: 'icon lit-remove', type: 'button', text: '✕', 'aria-label': t('Remove this row'), title: t('Remove this row'), onclick: () => { entry.node.remove(); entries.splice(entries.indexOf(entry), 1); ends(); } }),
+    ]);
     entry.node = el('div', { class: 'lit-row' }, [
-      el('div', { class: 'lit-left' }, [el('div', { class: 'row line' }, [entry.label, remove]), entry.sub]),
+      el('div', { class: 'lit-left' }, [el('div', { class: 'row line' }, [entry.label, tools]), entry.sub]),
       right,
     ]);
     entries.push(entry);
     form.append(entry.node);
+    ends();
     if (focus) { entry.label.focus(); entry.node.scrollIntoView({ block: 'nearest' }); }
+  }
+
+  /** The first row cannot go up, nor the last one down. */
+  function ends() {
+    entries.forEach((e, i) => {
+      e.node.querySelector('.lit-up').disabled = i === 0;
+      e.node.querySelector('.lit-down').disabled = i === entries.length - 1;
+    });
+  }
+
+  /** A row one place up (by -1) or down (by 1), on the screen and in the order that is saved; it flashes and stays in sight, and the arrow keeps the focus. */
+  function move(entry, by) {
+    const i = entries.indexOf(entry), j = i + by;
+    if (i < 0 || j < 0 || j >= entries.length) return;
+    entries.splice(i, 1);
+    entries.splice(j, 0, entry);
+    const next = entries[j + 1];
+    form.insertBefore(entry.node, next ? next.node : null);
+    ends();
+    const same = entry.node.querySelector(by < 0 ? '.lit-up' : '.lit-down');
+    const other = entry.node.querySelector(by < 0 ? '.lit-down' : '.lit-up');
+    (same.disabled ? other : same).focus({ preventScroll: true });
+    entry.node.classList.remove('moved');
+    void entry.node.offsetWidth;   // so the flash runs again on the next move
+    entry.node.classList.add('moved');
+    entry.node.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
   for (const r of card.rows) addRow(r);
 
@@ -296,7 +327,7 @@ function editPage(container, key, l, bk, card) {
     el('div', { class: 'page lit-page' }, [
       el('p', { class: 'eyebrow', text: t('Changing the words') }),
       el('div', { class: 'docbar' }, [el('h2', { text: card.title, lang: l }), buttons()]),
-      el('p', { class: 'small muted lit-hint', text: t('Change the words as they are said at the altar. Enter starts a new paragraph; a box left empty takes its words away; ✕ takes a whole row away. Nothing changes until you tap Save.') }),
+      el('p', { class: 'small muted lit-hint', text: t('Change the words as they are said at the altar. Enter starts a new paragraph; a box left empty takes its words away; ▲ ▼ move a row up or down; ✕ takes a whole row away. Nothing changes until you tap Save.') }),
       form,
       el('div', { class: 'lit-actions' }, [
         el('button', { class: 'btn small ghost', type: 'button', text: t('+ Add a row'), onclick: () => addRow({ label: '', sub: [], blocks: [] }, true) }),
