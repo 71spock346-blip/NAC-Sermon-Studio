@@ -1641,7 +1641,7 @@ const HANDBOOK_SCHEMA = {
     cites: {
       type: 'array', description: 'The chapters the answer rests on, the most important first; only chapters that were given',
       items: { type: 'object', additionalProperties: false, required: ['key', 'n', 'title'], properties: {
-        key: { type: 'string', description: 'The handbook, as the key in the chapter heading: guide-for-ministers, serving-and-leading, liturgy …' },
+        key: { type: 'string', description: 'The handbook, as the key in the chapter heading: guide-for-ministers, serving-and-leading, liturgy, creed …' },
         n: { type: 'string', description: 'The chapter as given after the key: its number such as 4.5.4, or i7 for a chapter without one' },
         title: { type: 'string', description: 'The chapter\'s title as given' },
       } },
@@ -1650,7 +1650,7 @@ const HANDBOOK_SCHEMA = {
   },
 };
 
-const HANDBOOK_SYSTEM = `You answer a New Apostolic Church minister's question from the Church's own handbooks for ministers: the Guide for Ministers (the rule book), the "Serving and Leading" guiding principle, the Liturgy of the New Apostolic Church, and any other handbook given. You are given the chapters that fit the question. Answer from those chapters only: what they say, in plain, everyday words a tired reader follows at a glance, short sentences, nothing invented. Where the handbook's own wording matters (a rule, a time, a set form of words), give it as it stands, in quotation marks. Name the chapter after each point, in brackets, with the handbook and the number. If the chapters do not answer the question, say so plainly and give what comes nearest; never fill the gap from memory. Do not add advice of your own, and do not call anything Church doctrine: the Church's teaching is in the Catechism, and the Apostles interpret Holy Scripture.`;
+const HANDBOOK_SYSTEM = `You answer a New Apostolic Church minister's question from the Church's own handbooks for ministers: the Guide for Ministers (the rule book), the "Serving and Leading" guiding principle, the Liturgy of the New Apostolic Church, the Creed (the ten Articles of Faith, one chapter each), and any other handbook given. You are given the chapters that fit the question. Answer from those chapters only: what they say, in plain, everyday words a tired reader follows at a glance, short sentences, nothing invented. Where the handbook's own wording matters (a rule, a time, a set form of words), give it as it stands, in quotation marks. Name the chapter after each point, in brackets, with the handbook and the number; for the Creed, the article: (The Creed, Article 4). If the chapters do not answer the question, say so plainly and give what comes nearest; never fill the gap from memory. Do not add advice of your own, and do not call anything Church doctrine: the Church's teaching is in the Catechism, and the Apostles interpret Holy Scripture.`;
 
 /** Asks about the handbooks: `picks` are [{handbook, chapter, addr}] from handbook.js relevant(). Returns {data: {answer, cites, found}, usage, model, cost}. */
 export async function askHandbooks(question, picks, { signal, onProgress } = {}) {

@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fromText, fromPages, parse, plainText, search, relevant } from '../src/handbook.js';
+import { CREED } from '../src/creed.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const [file, out] = process.argv.slice(2);
@@ -84,6 +85,21 @@ if (!file) {
   assert.ok(found.length >= 1 && found[0].chapter.n === '2.2', 'search finds the chapter');
   assert.ok(relevant([hb], 'how do I visit a member?').length >= 1, 'relevant chapters for a question');
   console.log('\nok  fixture');
+
+  // the Creed, which is part of the app (src/creed.js): ten articles in the shape of a loaded handbook, searched and asked like one
+  const creed = CREED[0];
+  check(creed);
+  assert.equal(creed.key, 'creed');
+  assert.equal(creed.language, 'en');
+  assert.ok(creed.builtIn, 'the Creed is built in');
+  assert.deepEqual(creed.chapters.map(c => c.n), ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], 'ten articles');
+  assert.ok(creed.chapters.every((c, i) => c.cat === '2.4.' + (i + 1) && c.blocks.length === 1 && c.blocks[0].k === 'p'), 'each article one paragraph, with its section of the Catechism');
+  assert.ok(creed.chapters.every(c => /^I believe/.test(c.blocks[0].t[0][0])), 'every article starts "I believe"');
+  assert.equal(search([creed], 'unleavened')[0].chapter.n, '7', 'search finds the Seventh Article');
+  assert.equal(search([creed], 'tenth article')[0].chapter.n, '10', 'search by title');
+  assert.deepEqual(search([creed, hb], 'baptise').map(h => h.chapter.n).sort(), ['4', '6', '8'], 'a search across the Creed and a handbook: the articles on baptism');
+  assert.equal(relevant([creed], 'Who ordains those designated for a ministry?')[0].chapter.n, '5', 'the Fifth Article answers the question');
+  console.log('ok  the Creed: 10 articles, searched and asked');
   process.exit(0);
 }
 

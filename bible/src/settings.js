@@ -232,6 +232,7 @@ export function render(container) {
         ? t('Liturgy for Altar Use © New Apostolic Church Cape. The booklet you load is read on this device itself, without Claude, kept on your own devices only, and is not part of the public app.')
         : t('Liturgy for Altar Use © New Apostolic Church Cape. The booklet you load is read on this device itself, kept on your own devices only, and is not part of the public app.') }),
       el('li', { text: t('Guide for Ministers, "Serving and Leading" and the Liturgy of the New Apostolic Church © New Apostolic Church International, Zurich. A handbook you load is read on this device itself, kept on your own devices only, and is not part of the public app.') }),
+      el('li', { text: t('The Creed of the New Apostolic Church © New Apostolic Church International, Zurich: the ten Articles of Faith, as the Church confesses them, are part of the app under Handbooks.') }),
       el('li', { text: t('The booklet\'s PDF is read with pdf.js (Mozilla), Apache License 2.0.') }),
       el('li', { text: t('Typeface: Montserrat (© The Montserrat Project Authors), SIL Open Font License 1.1. The slides of a reflection evening use Cambria and Calibri, as in PowerPoint, or where a device lacks them Caladea (© The Caladea Project Authors) and Carlito (© The Carlito Project Authors), both SIL Open Font License 1.1.') }),
     ]),

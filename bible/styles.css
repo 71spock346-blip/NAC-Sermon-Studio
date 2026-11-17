@@ -1364,6 +1364,9 @@ body.showing { overflow: hidden; }
 .hb-note { font-family: var(--sans); font-size: .82em; color: var(--ink-2); }
 .hb-text sup { font-size: .6em; line-height: 0; }
 .hb-text small { font-size: .82em; }
+.hb-text .hb-cat { margin: -.25em 0 1.15em; font-family: var(--sans); font-size: .86em; }   /* under an article of the Creed: the Catechism's section on it */
+.hb-text.hb-whole { margin-top: 14px; }   /* the Creed read whole: a breath between the line about it and the first article */
+.hb-text .hb-cat a { font-weight: 700; text-decoration: none; }
 .hb-kids { margin-top: 4px; }
 .hb-nav { display: flex; justify-content: space-between; gap: 12px; margin: 18px 0 10px; font-family: var(--sans); }
 .hb-nav a { font-weight: 700; text-decoration: none; max-width: 48%; }
