@@ -1330,7 +1330,17 @@ body.showing { overflow: hidden; }
 .lit-edit .lit-li { align-items: flex-start; margin: 0 0 8px; }
 .lit-edit .lit-li .lit-bullet { padding-top: 9px; }
 .lit-edit .lit-li .lit-box { margin: 0; flex: 1 1 auto; min-width: 0; }
-.lit-edit .lit-remove { color: var(--muted); }
+.lit-edit .lit-tools { display: inline-flex; gap: 2px; flex: 0 0 auto; }
+@media (min-width: 760px) {   /* the left column is narrow on a PC: the arrows and ✕ go under the label, so its words are not broken */
+  .lit-edit .lit-left .row.line { flex-wrap: wrap; }
+  .lit-edit .lit-tools { flex: 1 0 100%; justify-content: flex-start; margin-left: -8px; }
+}
+.lit-edit .lit-tools .icon { color: var(--muted); min-width: 34px; }
+.lit-edit .lit-tools .lit-up, .lit-edit .lit-tools .lit-down { font-size: 12px; }
+.lit-edit .lit-tools .icon:disabled { opacity: .3; cursor: default; }
+.lit-edit .lit-row.moved { animation: lit-flash .9s ease-out; }
+@keyframes lit-flash { from { background: var(--accent-soft); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .lit-edit .lit-row.moved { animation: none; } }
 [data-read="easy"] .lit-edit .lit-box.k-note { font-style: normal; }
 
 /* ---------------------------------------------------------------- Handbooks: the Church's handbooks, chapter by chapter (handbooks.js)
@@ -1384,6 +1394,7 @@ body.showing { overflow: hidden; }
 [data-read="easy"] .hb-quote, [data-read="easy"] .hb-note { font-style: normal; }
 @media (max-width: 759.98px) {
   .lit-row { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 12px 0; }
+  .lit-edit .lit-tools .icon { min-width: 40px; min-height: 40px; }
   .lit-page .docbar .seg { order: 3; }   /* under the title when the two do not fit side by side */
 }
 

@@ -1789,7 +1789,9 @@ export const AF = {
   // a liturgy card's words changed by hand (liturgy.js editPage)
   "Edit the words of this card": "Wysig die woorde van hierdie kaart",
   "Changing the words": "Verander die woorde",
-  "Change the words as they are said at the altar. Enter starts a new paragraph; a box left empty takes its words away; ✕ takes a whole row away. Nothing changes until you tap Save.": "Verander die woorde soos hulle by die altaar gesê word. Enter begin 'n nuwe paragraaf; 'n boks wat leeg gelaat word, neem sy woorde weg; ✕ neem 'n hele ry weg. Niks verander voordat jy Stoor tik nie.",
+  "Change the words as they are said at the altar. Enter starts a new paragraph; a box left empty takes its words away; ▲ ▼ move a row up or down; ✕ takes a whole row away. Nothing changes until you tap Save.": "Verander die woorde soos hulle by die altaar gesê word. Enter begin 'n nuwe paragraaf; 'n boks wat leeg gelaat word, neem sy woorde weg; ▲ ▼ skuif 'n ry op of af; ✕ neem 'n hele ry weg. Niks verander voordat jy Stoor tik nie.",
+  "Move this row up": "Skuif hierdie ry op",
+  "Move this row down": "Skuif hierdie ry af",
   "Label": "Etiket",
   "The words": "Die woorde",
   "Under the label": "Onder die etiket",
