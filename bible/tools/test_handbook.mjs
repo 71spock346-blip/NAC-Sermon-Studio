@@ -99,7 +99,16 @@ if (!file) {
   assert.equal(search([creed], 'tenth article')[0].chapter.n, '10', 'search by title');
   assert.deepEqual(search([creed, hb], 'baptise').map(h => h.chapter.n).sort(), ['4', '6', '8'], 'a search across the Creed and a handbook: the articles on baptism');
   assert.equal(relevant([creed], 'Who ordains those designated for a ministry?')[0].chapter.n, '5', 'the Fifth Article answers the question');
-  console.log('ok  the Creed: 10 articles, searched and asked');
+  // the Afrikaans copy, as the minister sent it: the same ten articles, found under the same key and addresses
+  const af = CREED.find(c => c.language === 'af');
+  check(af);
+  assert.equal(af.id, 'creed:af');
+  assert.equal(af.key, creed.key, 'the two copies share the key, so #handbooks/creed/4 is the Fourth Article in either');
+  assert.deepEqual(af.chapters.map(c => c.n), creed.chapters.map(c => c.n), 'ten articles in Afrikaans too');
+  assert.ok(af.chapters.every(c => /^Die \S+ Geloofsartikel$/.test(c.title) && /^Ek glo/.test(c.blocks[0].t[0][0])), 'every Afrikaans article is headed "Die … Geloofsartikel" and starts "Ek glo"');
+  assert.equal(search([af], 'ongesuurde')[0].chapter.n, '7', 'search in Afrikaans finds the Seventh Article');
+  assert.equal(relevant([af], 'Wie orden diegene wat vir \'n amp bestem is?')[0].chapter.n, '5', 'the Fifth Article answers the question in Afrikaans');
+  console.log('ok  the Creed: 10 articles in English and in Afrikaans, searched and asked');
   process.exit(0);
 }
 
