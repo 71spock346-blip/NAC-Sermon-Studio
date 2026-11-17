@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=2">
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=55">
+<link rel="stylesheet" href="styles.css?v=74">
 </head>
 <body class="help">
 <header class="top">
@@ -34,7 +34,7 @@ Everything you write stays on your own device. There is no account and no server
 <h2>Finding your way</h2>
 <p>On a PC every part of the app is in the blue menu on the left. On a phone the bar at the bottom holds <b>Read</b>,
 <b>Notes</b>, <b>Prepare</b> and <b>Catechism</b>, and a fifth tab, <b>More</b>, lists the rest: Reflection evening,
-Liturgy, Theology, Seating, Choir, Reminders, MIS and Settings. While one of those is open, More stays lit, so a tap on it brings the
+Liturgy, Handbooks, Theology, Seating, Choir, Reminders, Month plan, MIS and Settings. While one of those is open, More stays lit, so a tap on it brings the
 list back.</p>
 <p><b>MIS</b>, before Settings, opens the Church's own MIS site. In the installed app it opens over the app: on a phone
 with a Done or ✕ at the top to come back, on a PC in the app's window with a bar at the top whose ✕ brings the app back.
@@ -109,6 +109,10 @@ and is not in the backup file.</p>
 "see 4.2" links between sections; search the whole Catechism by word; tap the <b>C</b> on a verse to see the summary
 of each section that quotes it; and open a section under a service preparation with "Read". Without it, each section
 links to the same text at nak.org. The Catechism's text and index are in English, so search it with English words.</p>
+<p><b>Ask the Catechism</b>: where the AI helper is unlocked and the text is loaded, a box under the heading takes a
+question in your own words. Claude reads the sections that fit it and answers from them in plain words, naming the
+sections, each a link, so you can read what the Catechism itself says. The answer is not kept. The same question can be
+put under Handbooks, where the Catechism is read together with the handbooks.</p>
 
 <h2>Theology</h2>
 <p>Theology gives the background to the Bible at three levels: the verses you choose, the chapter, and the book with
@@ -154,6 +158,43 @@ the sync, so one load is enough. They are not in the backup file. <b>Remove</b> 
 <p>The cards show in the app's language, or in the other language when only that booklet is loaded, and a card has an
 <b>EN | AF</b> switch when both are loaded. <b>Aa</b> sets the text size, the same sizes as in the reader, up to Pulpit.
 While a card is open the phone keeps its screen on, so the words stay at the altar.</p>
+<p>A card's words can be changed by hand, when the Church changes a wording or the booklet has a misprint: open the
+card, tap <b>Edit</b>, change the words in the boxes (the label on the left, each paragraph on the right; a note stays a
+note), and tap <b>Save</b>. Enter starts a new paragraph, a box left empty takes its words away, ▲ ▼ move a row up or
+down, ✕ takes a row away and <b>Add a row</b> adds one at the end. The changed card is kept on your devices like the booklet, and the list marks it
+"Changed by you". <b>Back to the booklet's words</b> under the card puts the booklet's own words back. Each language is
+changed on its own: switch to AF and change the Afrikaans card too. A booklet loaded anew from its PDF brings the file's
+words back on every card.</p>
+<p>The full Liturgy book of 2024, with the long form of the divine service and every act of blessing, is a handbook
+(below); a line at the foot of the Liturgy list leads to it.</p>
+
+<h2>Handbooks</h2>
+<p>Handbooks holds the Church's Creed and its handbooks for ministers, to read and to search. The <b>Creed</b>, the
+ten Articles of Faith, is part of the app, in English and in Afrikaans (the <b>EN | AF</b> switch on its pages shows the
+other): it opens whole on one page, article by article, each with a link to the
+chapter of the Catechism that explains it (2.4), and it is searched and asked like the handbooks. The handbooks are
+the <i>Guide for Ministers</i> (the rule book: ministry, the divine service, the sacraments and acts of blessing,
+pastoral care, administration, the competency profiles), the <i>"Serving and Leading"</i> guiding principle, and the
+<i>Liturgy of the New Apostolic Church</i> of 2024. Another handbook in the same shape, with numbered chapters, can
+be loaded as well. The Catechism keeps its own tab, but once its text is loaded under Settings it is listed here too,
+and its sections are searched and asked together with the handbooks. On a PC Handbooks is in the side menu after
+Catechism; on a phone it is under <b>More</b>.</p>
+<p>The handbooks are the Church's own, so they are not part of the app. Load each one once under Handbooks, as its
+PDF or as a text file saved from the PDF: <b>Load it (PDF or text file)</b> under its name. The app reads the chapters from
+the file on the device itself (no Claude, no key, a few seconds for a PDF), keeps them in this browser and sends them
+to your other devices through the sync, so one load is enough. They are not in the backup file. Under <b>The files</b>
+each handbook has a line with its edition and when it was loaded; <b>Remove</b> takes it off your devices again (Undo
+brings it back) and <b>Load a newer file</b> replaces it. A handbook loaded in English and in Afrikaans has an
+<b>EN | AF</b> switch on its pages.</p>
+<p>The list opens a handbook's <b>Contents</b>: its chapters by number. A chapter shows its text as the book prints
+it (lists, notes, the Liturgy's binding texts in italics), the chapters under it, and <b>‹ previous</b> and
+<b>next ›</b> at the foot; <b>Aa</b> sets the text size, the same sizes as in the reader. The search box on the
+Handbooks page finds every chapter across the loaded handbooks that carries the words you type, with a snippet; on a
+handbook's own page the search stays within that book and takes a chapter number too ("4.5").</p>
+<p>Where the AI helper is unlocked on the device, <b>Ask the handbooks</b> on the Handbooks page takes a question in
+your own words ("How long may the sermon be?"). Claude reads the chapters that fit the question and answers from
+them in plain words, naming the chapters, so the answer can be checked against the book; the answer is shown, not
+kept, and costs usually under 10 US cents with your own key.</p>
 
 <h2>Seating and communion</h2>
 <p>Seating is the congregation's seating and communion plan: the floor plan of the building, the ministers put into the
@@ -223,9 +264,48 @@ after loading a new listing. Your own wordings are kept here too.</p>
 backup file. A backup from the standalone Congregation Reminders app loads under the app's Settings, "Bring in a
 file from the old apps".</p>
 
+<h2>The month plan</h2>
+<p>Every month the district sends its programme as an Excel sheet: the days of the month, where the District Apostle,
+the Apostle and the District Rector will be, the district's events, and the list of ministers with their codes.
+<b>Month plan</b> (under More on a phone) opens that file. Type your congregation's name once, the heading of your
+column in the sheet, then <b>Choose the Excel file</b>. The app reads the days and the ministers on your device; the
+file goes nowhere. Every Sunday and Wednesday of the month comes up as a service day. A public holiday the sheet marks
+is off, and a Sunday on which the sheet puts the District Rector or the Apostle in your congregation already shows them
+as holding the service.</p>
+<p>Tap a service to say who holds it: yourself, one of your priests, the visiting minister, or a name typed in. The
+same panel has the time (09:00 on a Sunday, 19:30 in the week, both changeable under Settings), a tick for a day
+without a service, and a line for the priests about that day. <b>Add a day</b> puts a service on another day, as when a
+holiday moves it. Your priests' names come from the sheet's ministers' list; under <b>Settings</b> on this tab you write
+each as the priests should see it, and tell the app your own code, the letter your section's codes start with, if it
+did not find it by itself. A priest the list does not have you add yourself, and one who has moved you take off. When a
+public holiday falls on a Wednesday, the Thursday after it comes up as the midweek service by itself, or the day the
+sheet names.</p>
+<p><b>Send to the priests</b> gives three things. The <b>Excel file</b> is the district's own file with your
+congregation's column written in: the code of who holds each service, nothing on a day without one, and the rest of the
+sheet left as the district made it. The <b>Programme (PDF)</b> is the month on one page, a grid of the weeks with each
+service, who holds it and the district's events in their days, laid out as the congregation's programme always was. The
+<b>WhatsApp text</b> is the services and events as a message to paste in the priests' group. On a phone each opens the
+share sheet; on a PC it is saved.</p>
+<p><b>In the calendar</b> lists what the month could put in your calendar: the services, the district's events, the
+meetings and the deadlines, each with a tick. <b>Add an event</b> puts in something of your own, such as a service you
+hold at another congregation; it goes into the calendar and onto the priests' programme. The standard for a new month is set under Settings: services only,
+services and district events, everything, or nothing until you tick it. <b>Put the plan in Google Calendar</b> makes a
+feed of the ticked events and shows the steps: once, on the PC, you add the feed's address under "Other calendars →
+From URL" in Google Calendar, and from then on a calendar named after your congregation sits beside your own, on the
+phone too. A change in the app reaches it by itself, within about a day; <b>Send now</b> sends it at once. The address
+is long and random, so only someone who has it sees the plan, and nobody can change it from there. <b>Stop the
+feed</b> ends it.</p>
+<p>The months you opened, your choices and the tab's settings go to your other devices through the sync and sit in the
+backup file, with the district's file itself, so the Excel file can be written from any of them. <b>Next month</b> at
+the foot opens the next programme when it comes; a month that is already here is read again and keeps your choices.</p>
+
 <h2>Preparing a divine service</h2>
 <p>The steps follow the order of the Divine Service Guide's article, so you can go through the booklet and the app
 side by side: the Bible text, the title and message, the introduction, the main points, the context, the summary.</p>
+<p>Each step folds. Tap its heading to open or close it; a closed step says in one line what it holds, or "Nothing
+yet". The bar of steps under the heading (beside the page on a wide screen) jumps to any step: a solid number means
+the step has something in it, an outlined one that it is still empty, and the lit step is the one on the screen.
+<b>Open all</b> and <b>Close all</b> are at the end of the bar. The app remembers which steps you left open.</p>
 <ol>
   <li>Select the text word in the reader and choose <b>Prepare a service</b>, tap a service of the loaded Guide, or tap
     "New preparation" in the Prepare tab. Fill in the date, congregation and occasion.</li>
@@ -267,7 +347,9 @@ side by side: the Bible text, the title and message, the introduction, the main 
   <li><b>Step 9, reflection evening:</b> the slides for the evening when the congregation looks back on this service
     (see "Reflection evening" below).</li>
 </ol>
-<p>Everything saves as you type. Use the status (Draft, Ready, Held) to keep the list tidy. To start a part again,
+<p>Everything saves as you type. Use the status (Draft, Ready, Held) to keep the list tidy. A service you mark
+<b>Held</b> is hidden from the lists under Prepare. To see it again, tap <b>Show held services</b> in the list, or
+search for it. To start a part again,
 each box has a <b>Clear</b> at its right while it has text, and each step a <b>Clear this step</b>; both can be undone
 from the message at the bottom for a few seconds. "Change" under step 2 picks another service from the Guide and asks
 whether to replace the text word, title and message; its context and summary come in too where you have not changed
@@ -354,8 +436,12 @@ their own; the minister's key is never used for that.</p>
     what it adds. "The thread" at the top says what the whole article drives at. <b>Use</b> on a piece puts the plain
     words and the insight into "Notes from the Guide" (with the Guide's sentence above them, so you find it in the
     booklet); Use on a passage puts it into Cross references; Tick on a section ticks it under step 5, so it prints
-    with the sermon notes; Use on the thread puts it into Core thought. <b>Save as PDF</b> or <b>Print</b> gives the
-    whole breakdown as a study sheet of its own. The plain words and insights come in the language chosen for the
+    with the sermon notes; Use on the thread puts it into Core thought. Under <b>Print or save</b> in the panel,
+    <b>Piece by piece</b> gives the whole breakdown as a study sheet of its own, and <b>The article in plain words</b>
+    gives the article as one piece in plain words only, under the Guide's headings and with its paragraphs, to read
+    in one go; each with Save as PDF, Print and, on a phone, Share. The switch <b>Piece by piece | In plain
+    words</b> under the thread shows the article the same two ways on the screen, so you can read it as one piece
+    in the app, in your theme and in Easy-read. The plain words and insights come in the language chosen for the
     sermon, even when the Guide is in the other language.</li>
   <li><b>Suggest answers:</b> under step 5, Claude answers the questions about the text (who speaks to whom, why,
     what came before and after, the setting, the meaning), explains the key words, names the Catechism sections that
@@ -454,6 +540,10 @@ travel too, locked in the same way, unless you untick <b>Carry my keys too</b>. 
 stays per device. <b>Stop syncing on this device</b> keeps everything on the device and leaves the copy on the server
 for your other devices; <b>Delete the copy on the server</b> removes it for good. <b>Erase everything on this device</b>
 under About touches only that device.</p>
+<p><b>Good to know:</b> if the app is removed from a device, or the browser clears its data, everything on that
+device is gone with it. Install the app again, tap <b>I have a code</b> and type your code, and it all comes back; a
+backup file (below) is the second way back. An update never needs that: the app says when a newer version is ready,
+and <b>Update now</b> keeps everything.</p>
 
 <h2>Backup and devices</h2>
 <p>Notes, preparations and what Claude wrote in Theology live in the browser on each device. Under Settings → Backup, <b>Save backup file</b>
@@ -477,6 +567,9 @@ away, use <b>Check for a newer version</b> under Settings → About.</p>
     numbers, titles and Bible references; the text is loaded by you onto your own device for personal study.</li>
   <li>Liturgy for Altar Use © New Apostolic Church Cape. The booklet is loaded by you onto your own device for your use
     at the altar and is not part of the public app. Its PDF is read with pdf.js (Mozilla), Apache License 2.0.</li>
+  <li>Guide for Ministers, "Serving and Leading" and the Liturgy of the New Apostolic Church © New Apostolic Church
+    International, Zurich. A handbook is loaded by you onto your own device for your own work as a minister and is not
+    part of the public app.</li>
   <li>Typeface: Montserrat (© The Montserrat Project Authors), under the SIL Open Font License 1.1. The slides of a
     reflection evening use Cambria and Calibri, as in PowerPoint, or where your device lacks them Caladea (© The Caladea
     Project Authors) and Carlito (© The Carlito Project Authors), both under the SIL Open Font License 1.1.</li>
@@ -494,7 +587,7 @@ Alles wat jy skryf, bly op jou eie toestel. Daar is geen rekening en geen bedien
 <h2>Vind jou pad</h2>
 <p>Op 'n rekenaar is elke deel van die app in die blou kieslys links. Op 'n foon hou die balk onderaan <b>Bybel</b>,
 <b>Notas</b>, <b>Voorberei</b> en <b>Kategismus</b>, en 'n vyfde oortjie, <b>Meer</b>, lys die res: Besinningsaand,
-Liturgie, Teologie, Sitplekke, Koor, Herinneringe, MIS en Verstellings. Terwyl een daarvan oop is, bly Meer aan, sodat een tik daarop die
+Liturgie, Handboeke, Teologie, Sitplekke, Koor, Herinneringe, Maandplan, MIS en Verstellings. Terwyl een daarvan oop is, bly Meer aan, sodat een tik daarop die
 lys terugbring.</p>
 <p><b>MIS</b>, voor Verstellings, maak die Kerk se eie MIS-webwerf oop. In die geïnstalleerde app maak dit bo-oor die app
 oop: op 'n foon met 'n Done of ✕ bo-aan om terug te kom, op 'n rekenaar in die app se venster met 'n balk bo-aan waarvan
@@ -572,6 +665,10 @@ toestel en is nie in die rugsteunlêer nie.</p>
 samevatting te sien van elke afdeling wat dit aanhaal; en 'n afdeling onder 'n godsdiensvoorbereiding met "Lees"
 oopmaak. Daarsonder skakel elke afdeling na dieselfde teks by nak.org. Die Kategismus se teks en indeks is in Engels,
 soek dus daarin met Engelse woorde.</p>
+<p><b>Vra die Kategismus</b>: waar die KI-helper ontsluit is en die teks gelaai is, neem 'n blokkie onder die opskrif
+'n vraag in jou eie woorde. Claude lees die afdelings wat daarby pas en antwoord daaruit in gewone woorde, met die
+afdelings by die naam, elk 'n skakel, sodat jy kan lees wat die Kategismus self sê. Die antwoord word nie bewaar nie.
+Dieselfde vraag kan onder Handboeke gevra word, waar die Kategismus saam met die handboeke gelees word.</p>
 
 <h2>Teologie</h2>
 <p>Teologie gee die agtergrond by die Bybel op drie vlakke: die verse wat jy kies, die hoofstuk, en die boek met sy
@@ -620,6 +717,44 @@ nuwer lêer</b> vervang 'n boekie.</p>
 <p>Die kaarte wys in die app se taal, of in die ander taal as net daardie boekie gelaai is, en 'n kaart het 'n
 <b>EN | AF</b>-skakelaar as albei gelaai is. <b>Aa</b> stel die teksgrootte, dieselfde groottes as in die leser, tot
 Kansel. Terwyl 'n kaart oop is, hou die foon sy skerm aan, sodat die woorde by die altaar bly.</p>
+<p>'n Kaart se woorde kan met die hand verander word, as die Kerk 'n bewoording verander of die boekie 'n drukfout het:
+maak die kaart oop, tik <b>Wysig</b>, verander die woorde in die bokse (die etiket links, elke paragraaf regs; 'n
+aantekening bly 'n aantekening), en tik <b>Stoor</b>. Enter begin 'n nuwe paragraaf, 'n boks wat leeg gelaat word, neem
+sy woorde weg, ▲ ▼ skuif 'n ry op of af, ✕ neem 'n ry weg en <b>Voeg 'n ry by</b> voeg een aan die einde by. Die veranderde kaart word soos die
+boekie op jou toestelle gehou, en die lys merk dit "Deur jou verander". <b>Terug na die boekie se woorde</b> onder die
+kaart sit die boekie se eie woorde terug. Elke taal word apart verander: skakel na AF en verander die Afrikaanse kaart
+ook. 'n Boekie wat opnuut uit sy PDF gelaai word, bring die lêer se woorde op elke kaart terug.</p>
+<p>Die volledige Liturgieboek van 2024, met die lang vorm van die godsdiens en elke seënhandeling, is 'n handboek
+(hieronder); 'n reël onderaan die Liturgie-lys lei daarheen.</p>
+
+<h2>Handboeke</h2>
+<p>Handboeke hou die Kerk se Geloofsbelydenis en sy handboeke vir ampsdraers, om te lees en te deursoek. Die
+<b>Geloofsbelydenis</b>, die Tien Geloofsartikels, is deel van die app, in Afrikaans en in Engels (die <b>EN | AF</b>-skakelaar
+op sy bladsye wys die ander): dit maak heel op een bladsy oop, artikel vir
+artikel, elk met 'n skakel na die hoofstuk van die Kategismus wat dit verduidelik (2.4), en dit word soos die handboeke
+deursoek en gevra. Die handboeke is die <i>Guide for Ministers</i> (die reëlboek: die amp, die godsdiens, die
+sakramente en seënhandelinge, sielsorg, administrasie, die bevoegdheidsprofiele), die rigsnoer <i>"Serving and
+Leading"</i>, en die <i>Liturgy of the New Apostolic Church</i> van 2024. Nog 'n handboek in dieselfde vorm, met
+genommerde hoofstukke, kan ook gelaai word. Die Kategismus hou sy eie oortjie, maar sodra sy teks onder Verstellings
+gelaai is, word dit hier ook gelys, en sy afdelings word saam met die handboeke deursoek en gevra. Op 'n rekenaar is
+Handboeke in die kantkieslys ná Kategismus; op 'n foon is dit onder <b>Meer</b>.</p>
+<p>Die handboeke is die Kerk se eie, dus is hulle nie deel van die app nie. Laai elkeen een keer onder Handboeke, as
+sy PDF of as 'n tekslêer wat uit die PDF gestoor is: <b>Laai dit (PDF of tekslêer)</b> onder sy naam. Die app lees die
+hoofstukke uit die lêer op die toestel self (geen Claude, geen sleutel, 'n paar sekondes vir 'n PDF), hou hulle in
+hierdie blaaier en stuur hulle deur die sinkronisasie na jou ander toestelle, dus is een laai genoeg. Hulle is nie in
+die rugsteunlêer nie. Onder <b>Die lêers</b> het elke handboek 'n reël met sy uitgawe en wanneer dit gelaai is;
+<b>Verwyder</b> haal dit weer van jou toestelle af (Ontdoen bring dit terug) en <b>Laai 'n nuwer lêer</b> vervang dit.
+'n Handboek wat in Engels en in Afrikaans gelaai is, het 'n <b>EN | AF</b>-skakelaar op sy bladsye.</p>
+<p>Die lys maak 'n handboek se <b>Inhoud</b> oop: sy hoofstukke op nommer. 'n Hoofstuk wys sy teks soos die boek dit
+druk (lyste, aantekeninge, die Liturgie se bindende tekste in skuinsdruk), die hoofstukke daaronder, en
+<b>‹ vorige</b> en <b>volgende ›</b> onderaan; <b>Aa</b> stel die teksgrootte, dieselfde groottes as in die leser.
+Die soekblokkie op die Handboeke-bladsy vind elke hoofstuk oor die gelaaide handboeke heen wat die woorde dra wat jy
+tik, met 'n uittreksel; op 'n handboek se eie bladsy bly die soektog binne daardie boek en neem ook 'n hoofstuknommer
+("4.5").</p>
+<p>Waar die KI-helper op die toestel oopgesluit is, neem <b>Vra die handboeke</b> op die Handboeke-bladsy 'n vraag in
+jou eie woorde ("Hoe lank mag die preek wees?"). Claude lees die hoofstukke wat by die vraag pas en antwoord daaruit
+in gewone woorde, met die hoofstukke by die naam, sodat die antwoord teen die boek nagegaan kan word; die antwoord
+word gewys, nie bewaar nie, en kos gewoonlik onder 10 Amerikaanse sent met jou eie sleutel.</p>
 
 <h2>Sitplekke en nagmaal</h2>
 <p>Sitplekke is die gemeente se sitplek- en nagmaalplan: die grondplan van die gebou, die amptenare in die genommerde
@@ -668,10 +803,51 @@ dit weer nadat 'n nuwe lys gelaai is.</p>
 <p>Die lys, die merke, die instellings en jou eie bewoordings gaan deur die sinkronisasie na jou ander toestelle en is
 in die rugsteunlêer. 'n Rugsteun uit die losstaande herinneringe-app laai onder die app se Verstellings.</p>
 
+<h2>Die maandplan</h2>
+<p>Elke maand stuur die distrik sy program as 'n Excel-blad: die dae van die maand, waar die Distriksapostel, die
+Apostel en die Distriksvoorganger sal wees, die distrik se byeenkomste, en die lys bedienaars met hul kodes.
+<b>Maandplan</b> (onder Meer op 'n foon) maak daardie lêer oop. Tik een keer jou gemeente se naam, die opskrif van jou
+kolom in die blad, en dan <b>Kies die Excel-lêer</b>. Die app lees die dae en die bedienaars op jou toestel; die lêer
+gaan nêrens heen. Elke Sondag en Woensdag van die maand kom op as 'n diensdag. 'n Openbare vakansiedag wat die blad
+merk, is sonder diens, en 'n Sondag waarop die blad die Distriksvoorganger of die Apostel in jou gemeente plaas, wys
+hulle reeds as dié wat die diens hou.</p>
+<p>Tik op 'n diens om te sê wie dit hou: jyself, een van jou priesters, die besoekende bedienaar, of 'n naam wat jy
+intik. Dieselfde paneel het die tyd (09:00 op 'n Sondag, 19:30 in die week, albei verstelbaar onder Verstellings), 'n
+merkie vir 'n dag sonder 'n diens, en 'n reël vir die priesters oor daardie dag. <b>Voeg 'n dag by</b> plaas 'n diens
+op 'n ander dag, soos wanneer 'n vakansiedag dit verskuif. Jou priesters se name kom uit die blad se bedienaarslys;
+onder <b>Verstellings</b> op hierdie blad skryf jy elkeen soos die priesters dit moet sien, en sê jy vir die app jou eie
+kode, die letter waarmee jou wyk se kodes begin, as dit dit nie self gevind het nie. 'n Priester wat nie op die lys is
+nie, voeg jy self by, en een wat verskuif is, haal jy af. Wanneer 'n openbare vakansiedag op 'n Woensdag val, kom die
+Donderdag daarna vanself as die weekdiens op, of die dag wat die blad noem.</p>
+<p><b>Stuur aan die priesters</b> gee drie dinge. Die <b>Excel-lêer</b> is die distrik se eie lêer met jou gemeente se
+kolom ingeskryf: die kode van wie elke diens hou, niks op 'n dag sonder een nie, en die res van die blad soos die
+distrik dit gemaak het. Die <b>Program (PDF)</b> is die maand op een bladsy, 'n rooster van die weke met elke diens, wie
+dit hou en die distrik se byeenkomste op hul dae, uitgelê soos die gemeente se program altyd was. Die
+<b>WhatsApp-teks</b> is die dienste en byeenkomste as 'n boodskap om in die priesters se groep te plak. Op 'n foon maak
+elkeen die deelblad oop; op 'n rekenaar word dit gestoor.</p>
+<p><b>In die kalender</b> lys wat die maand in jou kalender kan sit: die dienste, die distrik se byeenkomste, die
+vergaderings en die sperdatums, elk met 'n merkie. <b>Voeg 'n gebeurtenis by</b> sit iets van jou eie in, soos 'n diens
+wat jy by 'n ander gemeente hou; dit gaan in die kalender en op die priesters se program. Die standaard vir 'n nuwe maand word onder Verstellings gestel: net
+dienste, dienste en distriksbyeenkomste, alles, of niks totdat jy dit merk. <b>Sit die plan in Google Kalender</b> maak
+'n voer van die gemerkte byeenkomste en wys die stappe: een keer, op die rekenaar, voeg jy die voer se adres onder
+"Ander kalenders → Vanaf URL" in Google Kalender by, en van dan af sit 'n kalender met jou gemeente se naam naas jou
+eie, ook op die foon. 'n Verandering in die app bereik dit vanself, binne omtrent 'n dag; <b>Stuur nou</b> stuur dit
+dadelik. Die adres is lank en willekeurig, sodat net iemand wat dit het die plan sien, en niemand dit van daar kan
+verander nie. <b>Stop die voer</b> beëindig dit.</p>
+<p>Die maande wat jy oopgemaak het, jou keuses en die blad se verstellings gaan deur die sinkronisasie na jou ander
+toestelle en is in die rugsteunlêer, saam met die distrik se lêer self, sodat die Excel-lêer van enige van hulle geskryf
+kan word. <b>Volgende maand</b> onderaan maak die volgende program oop wanneer dit kom; 'n maand wat reeds hier is,
+word weer gelees en hou jou keuses.</p>
+
 <h2>'n Godsdiens voorberei</h2>
 <p>Die stappe volg die volgorde van die Handleiding vir Godsdienste se artikel, sodat jy die boekie en die app langs
 mekaar kan deurwerk: die Bybelteks, die titel en boodskap, die inleiding, die hoofpunte, die agtergrond, die
 samevatting.</p>
+<p>Elke stap vou toe. Tik op sy opskrif om dit oop of toe te maak; 'n toe stap sê in een reël wat daarin is, of "Nog
+niks". Die balk met die stappe onder die opskrif (langs die bladsy op 'n wye skerm) spring na enige stap: 'n vol
+nommer beteken die stap het iets in, 'n oop nommer dat dit nog leeg is, en die verligte stap is dié op die skerm.
+<b>Maak almal oop</b> en <b>Maak almal toe</b> staan aan die einde van die balk. Die app onthou watter stappe jy oop
+gelos het.</p>
 <ol>
   <li>Kies die tekswoord in die leser en kies <b>Berei 'n godsdiens voor</b>, tik op 'n godsdiens van die gelaaide
     Handleiding, of tik op "Nuwe voorbereiding" onder Diens Voorbereiding. Vul die datum, gemeente en geleentheid in.</li>
@@ -714,7 +890,9 @@ samevatting.</p>
   <li><b>Stap 9, besinningsaand:</b> die skyfies vir die aand waarop die gemeente terugkyk na hierdie godsdiens (sien
     "Besinningsaand" hieronder).</li>
 </ol>
-<p>Alles stoor terwyl jy tik. Gebruik die status (Konsep, Gereed, Gehou) om die lys netjies te hou. Om 'n deel weer te
+<p>Alles stoor terwyl jy tik. Gebruik die status (Konsep, Gereed, Gehou) om die lys netjies te hou. 'n Godsdiens wat
+jy as <b>Gehou</b> merk, word in die lyste onder Diens Voorbereiding verberg. Om dit weer te sien, tik op <b>Wys
+dienste wat gehou is</b> in die lys, of soek daarna. Om 'n deel weer te
 begin, het elke boks 'n <b>Vee uit</b> aan sy regterkant solank dit teks het, en elke stap 'n <b>Vee hierdie stap
 uit</b>; albei kan vir 'n paar sekondes uit die boodskap onderaan ontdoen word. "Verander" onder stap 2 kies 'n ander
 godsdiens uit die Handleiding en vra of die tekswoord, titel en boodskap vervang moet word; sy agtergrond en
@@ -805,9 +983,13 @@ ampsdraer se sleutel word nooit daarvoor gebruik nie.</p>
     <b>Gebruik</b> by 'n stuk sit die eenvoudige woorde en die insig in "Notas uit die Handleiding" (met die
     Handleiding se sin daarbo, sodat jy dit in die boekie vind); Gebruik by 'n gedeelte sit dit in Kruisverwysings;
     Merk by 'n afdeling merk dit onder stap 5, sodat dit saam met die preeknotas gedruk word; Gebruik by die rooi
-    draad sit dit in Kerngedagte. <b>Stoor as PDF</b> of <b>Druk</b> gee die hele ontleding as 'n studieblad op sy
-    eie. Die eenvoudige woorde en insigte kom in die taal wat vir die preek gekies is, selfs wanneer die Handleiding
-    in die ander taal is.</li>
+    draad sit dit in Kerngedagte. Onder <b>Druk of stoor</b> in die paneel gee <b>Stuk vir stuk</b> die hele
+    ontleding as 'n studieblad op sy eie, en <b>Die artikel in eenvoudige woorde</b> gee die artikel as een stuk, net
+    in eenvoudige woorde, onder die Handleiding se opskrifte en met sy paragrawe, om in een slag te lees; elk met
+    Stoor as PDF, Druk en, op 'n foon, Deel. Die skakelaar <b>Stuk vir stuk | In eenvoudige woorde</b> onder die
+    rooi draad wys die artikel op dieselfde twee maniere op die skerm, sodat jy dit as een stuk in die app kan
+    lees, in jou tema en in Maklik-lees. Die eenvoudige woorde en insigte kom in die taal wat vir die preek
+    gekies is, selfs wanneer die Handleiding in die ander taal is.</li>
   <li><b>Stel antwoorde voor:</b> onder stap 5 beantwoord Claude die vrae oor die teks (wie praat met wie, waarom,
     wat voor en ná gekom het, die agtergrond, die betekenis), verduidelik die sleutelwoorde, noem die
     Kategismus-afdelings wat by die teks en die boodskap hoort, gee kruisverwysings in lyn met die boodskap, en bied
@@ -907,6 +1089,10 @@ YouVersion en Anthropic gaan ook mee, op dieselfde manier gesluit, tensy jy <b>N
 voorkoms van die app (tema en tekstgrootte) bly per toestel. <b>Hou op sinkroniseer op hierdie toestel</b> hou alles op
 die toestel en laat die kopie op die bediener vir jou ander toestelle; <b>Skrap die kopie op die bediener</b> verwyder dit
 vir goed. <b>Vee alles op hierdie toestel uit</b> onder Oor die app raak net daardie toestel.</p>
+<p><b>Goed om te weet:</b> as die app van 'n toestel verwyder word, of die blaaier sy data uitvee, is alles op daardie
+toestel daarmee heen. Installeer die app weer, tik <b>Ek het 'n kode</b> en tik jou kode in, en alles kom terug; 'n
+rugsteunlêer (hieronder) is die tweede pad terug. 'n Opdatering het dit nooit nodig nie: die app sê wanneer 'n nuwer
+weergawe gereed is, en <b>Dateer nou op</b> hou alles.</p>
 
 <h2>Rugsteun en toestelle</h2>
 <p>Notas, voorbereidings en wat Claude in Teologie geskryf het, leef in die blaaier op elke toestel. Onder Verstellings → Rugsteun maak <b>Stoor
@@ -933,6 +1119,9 @@ te kyk, gebruik <b>Kyk vir 'n nuwer weergawe</b> onder Verstellings → Oor die 
   <li>Liturgie vir Altaargebruik © Nuwe Apostoliese Kerk Kaap. Die boekie word deur jou op jou eie toestel gelaai vir
     jou gebruik by die altaar en is nie deel van die openbare app nie. Sy PDF word gelees met pdf.js (Mozilla),
     Apache-lisensie 2.0.</li>
+  <li>Guide for Ministers, "Serving and Leading" en die Liturgy of the New Apostolic Church © Nuwe Apostoliese Kerk
+    Internasionaal, Zürich. 'n Handboek word deur jou op jou eie toestel gelaai vir jou eie werk as ampsdraer en is
+    nie deel van die openbare app nie.</li>
   <li>Letterstyl: Montserrat (© The Montserrat Project Authors), onder die SIL Open Font License 1.1. Die skyfies van
     'n besinningsaand gebruik Cambria en Calibri, soos in PowerPoint, of waar jou toestel hulle nie het nie Caladea (© The
     Caladea Project Authors) en Carlito (© The Carlito Project Authors), albei onder die SIL Open Font License 1.1.</li>

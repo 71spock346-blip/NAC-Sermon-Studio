@@ -68,6 +68,7 @@
  * followed. Each preparation can also pick its own language.
  */
 import { state } from './store.js';
+import { plainText } from './handbook.js';   // the chapters of the handbooks, for "Ask the handbooks"
 import { t } from './i18n.js';
 import { parseRef, formatRef, bookName } from './books.js';
 import * as Bible from './bible.js';
@@ -836,14 +837,14 @@ const OUTLINE_SCHEMA = {
   properties: {
     intro: {
       type: 'object', additionalProperties: false, required: ['text', 'why'], description: 'The introduction: how the sermon opens',
-      properties: { text: { type: 'string', description: 'Three to five short sentences, as the minister could speak them' }, why: { type: 'string', description: 'One short line on why this opening works for this text, this message and these people' } },
+      properties: { text: { type: 'string', description: 'Three to five short sentences, as the minister could speak them: the first one or two make the people feel welcome, then it opens the door to the text' }, why: { type: 'string', description: 'One short line on why this opening works for this text, this message and these people' } },
     },
     points: {
       type: 'array', description: 'The main points, as the rules on the main points say: the Guide\'s, in its order; empty when the rules say to propose none',
       items: { type: 'object', additionalProperties: false, required: ['heading', 'body', 'why', 'source'], properties: { heading: { type: 'string', description: 'The heading of the point, in the language of the sermon: the Guide\'s heading, or the minister\'s' }, body: { type: 'string', description: 'Three to six short sentences: what the Guide says under this heading, what the text says there, what it asks of us' }, why: { type: 'string', description: 'One short line on what this point does for the message' }, source: { type: 'string', description: 'The heading this point comes from, word for word as given under THE MAIN POINTS; empty only when no Guide applies' } } },
     },
     application: { type: 'string', description: 'The application for the congregation: what the text asks of them this week, named for the people in front of the minister; two to four short sentences' },
-    conclusion: { type: 'string', description: 'The conclusion: gathers the thoughts and leads to the altar; two to four short sentences' },
+    conclusion: { type: 'string', description: 'The conclusion: sums up the main points in a sentence or two, so the message is clearly recognisable, then leads to the altar; three to five short sentences' },
     illustrations: {
       type: 'array', description: 'One to three pictures, stories or examples that make a point visible, from the world of the people who are listening',
       items: { type: 'object', additionalProperties: false, required: ['title', 'body', 'serves'], properties: { title: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'The picture or story in two to five short sentences' }, serves: { type: 'string', description: 'The part of the sermon it serves, e.g. "the introduction" or "main point 2"' } } },
@@ -866,6 +867,7 @@ function outlineSystem(lang, humour, where, thoughts) {
 Rules:
 ${pointsRule(where.mode, 'outline')}
 - The introduction, the application, the conclusion and the illustrations are yours to propose, but each stands on those main points and on the message: the introduction opens the door to the first point, the application and the conclusion gather the points up, and every illustration serves one of them. Nothing pulls away from them.
+- As the Church's Guide for Ministers asks of every sermon (4.5.4): the introduction first makes the people feel welcome, in a sentence or two in the minister's own warm words, before it opens the door to the text; the conclusion sums up the main points briefly, in their order, so the message is clearly recognisable, before it leads to the altar.
 - Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Where the Catechism text given below speaks to the matter, let it shape the body of the points. Do not state what a Catechism section says unless its text is given; where you draw on it, say it in plain words.
 - The message of the service gives the direction: the whole outline serves it and does not pull the text elsewhere.
 - A New Apostolic sermon is preached freely, lasts fifteen to twenty minutes at most, and leads the congregation to the forgiveness of sins and Holy Communion: the conclusion ends there. In a divine service for the departed, the departed are included in the hope and the intercession.
@@ -1619,4 +1621,51 @@ export async function translateInsight(d, to, { signal, onProgress } = {}) {
     if (at && typeof at === 'object') at[path[path.length - 1]] = got.get(p.id) || p.text;
   }
   return { ...out, lang: to, at: new Date().toISOString(), model: r.model, cost: cost(r.usage, r.model) };
+}
+
+/* ---------------------------------------------------------------- the handbooks */
+
+/*
+ * "Ask the handbooks" (handbooks.js): a question in the minister's own
+ * words, with the chapters of the Church's handbooks that carry its words
+ * (handbook.js relevant). Claude answers from those chapters alone, in plain
+ * words, and names the chapters it took the answer from, so the answer can
+ * be checked against the book. The chapters are cut to a size that fits in
+ * one request; the answer is shown, not kept.
+ */
+const HANDBOOK_SCHEMA = {
+  type: 'object', additionalProperties: false,
+  required: ['answer', 'cites', 'found'],
+  properties: {
+    answer: { type: 'string', description: 'The answer in plain words: short sentences, short paragraphs separated by a blank line, what the handbooks say and in their own wording where the wording matters, with the chapter number in brackets after each point, e.g. (Guide for Ministers 4.5.4) or (Catechism 8.1.4). No heading, no greeting.' },
+    cites: {
+      type: 'array', description: 'The chapters the answer rests on, the most important first; only chapters that were given',
+      items: { type: 'object', additionalProperties: false, required: ['key', 'n', 'title'], properties: {
+        key: { type: 'string', description: 'The book, as the key in the chapter heading: guide-for-ministers, serving-and-leading, liturgy, creed, catechism …' },
+        n: { type: 'string', description: 'The chapter as given after the key: its number such as 4.5.4, or i7 for a chapter without one' },
+        title: { type: 'string', description: 'The chapter\'s title as given' },
+      } },
+    },
+    found: { type: 'boolean', description: 'true when the chapters given answer the question; false when they do not, and the answer says so and gives what comes nearest' },
+  },
+};
+
+const HANDBOOK_SYSTEM = `You answer a New Apostolic Church minister's question from the Church's own books: the Guide for Ministers (the rule book), the "Serving and Leading" guiding principle, the Liturgy of the New Apostolic Church, the Creed (the ten Articles of Faith, one chapter each), the Catechism of the New Apostolic Church (the Church's teaching, in numbered sections), and any other handbook given. You are given the chapters (of the Catechism, the sections) that fit the question. Answer from those alone: what they say, in plain, everyday words a tired reader follows at a glance, short sentences, nothing invented. Where the book's own wording matters (a rule, a time, a set form of words, a definition), give it as it stands, in quotation marks. Name the chapter after each point, in brackets, with the book and the number: (Guide for Ministers 4.5.4), (Catechism 8.1.4); for the Creed, the article: (The Creed, Article 4). If the chapters do not answer the question, say so plainly and give what comes nearest; never fill the gap from memory. Do not add teaching or advice of your own: what the Catechism says is the Church's teaching, what a handbook says is the Church's rule or practice, and the Apostles interpret Holy Scripture.`;
+
+/** Asks about the handbooks, the Creed and the Catechism: `picks` are [{handbook, chapter, addr}] from handbook.js relevant(). Returns {data: {answer, cites, found}, usage, model, cost}. */
+export async function askHandbooks(question, picks, { signal, onProgress } = {}) {
+  const lang = state.settings.aiLang === 'af' ? 'af' : 'en';
+  const CAP = 30000;
+  const parts = [];
+  let size = 0;
+  for (const p of picks) {
+    const head = `=== ${p.handbook.title}${p.handbook.edition ? ` (${p.handbook.edition})` : ''} — ${p.handbook.key === 'catechism' ? 'section' : 'chapter'} ${p.addr}: ${p.chapter.title}   [key ${p.handbook.key}, chapter ${p.addr}]`;
+    const text = plainText(p.chapter).slice(0, 4000);
+    if (size + head.length + text.length > CAP && parts.length) break;
+    parts.push(head + '\n' + text);
+    size += head.length + text.length;
+  }
+  const content = `THE QUESTION\n${question.trim()}\n\nAnswer in ${lang === 'af' ? 'Afrikaans' : 'English'}.\n\nTHE CHAPTERS OF THE BOOKS THAT FIT THE QUESTION (answer from these alone; each is headed with its book's key and its chapter, or the Catechism's section)\n\n${parts.join('\n\n')}`;
+  const r = await run({ system: [{ type: 'text', text: HANDBOOK_SYSTEM }], content, schema: HANDBOOK_SCHEMA, effort: 'medium', maxTokens: 4000, signal, onProgress });
+  return { ...r, cost: cost(r.usage, r.model) };
 }

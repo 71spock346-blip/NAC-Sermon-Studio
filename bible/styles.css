@@ -211,7 +211,7 @@
 }
 [data-read="easy"] .scripture, [data-read="easy"] .cat-text, [data-read="easy"] .guide-article, [data-read="easy"] .ai-text,
 [data-read="easy"] .note-body, [data-read="easy"] textarea, [data-read="easy"] .help p, [data-read="easy"] .help li,
-[data-read="easy"] .step-head p, [data-read="easy"] .sheet-body p, [data-read="easy"] .sec > p, [data-read="easy"] .hint,
+[data-read="easy"] .step-head p, [data-read="easy"] .step-sum, [data-read="easy"] .sheet-body p, [data-read="easy"] .sec > p, [data-read="easy"] .hint,
 [data-read="easy"] .item, [data-read="easy"] label.check {
   letter-spacing: .035em; word-spacing: .12em; line-height: 1.8;
 }
@@ -507,6 +507,10 @@ nav.side .lang-switch { align-self: flex-start; margin-bottom: 4px; }
 .item.pick { display: block; width: 100%; }
 .item.pick .note-head { margin-bottom: 2px; }
 .list > p.muted { padding: 14px; margin: 0; }
+/* "Show held services (n)" / "Hide held services": a quiet row in a list of services, where the held ones show (guides.js heldToggle) */
+.item.held-toggle { justify-content: center; gap: 8px; background: var(--surface-2); color: var(--accent-text); font-size: 14px; font-weight: 600; }
+.held-toggle .held-ico { display: inline-flex; flex: 0 0 auto; }
+.held-toggle .held-ico svg { display: block; width: 18px; height: 18px; }
 
 /* ------------------------------------------------------------ reader */
 .readbar { position: sticky; top: var(--top); z-index: 3; background: var(--bg); padding: 2px 0 8px; margin: -2px 0 10px; border-bottom: 1px solid var(--line); }
@@ -599,6 +603,57 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .step-head p { margin: 4px 0 0; color: var(--ink-2); }
 .step-n { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: 700 16px/1 var(--display); display: inline-flex; align-items: center; justify-content: center; }
 .step-n.small { width: 30px; height: 30px; font-size: 14px; }
+.step-n.ico svg { width: 18px; height: 18px; }
+/*
+ * The steps fold (prepare.js step): the heading row is a button that opens
+ * and closes the step. Closed, it says in one line what the step holds and
+ * the hint is away; open, the hint and the boxes show as before. The
+ * reflection evening's headings (reflect.js) keep the plain row above.
+ */
+.step { scroll-margin-top: 8px; }
+.step-head.fold { gap: 6px 12px; align-items: center; padding: 10px 14px 10px 12px; }
+.step + .step > .step-head.fold { margin-top: 12px; }
+.step + .step > .step-head.fold.open { margin-top: 26px; }
+.step:first-child > .step-head.fold { margin-top: 0; }
+.step-head.fold .step-h { flex: 1 1 240px; min-width: 0; margin: 0; font: inherit; }
+.step-toggle { display: flex; align-items: flex-start; gap: 14px; width: 100%; margin: 0; padding: 2px 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: var(--radius-s); }
+.step-toggle .step-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 3px; }
+.step-toggle .step-title { font: 700 19px/1.25 var(--display); color: var(--head-ink); }
+.step-sum { font: 400 14.5px/1.4 var(--sans); color: var(--ink-2); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }   /* two lines at most: a closed step stays short */
+.step-sum:empty { display: none; }
+.step-chev { flex: 0 0 auto; width: 30px; height: 30px; margin-top: 3px; border-radius: 999px; background: var(--chevron) center / 22px 22px no-repeat; transition: transform .2s ease; }
+.step-head.fold.open .step-chev { transform: rotate(180deg); }
+@media (hover: hover) and (pointer: fine) { .step-toggle:hover .step-title { text-decoration: underline; text-underline-offset: 3px; } .step-toggle:hover .step-chev { background-color: var(--accent-soft); } }
+.step-head.fold .step-hint { flex: 1 1 100%; order: 3; margin: 0 0 2px 50px; }   /* under the title row, in line with the title: the circle and the gap before it */
+.step-head.fold:not(.open) .step-hint { display: none; }
+.step-head.fold .step-clear { margin-left: auto; }
+@media (max-width: 759.98px) { .step-head.fold .step-clear { order: 4; } }   /* on a phone "Clear this step" goes under the hint, as before */
+.step-body { padding-bottom: 4px; }
+/*
+ * The step bar (prepare.js, the foot of renderEditor): a chip for every
+ * step in the pinned heading, scrolling sideways on a phone. A chip's circle
+ * is solid while the step has something in it and outlined while it is still
+ * empty; the chip of the step on the screen is lit. On a wide PC the bar is
+ * a column beside the page (below).
+ */
+.steps { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 8px 0 2px; margin: 0; }
+.steps::-webkit-scrollbar { display: none; }
+.step-chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 4px 12px 4px 5px; border-radius: 999px; border: 1px solid var(--btn-line); background: var(--surface); color: var(--ink-2); font: 600 13.5px/1.2 var(--sans); white-space: nowrap; cursor: pointer; transition: background-color .15s ease, border-color .15s ease; }
+.step-chip .step-n { width: 24px; height: 24px; font-size: 12.5px; background: transparent; color: var(--accent-text); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.step-chip .step-n.ico svg { width: 14px; height: 14px; }
+.step-chip.filled .step-n { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+.step-chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); font-weight: 700; }
+.step-chip.all { padding: 4px 12px; color: var(--accent-text); border-color: transparent; background: transparent; }
+@media (hover: hover) and (pointer: fine) { .step-chip:not(.on):hover { background: var(--card); } .step-chip.all:hover { background: var(--accent-soft); } }
+@media (max-width: 759.98px) { .step-chip { min-height: 40px; font-size: 14px; } .prep-head { margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; } .steps { margin: 0 -12px; padding-left: 12px; padding-right: 12px; } }
+@media (min-width: 760px) { .steps { flex-wrap: wrap; overflow: visible; } }   /* a PC has no finger to scroll a row sideways: the chips wrap under the heading instead */
+/* on a wide PC the bar stands beside the page as a column, with the pinned heading, so every step is in reach without scrolling */
+@media (min-width: 1480px) {
+  #tab-prepare.editing { max-width: 1144px; padding-right: 244px; box-sizing: border-box; }
+  #tab-prepare.editing .steps { position: absolute; left: calc(100% + 24px); top: 2px; width: 220px; flex-direction: column; align-items: stretch; gap: 4px; overflow: visible; padding: 0; }
+  #tab-prepare.editing .step-chip { justify-content: flex-start; border-radius: 10px; padding: 5px 10px 5px 6px; white-space: normal; }
+  #tab-prepare.editing .step-chip.all { margin-top: 6px; justify-content: center; }
+}
 .points .point { border-radius: var(--radius); padding: 12px; margin: 12px 0; background: var(--card); }
 .pill.guide { flex: 0 0 auto; color: var(--accent-text); background: var(--accent-soft); border-color: transparent; }   /* a main point from the Guide */
 .points .point > textarea { margin-top: 8px; }
@@ -644,6 +699,14 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .out-row { margin-top: 0; }
 .out-row .out-label { flex: 0 0 150px; font-weight: 700; color: var(--ink); }
 @media (max-width: 759.98px) { .out-row .out-label { flex: 1 0 100%; } }
+/* the breakdown's own outputs (prepare.js renderBreak): the study sheet piece by piece, the article in plain words */
+.bd-out .outputs { margin-top: 4px; }
+.bd-out-hint { margin: 8px 0 2px; }
+@media (min-width: 760px) { .bd-out .out-row .out-label { flex-basis: 250px; } }
+/* the article piece by piece or as one piece in plain words: the switch, and the plain words read like the Guide's article */
+.bd-view { margin: 14px 0 4px; }
+.bd-plain { margin-top: 4px; }
+.bd-plain h5:first-child { margin-top: 8px; }
 /* hear the sermon (prepare.js, speech.js): the player, its line of facts and the buttons under it */
 .listen { margin-top: 14px; padding: 12px 14px 14px; border-radius: var(--radius); background: var(--card); }
 .listen h3 { font: 700 16px/1.3 var(--display); color: var(--head-ink); margin: 0 0 6px; }
@@ -892,7 +955,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .ai-note { color: var(--ink-2); margin: 4px 0 8px; }
 .ai-sec { margin: 10px 0 4px; }
 .ai-sec-head { margin: 0 0 2px; }
-.ai-sec h4 { font: 700 11px/1.35 var(--sans); text-transform: uppercase; letter-spacing: .16em; color: var(--label-ink); margin: 0 8px 0 0; }
+.ai-sec h4 { font: 700 11px/1.35 var(--sans); text-transform: uppercase; letter-spacing: .16em; color: var(--label-ink); margin: 0 8px 0 0; flex-shrink: 0; max-width: 100%; }   /* the heading stays on one line; its hint wraps */
 .ai-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); }
 .ai-sec .ai-item:first-of-type { border-top: none; }
 .ai-text { flex: 1 1 auto; min-width: 0; font-size: 15px; line-height: 1.55; white-space: pre-line; }
@@ -942,6 +1005,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 
 /* ---- sync between devices (Settings): the status line, the code in large letters, its QR square, the box to type one ---- */
 .sync-status { margin-top: 4px; }
+.sec p.heads-up { margin-top: 12px; padding: 8px 12px; border-radius: var(--radius-s); background: var(--card); box-shadow: inset 3px 0 0 var(--accent); color: var(--ink-2); }   /* what removing the app does (settings.js headsUp) */
 .sync-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c-green); flex: 0 0 auto; }
 .sync-dot.busy { background: var(--c-amber); animation: sync-pulse 1s ease-in-out infinite alternate; }
 .sync-dot.error { background: var(--danger); }
@@ -1162,9 +1226,9 @@ body.showing { overflow: hidden; }
 [data-read="easy"] .th-sec h4, [data-read="easy"] .th-save h4, [data-read="easy"] .th-earlier > h4, [data-read="easy"] .th-facts dt { text-transform: none; letter-spacing: .02em; font-size: 14px; }
 [data-read="easy"] .th-quote { font-style: normal; line-height: 1.85; }
 @media (max-width: 759.98px) {
-  /* the phone's bar keeps five tabs: these eight sections are listed under More (more.js), and More stays lit while one of them is open */
-  .tabs button[data-tab="reflect"], .tabs button[data-tab="liturgy"], .tabs button[data-tab="theology"],
-  .tabs button[data-tab="seating"], .tabs button[data-tab="choir"], .tabs button[data-tab="reminders"], .tabs button[data-tab="mis"], .tabs button[data-tab="settings"] { display: none; }
+  /* the phone's bar keeps five tabs: these nine sections are listed under More (more.js), and More stays lit while one of them is open */
+  .tabs button[data-tab="reflect"], .tabs button[data-tab="liturgy"], .tabs button[data-tab="handbooks"], .tabs button[data-tab="theology"],
+  .tabs button[data-tab="seating"], .tabs button[data-tab="choir"], .tabs button[data-tab="reminders"], .tabs button[data-tab="plan"], .tabs button[data-tab="mis"], .tabs button[data-tab="settings"] { display: none; }
   .tabs button.also { color: var(--accent-text); }
   .tabs button.also .ico { background: var(--accent); color: var(--accent-ink); }
   .th-books { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1224,6 +1288,7 @@ body.showing { overflow: hidden; }
 .lit-book { padding: 12px 14px; margin-top: 8px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14.5px; line-height: 1.5; }
 .lit-book .row { margin-top: 6px; }
 .lit-credit { margin-top: 16px; max-width: 70ch; }
+.lit-fullbook { margin: 14px 0 0; max-width: 70ch; line-height: 1.5; }
 /* one card: the rows as the booklet prints them, the label on the left, the words on the right, a dotted rule between the rows */
 .lit-page .docbar { align-items: center; }
 .lit-card { margin: 4px 0 12px; line-height: 1.55; }
@@ -1247,8 +1312,90 @@ body.showing { overflow: hidden; }
 .lit-card i { font-style: italic; }
 [data-read="easy"] .lit-card { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
 [data-read="easy"] .lit-note { font-style: normal; }
+/* a card's words changed by hand (liturgy.js editPage): the same grid, with a box for the label, the lines under it and each block */
+.lit-page .btns { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: auto; }   /* the buttons stay together when the title line is short */
+.lit-edit-btn .ico { display: inline-flex; }
+.lit-edit-btn .ico svg { width: 15px; height: 15px; display: block; }
+.lit-changed { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 0; }
+.lit-tag { display: block; font-weight: 400; }
+.lit-hint { margin: -4px 0 12px; max-width: 70ch; line-height: 1.5; }
+.lit-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 14px; }
+.lit-edit .lit-row { align-items: start; }
+.lit-edit textarea { font-size: inherit; line-height: 1.5; padding: 8px 10px; min-height: 0; }
+.lit-edit .lit-left .row.line { gap: 4px; align-items: center; margin: 0; }
+.lit-edit .lit-label-box { font-weight: 700; color: var(--accent-text); }
+.lit-edit .lit-sub-box { display: block; width: 100%; font-style: italic; color: var(--muted); font-size: .88em; margin-top: 6px; }
+.lit-edit .lit-box { display: block; width: 100%; margin: 0 0 8px; }
+.lit-edit .lit-box.k-note { font-style: italic; color: var(--label-ink); }
+.lit-edit .lit-right > :last-child { margin-bottom: 0; }
+.lit-edit .lit-li { align-items: flex-start; margin: 0 0 8px; }
+.lit-edit .lit-li .lit-bullet { padding-top: 9px; }
+.lit-edit .lit-li .lit-box { margin: 0; flex: 1 1 auto; min-width: 0; }
+.lit-edit .lit-tools { display: inline-flex; gap: 2px; flex: 0 0 auto; }
+@media (min-width: 760px) {   /* the left column is narrow on a PC: the arrows and ✕ go under the label, so its words are not broken */
+  .lit-edit .lit-left .row.line { flex-wrap: wrap; }
+  .lit-edit .lit-tools { flex: 1 0 100%; justify-content: flex-start; margin-left: -8px; }
+}
+.lit-edit .lit-tools .icon { color: var(--muted); min-width: 34px; }
+.lit-edit .lit-tools .lit-up, .lit-edit .lit-tools .lit-down { font-size: 12px; }
+.lit-edit .lit-tools .icon:disabled { opacity: .3; cursor: default; }
+.lit-edit .lit-row.moved { animation: lit-flash .9s ease-out; }
+@keyframes lit-flash { from { background: var(--accent-soft); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .lit-edit .lit-row.moved { animation: none; } }
+[data-read="easy"] .lit-edit .lit-box.k-note { font-style: normal; }
+
+/* ---------------------------------------------------------------- Handbooks: the Church's handbooks, chapter by chapter (handbooks.js)
+   The list and the file rows borrow the Liturgy tab's look (.lit-list, .lit-books); a chapter reads like the Catechism's text. */
+.hb-lead { margin: 0 0 12px; max-width: 70ch; line-height: 1.55; }
+.hb-search { margin: 0 0 6px; }
+.hb-search input { width: 100%; }
+.hb-hits { margin-bottom: 14px; }
+.hb-hit .grow { min-width: 0; }
+.hb-hit b { display: block; }
+.hb-from { display: block; font: 700 11px/1.3 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--label-ink); margin-bottom: 2px; }
+.hb-list .item .snippet { font-weight: 400; }
+.hb-contents .item.cat .grow, .hb-kids .item.cat .grow { min-width: 0; }
+.hb-contents .item .chev, .hb-kids .item .chev { color: var(--muted); font-size: 22px; line-height: 1; flex: 0 0 auto; }
+.hb-page .docbar { align-items: center; }
+.hb-text { font-family: var(--serif); line-height: 1.65; max-width: 68ch; margin: 4px 0 12px; }
+.hb-text.size-s { font-size: 15px; }
+.hb-text.size-m { font-size: 16.5px; }
+.hb-text.size-l { font-size: 19.5px; }
+.hb-text.size-xl { font-size: 23.5px; }
+.hb-text p { margin: 0 0 .7em; }
+.hb-text .hb-h { font: 700 1.05em/1.3 var(--display); color: var(--head-ink); margin: 1.3em 0 .45em; }
+.hb-text .hb-h:first-child { margin-top: .2em; }
+.hb-li { display: flex; gap: .55em; margin: 0 0 .45em; }
+.hb-li .hb-bullet { flex: 0 0 1em; text-align: center; color: var(--label-ink); }
+.hb-li.d2, .hb-p.d1, .hb-quote.d1, .hb-note.d1 { margin-left: 1.55em; }
+.hb-li.d3, .hb-p.d2, .hb-quote.d2, .hb-note.d2 { margin-left: 3.1em; }
+.hb-p.d3, .hb-quote.d3, .hb-note.d3 { margin-left: 4.65em; }
+.hb-quote { font-style: italic; color: var(--ink); border-left: 3px solid var(--accent); padding: 2px 0 2px 12px; }   /* the Liturgy's binding texts, blue italics in the book */
+.hb-quote i { font-style: normal; }
+.hb-note { font-family: var(--sans); font-size: .82em; color: var(--ink-2); }
+.hb-text sup { font-size: .6em; line-height: 0; }
+.hb-text small { font-size: .82em; }
+.hb-text .hb-cat { margin: -.25em 0 1.15em; font-family: var(--sans); font-size: .86em; }   /* under an article of the Creed: the Catechism's section on it */
+.hb-text.hb-whole { margin-top: 14px; }   /* the Creed read whole: a breath between the line about it and the first article */
+.hb-text .hb-cat a { font-weight: 700; text-decoration: none; }
+.hb-kids { margin-top: 4px; }
+.hb-nav { display: flex; justify-content: space-between; gap: 12px; margin: 18px 0 10px; font-family: var(--sans); }
+.hb-nav a { font-weight: 700; text-decoration: none; max-width: 48%; }
+.hb-nav .hb-next { text-align: right; margin-left: auto; }
+.hb-credit { margin-top: 16px; max-width: 70ch; }
+.hb-ask { margin: 18px 0 6px; }
+.hb-ask .hb-q { width: 100%; margin: 8px 0 10px; }
+.hb-answer { margin-top: 12px; }
+.hb-answer-text p { margin: 0 0 9px; line-height: 1.65; max-width: 70ch; }
+.hb-cites { margin: 4px 0 10px; padding-left: 20px; }
+.hb-cites li { margin: 0 0 3px; }
+.cat-ask { margin: 12px 0 16px; }   /* "Ask the Catechism" between the Catechism tab's lead and its search */
+[data-read="easy"] .hb-text { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; max-width: 62ch; }
+[data-read="easy"] .hb-text p { margin-bottom: 16px; }
+[data-read="easy"] .hb-quote, [data-read="easy"] .hb-note { font-style: normal; }
 @media (max-width: 759.98px) {
   .lit-row { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 12px 0; }
+  .lit-edit .lit-tools .icon { min-width: 40px; min-height: 40px; }
   .lit-page .docbar .seg { order: 3; }   /* under the title when the two do not fit side by side */
 }
 
@@ -1529,3 +1676,37 @@ body.showing { overflow: hidden; }
 .rem-listhead { margin-top: 10px; }
 .rem-ph { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }
 @media (max-width: 759.98px) { .rem-stat .n { font-size: 21px; } .rem-stat { padding: 9px 10px; } }
+
+/* ---- the month plan (plan.js): the services with who holds them, the events for the calendar, the feed ---- */
+.plan-bar { margin: -2px 0 12px; }
+.plan-list .item { align-items: flex-start; }
+.plan-row.off { opacity: .72; }
+.plan-when { flex: 0 0 118px; display: flex; flex-direction: column; gap: 2px; }
+.plan-when b { font-size: 15px; }
+.plan-what { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.plan-note { display: block; line-height: 1.35; }
+.plan-event { cursor: pointer; }
+.plan-event input[type="checkbox"] { width: 22px; height: 22px; margin: 2px 2px 0 0; flex: 0 0 auto; accent-color: var(--accent); }
+.plan-event .pill.kind { margin-left: 2px; }
+.pill.kind.service { color: var(--c-blue); }
+.pill.kind.district { color: var(--c-green); }
+.pill.kind.meeting { color: var(--c-purple); }
+.pill.kind.admin { color: var(--c-amber); }
+.pill.kind.own { color: var(--accent-text); }
+.plan-event-own { display: flex; flex: 1 1 auto; gap: 12px; align-items: flex-start; min-width: 0; cursor: pointer; }
+.plan-chips { margin-top: 4px; }
+.plan-sheet-notes { background: var(--card); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; }
+.plan-sheet-notes p { margin: 4px 0 0; }
+.plan-sheet-notes .eyebrow { margin: 0; }
+.plan-steps { padding-left: 22px; margin: 6px 0 12px; line-height: 1.5; }
+.plan-steps li { margin: 0 0 6px; }
+.plan-url { font-size: 13px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.plan-roster { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 4px; }
+.plan-roster-row { gap: 10px; }
+.plan-code { flex: 0 0 3.2em; font: 700 14px/1 ui-monospace, Menlo, Consolas, monospace; color: var(--accent-text); text-align: center; }
+.plan-notes { margin: 4px 0 0; padding-left: 20px; line-height: 1.45; }
+.plan-notes li { margin: 0 0 5px; }
+@media (max-width: 759.98px) {
+  .plan-when { flex-basis: 104px; }
+  .plan-when b { font-size: 14.5px; }
+}
