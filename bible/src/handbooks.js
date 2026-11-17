@@ -15,6 +15,12 @@
  * where they travel with the sync to the other devices. They are not in the
  * backup file, like the Catechism text, the Guides and the altar booklet.
  *
+ * The Creed, the ten Articles of Faith, is the one handbook that is part of
+ * the app (creed.js): short, the Church's public confession, and given by
+ * the minister himself. It is listed first, read whole on one page (each
+ * article with the Catechism's section on it), and searched and asked like
+ * the others; there is nothing to load or remove.
+ *
  * #handbooks lists the loaded handbooks with a word search across them;
  * #handbooks/search/<words> is that search; #handbooks/<key> is a
  * handbook's table of contents; #handbooks/<key>/<n> is one chapter (n is
@@ -29,6 +35,7 @@ import { el, clear, toast, confirmBox, busy, seg, sheet, fmtDate, SIZES } from '
 import { state, saveHandbook, deleteHandbook, saveSetting } from './store.js';
 import { t, lang } from './i18n.js';
 import { KNOWN, fromPages, fromText, parse, search, relevant } from './handbook.js';
+import { CREED } from './creed.js';   // the Creed, part of the app
 import { noKey } from './guides.js';
 import * as AI from './ai.js';
 import * as Sync from './sync.js';
@@ -42,16 +49,19 @@ const ABOUT = {
 
 /* ---------------------------------------------------------------- which handbook, which chapter */
 
-/** The loaded copies of a handbook, the app's language first. */
-const copies = key => state.handbooks.filter(h => h.key === key).sort((a, b) => (a.language === lang() ? -1 : b.language === lang() ? 1 : a.language.localeCompare(b.language)));
+/** The handbooks on this device: the Creed, which is part of the app, and those loaded from their files (a loaded copy with the Creed's own id would stand in for the built-in one). */
+const all = () => [...CREED.filter(c => !state.handbooks.some(h => h.id === c.id)), ...state.handbooks];
+
+/** The copies of a handbook, the app's language first. */
+const copies = key => all().filter(h => h.key === key).sort((a, b) => (a.language === lang() ? -1 : b.language === lang() ? 1 : a.language.localeCompare(b.language)));
 
 /** The handbook to show under a key: the copy in the app's language, else the other one; null when none is loaded. */
 const bookOf = key => copies(key)[0] || null;
 
-/** The handbooks on this device, one per key, the known ones in their order and the rest by title. */
+/** The handbooks on this device, one per key: the Creed first, then the known ones in their order and the rest by title. */
 function loaded() {
-  const keys = [...new Set(state.handbooks.map(h => h.key))];
-  const rank = k => { const i = KNOWN.findIndex(([key]) => key === k); return i < 0 ? KNOWN.length : i; };
+  const keys = [...new Set(all().map(h => h.key))];
+  const rank = k => { if (k === 'creed') return -1; const i = KNOWN.findIndex(([key]) => key === k); return i < 0 ? KNOWN.length : i; };
   return keys.map(bookOf).sort((a, b) => rank(a.key) - rank(b.key) || a.title.localeCompare(b.title));
 }
 
@@ -100,14 +110,16 @@ export function render(container, route) {
   const b = route[2] ? decodeURIComponent(route[2]) : '';
   if (a === 'search') return listPage(container, b);
   if (a) {
-    const hb = bookOf(a);
+    let hb = bookOf(a);
     if (!hb) {
       toast(t('That handbook is not loaded on this device.'), true);
       location.hash = '#handbooks';
       return;
     }
+    const chosen = picked.get(hb.key);   // the language picked on the EN | AF switch, while the app stays in its own
+    if (chosen && chosen !== hb.language) hb = copies(hb.key).find(x => x.language === chosen) || hb;
     if (b) return chapterPage(container, hb, b);
-    return contentsPage(container, hb);
+    return hb.builtIn ? wholePage(container, hb) : contentsPage(container, hb);
   }
   listPage(container, '');
 }
@@ -118,43 +130,45 @@ function crumbs(links) {
   return el('div', { class: 'crumbs' }, parts);
 }
 
-function credit() {
+/** The copyright line: the handbooks are loaded by the minister himself; the Creed is part of the app. */
+function credit(hb) {
+  if (hb && hb.builtIn) return el('p', { class: 'muted small hb-credit', text: t('The Creed of the New Apostolic Church © New Apostolic Church International, Zurich. The ten Articles of Faith, as the Church confesses them; part of the app.') });
   return el('p', { class: 'muted small hb-credit', text: t('The handbooks are © New Apostolic Church International, Zurich. Loaded by you onto your own device for your own work as a minister; they are not part of the public app.') });
 }
 
-/** "Current as of 15.01.2025 (Version 4) · 104 pages · 271 chapters" */
+/** "Current as of 15.01.2025 (Version 4) · 104 pages · 271 chapters"; for the Creed, what it is. */
 function aboutLine(hb) {
+  if (hb.builtIn) return t('The ten Articles of Faith. Part of the app, nothing to load.');
   return [hb.edition, hb.pages ? t('{n} pages', { n: hb.pages }) : '', t('{n} chapters', { n: hb.chapters.length })].filter(Boolean).join(' · ');
 }
 
 function listPage(container, q) {
-  const books = loaded();
+  const books = loaded();                          // the Creed first, then the handbooks loaded from their files
+  const files = books.filter(h => !h.builtIn);
   container.append(
     el('div', { class: 'docbar' }, [el('h2', { text: t('Handbooks') })]),
-    el('p', { class: 'hb-lead', text: t('The Church\'s handbooks for ministers, to read and to search: the Guide for Ministers, the "Serving and Leading" principle and the full Liturgy book.') }),
+    el('p', { class: 'hb-lead', text: t('The Church\'s Creed and handbooks for ministers, to read and to search: the ten Articles of Faith, the Guide for Ministers, the "Serving and Leading" principle and the full Liturgy book.') }),
+    searchBox(books, q),
   );
-  if (!books.length) {
-    container.append(el('div', { class: 'lit-empty' }, [
-      el('p', { text: t('The handbooks are the Church\'s own, so they are not part of the app. Load each one here once, as its PDF or as a text file saved from it: the app reads the chapters from the file on this device itself, and they reach your other devices through the sync.') }),
-      el('div', { class: 'row' }, [el('button', { class: 'btn small', type: 'button', text: t('Load a handbook (PDF or text file)'), onclick: () => load(container) })]),
+  const list = el('div', { class: 'list lit-list hb-list' });
+  for (const hb of books) {
+    list.append(el('a', { class: 'item', href: `#handbooks/${encodeURIComponent(hb.key)}`, lang: hb.language }, [
+      icon(),
+      el('span', { class: 'grow' }, [el('b', { text: hb.title }), el('span', { class: 'muted small snippet', text: aboutLine(hb) })]),
+      el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
     ]));
-  } else {
-    container.append(searchBox(books, q));
-    const list = el('div', { class: 'list lit-list hb-list' });
-    for (const hb of books) {
-      list.append(el('a', { class: 'item', href: `#handbooks/${encodeURIComponent(hb.key)}`, lang: hb.language }, [
-        icon(),
-        el('span', { class: 'grow' }, [el('b', { text: hb.title }), el('span', { class: 'muted small snippet', text: aboutLine(hb) })]),
-        el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
-      ]));
-    }
-    container.append(el('h3', { class: 'sub', text: t('Read') }), list);
-    const ask = askBox(books);
-    if (ask) container.append(ask);
   }
-  // the handbooks on this device, one line each, with the buttons to load or remove them; the known ones are listed even before they are loaded
+  container.append(el('h3', { class: 'sub', text: t('Read') }), list);
+  const ask = askBox(books);
+  if (ask) container.append(ask);
+  // the handbooks loaded from their files, one line each, with the buttons to load or remove them; the known ones are listed even before they are loaded, and while none is, what loading means
   const section = el('div', { class: 'lit-books' }, [el('h3', { class: 'sub', text: t('The files') })]);
-  const keys = [...KNOWN.map(([key]) => key), ...books.map(h => h.key).filter(k => !KNOWN.some(([key]) => key === k))];
+  if (!files.length) {
+    section.append(el('div', { class: 'lit-empty' }, [
+      el('p', { text: t('The handbooks are the Church\'s own, so they are not part of the app. Load each one here once, as its PDF or as a text file saved from it: the app reads the chapters from the file on this device itself, and they reach your other devices through the sync.') }),
+    ]));
+  }
+  const keys = [...KNOWN.map(([key]) => key), ...files.map(h => h.key).filter(k => !KNOWN.some(([key]) => key === k))];
   for (const key of keys) {
     const all = copies(key);
     const known = KNOWN.find(([k]) => k === key);
@@ -228,7 +242,7 @@ function contentsPage(container, hb) {
       searchBox([hb], '', hb),
       el('h3', { class: 'sub', text: t('Contents') }),
       list,
-      credit(),
+      credit(hb),
     ]),
   );
 }
@@ -249,7 +263,7 @@ function chapterPage(container, hb, addr) {
   const parent = parentOf(hb, c);
   const kids = childrenOf(hb, c);
   const prev = hb.chapters[i - 1], next = hb.chapters[i + 1];
-  const body = el('div', { class: 'hb-text size-' + (state.settings.fontSize || 'm'), lang: hb.language }, c.blocks.map(block));
+  const body = el('div', { class: 'hb-text size-' + (state.settings.fontSize || 'm'), lang: hb.language }, [...c.blocks.map(block), catLink(c)].filter(Boolean));
   const others = copies(hb.key).filter(x => x !== hb);
   container.append(
     crumbs([[t('Handbooks'), '#handbooks'], [hb.title, `#handbooks/${encodeURIComponent(hb.key)}`], parent ? [label(parent), hrefOf(hb, parent)] : null]),
@@ -273,10 +287,42 @@ function chapterPage(container, hb, addr) {
         prev ? el('a', { href: hrefOf(hb, prev), lang: hb.language }, ['‹ ', label(prev)]) : el('span'),
         next ? el('a', { href: hrefOf(hb, next), lang: hb.language, class: 'hb-next' }, [label(next), ' ›']) : el('span'),
       ]),
-      el('p', { class: 'muted small', text: t('{title}, page {page}.', { title: hb.ownTitle || hb.title, page: c.page }) + (hb.edition ? ' ' + hb.edition + '.' : '') }),
-      credit(),
+      hb.builtIn ? null : el('p', { class: 'muted small', text: t('{title}, page {page}.', { title: hb.ownTitle || hb.title, page: c.page }) + (hb.edition ? ' ' + hb.edition + '.' : '') }),
+      credit(hb),
     ]),
   );
+}
+
+/**
+ * The Creed, read whole: ten short articles read best on one page, each
+ * under its heading and with the section of the Catechism that explains it.
+ * A search hit, or one of Claude's citations, still opens one article on
+ * its own page (chapterPage), with the way on to the next.
+ */
+function wholePage(container, hb) {
+  const others = copies(hb.key).filter(x => x !== hb);
+  const body = el('div', { class: 'hb-text hb-whole size-' + (state.settings.fontSize || 'm'), lang: hb.language });
+  for (const c of hb.chapters) body.append(...[el('h4', { class: 'hb-h' }, [c.title]), ...c.blocks.map(block), catLink(c)].filter(Boolean));
+  container.append(
+    crumbs([[t('Handbooks'), '#handbooks']]),
+    el('div', { class: 'page hb-page' }, [
+      el('p', { class: 'eyebrow', text: t('New Apostolic Church') }),
+      el('div', { class: 'docbar' }, [
+        el('h2', { text: hb.title, lang: hb.language }),
+        others.length ? seg([hb, ...others].map(x => [x.language, x.language.toUpperCase()]), hb.language, v => { picked.set(hb.key, v); render(container, ['handbooks', hb.key]); }, { label: t('Language') }) : null,
+        el('button', { class: 'btn small ghost', type: 'button', text: 'Aa', 'aria-label': t('Text size'), onclick: () => sizeSheet(body) }),
+      ]),
+      el('p', { class: 'muted small', text: t('The ten Articles of Faith, as the Church confesses them. Each article is explained in the Catechism, chapter 2.4; part of the app, nothing to load.') }),
+      body,
+      credit(hb),
+    ]),
+  );
+}
+
+/** "In the Catechism: 2.4.4 ›": the section of the Catechism that explains an article of the Creed. */
+function catLink(c) {
+  if (!c.cat) return null;
+  return el('p', { class: 'hb-cat' }, [el('a', { href: `#catechism/${encodeURIComponent(c.cat)}`, text: t('In the Catechism: {n}', { n: c.cat }) + ' ›' })]);
 }
 
 /** The runs of one block as text, italics, bold, small letters and raised figures. */

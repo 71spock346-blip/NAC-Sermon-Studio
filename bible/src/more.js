@@ -27,7 +27,7 @@ import * as Mis from './mis.js';
 export const MORE = [
   ['reflect', () => t('Slides and questions for the evening')],
   ['liturgy', () => t('The words at the altar, card by card')],
-  ['handbooks', () => t('The Guide for Ministers, Serving and Leading, the Liturgy book')],
+  ['handbooks', () => t('The Creed, the Guide for Ministers, Serving and Leading, the Liturgy book')],
   ['theology', () => t('The background to a book, a chapter or verses')],
   ['seating', () => t('Who sits where, and who serves')],
   ['choir', () => t('The choir programme')],
