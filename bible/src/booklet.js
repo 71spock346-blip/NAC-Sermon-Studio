@@ -31,13 +31,15 @@
 const mul = (m, t) => [m[0] * t[0] + m[2] * t[1], m[1] * t[0] + m[3] * t[1], m[0] * t[2] + m[2] * t[3], m[1] * t[2] + m[3] * t[3], m[0] * t[4] + m[2] * t[5] + m[4], m[1] * t[4] + m[3] * t[5] + m[5]];
 
 /**
- * The dotted rules of a page, as distances from its top: every long,
- * horizontal line drawn on the page. When some of them are dashed (the
- * booklet's dots), only those count, so a solid line elsewhere is not taken
- * for one.
+ * What is drawn on a page besides its text, as distances from its top left:
+ * the dotted rules (every long, horizontal line; when some of them are
+ * dashed, the booklet's dots, only those count, so a solid line elsewhere is
+ * not taken for one) and the marks (every small filled shape, such as the
+ * square a handbook draws for a bullet: handbook.js reads them as bullets).
  */
-function rulesOf(OPS, ops, width, height) {
+function drawnOn(OPS, ops, width, height) {
   const found = [];
+  const marks = [];
   let ctm = [1, 0, 0, 1, 0, 0], dashed = false;
   const stack = [];
   for (let i = 0; i < ops.fnArray.length; i++) {
@@ -51,7 +53,12 @@ function rulesOf(OPS, ops, width, height) {
         const box = a && a[2];   // [minX, minY, maxX, maxY] of the path, before the transform
         if (!box || box.length < 4) break;
         const x0 = box[0], y0 = box[1], x1 = box[2], y1 = box[3];
-        if (Math.abs(y1 - y0) > 0.5 || Math.abs(x1 - x0) < width / 4) break;
+        const w = x1 - x0, h = y1 - y0;
+        if (w > 0.3 && w < 8 && h > 0.3 && h < 8) {
+          marks.push({ x: ctm[0] * x0 + ctm[2] * y0 + ctm[4], y: height - (ctm[1] * x0 + ctm[3] * y0 + ctm[5]), w, h });
+          break;
+        }
+        if (Math.abs(h) > 0.5 || Math.abs(w) < width / 4) break;
         found.push({ y: height - (ctm[1] * x0 + ctm[3] * y0 + ctm[5]), dashed });
         break;
       }
@@ -61,14 +68,15 @@ function rulesOf(OPS, ops, width, height) {
   const keep = found.some(r => r.dashed) ? found.filter(r => r.dashed) : found;
   const rules = [];
   for (const r of keep) if (!rules.some(y => Math.abs(y - r.y) < 2)) rules.push(r.y);
-  return rules.sort((p, q) => p - q);
+  return { rules: rules.sort((p, q) => p - q), marks };
 }
 
 /**
  * Reads a PDF (its bytes as a Uint8Array) with pdf.js into pages:
- * [{n, width, height, items, rules}], each item a piece of text with its
- * place from the top left ({str, x, y, w, size, italic}), the rules the
- * distances from the top of the dotted lines. `pdfjs` is the pdf.js module
+ * [{n, width, height, items, rules, marks}], each item a piece of text with
+ * its place from the top left ({str, x, y, w, size, italic, bold}), the rules
+ * the distances from the top of the dotted lines, the marks the small shapes
+ * drawn on the page ({x, y, w, h}: a handbook's bullets). `pdfjs` is the pdf.js module
  * (vendor/pdfjs/pdf.min.mjs), with its worker already set up by the caller;
  * onPage(n, total), when given, is called as each page is begun.
  */
@@ -95,9 +103,11 @@ export async function readPages(pdfjs, data, onPage) {
       for (const it of tc.items) {
         if (!('str' in it) || !it.str.trim()) continue;
         const m = it.transform;
-        items.push({ str: it.str, x: m[4], y: vp.height - m[5], w: it.width, size: Math.hypot(m[0], m[1]), italic: /italic|oblique|it(mt)?$/i.test(nameOf(it.fontName)) });
+        const font = nameOf(it.fontName);
+        items.push({ str: it.str, x: m[4], y: vp.height - m[5], w: it.width, size: Math.hypot(m[0], m[1]), italic: /italic|oblique|it(mt)?$|-it\b/i.test(font), bold: /bold|black|heavy|semibd|demi/i.test(font) });
       }
-      pages.push({ n, width: vp.width, height: vp.height, items, rules: rulesOf(pdfjs.OPS, ops, vp.width, vp.height) });
+      const drawn = drawnOn(pdfjs.OPS, ops, vp.width, vp.height);
+      pages.push({ n, width: vp.width, height: vp.height, items, rules: drawn.rules, marks: drawn.marks });
       page.cleanup();
     }
     return pages;
@@ -413,4 +423,77 @@ export function plainText(card) {
     for (const b of r.blocks) out.push(textOf(b.t));
   }
   return out.join('\n');
+}
+
+/* ---------------------------------------------------------------- the words changed by hand (liturgy.js) */
+
+/*
+ * The minister may change a card's words by hand, when the Church changes a
+ * wording or the booklet has a misprint. The card is edited box by box: the
+ * label, the lines under it, and each block of the words as plain text. The
+ * two functions below turn the boxes back into rows that look like the
+ * parser's, so the card is shown, searched and synced like any other.
+ */
+
+/** The look of most of a block's letters: the style of its longest run. */
+function mainStyle(runs) {
+  let best = '', len = -1;
+  for (const [s, st] of runs || []) if (s.length > len) { best = st || ''; len = s.length; }
+  return best;
+}
+
+/**
+ * The runs of a block after its text was changed in a box: the letters the
+ * person left alone keep their look (italics, small letters), what was typed
+ * over takes the look of the letters it replaced, and letters put in at a
+ * place take the look of the letter before them. So a word changed in the
+ * Lord's Prayer leaves the small italic reference after it as it was.
+ */
+export function restyle(runs, text) {
+  const old = (runs || []).map(r => r[0]).join('');
+  if (!old) return [[text, mainStyle(runs)]];
+  const styles = [];
+  for (const [s, st] of runs) for (let i = 0; i < s.length; i++) styles.push(st || '');
+  let p = 0;
+  while (p < old.length && p < text.length && old[p] === text[p]) p++;
+  let s = 0;
+  while (s < old.length - p && s < text.length - p && old[old.length - 1 - s] === text[text.length - 1 - s]) s++;
+  const middle = p < old.length - s ? styles[p] : styles[Math.max(0, p - 1)];
+  const all = styles.slice(0, p).concat(new Array(Math.max(0, text.length - p - s)).fill(middle), styles.slice(old.length - s));
+  const out = [];
+  for (let i = 0; i < text.length; i++) {
+    const last = out[out.length - 1];
+    if (last && last[1] === all[i]) last[0] += text[i]; else out.push([text[i], all[i]]);
+  }
+  return out;
+}
+
+/**
+ * The rows of a card from its boxes after a change by hand:
+ *   entries = [{label, sub: [line], boxes: [{block, text}]}]
+ * one box per block of the row (block null for a box added by hand). Each
+ * paragraph in a box (a new line) becomes a block of the box's kind, so a
+ * note split in two stays two notes; the first keeps the look of its letters
+ * (restyle). A box left empty is gone, and so is a row with nothing left in it.
+ */
+export function editedRows(entries) {
+  const rows = [];
+  for (const e of entries) {
+    const label = (e.label || '').trim();
+    const sub = (e.sub || []).map(x => x.trim()).filter(Boolean);
+    const blocks = [];
+    for (const { block, text } of e.boxes || []) {
+      const parts = (text || '').split(/\n+/).map(x => x.trim()).filter(Boolean);
+      parts.forEach((part, i) => {
+        blocks.push({
+          k: block ? block.k : 'p',
+          d: block ? block.d || 0 : 0,
+          t: block && i === 0 ? restyle(block.t, part) : [[part, block ? mainStyle(block.t) : '']],
+        });
+      });
+    }
+    if (!label && !sub.length && !blocks.length) continue;
+    rows.push({ label, sub, blocks });
+  }
+  return rows;
 }

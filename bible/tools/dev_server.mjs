@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * Serves the app from this folder with the sync function alive, for trying
- * sync on one machine:  node tools/dev_server.mjs [port]  (from bible/)
+ * Serves the app from this folder with the sync function and the month plan's
+ * calendar feed alive, for trying them on one machine:  node tools/dev_server.mjs [port]  (from bible/)
  * Open http://localhost:8787 in two browser windows (one private, so they are
  * two "devices"), turn sync on in one and join from the other. The parts are
  * kept in memory and are gone when the server stops; nothing reaches Vercel.
@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 process.env.SYNC_MEMORY_STORE = '1';
 const { default: sync } = await import('../api/sync.js');
+const { default: plan } = await import('../api/plan.js');
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.argv[2] || process.env.PORT || 8787);
@@ -22,6 +23,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/api/sync') return sync(req, res);
+  if (url.pathname === '/api/plan') return plan(req, res);
   let file = path.join(ROOT, decodeURIComponent(url.pathname));
   if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end(); }
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');

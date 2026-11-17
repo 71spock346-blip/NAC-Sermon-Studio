@@ -12,16 +12,24 @@
  * makes from the Catechism PDF into this browser only. Once it is there, the
  * sections are read here, shown under a service preparation, and printed in
  * the sermon notes; without it the app links to the section at nak.org.
+ *
+ * With the text here, the tab also has "Ask the Catechism" where the AI
+ * helper is unlocked (ask.js): Claude answers a question from the sections
+ * that fit it, naming them. For that, and for the Handbooks tab, which
+ * searches and asks the Catechism together with the handbooks, asHandbook()
+ * gives the Catechism the shape of a loaded handbook (handbook.js).
  */
 import { el, clear } from './ui.js';
-import { t } from './i18n.js';
+import { t, lang } from './i18n.js';
 import { keyToRef, formatRef } from './books.js';
 import { state, getCatechismText } from './store.js';
+import { askBox } from './ask.js';
 
 let data = null;
 let loading = null;
 let text = null;            // n -> {blocks, summary, notes} once loaded from the device
 let textLoading = null;
+let book = null;            // the Catechism as a handbook (asHandbook), built once for each load of the text and language
 
 export function load() {
   if (data) return Promise.resolve(data);
@@ -64,6 +72,7 @@ export function loadText() {
     textLoading = getCatechismText().then(sections => {
       if (!sections) { textLoading = null; return false; }
       text = Object.fromEntries(sections.map(s => [s.n, s]));
+      book = null;
       return true;
     }).catch(() => { textLoading = null; return false; });
   }
@@ -71,7 +80,7 @@ export function loadText() {
 }
 
 /** Called when the text is loaded or removed in Settings. */
-export function forgetText() { text = null; textLoading = null; }
+export function forgetText() { text = null; textLoading = null; book = null; }
 
 export function textReady() { return !!text; }
 
@@ -110,6 +119,52 @@ export function notesOf(n) {
   const t = textOf(n);
   return t && t.notes ? t.notes : [];
 }
+
+/**
+ * The Catechism in the shape of a loaded handbook (handbook.js), so that it
+ * is searched and asked like one (ask.js, handbooks.js): every section of
+ * the index is a chapter, with the book's own "in short", its paragraphs,
+ * lists, tables and footnotes as blocks. `tab` says its chapters open on
+ * this tab, at #catechism/<n>; `short` names it in a citation. Null until
+ * the index and the text are in memory (load, loadText).
+ */
+export function asHandbook() {
+  if (!data || !text) return null;
+  if (book && book.uiLang === lang()) return book;
+  const m = state.catechism || {};
+  book = {
+    id: 'catechism:en', key: 'catechism', language: 'en', tab: 'catechism', uiLang: lang(),
+    title: t('Catechism of the New Apostolic Church'), short: t('Catechism'), ownTitle: 'Catechism of the New Apostolic Church',
+    org: 'New Apostolic Church International', edition: m.edition && m.edition !== 'Catechism of the New Apostolic Church' ? m.edition : '',
+    chapters: data.sections.map(s => ({ n: s.n, title: s.title, level: parts(s.n).length, page: s.page || 0, blocks: blocksOf(s.n) })),
+  };
+  return book;
+}
+
+/** A section's "in short", lines and footnotes as the blocks of a chapter: [{k, d, t: [[text, '']]}]. */
+function blocksOf(n) {
+  const block = (text, k = 'p', d = 0) => ({ k, d, t: [[text, '']] });
+  const out = summaryOf(n).map(p => block(p));
+  for (const l of plainLines(n)) {
+    if (l.kind === 'cell') out.push(block(l.label ? `${l.label}: ${l.text}` : l.text));
+    else out.push(block(l.text, l.kind === 'h' ? 'h' : l.kind === 'li' ? 'li' : l.kind === 'v' ? 'quote' : 'p', l.kind === 'li' ? 1 : 0));
+  }
+  for (const nt of notesOf(n)) out.push(block(`${nt.n} ${nt.t}`, 'note'));
+  return out;
+}
+
+/** The words of "Ask the Catechism" on this tab (ask.js askBox): the Catechism alone, its sections rather than chapters. */
+const askWords = () => ({
+  cls: 'cat-ask',
+  title: t('Ask the Catechism'),
+  lead: t('Claude reads the sections that fit your question and answers from them in plain words, naming the sections, so you can check what the Catechism says. The answer is not kept.'),
+  placeholder: t('A question for the Catechism: "What is Holy Sealing?", "Who may receive Holy Communion?"…'),
+  reading: n => t('Claude is reading {n} sections of the Catechism. This takes about half a minute.', { n }),
+  none: t('No section carries the words of that question. The Catechism\'s text is in English: ask in English, or try other words.'),
+  notFound: t('The sections read do not answer this; what stands above is as near as they come.'),
+  footer: t('A help for study: the Catechism\'s own words stand in the sections linked above, and the Apostles interpret Holy Scripture (CNAC 1.2.5.1).'),
+  max: 14,
+});
 
 /** "see 4.2" and "(see 8 and 12.1.13)" become links to those sections. */
 function withLinks(s) {
@@ -304,12 +359,13 @@ function renderIndex(container, q) {
     if (hits.length > 200) results.append(el('p', { class: 'muted small', text: t('Showing 200 of {total}. Add a word to narrow it.', { total: hits.length }) }));
   }
   input.addEventListener('input', show);
-  container.append(
+  container.append(...[
     el('div', { class: 'docbar' }, [el('h2', { text: t('Catechism of the New Apostolic Church') })]),
     text
       ? el('p', { class: 'muted small', text: t('Open a chapter to read its sections, see which Bible verses each one quotes, and search the whole text by word. The reader marks every verse the Catechism refers to with a "C".') })
       : el('p', { class: 'muted small' }, [t('The chapters below are an index. Open a section to see which Bible verses it quotes and to read the section itself at nak.org. To read the sections here and print them in your sermon notes, load the Catechism text under '), el('a', { href: '#settings', text: t('Settings') }), '.']),
-    input, results);
+    text ? askBox([asHandbook()], askWords()) : null,   // "Ask the Catechism": with the text here and the helper unlocked
+    input, results].filter(Boolean));
   show();
 }
 

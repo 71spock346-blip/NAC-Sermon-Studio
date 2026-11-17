@@ -219,6 +219,7 @@ export function render(container) {
       if (answer === 'same') toast(t('This is the newest version.'));
       else if (answer === 'offline') toast(t('The site could not be reached just now. Try again when you are online.'), true);
     } })]),
+    el('p', { class: 'muted small', text: t('A newer version never needs the app to be removed and installed again: the app says when one is ready, and "Update now" keeps everything on the device.') }),
     el('ul', { class: 'small muted' }, [
       el('li', { text: t('King James Version (1769 text) with the Apocrypha: public domain. Text from the SWORD KJVA module via scrollmapper/bible_databases.') }),
       el('li', { text: t('World English Bible with the Deuterocanon: public domain, ebible.org. "World English Bible" is a trademark of eBible.org.') }),
@@ -231,6 +232,8 @@ export function render(container) {
       el('li', { text: Lock.unlocked()
         ? t('Liturgy for Altar Use © New Apostolic Church Cape. The booklet you load is read on this device itself, without Claude, kept on your own devices only, and is not part of the public app.')
         : t('Liturgy for Altar Use © New Apostolic Church Cape. The booklet you load is read on this device itself, kept on your own devices only, and is not part of the public app.') }),
+      el('li', { text: t('Guide for Ministers, "Serving and Leading" and the Liturgy of the New Apostolic Church © New Apostolic Church International, Zurich. A handbook you load is read on this device itself, kept on your own devices only, and is not part of the public app.') }),
+      el('li', { text: t('The Creed of the New Apostolic Church © New Apostolic Church International, Zurich: the ten Articles of Faith, as the Church confesses them, are part of the app under Handbooks.') }),
       el('li', { text: t('The booklet\'s PDF is read with pdf.js (Mozilla), Apache License 2.0.') }),
       el('li', { text: t('Typeface: Montserrat (© The Montserrat Project Authors), SIL Open Font License 1.1. The slides of a reflection evening use Cambria and Calibri, as in PowerPoint, or where a device lacks them Caladea (© The Caladea Project Authors) and Carlito (© The Carlito Project Authors), both SIL Open Font License 1.1.') }),
     ]),
@@ -847,12 +850,13 @@ function syncSection(container) {
     clear(body);
     if (!st.on) {
       body.append(
-        el('p', { class: 'small', text: t('Keep your PC and phone the same. Turn sync on here; the app shows you a code. On your other device open Settings → Sync, tap "I have a code" and type that code in (or scan it). From then on the two keep each other up to date on their own: notes, preparations, settings, pasted text, the Catechism text, the Guides and the altar booklet.') }),
+        el('p', { class: 'small', text: t('Keep your PC and phone the same. Turn sync on here; the app shows you a code. On your other device open Settings → Sync, tap "I have a code" and type that code in (or scan it). From then on the two keep each other up to date on their own: notes, preparations, settings, pasted text, the Catechism text, the Guides, the altar booklet and the handbooks.') }),
         el('p', { class: 'muted small', text: t('Everything is locked with your code before it leaves the device. The server keeps only the locked copy and cannot read it, and nobody can find or open it without the code, so keep the code where you keep passwords.') }),
         el('div', { class: 'row' }, [
           el('button', { class: 'btn small', type: 'button', text: t('Turn on sync'), onclick: turnOn }),
           el('button', { class: 'btn small ghost', type: 'button', text: t('I have a code'), onclick: () => joinSheet() }),
         ]),
+        headsUp(false),
       );
       return;
     }
@@ -865,9 +869,9 @@ function syncSection(container) {
     body.append(el('div', {}, [
       el('div', { class: 'row sync-status' }, [dot, line, syncBtn]),
       st.error ? el('p', { class: 'small error', text: st.error }) : null,
-      el('p', { class: 'small', text: t('This device shares with your other devices: {notes}, {sermons}, {texts}, {guides}, {booklets} and the Catechism text{cat}. A change here reaches the others within a few seconds of their opening the app.', {
+      el('p', { class: 'small', text: t('This device shares with your other devices: {notes}, {sermons}, {texts}, {guides}, {booklets}, {handbooks} and the Catechism text{cat}. A change here reaches the others within a few seconds of their opening the app.', {
         notes: tn(n.notes, '{n} note', '{n} notes'), sermons: tn(n.sermons, '{n} preparation', '{n} preparations'),
-        texts: tn(n.texts, '{n} pasted chapter', '{n} pasted chapters'), guides: tn(n.guides, '{n} Guide', '{n} Guides'), booklets: tn(n.liturgy, '{n} altar booklet', '{n} altar booklets'),
+        texts: tn(n.texts, '{n} pasted chapter', '{n} pasted chapters'), guides: tn(n.guides, '{n} Guide', '{n} Guides'), booklets: tn(n.liturgy, '{n} altar booklet', '{n} altar booklets'), handbooks: tn(n.handbooks, '{n} handbook', '{n} handbooks'),
         cat: n.catechism ? '' : t(' (not loaded here)'),
       }) }),
       el('div', { class: 'row' }, [
@@ -887,6 +891,7 @@ function syncSection(container) {
         } }),
       ]),
       el('label', { class: 'check sync-keys' }, [carry, el('span', { class: 'grow', text: t('Carry my keys too (API.Bible, YouVersion and Anthropic), locked with the code, so I need not paste them again on the other device.') })]),
+      headsUp(true),
     ]));
   };
 
@@ -906,6 +911,21 @@ function syncSection(container) {
       b.fail(e.message || t('Sync could not be turned on.'));
     }
   }
+}
+
+/**
+ * What removing the app from a device does, and the way back. Jerome asked
+ * for this line (2026-11-05) after he removed and re-added the app on his
+ * phone and found it empty: a phone keeps the app's storage only as long as
+ * the app is installed, and nothing had told him so.
+ */
+function headsUp(on) {
+  return el('p', { class: 'small heads-up' }, [
+    el('b', { text: t('Good to know') + ': ' }),
+    on
+      ? t('if the app is removed from this device, or the browser clears its data, everything on the device goes with it. Your code brings it all back: install the app again, then Settings → Sync → "I have a code". Keep the code where you keep passwords; a backup file is a second way back.')
+      : t('if the app is removed from this device, or the browser clears its data, everything on it is gone. With sync on, your code brings it all back after you install the app again; a backup file does the same by hand.'),
+  ]);
 }
 
 /** The code in large letters with its QR square, for the other device. */

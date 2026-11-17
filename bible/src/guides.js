@@ -31,7 +31,7 @@
  * language's words wherever the Guide's own words still stand.
  */
 import { el, clear, toast, sheet, confirmBox, fmtDate, busy, seg } from './ui.js';
-import { t, tn, locale } from './i18n.js';
+import { t, tn, tl, locale } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveGuide, deleteGuide, uid } from './store.js';
 import * as AI from './ai.js';
@@ -282,7 +282,8 @@ export function prefill(s, guide, i, { force = false, fresh = false, lang = fals
   set('theme', svc.message);
   box('context', svc.context, before && before.service.context);
   box('summary', summaryText(svc), before && summaryText(before.service));
-  if (svc.reading && !(s.crossRefs || '').includes(svc.reading)) s.crossRefs = (s.crossRefs ? s.crossRefs.trim() + '\n' : '') + t('{reading} – reading suggested in the Guide', { reading: svc.reading });
+  // the line about the reading goes in the Guide's language, like the rest the Guide gives this preparation
+  if (svc.reading && !(s.crossRefs || '').includes(svc.reading)) s.crossRefs = (s.crossRefs ? s.crossRefs.trim() + '\n' : '') + tl(guide.language, '{reading} – reading suggested in the Guide', { reading: svc.reading });
   s.catechism = s.catechism || [];
   for (const n of svc.catechismRefs || []) {
     const sec = Cat.section(n);
@@ -354,36 +355,57 @@ function paras(text, cls) {
   });
 }
 
-/** The Guide's article as it reads in the booklet. */
+/* The booklet's own headings around the article, which each edition prints in its language. */
+const HEADINGS = ['Message ', 'Introduction', 'Context|box', 'Summary'];
+
+/**
+ * A heading of the article as the Guide in `lang` prints it: "Introduction"
+ * over a piece of an Afrikaans article reads "Inleiding", and "Boodskap" over
+ * an English one reads "Message". The article's own section headings, and
+ * anything else, come back as they are.
+ */
+export function headingIn(heading, lang) {
+  if (lang !== 'en' && lang !== 'af') return heading;
+  const key = HEADINGS.find(k => same(heading, tl('en', k)) || same(heading, tl('af', k)));
+  return key ? tl(lang, key).trim() : heading;
+}
+
+/**
+ * The Guide's article as it reads in the booklet. Its headings (Message,
+ * Introduction, Context, Summary, Catechism, Reading) and the line at the foot
+ * read in the Guide's own language, whatever language the app speaks: the
+ * Afrikaans Guide says "Inleiding" even while the app is in English.
+ */
 export function article(service, guide) {
+  const L = guide && guide.language;
   const box = el('div', { class: 'guide-article' });
   box.append(el('p', { class: 'muted small guide-meta', text: [guide && guide.title, service.dateText, service.label].filter(Boolean).join(' · ') }));
   if (service.bibleText) box.append(el('p', { class: 'guide-verse' }, [service.bibleText, ' ', el('b', { text: service.reference })]));
   if (service.title) box.append(el('h4', { text: service.title }));
-  if (service.message) box.append(el('p', { class: 'guide-message' }, [el('b', { text: t('Message ') }), service.message]));
-  if (service.introduction) { box.append(el('h5', { text: t('Introduction') }), ...paras(service.introduction)); }
+  if (service.message) box.append(el('p', { class: 'guide-message' }, [el('b', { text: tl(L, 'Message ') }), service.message]));
+  if (service.introduction) { box.append(el('h5', { text: tl(L, 'Introduction') }), ...paras(service.introduction)); }
   for (const sec of service.sections || []) {
     if (sec.heading) box.append(el('h5', { text: sec.heading }));
     box.append(...paras(sec.body));
   }
-  if (service.context) box.append(el('div', { class: 'guide-box' }, [el('b', { text: t('Context|box') }), ...paras(service.context)]));
-  if ((service.summary || []).length) box.append(el('div', { class: 'guide-box' }, [el('b', { text: t('Summary') }), el('ul', {}, service.summary.map(x => el('li', { text: x })))]));
+  if (service.context) box.append(el('div', { class: 'guide-box' }, [el('b', { text: tl(L, 'Context|box') }), ...paras(service.context)]));
+  if ((service.summary || []).length) box.append(el('div', { class: 'guide-box' }, [el('b', { text: tl(L, 'Summary') }), el('ul', {}, service.summary.map(x => el('li', { text: x })))]));
   const refs = (service.catechismRefs || []).filter(n => Cat.section(n));
   if (refs.length || service.reading) {
     box.append(el('p', { class: 'small guide-refs' }, [
-      refs.length ? [t('Catechism: '), ...refs.flatMap((n, i) => [i ? ', ' : '', el('a', { href: `#catechism/${encodeURIComponent(n)}`, text: n })]), '. '] : null,
-      service.reading ? t('Reading: {reading}.', { reading: service.reading }) : null,
+      refs.length ? [tl(L, 'Catechism: '), ...refs.flatMap((n, i) => [i ? ', ' : '', el('a', { href: `#catechism/${encodeURIComponent(n)}`, text: n })]), '. '] : null,
+      service.reading ? tl(L, 'Reading: {reading}.', { reading: service.reading }) : null,
     ].flat().filter(Boolean)));
   }
-  box.append(el('p', { class: 'muted small', text: t('Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }));
+  box.append(el('p', { class: 'muted small', text: tl(L, 'Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }));
   return box;
 }
 
-/** One part of the article on its own, as it reads in the booklet: the Guide's introduction under step 3. */
-export function articlePart(text) {
+/** One part of the article on its own, as it reads in the booklet: the Guide's introduction under step 3. `lang` is the Guide's language. */
+export function articlePart(text, lang) {
   return el('div', { class: 'guide-article' }, [
     ...paras(text),
-    el('p', { class: 'muted small', text: t('Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }),
+    el('p', { class: 'muted small', text: tl(lang, 'Divine Service Guide © New Apostolic Church International. Loaded on this device for your own preparation.') }),
   ]);
 }
 

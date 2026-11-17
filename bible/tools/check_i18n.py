@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Checks the Afrikaans table (src/af.js) against the texts the app shows.
 
-Every text the app shows goes through t('…') or tn(n, '…', '…') in src/, or
-data-t="…" in index.html, with the English as the key. This script lists the
+Every text the app shows goes through t('…'), tl(lang, '…') or tn(n, '…', '…')
+in src/, or data-t="…" in index.html, with the English as the key. This script lists the
 keys that have no Afrikaans entry in src/af.js, and the entries there that no
 source uses any more. Run it after adding a text to the app or a line to af.js:
 
@@ -21,6 +21,7 @@ SRC = ROOT / 'src'
 STR = r"'((?:[^'\\]|\\.)*)'"
 PATTERNS = [
     re.compile(r"\bt\(\s*" + STR),
+    re.compile(r"\btl\(\s*[^,]+,\s*" + STR),
     re.compile(r"\btn\(\s*[^,]+,\s*" + STR + r",\s*" + STR),
 ]
 HTML_PATTERNS = [re.compile(r'data-t(?:-aria|-title)?="([^"]*)"')]
@@ -29,8 +30,8 @@ HTML_PATTERNS = [re.compile(r'data-t(?:-aria|-title)?="([^"]*)"')]
 # in ui.js (themes, sizes, letters), notes.js (kinds), prepare.js (status,
 # occasions, the humour and language choices of a preparation), ai.js (the
 # note on each model, who is listening, humour) and the language names on the
-# switches (i18n.js and ai.js LANGS, guides.js editionLabel). Keep this list
-# in step with those.
+# switches (i18n.js and ai.js LANGS, guides.js editionLabel), and the month
+# plan's calendar choices (plan.js). Keep this list in step with those.
 INDIRECT = [
     'System', 'Paper', 'White', 'Dark', 'Small', 'Normal', 'Large', 'Pulpit', 'Montserrat', 'Easy-read',
     'Thought', 'Experience', 'Doctrine', 'Illustration', 'Sermon idea', 'Question',
@@ -43,6 +44,7 @@ INDIRECT = [
     'English', 'Afrikaans',
     'Slower', 'Faster', 'Best', 'Cheaper',
     'Jerome (English)', 'Jerome (Afrikaans)',
+    'Services only', 'Services and district events', 'Also meetings and deadlines', 'Nothing until I tick it',   # plan.js EVENT_CHOICES
 ]
 
 

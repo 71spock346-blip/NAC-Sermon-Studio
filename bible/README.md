@@ -71,6 +71,49 @@ section filter lets ministers who share one congregation each see their own memb
 `tools/fixtures/reminders-*.pdf` are fictional listings in the office's two layouts (August's, with a Month column; November's, without one and with address columns, the member number and title in one cell) for
 trying the import; the real listings are personal data and are never committed.
 
+## The month plan
+
+Every month the district sends its programme as an Excel sheet: a title with the month,
+a header of merged rows (DAY, DATE, a column per leader, DISTRICT CROSS BOOKINGS, Comments,
+Ministries), a row per day with the day number only (the month rolls over where the
+numbers drop; a date can take two rows), the district's notes, and a table of the
+ministers with their codes. The Month plan tab opens that file on the device and gives
+back the same file with the congregation's own column written in, plus a one-page
+programme and a WhatsApp text for the priests, and a calendar feed Google Calendar
+follows.
+
+`plan-xlsx.js` reads and writes the .xlsx without a library: the zip is parsed by hand
+and inflated with the browser's `DecompressionStream` (deflated again with
+`CompressionStream`), the sheet's XML is read for its cells (shared and inline strings)
+and merges, and the congregation's column is patched into that XML in place, as inline
+strings, so the district's styles, widths, merges, conditional formats and picture stay
+as they were. Inserting a column shifts the cell references, the merges, the `<cols>`,
+the conditional-format ranges, the pane and selection and the drawing anchors to its
+right. `plan-lib.js` turns the grid into a plan (`parseProgramme`: the month and year
+from the title or the file name, the columns by their headings, the days with their
+leaders, cross bookings and comments, the ministers, the notes), derives the service
+days (every Sunday and Wednesday, plus any day the rector adds; a public holiday is off
+and its Wednesday service moves to the day the note names, else the Thursday; a leader
+the sheet puts in the congregation holds that service; a comment with the service's own
+time attaches to it), sorts the sheet's lines into events (service, district, meeting,
+deadline, and the rector's own, such as a service at another congregation) with the
+rector's ticks over the defaults, and writes the iCalendar feed and the WhatsApp text. `plan-pdf.js` lays the month out as the A4
+landscape grid the congregation's programme always was, with a second page listing
+everything in full. `plan.js` is the tab.
+
+What is kept is rows in the `plans` store, so it travels with the sync and the backup:
+`plan:<year>-<month>` a month (the sheet as read, the rector's choices per date, the
+ticks per event, and the file itself as base64, so the Excel file can be written on any
+device) and `settings` the tab's settings (the congregation, the rector's code, his
+ministers' labels with any he added or took off, the service times, which events go into
+the calendar by default, and the feed's key). `api/plan.js` is the feed's Vercel function: PUT with the `X-Plan-Key`
+header stores the calendar under the id derived from the key (the first 32 hex digits of
+its SHA-256) in Vercel Blob, GET serves it as `text/calendar`, DELETE removes it; Google
+Calendar subscribes to the GET address once ("Other calendars → From URL") and reads it a
+few times a day. `tools/fixtures/plan-sample.xlsx` is a made-up district programme for
+`tools/test_plan.mjs`; the real programme holds the ministers' mobile numbers and is
+never committed.
+
 ## The Church's MIS
 
 The MIS section (`src/mis.js`; in the side menu before Settings, on a phone under More)
@@ -167,7 +210,11 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   person loads under Settings → Catechism into IndexedDB on their own device. With it
   loaded, `src/catechism.js` shows the sections (with the book's own summaries,
   footnotes and the table of the Ten Commandments), searches them by word, and
-  `src/pdf.js` prints the sections chosen for a service into the sermon notes.
+  `src/pdf.js` prints the sections chosen for a service into the sermon notes. Where the
+  helper is unlocked, the tab also has "Ask the Catechism" (`src/ask.js`): Claude answers a
+  question from the sections `relevant()` picks, naming them. For that, and for the Handbooks
+  tab, which searches and asks the Catechism together with the handbooks, `asHandbook()`
+  gives the Catechism the shape of a loaded handbook.
 - **Theology.** `src/theology.js` gives background at three levels: a book with its
   writer (`#theology/ROM`), a chapter (`#theology/ROM/8`) and a passage
   (`#theology/ROM/8/28-30`); `#theology` lists the books in the Catechism's groups
@@ -288,6 +335,28 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   menu; the phone's bar keeps five tabs, so there it is listed under More and sits at
   the top of Prepare as well, and More stays lit. `node tools/test_booklet.mjs booklet.pdf` reads a PDF in Node and prints
   the cards (after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`).
+- **Handbooks.** `src/handbooks.js` is the Church's handbooks for ministers: the *Guide for
+  Ministers* (the rule book), the *"Serving and Leading"* guiding principle and the *Liturgy
+  of the New Apostolic Church* (2024), or any other handbook with numbered chapters. They are
+  the Church's text, so nothing of them is in the repository: the person loads each one once,
+  as the PDF or as a text file saved from it, and `src/handbook.js` reads it on the device
+  (the PDF through `booklet.js readPages` and pdf.js) into chapters: `{n, title, level,
+  page, blocks}`, a block a paragraph, a heading inside the chapter, a list item with its
+  depth, a quotation (the Liturgy's binding texts) or a footnote, with italics, bold, small
+  letters and raised figures as runs. The parser drops running heads, page numbers, the
+  table of contents and a cover's repeats, finds numbered headings by the table of contents
+  or by their order, joins words broken over a line and the two columns of the booklet, and
+  keeps footnotes with their page. The chapters are kept in the `handbooks` store, one row
+  per handbook and language (`guide-for-ministers:en`), travel with the sync and are not in
+  the backup. `#handbooks` lists the loaded handbooks with a word search across them (and
+  "Ask the handbooks", `src/ask.js`, where the helper is unlocked: Claude answers from the
+  chapters `relevant()` picks, naming them; the Catechism, once its text is loaded, is listed,
+  searched and asked here too, and opens on its own tab); `#handbooks/<key>` is a handbook's contents;
+  `#handbooks/<key>/<n>` one chapter with the chapters under it and previous/next. A PC has
+  Handbooks in the side menu after Catechism; a phone lists it under More. `node
+  tools/test_handbook.mjs` checks the parser against a made-up fixture
+  (`tools/fixtures/handbook-sample.txt`); with a file it reads a real handbook and prints its
+  chapters (a PDF after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`).
 - **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
   in IndexedDB on the device (`src/store.js`). At start the app asks the browser to keep
   that storage when the device runs short of space (`app.js keepData`,
@@ -334,7 +403,12 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   lists under Prepare (the Guide's services and the preparations) until "Show held
   services" is tapped (`guides.js heldToggle`, at the top of the Guide's list and at the
   end of the preparations, where the held ones show); the choice lasts while the app is
-  open, and the search still finds held services.
+  open, and the search still finds held services. The editor folds: every step is a
+  section whose heading row opens and closes it (`prepare.js step`), a closed step says
+  in one line what it holds, and a bar of the steps in the pinned heading (a column
+  beside the page from 1480px) jumps to any step, marks the ones with something in
+  them and the one on the screen; the steps open on a device are remembered for each
+  preparation (`localStorage sb-prep-open`).
 - **PDF.** `src/pdf.js` draws the sermon notes (A4, in the order of the steps), the sermon
   itself and the cue cards (A5 portrait, the size of the minister's cards on the altar: the
   introduction and each main point with its main thoughts under it, picked by `mainThoughts`, and
@@ -392,9 +466,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 
 - `index.html`, `styles.css`, `help.html`, `manifest.json`, `sw.js` – the page
 - `api/sync.js` – the sync server (Vercel function, Vercel Blob); `package.json` holds its one dependency
+- `api/plan.js` – the month plan's calendar feed for Google Calendar (Vercel function, Vercel Blob)
 - `icons/` – the emblem (SVG and the PNG sizes a phone's home screen wants; `emblem-white.png` and `emblem-blue.png` for the slides)
 - `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#notes`,
-  `#prepare/<id>`, `#reflect/<id>`, `#catechism/3.4.1`, `#theology/ROM/8`, `#liturgy/baptism`, `#reminders/people`, `#settings`)
+  `#prepare/<id>`, `#reflect/<id>`, `#catechism/3.4.1`, `#theology/ROM/8`, `#liturgy/baptism`, `#handbooks/guide-for-ministers/4.5.4`, `#reminders/people`, `#plan/2025-10`, `#settings`)
 - `src/books.js` – the 80 books, English and Afrikaans names, reference parsing
 - `src/i18n.js`, `src/af.js` – the language of the interface: `t()` and the Afrikaans table
 - `src/store.js` – IndexedDB, in-memory state, backup, change events and deletion markers for sync
@@ -405,10 +480,14 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `data/theology/en.json`, `data/theology/af.json` – the built-in introduction to every book, in English and Afrikaans
 - `src/liturgy.js` – the Liturgy tab: the altar booklet's cards, loading and removing a booklet, the EN | AF switch, the screen wake lock
 - `src/booklet.js` – reads the altar booklet's PDF into cards (pdf.js on the device, then a pure parse of the pages)
+- `src/handbooks.js` – the Handbooks tab: the loaded handbooks, the word search, a handbook's contents and chapters, loading and removing a file, "Ask the handbooks"
+- `src/handbook.js` – reads a handbook (the pages of a PDF, or a text file) into chapters and blocks, and searches them
+- `src/ask.js` – "Ask Claude" about a book: the box, the chapters `relevant()` picks, the answer with its citations as links; under Handbooks and on the Catechism tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
-- `src/more.js` – the phone's More tab: the eight sections its bar has no room for, one under the other
+- `src/more.js` – the phone's More tab: the nine sections its bar has no room for, one under the other
 - `src/mis.js` – the MIS section: opens the Church's site over the installed app, or in a tab of its own from a browser
 - `src/reminders.js` – the Reminders tab; `src/reminders-lib.js` (the listing PDFs, the roster, phone numbers, the dates coming up), `src/reminders-templates.js` (the greetings), `src/reminders-ics.js` (the calendar file), `src/reminders-sheet.js` (Excel out and back)
+- `src/plan.js` – the Month plan tab; `src/plan-lib.js` (the district's sheet as a plan: the days, the service days, the events, the calendar feed, the message), `src/plan-xlsx.js` (reading the .xlsx and writing the congregation's column into it, without a library), `src/plan-pdf.js` (the month as a one-page programme)
 - `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
@@ -422,7 +501,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
 - `vendor/pdfjs/` – pdf.js 5.4.624 (Apache 2.0; `vendor/pdfjs.LICENSE`), fetched only when an altar booklet or a listing is loaded
 - `vendor/write-excel-file.min.js`, `vendor/read-excel-file.min.js` – write-excel-file and read-excel-file (MIT; `vendor/excel.LICENSE`), fetched only when a spreadsheet is made or read
-- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_booklet.mjs` for the altar booklet, `fixtures/` the fictional listing PDFs for the Reminders tab, in both layouts the office has printed (with a Month column, and November’s without one)
+- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_booklet.mjs` for the altar booklet, `test_handbook.mjs` for the handbooks (with `fixtures/handbook-sample.txt`, a made-up handbook), `test_plan.mjs` for the month plan, `fixtures/` the fictional listing PDFs for the Reminders tab, in both layouts the office has printed (with a Month column, and November’s without one), and `plan-sample.xlsx`, a made-up district programme for the month plan
 
 ## Rebuilding the data
 
@@ -470,6 +549,9 @@ project for this app has its root directory set to `bible`.
   published.
 - Liturgy for Altar Use: © New Apostolic Church Cape. Nothing of it is in the
   repository; the person loads the PDF onto their own device, and it is not published.
+- Guide for Ministers, "Serving and Leading" and the Liturgy of the New Apostolic Church:
+  © New Apostolic Church International, Zurich. Nothing of them is in the repository; the
+  person loads each file onto their own device, and they are not published.
 - jsPDF: MIT (`vendor/jspdf.LICENSE`).
 - pdf.js: Apache License 2.0 (`vendor/pdfjs.LICENSE`).
 - PptxGenJS and JSZip: MIT (`vendor/pptxgen.LICENSE`).
