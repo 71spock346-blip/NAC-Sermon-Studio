@@ -215,7 +215,7 @@ async function localPayload(part) {
   throw new Error('unknown part ' + part);
 }
 
-const STAMP = { notes: r => r.updated || '', sermons: r => r.updated || '', guides: r => r.loadedAt || '', texts: r => r.at || '', theology: r => r.updated || '', liturgy: r => r.loadedAt || '', seating: r => r.updated || '', choir: r => r.updated || '', reminders: r => r.updated || '', plans: r => r.updated || '', handbooks: r => r.loadedAt || '' };
+const STAMP = { notes: r => r.updated || '', sermons: r => r.updated || '', guides: r => r.loadedAt || '', texts: r => r.at || '', theology: r => r.updated || '', liturgy: r => r.updated || r.loadedAt || '', seating: r => r.updated || '', choir: r => r.updated || '', reminders: r => r.updated || '', plans: r => r.updated || '', handbooks: r => r.loadedAt || '' };
 const KEY = { notes: r => r.id, sermons: r => r.id, guides: r => r.id, texts: r => r.key, theology: r => r.id, liturgy: r => r.id, seating: r => r.id, choir: r => r.id, reminders: r => r.id, plans: r => r.id, handbooks: r => r.id };
 
 /**

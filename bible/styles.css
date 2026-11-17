@@ -1311,6 +1311,27 @@ body.showing { overflow: hidden; }
 .lit-card i { font-style: italic; }
 [data-read="easy"] .lit-card { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
 [data-read="easy"] .lit-note { font-style: normal; }
+/* a card's words changed by hand (liturgy.js editPage): the same grid, with a box for the label, the lines under it and each block */
+.lit-page .btns { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: auto; }   /* the buttons stay together when the title line is short */
+.lit-edit-btn .ico { display: inline-flex; }
+.lit-edit-btn .ico svg { width: 15px; height: 15px; display: block; }
+.lit-changed { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 0; }
+.lit-tag { display: block; font-weight: 400; }
+.lit-hint { margin: -4px 0 12px; max-width: 70ch; line-height: 1.5; }
+.lit-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 14px; }
+.lit-edit .lit-row { align-items: start; }
+.lit-edit textarea { font-size: inherit; line-height: 1.5; padding: 8px 10px; min-height: 0; }
+.lit-edit .lit-left .row.line { gap: 4px; align-items: center; margin: 0; }
+.lit-edit .lit-label-box { font-weight: 700; color: var(--accent-text); }
+.lit-edit .lit-sub-box { display: block; width: 100%; font-style: italic; color: var(--muted); font-size: .88em; margin-top: 6px; }
+.lit-edit .lit-box { display: block; width: 100%; margin: 0 0 8px; }
+.lit-edit .lit-box.k-note { font-style: italic; color: var(--label-ink); }
+.lit-edit .lit-right > :last-child { margin-bottom: 0; }
+.lit-edit .lit-li { align-items: flex-start; margin: 0 0 8px; }
+.lit-edit .lit-li .lit-bullet { padding-top: 9px; }
+.lit-edit .lit-li .lit-box { margin: 0; flex: 1 1 auto; min-width: 0; }
+.lit-edit .lit-remove { color: var(--muted); }
+[data-read="easy"] .lit-edit .lit-box.k-note { font-style: normal; }
 
 /* ---------------------------------------------------------------- Handbooks: the Church's handbooks, chapter by chapter (handbooks.js)
    The list and the file rows borrow the Liturgy tab's look (.lit-list, .lit-books); a chapter reads like the Catechism's text. */
