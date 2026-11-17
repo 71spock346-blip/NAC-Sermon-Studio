@@ -8,7 +8,9 @@
  * English rather than lost. Variables are written as {name} in the key:
  * t('Saved {name}', { name }). Where one English word needs two Afrikaans
  * words in different places, the key carries a tag after a bar, which the
- * English never shows: t('Context|box').
+ * English never shows: t('Context|box'). tl(lang, key) gives the text in a
+ * named language, whatever the interface speaks: the Guide's article reads
+ * its own headings in the Guide's language.
  *
  * The Bible text itself is not translated here: it is read in whichever
  * translation the person chooses. Book names follow the "Book names"
@@ -48,7 +50,22 @@ export function requestLang(l) {
 
 /** The text for a key in the current language, with {name} variables filled in. */
 export function t(key, vars) {
-  let s = current === 'af' ? AF[key] : undefined;
+  return textIn(current, key, vars);
+}
+
+/**
+ * The text for a key in a given language, 'en' or 'af', whatever the
+ * interface speaks: an Afrikaans Guide's article reads "Inleiding" over its
+ * introduction while the app is in English, and the English Guide's reads
+ * "Introduction" while the app is in Afrikaans. Any other value means the
+ * interface's language.
+ */
+export function tl(l, key, vars) {
+  return textIn(l === 'af' || l === 'en' ? l : current, key, vars);
+}
+
+function textIn(l, key, vars) {
+  let s = l === 'af' ? AF[key] : undefined;
   if (s === undefined) s = key.includes('|') ? key.slice(0, key.indexOf('|')) : key;
   if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
   return s;
