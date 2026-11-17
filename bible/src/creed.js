@@ -8,8 +8,9 @@
  * so it reads, searches and answers like them. The minister gave the
  * English text of articles 4 to 10 himself (2026-11-17); articles 1 to 3
  * are from the Catechism's English edition (2012), with which his text
- * agrees word for word. The Afrikaans Creed goes in here as a second copy
- * when its text comes.
+ * agrees word for word; he sent the Afrikaans text of all ten the same day,
+ * and both stand here exactly as sent. An app in Afrikaans shows the
+ * Afrikaans copy; the EN | AF switch on the Creed's pages shows the other.
  */
 
 const EN = {
@@ -29,6 +30,23 @@ const EN = {
   ],
 };
 
+const AF = {
+  title: 'Die Geloofsbelydenis',
+  ownTitle: 'Die Tien Geloofsartikels van die Nuwe Apostoliese Kerk',
+  articles: [
+    ['Die Eerste Geloofsartikel', 'Ek glo in God, die Vader, die Almagtige, die Skepper van die hemel en die aarde.'],
+    ['Die Tweede Geloofsartikel', 'Ek glo in Jesus Christus, die eniggebore Seun van God, ons Here, wat deur die Heilige Gees ontvang en uit die maagd Maria gebore is, wat onder Pontius Pilatus gely het, gekruisig is, gesterf het en begrawe is, wat neergedaal het na die ryk van die dode, op die derde dag uit die dood opgestaan het en opgevaar het na die hemel. Hy sit aan die regterhand van God, die almagtige Vader, vanwaar Hy sal terugkom.'],
+    ['Die Derde Geloofsartikel', 'Ek glo in die Heilige Gees, die een, heilige, algemene en apostoliese kerk, die gemeenskap van die heiliges, die vergewing van sondes, die opstanding van die dode en die ewige lewe.'],
+    ['Die Vierde Geloofsartikel', 'Ek glo dat die Here Jesus oor sy kerk heers en dat Hy sy Apostels daarvoor gestuur het en tot met sy wederkoms steeds stuur, met die opdrag om te onderrig, om in sy Naam sondes te vergewe en met water en die Heilige Gees te doop.'],
+    ['Die Vyfde Geloofsartikel', 'Ek glo dat diegene wat deur God vir \'n amp bestem is, slegs deur Apostels georden word, en dat die gesag, seën en heiliging vir hulle dienswerk uit die Apostelamp voortvloei.'],
+    ['Die Sesde Geloofsartikel', 'Ek glo dat die Heilige Doop met water die eerste stap is tot die vernuwing van die mens deur die Heilige Gees, en dat die gedoopte persoon in die gemeenskap opgeneem word van diegene wat in Jesus Christus glo en Hom as hulle Here bely.'],
+    ['Die Sewende Geloofsartikel', 'Ek glo dat die Heilige Nagmaal deur die Here self ingestel is ter herinnering aan die eenmalige, volkome geldige offer, asook die bittere lyding en dood van Christus. Die waardige gebruik van die Heilige Nagmaal bewerkstellig ons gemeenskap met Jesus Christus, ons Here. Dit word met ongesuurde brood en wyn gevier. Beide moet deur \'n bedienaar wat deur \'n Apostel gemagtig is, geheilig en uitgedeel word.'],
+    ['Die Agste Geloofsartikel', 'Ek glo dat diegene wat met water gedoop is, deur bemiddeling van \'n Apostel die gawe van die Heilige Gees moet ontvang om die kindskap van God te verkry en sodoende die voorvereiste te hê om \'n eersteling te word.'],
+    ['Die Negende Geloofsartikel', 'Ek glo dat die Here Jesus net so seker sal terugkom as wat Hy na die hemel opgevaar het, en dat Hy die eerstelinge uit die dode en die lewendes tot Hom sal neem wat op sy wederkoms gehoop en hulle daarop voorberei het. Ná die bruilof in die hemel sal Hy saam met hulle na die aarde terugkeer om sy vrederyk op te rig, en hulle sal saam met Hom as \'n koninklike priesterdom regeer. Ná die afsluiting van die vrederyk sal Hy die Laaste Oordeel hou. Daarna sal God \'n nuwe hemel en \'n nuwe aarde skep en by sy volk woon.'],
+    ['Die Tiende Geloofsartikel', 'Ek glo dat ek verplig is om die wêreldlike owerhede te gehoorsaam, mits geen goddelike wette daardeur oortree word nie.'],
+  ],
+};
+
 /**
  * The Creed in the shape of a loaded handbook (handbook.js), so that
  * handbooks.js can list, search and ask it like one: `builtIn` tells it
@@ -45,4 +63,4 @@ function book(language, c) {
 }
 
 /** The Creed, one copy per language it is written in; built once, so a copy is the same object each time it is listed. */
-export const CREED = [book('en', EN)];
+export const CREED = [book('en', EN), book('af', AF)];
