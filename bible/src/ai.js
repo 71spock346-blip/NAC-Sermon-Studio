@@ -1637,11 +1637,11 @@ const HANDBOOK_SCHEMA = {
   type: 'object', additionalProperties: false,
   required: ['answer', 'cites', 'found'],
   properties: {
-    answer: { type: 'string', description: 'The answer in plain words: short sentences, short paragraphs separated by a blank line, what the handbooks say and in their own wording where the wording matters, with the chapter number in brackets after each point, e.g. (Guide for Ministers 4.5.4). No heading, no greeting.' },
+    answer: { type: 'string', description: 'The answer in plain words: short sentences, short paragraphs separated by a blank line, what the handbooks say and in their own wording where the wording matters, with the chapter number in brackets after each point, e.g. (Guide for Ministers 4.5.4) or (Catechism 8.1.4). No heading, no greeting.' },
     cites: {
       type: 'array', description: 'The chapters the answer rests on, the most important first; only chapters that were given',
       items: { type: 'object', additionalProperties: false, required: ['key', 'n', 'title'], properties: {
-        key: { type: 'string', description: 'The handbook, as the key in the chapter heading: guide-for-ministers, serving-and-leading, liturgy, creed …' },
+        key: { type: 'string', description: 'The book, as the key in the chapter heading: guide-for-ministers, serving-and-leading, liturgy, creed, catechism …' },
         n: { type: 'string', description: 'The chapter as given after the key: its number such as 4.5.4, or i7 for a chapter without one' },
         title: { type: 'string', description: 'The chapter\'s title as given' },
       } },
@@ -1650,22 +1650,22 @@ const HANDBOOK_SCHEMA = {
   },
 };
 
-const HANDBOOK_SYSTEM = `You answer a New Apostolic Church minister's question from the Church's own handbooks for ministers: the Guide for Ministers (the rule book), the "Serving and Leading" guiding principle, the Liturgy of the New Apostolic Church, the Creed (the ten Articles of Faith, one chapter each), and any other handbook given. You are given the chapters that fit the question. Answer from those chapters only: what they say, in plain, everyday words a tired reader follows at a glance, short sentences, nothing invented. Where the handbook's own wording matters (a rule, a time, a set form of words), give it as it stands, in quotation marks. Name the chapter after each point, in brackets, with the handbook and the number; for the Creed, the article: (The Creed, Article 4). If the chapters do not answer the question, say so plainly and give what comes nearest; never fill the gap from memory. Do not add advice of your own, and do not call anything Church doctrine: the Church's teaching is in the Catechism, and the Apostles interpret Holy Scripture.`;
+const HANDBOOK_SYSTEM = `You answer a New Apostolic Church minister's question from the Church's own books: the Guide for Ministers (the rule book), the "Serving and Leading" guiding principle, the Liturgy of the New Apostolic Church, the Creed (the ten Articles of Faith, one chapter each), the Catechism of the New Apostolic Church (the Church's teaching, in numbered sections), and any other handbook given. You are given the chapters (of the Catechism, the sections) that fit the question. Answer from those alone: what they say, in plain, everyday words a tired reader follows at a glance, short sentences, nothing invented. Where the book's own wording matters (a rule, a time, a set form of words, a definition), give it as it stands, in quotation marks. Name the chapter after each point, in brackets, with the book and the number: (Guide for Ministers 4.5.4), (Catechism 8.1.4); for the Creed, the article: (The Creed, Article 4). If the chapters do not answer the question, say so plainly and give what comes nearest; never fill the gap from memory. Do not add teaching or advice of your own: what the Catechism says is the Church's teaching, what a handbook says is the Church's rule or practice, and the Apostles interpret Holy Scripture.`;
 
-/** Asks about the handbooks: `picks` are [{handbook, chapter, addr}] from handbook.js relevant(). Returns {data: {answer, cites, found}, usage, model, cost}. */
+/** Asks about the handbooks, the Creed and the Catechism: `picks` are [{handbook, chapter, addr}] from handbook.js relevant(). Returns {data: {answer, cites, found}, usage, model, cost}. */
 export async function askHandbooks(question, picks, { signal, onProgress } = {}) {
   const lang = state.settings.aiLang === 'af' ? 'af' : 'en';
   const CAP = 30000;
   const parts = [];
   let size = 0;
   for (const p of picks) {
-    const head = `=== ${p.handbook.title}${p.handbook.edition ? ` (${p.handbook.edition})` : ''} — chapter ${p.addr}: ${p.chapter.title}   [key ${p.handbook.key}, chapter ${p.addr}]`;
+    const head = `=== ${p.handbook.title}${p.handbook.edition ? ` (${p.handbook.edition})` : ''} — ${p.handbook.key === 'catechism' ? 'section' : 'chapter'} ${p.addr}: ${p.chapter.title}   [key ${p.handbook.key}, chapter ${p.addr}]`;
     const text = plainText(p.chapter).slice(0, 4000);
     if (size + head.length + text.length > CAP && parts.length) break;
     parts.push(head + '\n' + text);
     size += head.length + text.length;
   }
-  const content = `THE QUESTION\n${question.trim()}\n\nAnswer in ${lang === 'af' ? 'Afrikaans' : 'English'}.\n\nTHE CHAPTERS OF THE HANDBOOKS THAT FIT THE QUESTION (answer from these alone; each is headed with its handbook's key and its chapter)\n\n${parts.join('\n\n')}`;
+  const content = `THE QUESTION\n${question.trim()}\n\nAnswer in ${lang === 'af' ? 'Afrikaans' : 'English'}.\n\nTHE CHAPTERS OF THE BOOKS THAT FIT THE QUESTION (answer from these alone; each is headed with its book's key and its chapter, or the Catechism's section)\n\n${parts.join('\n\n')}`;
   const r = await run({ system: [{ type: 'text', text: HANDBOOK_SYSTEM }], content, schema: HANDBOOK_SCHEMA, effort: 'medium', maxTokens: 4000, signal, onProgress });
   return { ...r, cost: cost(r.usage, r.model) };
 }

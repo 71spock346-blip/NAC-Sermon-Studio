@@ -210,7 +210,11 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   person loads under Settings → Catechism into IndexedDB on their own device. With it
   loaded, `src/catechism.js` shows the sections (with the book's own summaries,
   footnotes and the table of the Ten Commandments), searches them by word, and
-  `src/pdf.js` prints the sections chosen for a service into the sermon notes.
+  `src/pdf.js` prints the sections chosen for a service into the sermon notes. Where the
+  helper is unlocked, the tab also has "Ask the Catechism" (`src/ask.js`): Claude answers a
+  question from the sections `relevant()` picks, naming them. For that, and for the Handbooks
+  tab, which searches and asks the Catechism together with the handbooks, `asHandbook()`
+  gives the Catechism the shape of a loaded handbook.
 - **Theology.** `src/theology.js` gives background at three levels: a book with its
   writer (`#theology/ROM`), a chapter (`#theology/ROM/8`) and a passage
   (`#theology/ROM/8/28-30`); `#theology` lists the books in the Catechism's groups
@@ -345,8 +349,9 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   keeps footnotes with their page. The chapters are kept in the `handbooks` store, one row
   per handbook and language (`guide-for-ministers:en`), travel with the sync and are not in
   the backup. `#handbooks` lists the loaded handbooks with a word search across them (and
-  "Ask the handbooks", where the helper is unlocked: Claude answers from the chapters
-  `relevant()` picks, naming them); `#handbooks/<key>` is a handbook's contents;
+  "Ask the handbooks", `src/ask.js`, where the helper is unlocked: Claude answers from the
+  chapters `relevant()` picks, naming them; the Catechism, once its text is loaded, is listed,
+  searched and asked here too, and opens on its own tab); `#handbooks/<key>` is a handbook's contents;
   `#handbooks/<key>/<n>` one chapter with the chapters under it and previous/next. A PC has
   Handbooks in the side menu after Catechism; a phone lists it under More. `node
   tools/test_handbook.mjs` checks the parser against a made-up fixture
@@ -476,6 +481,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/booklet.js` – reads the altar booklet's PDF into cards (pdf.js on the device, then a pure parse of the pages)
 - `src/handbooks.js` – the Handbooks tab: the loaded handbooks, the word search, a handbook's contents and chapters, loading and removing a file, "Ask the handbooks"
 - `src/handbook.js` – reads a handbook (the pages of a PDF, or a text file) into chapters and blocks, and searches them
+- `src/ask.js` – "Ask Claude" about a book: the box, the chapters `relevant()` picks, the answer with its citations as links; under Handbooks and on the Catechism tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
 - `src/more.js` – the phone's More tab: the nine sections its bar has no room for, one under the other
 - `src/mis.js` – the MIS section: opens the Church's site over the installed app, or in a tab of its own from a browser

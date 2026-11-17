@@ -1808,4 +1808,16 @@ export const AF = {
   "The booklet's words are back.": "Die boekie se woorde is terug.",
   "Some cards of this booklet have words you changed. A new file puts its own words on every card again. Load it anyway?": "Sommige kaarte van hierdie boekie het woorde wat jy verander het. 'n Nuwe lêer sit weer sy eie woorde op elke kaart. Laai dit in elk geval?",
   "Load the file": "Laai die lêer",
+
+  // Ask the Catechism (Claude), and the Catechism among the handbooks
+  "Ask the Catechism": "Vra die Kategismus",
+  "Claude reads the sections that fit your question and answers from them in plain words, naming the sections, so you can check what the Catechism says. The answer is not kept.": "Claude lees die afdelings wat by jou vraag pas en antwoord daaruit in gewone woorde, met die afdelings by die naam, sodat jy kan nagaan wat die Kategismus sê. Die antwoord word nie bewaar nie.",
+  "A question for the Catechism: \"What is Holy Sealing?\", \"Who may receive Holy Communion?\"…": "'n Vraag vir die Kategismus: \"Wat is die Heilige Verseëling?\", \"Wie mag die Heilige Nagmaal ontvang?\"…",
+  "Claude is reading {n} sections of the Catechism. This takes about half a minute.": "Claude lees {n} afdelings van die Kategismus. Dit neem omtrent 'n halwe minuut.",
+  "No section carries the words of that question. The Catechism's text is in English: ask in English, or try other words.": "Geen afdeling dra die woorde van daardie vraag nie. Die Kategismus se teks is in Engels: vra in Engels, of probeer ander woorde.",
+  "The sections read do not answer this; what stands above is as near as they come.": "Die afdelings wat gelees is, beantwoord dit nie; wat hierbo staan, is so na as wat hulle kom.",
+  "A help for study: the Catechism's own words stand in the sections linked above, and the Apostles interpret Holy Scripture (CNAC 1.2.5.1).": "'n Hulp vir studie: die Kategismus se eie woorde staan in die afdelings waarna hierbo geskakel word, en die Apostels lê die Heilige Skrif uit (Kategismus 1.2.5.1).",
+  "The Church's teaching, on its own tab. Searched and asked here too.": "Die Kerk se leer, op sy eie oortjie. Dit word hier ook deursoek en gevra.",
+  "The Church's teaching, on its own tab. Load its text under Settings to search and ask it here too.": "Die Kerk se leer, op sy eie oortjie. Laai sy teks onder Verstellings om dit hier ook te deursoek en te vra.",
+  "Claude reads the chapters of the handbooks, and the sections of the Catechism, that fit your question and answers from them in plain words, naming them, so you can check what the books say. The answer is not kept.": "Claude lees die hoofstukke van die handboeke, en die afdelings van die Kategismus, wat by jou vraag pas en antwoord daaruit in gewone woorde, met hulle by die naam, sodat jy kan nagaan wat die boeke sê. Die antwoord word nie bewaar nie.",
 };
