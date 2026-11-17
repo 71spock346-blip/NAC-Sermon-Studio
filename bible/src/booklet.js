@@ -31,13 +31,15 @@
 const mul = (m, t) => [m[0] * t[0] + m[2] * t[1], m[1] * t[0] + m[3] * t[1], m[0] * t[2] + m[2] * t[3], m[1] * t[2] + m[3] * t[3], m[0] * t[4] + m[2] * t[5] + m[4], m[1] * t[4] + m[3] * t[5] + m[5]];
 
 /**
- * The dotted rules of a page, as distances from its top: every long,
- * horizontal line drawn on the page. When some of them are dashed (the
- * booklet's dots), only those count, so a solid line elsewhere is not taken
- * for one.
+ * What is drawn on a page besides its text, as distances from its top left:
+ * the dotted rules (every long, horizontal line; when some of them are
+ * dashed, the booklet's dots, only those count, so a solid line elsewhere is
+ * not taken for one) and the marks (every small filled shape, such as the
+ * square a handbook draws for a bullet: handbook.js reads them as bullets).
  */
-function rulesOf(OPS, ops, width, height) {
+function drawnOn(OPS, ops, width, height) {
   const found = [];
+  const marks = [];
   let ctm = [1, 0, 0, 1, 0, 0], dashed = false;
   const stack = [];
   for (let i = 0; i < ops.fnArray.length; i++) {
@@ -51,7 +53,12 @@ function rulesOf(OPS, ops, width, height) {
         const box = a && a[2];   // [minX, minY, maxX, maxY] of the path, before the transform
         if (!box || box.length < 4) break;
         const x0 = box[0], y0 = box[1], x1 = box[2], y1 = box[3];
-        if (Math.abs(y1 - y0) > 0.5 || Math.abs(x1 - x0) < width / 4) break;
+        const w = x1 - x0, h = y1 - y0;
+        if (w > 0.3 && w < 8 && h > 0.3 && h < 8) {
+          marks.push({ x: ctm[0] * x0 + ctm[2] * y0 + ctm[4], y: height - (ctm[1] * x0 + ctm[3] * y0 + ctm[5]), w, h });
+          break;
+        }
+        if (Math.abs(h) > 0.5 || Math.abs(w) < width / 4) break;
         found.push({ y: height - (ctm[1] * x0 + ctm[3] * y0 + ctm[5]), dashed });
         break;
       }
@@ -61,14 +68,15 @@ function rulesOf(OPS, ops, width, height) {
   const keep = found.some(r => r.dashed) ? found.filter(r => r.dashed) : found;
   const rules = [];
   for (const r of keep) if (!rules.some(y => Math.abs(y - r.y) < 2)) rules.push(r.y);
-  return rules.sort((p, q) => p - q);
+  return { rules: rules.sort((p, q) => p - q), marks };
 }
 
 /**
  * Reads a PDF (its bytes as a Uint8Array) with pdf.js into pages:
- * [{n, width, height, items, rules}], each item a piece of text with its
- * place from the top left ({str, x, y, w, size, italic}), the rules the
- * distances from the top of the dotted lines. `pdfjs` is the pdf.js module
+ * [{n, width, height, items, rules, marks}], each item a piece of text with
+ * its place from the top left ({str, x, y, w, size, italic, bold}), the rules
+ * the distances from the top of the dotted lines, the marks the small shapes
+ * drawn on the page ({x, y, w, h}: a handbook's bullets). `pdfjs` is the pdf.js module
  * (vendor/pdfjs/pdf.min.mjs), with its worker already set up by the caller;
  * onPage(n, total), when given, is called as each page is begun.
  */
@@ -95,9 +103,11 @@ export async function readPages(pdfjs, data, onPage) {
       for (const it of tc.items) {
         if (!('str' in it) || !it.str.trim()) continue;
         const m = it.transform;
-        items.push({ str: it.str, x: m[4], y: vp.height - m[5], w: it.width, size: Math.hypot(m[0], m[1]), italic: /italic|oblique|it(mt)?$/i.test(nameOf(it.fontName)) });
+        const font = nameOf(it.fontName);
+        items.push({ str: it.str, x: m[4], y: vp.height - m[5], w: it.width, size: Math.hypot(m[0], m[1]), italic: /italic|oblique|it(mt)?$|-it\b/i.test(font), bold: /bold|black|heavy|semibd|demi/i.test(font) });
       }
-      pages.push({ n, width: vp.width, height: vp.height, items, rules: rulesOf(pdfjs.OPS, ops, vp.width, vp.height) });
+      const drawn = drawnOn(pdfjs.OPS, ops, vp.width, vp.height);
+      pages.push({ n, width: vp.width, height: vp.height, items, rules: drawn.rules, marks: drawn.marks });
       page.cleanup();
     }
     return pages;

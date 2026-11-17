@@ -1225,8 +1225,8 @@ body.showing { overflow: hidden; }
 [data-read="easy"] .th-sec h4, [data-read="easy"] .th-save h4, [data-read="easy"] .th-earlier > h4, [data-read="easy"] .th-facts dt { text-transform: none; letter-spacing: .02em; font-size: 14px; }
 [data-read="easy"] .th-quote { font-style: normal; line-height: 1.85; }
 @media (max-width: 759.98px) {
-  /* the phone's bar keeps five tabs: these eight sections are listed under More (more.js), and More stays lit while one of them is open */
-  .tabs button[data-tab="reflect"], .tabs button[data-tab="liturgy"], .tabs button[data-tab="theology"],
+  /* the phone's bar keeps five tabs: these nine sections are listed under More (more.js), and More stays lit while one of them is open */
+  .tabs button[data-tab="reflect"], .tabs button[data-tab="liturgy"], .tabs button[data-tab="handbooks"], .tabs button[data-tab="theology"],
   .tabs button[data-tab="seating"], .tabs button[data-tab="choir"], .tabs button[data-tab="reminders"], .tabs button[data-tab="plan"], .tabs button[data-tab="mis"], .tabs button[data-tab="settings"] { display: none; }
   .tabs button.also { color: var(--accent-text); }
   .tabs button.also .ico { background: var(--accent); color: var(--accent-ink); }
@@ -1287,6 +1287,7 @@ body.showing { overflow: hidden; }
 .lit-book { padding: 12px 14px; margin-top: 8px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14.5px; line-height: 1.5; }
 .lit-book .row { margin-top: 6px; }
 .lit-credit { margin-top: 16px; max-width: 70ch; }
+.lit-fullbook { margin: 14px 0 0; max-width: 70ch; line-height: 1.5; }
 /* one card: the rows as the booklet prints them, the label on the left, the words on the right, a dotted rule between the rows */
 .lit-page .docbar { align-items: center; }
 .lit-card { margin: 4px 0 12px; line-height: 1.55; }
@@ -1310,6 +1311,52 @@ body.showing { overflow: hidden; }
 .lit-card i { font-style: italic; }
 [data-read="easy"] .lit-card { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
 [data-read="easy"] .lit-note { font-style: normal; }
+
+/* ---------------------------------------------------------------- Handbooks: the Church's handbooks, chapter by chapter (handbooks.js)
+   The list and the file rows borrow the Liturgy tab's look (.lit-list, .lit-books); a chapter reads like the Catechism's text. */
+.hb-lead { margin: 0 0 12px; max-width: 70ch; line-height: 1.55; }
+.hb-search { margin: 0 0 6px; }
+.hb-search input { width: 100%; }
+.hb-hits { margin-bottom: 14px; }
+.hb-hit .grow { min-width: 0; }
+.hb-hit b { display: block; }
+.hb-from { display: block; font: 700 11px/1.3 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--label-ink); margin-bottom: 2px; }
+.hb-list .item .snippet { font-weight: 400; }
+.hb-contents .item.cat .grow, .hb-kids .item.cat .grow { min-width: 0; }
+.hb-contents .item .chev, .hb-kids .item .chev { color: var(--muted); font-size: 22px; line-height: 1; flex: 0 0 auto; }
+.hb-page .docbar { align-items: center; }
+.hb-text { font-family: var(--serif); line-height: 1.65; max-width: 68ch; margin: 4px 0 12px; }
+.hb-text.size-s { font-size: 15px; }
+.hb-text.size-m { font-size: 16.5px; }
+.hb-text.size-l { font-size: 19.5px; }
+.hb-text.size-xl { font-size: 23.5px; }
+.hb-text p { margin: 0 0 .7em; }
+.hb-text .hb-h { font: 700 1.05em/1.3 var(--display); color: var(--head-ink); margin: 1.3em 0 .45em; }
+.hb-text .hb-h:first-child { margin-top: .2em; }
+.hb-li { display: flex; gap: .55em; margin: 0 0 .45em; }
+.hb-li .hb-bullet { flex: 0 0 1em; text-align: center; color: var(--label-ink); }
+.hb-li.d2, .hb-p.d1, .hb-quote.d1, .hb-note.d1 { margin-left: 1.55em; }
+.hb-li.d3, .hb-p.d2, .hb-quote.d2, .hb-note.d2 { margin-left: 3.1em; }
+.hb-p.d3, .hb-quote.d3, .hb-note.d3 { margin-left: 4.65em; }
+.hb-quote { font-style: italic; color: var(--ink); border-left: 3px solid var(--accent); padding: 2px 0 2px 12px; }   /* the Liturgy's binding texts, blue italics in the book */
+.hb-quote i { font-style: normal; }
+.hb-note { font-family: var(--sans); font-size: .82em; color: var(--ink-2); }
+.hb-text sup { font-size: .6em; line-height: 0; }
+.hb-text small { font-size: .82em; }
+.hb-kids { margin-top: 4px; }
+.hb-nav { display: flex; justify-content: space-between; gap: 12px; margin: 18px 0 10px; font-family: var(--sans); }
+.hb-nav a { font-weight: 700; text-decoration: none; max-width: 48%; }
+.hb-nav .hb-next { text-align: right; margin-left: auto; }
+.hb-credit { margin-top: 16px; max-width: 70ch; }
+.hb-ask { margin: 18px 0 6px; }
+.hb-ask .hb-q { width: 100%; margin: 8px 0 10px; }
+.hb-answer { margin-top: 12px; }
+.hb-answer-text p { margin: 0 0 9px; line-height: 1.65; max-width: 70ch; }
+.hb-cites { margin: 4px 0 10px; padding-left: 20px; }
+.hb-cites li { margin: 0 0 3px; }
+[data-read="easy"] .hb-text { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; max-width: 62ch; }
+[data-read="easy"] .hb-text p { margin-bottom: 16px; }
+[data-read="easy"] .hb-quote, [data-read="easy"] .hb-note { font-style: normal; }
 @media (max-width: 759.98px) {
   .lit-row { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 12px 0; }
   .lit-page .docbar .seg { order: 3; }   /* under the title when the two do not fit side by side */

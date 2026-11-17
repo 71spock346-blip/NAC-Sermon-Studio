@@ -16,8 +16,8 @@ import { t } from './i18n.js';
  * which tells nobody, so they are not sent back again.
  */
 const DB_NAME = 'nac-study-bible';
-const DB_VERSION = 12;   // 12: the plans store (the month plan, plan.js); 11: the audio store (the sermon read aloud, speech.js); 10: the reminders store. A new store needs a new version, or a device that already has the database never gets it
-const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync', 'theology', 'liturgy', 'seating', 'choir', 'reminders', 'audio', 'plans'];
+const DB_VERSION = 13;   // 13: the handbooks store (the Church's handbooks, handbooks.js); 12: the plans store (the month plan, plan.js); 11: the audio store (the sermon read aloud, speech.js); 10: the reminders store. A new store needs a new version, or a device that already has the database never gets it
+const STORES = ['notes', 'sermons', 'settings', 'cache', 'texts', 'catechism', 'guides', 'sync', 'theology', 'liturgy', 'seating', 'choir', 'reminders', 'audio', 'plans', 'handbooks'];
 
 let dbPromise = null;
 
@@ -42,6 +42,7 @@ function openDb() {
       if (!db.objectStoreNames.contains('reminders')) db.createObjectStore('reminders', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('audio')) db.createObjectStore('audio', { keyPath: 'id' });   // the sermon read aloud (speech.js): one recording per preparation, this device only
       if (!db.objectStoreNames.contains('plans')) db.createObjectStore('plans', { keyPath: 'id' });   // the month plan (plan.js): one row per month's programme, and the tab's settings
+      if (!db.objectStoreNames.contains('handbooks')) db.createObjectStore('handbooks', { keyPath: 'id' });   // the Church's handbooks (handbooks.js): one row per handbook and language, read from its file on the device
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -129,13 +130,14 @@ export const state = {
   choir: [],              // the choir programme (choir.js): one row per service, with the conductor's settings and hymn edits beside them
   reminders: [],          // birthdays and anniversaries (reminders.js): one row per member, per greeting marked sent, the tab's settings and each of the minister's own wordings
   plans: [],              // the month plan (plan.js): one row per month's programme from the district, with who holds each service, and the tab's settings
-  deleted: { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, reminders: {}, plans: {}, catechism: '' },   // id -> when it was deleted here (ISO), kept so sync can pass the deletion on
+  handbooks: [],          // the Church's handbooks read from their files (handbooks.js, handbook.js), one row per handbook and language: id 'guide-for-ministers:en'
+  deleted: { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, reminders: {}, plans: {}, handbooks: {}, catechism: '' },   // id -> when it was deleted here (ISO), kept so sync can pass the deletion on
 };
 
 /* ---- who wants to know about a change (sync.js) ---- */
 const listeners = new Set();
 
-/** fn(part, {lazy}) is called after every write the person makes; part is 'notes', 'sermons', 'settings', 'texts', 'catechism', 'guides', 'theology', 'liturgy', 'seating', 'choir', 'reminders' or 'plans'. */
+/** fn(part, {lazy}) is called after every write the person makes; part is 'notes', 'sermons', 'settings', 'texts', 'catechism', 'guides', 'theology', 'liturgy', 'seating', 'choir', 'reminders', 'plans' or 'handbooks'. */
 export function onChange(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
@@ -160,9 +162,9 @@ async function saveDeleted() {
 }
 
 function pruneDeleted(deleted) {
-  const d = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, reminders: {}, plans: {}, catechism: '', ...(deleted || {}) };
+  const d = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, reminders: {}, plans: {}, handbooks: {}, catechism: '', ...(deleted || {}) };
   const cutoff = new Date(Date.now() - KEEP_DELETED_DAYS * 86400000).toISOString();
-  for (const part of ['notes', 'sermons', 'texts', 'guides', 'theology', 'liturgy', 'seating', 'choir', 'reminders', 'plans']) {
+  for (const part of ['notes', 'sermons', 'texts', 'guides', 'theology', 'liturgy', 'seating', 'choir', 'reminders', 'plans', 'handbooks']) {
     const m = d[part] && typeof d[part] === 'object' ? d[part] : {};
     d[part] = Object.fromEntries(Object.entries(m).filter(([, at]) => typeof at === 'string' && at > cutoff));
   }
@@ -171,7 +173,7 @@ function pruneDeleted(deleted) {
 }
 
 export async function load() {
-  const [notes, sermons, settings, textKeys, catMeta, guides, deleted, theology, liturgy, seating, choir, reminders, plans] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta'), db.all('guides'), db.get('sync', 'deleted'), db.all('theology'), db.all('liturgy'), db.all('seating'), db.all('choir'), db.all('reminders'), db.all('plans')]);
+  const [notes, sermons, settings, textKeys, catMeta, guides, deleted, theology, liturgy, seating, choir, reminders, plans, handbooks] = await Promise.all([db.all('notes'), db.all('sermons'), db.all('settings'), db.keys('texts'), db.get('catechism', 'meta'), db.all('guides'), db.get('sync', 'deleted'), db.all('theology'), db.all('liturgy'), db.all('seating'), db.all('choir'), db.all('reminders'), db.all('plans'), db.all('handbooks')]);
   state.catechism = catMeta ? catMeta.value : null;
   state.guides = guides;
   state.theology = theology.sort((a, b) => (b.updated || '').localeCompare(a.updated || ''));
@@ -180,6 +182,7 @@ export async function load() {
   state.choir = choir.sort((a, b) => a.id.localeCompare(b.id));
   state.reminders = reminders.sort((a, b) => a.id.localeCompare(b.id));
   state.plans = plans.sort((a, b) => a.id.localeCompare(b.id));
+  state.handbooks = handbooks.sort((a, b) => a.id.localeCompare(b.id));
   state.deleted = pruneDeleted(deleted && deleted.value);
   state.texts = {};
   for (const k of textKeys) {
@@ -405,6 +408,28 @@ export async function deleteLiturgy(id) {
   await db.del('liturgy', id);
   await markDeleted('liturgy', id);
   changed('liturgy');
+}
+
+/* ---- the Church's handbooks (handbooks.js): their chapters as handbook.js read them from the file ----
+   One row per handbook and language, id '<key>:<language>'. The Church's
+   text, so not in the backup; it travels with the sync, so one load reaches
+   every device. */
+export async function saveHandbook(row) {
+  if (!row.loadedAt) row.loadedAt = new Date().toISOString();
+  const i = state.handbooks.findIndex(x => x.id === row.id);
+  if (i >= 0) state.handbooks[i] = row; else state.handbooks.push(row);
+  state.handbooks.sort((a, b) => a.id.localeCompare(b.id));
+  if (state.deleted.handbooks[row.id]) { delete state.deleted.handbooks[row.id]; await saveDeleted(); }
+  await db.put('handbooks', row);
+  changed('handbooks');
+  return row;
+}
+
+export async function deleteHandbook(id) {
+  state.handbooks = state.handbooks.filter(x => x.id !== id);
+  await db.del('handbooks', id);
+  await markDeleted('handbooks', id);
+  changed('handbooks');
 }
 
 /* ---- seating: the Seating & Communion Planner (seating.js) ----
@@ -654,7 +679,8 @@ export async function wipeAll() {
   state.choir = [];
   state.reminders = [];
   state.plans = [];
-  state.deleted = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, reminders: {}, catechism: '' };
+  state.handbooks = [];
+  state.deleted = { notes: {}, sermons: {}, texts: {}, guides: {}, theology: {}, liturgy: {}, seating: {}, choir: {}, reminders: {}, plans: {}, handbooks: {}, catechism: '' };
 }
 
 /* ---- what came from another device (sync.js) ----
@@ -672,7 +698,7 @@ export async function applyRemoteSettings(rows) {
   }
 }
 
-/** Notes, preparations, Guides, theology or the altar booklet: `put` rows replace ours (in place, so an open screen keeps its object), `remove` ids go. */
+/** Notes, preparations, Guides, theology, the altar booklet or the handbooks: `put` rows replace ours (in place, so an open screen keeps its object), `remove` ids go. */
 export async function applyRemoteList(part, put, remove, deleted) {
   const list = state[part];
   for (const row of put) {
@@ -695,6 +721,7 @@ export async function applyRemoteList(part, put, remove, deleted) {
   if (part === 'choir') list.sort((a, b) => a.id.localeCompare(b.id));
   if (part === 'reminders') list.sort((a, b) => a.id.localeCompare(b.id));
   if (part === 'plans') list.sort((a, b) => a.id.localeCompare(b.id));
+  if (part === 'handbooks') list.sort((a, b) => a.id.localeCompare(b.id));
   if (deleted) { state.deleted[part] = deleted; await saveDeleted(); }
 }
 

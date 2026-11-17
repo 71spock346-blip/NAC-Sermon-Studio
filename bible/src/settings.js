@@ -231,6 +231,7 @@ export function render(container) {
       el('li', { text: Lock.unlocked()
         ? t('Liturgy for Altar Use © New Apostolic Church Cape. The booklet you load is read on this device itself, without Claude, kept on your own devices only, and is not part of the public app.')
         : t('Liturgy for Altar Use © New Apostolic Church Cape. The booklet you load is read on this device itself, kept on your own devices only, and is not part of the public app.') }),
+      el('li', { text: t('Guide for Ministers, "Serving and Leading" and the Liturgy of the New Apostolic Church © New Apostolic Church International, Zurich. A handbook you load is read on this device itself, kept on your own devices only, and is not part of the public app.') }),
       el('li', { text: t('The booklet\'s PDF is read with pdf.js (Mozilla), Apache License 2.0.') }),
       el('li', { text: t('Typeface: Montserrat (© The Montserrat Project Authors), SIL Open Font License 1.1. The slides of a reflection evening use Cambria and Calibri, as in PowerPoint, or where a device lacks them Caladea (© The Caladea Project Authors) and Carlito (© The Carlito Project Authors), both SIL Open Font License 1.1.') }),
     ]),
@@ -847,7 +848,7 @@ function syncSection(container) {
     clear(body);
     if (!st.on) {
       body.append(
-        el('p', { class: 'small', text: t('Keep your PC and phone the same. Turn sync on here; the app shows you a code. On your other device open Settings → Sync, tap "I have a code" and type that code in (or scan it). From then on the two keep each other up to date on their own: notes, preparations, settings, pasted text, the Catechism text, the Guides and the altar booklet.') }),
+        el('p', { class: 'small', text: t('Keep your PC and phone the same. Turn sync on here; the app shows you a code. On your other device open Settings → Sync, tap "I have a code" and type that code in (or scan it). From then on the two keep each other up to date on their own: notes, preparations, settings, pasted text, the Catechism text, the Guides, the altar booklet and the handbooks.') }),
         el('p', { class: 'muted small', text: t('Everything is locked with your code before it leaves the device. The server keeps only the locked copy and cannot read it, and nobody can find or open it without the code, so keep the code where you keep passwords.') }),
         el('div', { class: 'row' }, [
           el('button', { class: 'btn small', type: 'button', text: t('Turn on sync'), onclick: turnOn }),
@@ -865,9 +866,9 @@ function syncSection(container) {
     body.append(el('div', {}, [
       el('div', { class: 'row sync-status' }, [dot, line, syncBtn]),
       st.error ? el('p', { class: 'small error', text: st.error }) : null,
-      el('p', { class: 'small', text: t('This device shares with your other devices: {notes}, {sermons}, {texts}, {guides}, {booklets} and the Catechism text{cat}. A change here reaches the others within a few seconds of their opening the app.', {
+      el('p', { class: 'small', text: t('This device shares with your other devices: {notes}, {sermons}, {texts}, {guides}, {booklets}, {handbooks} and the Catechism text{cat}. A change here reaches the others within a few seconds of their opening the app.', {
         notes: tn(n.notes, '{n} note', '{n} notes'), sermons: tn(n.sermons, '{n} preparation', '{n} preparations'),
-        texts: tn(n.texts, '{n} pasted chapter', '{n} pasted chapters'), guides: tn(n.guides, '{n} Guide', '{n} Guides'), booklets: tn(n.liturgy, '{n} altar booklet', '{n} altar booklets'),
+        texts: tn(n.texts, '{n} pasted chapter', '{n} pasted chapters'), guides: tn(n.guides, '{n} Guide', '{n} Guides'), booklets: tn(n.liturgy, '{n} altar booklet', '{n} altar booklets'), handbooks: tn(n.handbooks, '{n} handbook', '{n} handbooks'),
         cat: n.catechism ? '' : t(' (not loaded here)'),
       }) }),
       el('div', { class: 'row' }, [
