@@ -1378,6 +1378,7 @@ body.showing { overflow: hidden; }
 .hb-answer-text p { margin: 0 0 9px; line-height: 1.65; max-width: 70ch; }
 .hb-cites { margin: 4px 0 10px; padding-left: 20px; }
 .hb-cites li { margin: 0 0 3px; }
+.cat-ask { margin: 12px 0 16px; }   /* "Ask the Catechism" between the Catechism tab's lead and its search */
 [data-read="easy"] .hb-text { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; max-width: 62ch; }
 [data-read="easy"] .hb-text p { margin-bottom: 16px; }
 [data-read="easy"] .hb-quote, [data-read="easy"] .hb-note { font-style: normal; }

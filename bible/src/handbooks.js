@@ -28,16 +28,19 @@
  * its own place in the side menu after Catechism; the phone's bar keeps five
  * tabs, so there it is listed under More (more.js), and More stays lit while
  * it is open (app.js). Where the AI helper is unlocked (lock.js), the list
- * page also has "Ask the handbooks": Claude answers a question from the
- * chapters that fit it, naming them; a locked device shows nothing of that.
+ * page also has "Ask the handbooks" (ask.js): Claude answers a question from
+ * the chapters that fit it, naming them; a locked device shows nothing of
+ * that. The Catechism keeps its own tab, but once its text is on the device
+ * (Settings → Catechism) it is listed here as well, and its sections are
+ * searched and asked together with the handbooks (catechism.js asHandbook).
  */
 import { el, clear, toast, confirmBox, busy, seg, sheet, fmtDate, SIZES } from './ui.js';
 import { state, saveHandbook, deleteHandbook, saveSetting } from './store.js';
 import { t, lang } from './i18n.js';
-import { KNOWN, fromPages, fromText, parse, search, relevant } from './handbook.js';
+import { KNOWN, fromPages, fromText, parse, search } from './handbook.js';
 import { CREED } from './creed.js';   // the Creed, part of the app
-import { noKey } from './guides.js';
-import * as AI from './ai.js';
+import { askBox, hrefOf, indexAt, label } from './ask.js';   // "Ask the handbooks", and the link and label of a chapter
+import * as Cat from './catechism.js';   // the Catechism: searched and asked here too, once its text is on the device
 import * as Sync from './sync.js';
 
 /** One line on each handbook the app knows by name, for the list while it is not loaded yet. */
@@ -67,20 +70,6 @@ function loaded() {
 
 const partsOf = n => String(n).split('.');
 
-/** A chapter's address in the hash: its number, or its place when it has none. */
-const addrOf = (hb, c) => (c.n ? c.n : 'i' + hb.chapters.indexOf(c));
-const hrefOf = (hb, c) => `#handbooks/${encodeURIComponent(hb.key)}/${encodeURIComponent(addrOf(hb, c))}`;
-
-/** The chapter at an address, or -1. */
-function indexAt(hb, addr) {
-  const m = String(addr).match(/^i(\d+)$/);
-  if (m) return hb.chapters[+m[1]] ? +m[1] : -1;
-  return hb.chapters.findIndex(c => c.n === addr);
-}
-
-/** "4.5.4  Requirements of the sermon"; an appendix or an unnumbered chapter by its title alone. */
-const label = c => (c.n && !/^A/.test(c.n) ? c.n + '  ' : '') + c.title;
-
 /** The chapter a numbered chapter sits under: 4.5 for 4.5.4. */
 function parentOf(hb, c) {
   if (!c.n || !/\./.test(c.n)) return null;
@@ -104,11 +93,21 @@ function icon() {
 
 /* ---------------------------------------------------------------- the screens */
 
+let catFailed = '';   // the Catechism text (by when it was loaded) that could not be read into memory, so the list does not try it again and again
+
 export function render(container, route) {
   clear(container);
   const a = route[1] ? decodeURIComponent(route[1]) : '';
   const b = route[2] ? decodeURIComponent(route[2]) : '';
-  if (a === 'search') return listPage(container, b);
+  if (!a || a === 'search') {
+    const meta = Cat.hasText() ? state.catechism : null;   // the Catechism's text is read into memory once, for the search and the asking
+    if (meta && !Cat.textReady() && catFailed !== meta.loadedAt) {
+      container.append(el('p', { class: 'muted', text: t('Loading the Catechism…') }));
+      Promise.all([Cat.load().catch(() => {}), Cat.loadText()]).then(([, ok]) => { if (!ok) catFailed = meta.loadedAt || 'x'; render(container, route); });
+      return;
+    }
+    return listPage(container, a ? b : '');
+  }
   if (a) {
     let hb = bookOf(a);
     if (!hb) {
@@ -121,7 +120,6 @@ export function render(container, route) {
     if (b) return chapterPage(container, hb, b);
     return hb.builtIn ? wholePage(container, hb) : contentsPage(container, hb);
   }
-  listPage(container, '');
 }
 
 function crumbs(links) {
@@ -145,21 +143,23 @@ function aboutLine(hb) {
 function listPage(container, q) {
   const books = loaded();                          // the Creed first, then the handbooks loaded from their files
   const files = books.filter(h => !h.builtIn);
+  const cat = Cat.asHandbook();                    // the Catechism, once its text is on the device: searched and asked with the handbooks, read on its own tab
+  const asked = cat ? [...books, cat] : books;
   container.append(
     el('div', { class: 'docbar' }, [el('h2', { text: t('Handbooks') })]),
     el('p', { class: 'hb-lead', text: t('The Church\'s Creed and handbooks for ministers, to read and to search: the ten Articles of Faith, the Guide for Ministers, the "Serving and Leading" principle and the full Liturgy book.') }),
-    searchBox(books, q),
+    searchBox(asked, q),
   );
   const list = el('div', { class: 'list lit-list hb-list' });
-  for (const hb of books) {
-    list.append(el('a', { class: 'item', href: `#handbooks/${encodeURIComponent(hb.key)}`, lang: hb.language }, [
-      icon(),
-      el('span', { class: 'grow' }, [el('b', { text: hb.title }), el('span', { class: 'muted small snippet', text: aboutLine(hb) })]),
-      el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
-    ]));
-  }
+  const rows = books.map(hb => el('a', { class: 'item', href: `#handbooks/${encodeURIComponent(hb.key)}`, lang: hb.language }, [
+    icon(),
+    el('span', { class: 'grow' }, [el('b', { text: hb.title }), el('span', { class: 'muted small snippet', text: aboutLine(hb) })]),
+    el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
+  ]));
+  rows.splice(books[0] && books[0].key === 'creed' ? 1 : 0, 0, catRow(cat));   // the Catechism after the Creed: the Church's teaching, then its rules
+  list.append(...rows);
   container.append(el('h3', { class: 'sub', text: t('Read') }), list);
-  const ask = askBox(books);
+  const ask = askBox(asked, cat ? { lead: t('Claude reads the chapters of the handbooks, and the sections of the Catechism, that fit your question and answers from them in plain words, naming them, so you can check what the books say. The answer is not kept.') } : {});
   if (ask) container.append(ask);
   // the handbooks loaded from their files, one line each, with the buttons to load or remove them; the known ones are listed even before they are loaded, and while none is, what loading means
   const section = el('div', { class: 'lit-books' }, [el('h3', { class: 'sub', text: t('The files') })]);
@@ -186,6 +186,18 @@ function listPage(container, q) {
   }
   section.append(el('div', { class: 'row' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Load another handbook'), onclick: () => load(container) })]));
   container.append(section, credit());
+}
+
+/** The Catechism's row in the list: read on its own tab; searched and asked here too once its text is on the device (Settings → Catechism). */
+function catRow(cat) {
+  return el('a', { class: 'item', href: '#catechism' }, [
+    icon(),
+    el('span', { class: 'grow' }, [
+      el('b', { text: t('Catechism of the New Apostolic Church') }),
+      el('span', { class: 'muted small snippet', text: cat ? t('The Church\'s teaching, on its own tab. Searched and asked here too.') : t('The Church\'s teaching, on its own tab. Load its text under Settings to search and ask it here too.') }),
+    ]),
+    el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
+  ]);
 }
 
 /** A word search across the loaded handbooks (or within one): the chapters whose title or text carry every word. */
@@ -418,69 +430,4 @@ async function remove(container, hb) {
     await saveHandbook(hb);
     render(container, ['handbooks']);
   });
-}
-
-/* ---------------------------------------------------------------- asking Claude */
-
-/*
- * "Ask the handbooks": the person asks in their own words; the chapters
- * that carry the words of the question (handbook.js relevant) go to Claude,
- * who answers from them alone, in plain words, naming the chapters so the
- * answer can be checked against the book. The answer is shown, not kept.
- * Only where the AI helper is unlocked on this device (lock.js): a locked
- * device shows nothing of it.
- */
-function sparkle() {
-  const span = el('span', { class: 'spark', 'aria-hidden': 'true' });
-  span.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2l1.8 5.6L19 9.5l-5.2 1.9L12 17l-1.8-5.6L5 9.5l5.2-1.9zM19 15l.9 2.6 2.6.9-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9zM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg>';
-  return span;
-}
-
-function askBox(books) {
-  if (!AI.unlocked()) return null;
-  const ta = el('textarea', { class: 'hb-q', rows: 2, 'aria-label': t('Ask the handbooks'), placeholder: t('A question for the handbooks: "How long may the sermon be?", "Who may hold a prayer service?"…') });
-  const out = el('div', { class: 'hb-answer' });
-  return el('div', { class: 'th-ask hb-ask' }, [
-    el('h3', { class: 'sub', text: t('Ask the handbooks') }),
-    el('p', { text: t('Claude reads the chapters that fit your question and answers from them in plain words, naming the chapters, so you can check what the book says. The answer is not kept.') }),
-    ta,
-    el('div', { class: 'row' }, [
-      el('button', { class: 'btn small ai-btn', type: 'button', onclick: () => ask(ta.value.trim(), books, out) }, [sparkle(), t('Ask Claude')]),
-      el('span', { class: 'muted small grow', text: t('With your own Anthropic key; usually under 10 US cents an answer.') }),
-    ]),
-    out,
-  ]);
-}
-
-const paras = text => String(text || '').split(/\n\s*\n/).map(x => x.trim()).filter(Boolean).map(x => el('p', { text: x }));
-
-async function ask(q, books, out) {
-  if (!q) { toast(t('Type a question first.'), true); return; }
-  if (!AI.ready()) { noKey(); return; }
-  const picks = relevant(books, q, 12);
-  if (!picks.length) { toast(t('No chapter carries the words of that question. Try other words.'), true); return; }
-  const ctrl = new AbortController();
-  const b = busy(t('Asking Claude'), () => ctrl.abort());
-  b.say(t('Claude is reading {n} chapters of the handbooks. This takes about half a minute.', { n: picks.length }));
-  try {
-    const r = await AI.askHandbooks(q, picks.map(p => ({ handbook: p.handbook, chapter: p.chapter, addr: addrOf(p.handbook, p.chapter) })), { signal: ctrl.signal });
-    b.done();
-    clear(out);
-    const d = r.data;
-    const cites = (Array.isArray(d.cites) ? d.cites : []).map(x => {
-      const hb = bookOf(x.key) || books.find(h => h.key === x.key);
-      const i = hb ? indexAt(hb, x.n) : -1;
-      return i >= 0 ? el('li', {}, [el('a', { href: hrefOf(hb, hb.chapters[i]), lang: hb.language, text: `${hb.title}: ${label(hb.chapters[i])}` })]) : el('li', { text: [x.title, x.n].filter(Boolean).join(' ') });
-    });
-    out.append(...[
-      el('div', { class: 'hb-answer-text' }, paras(d.answer)),
-      d.found === false ? el('p', { class: 'muted small', text: t('The chapters read do not answer this; what stands above is as near as they come.') }) : null,
-      cites.length ? el('div', {}, [el('b', { class: 'small', text: t('From') }), el('ul', { class: 'hb-cites small' }, cites)]) : null,
-      el('p', { class: 'muted small', text: t('Written {date} by {model}{cost}.', { date: fmtDate(new Date().toISOString()), model: AI.modelLabel(r.model), cost: r.cost ? ', ' + AI.fmtCost(r.cost) : '' }) + ' ' + t('A help for study, not Church doctrine: the Church\'s teaching is in the Catechism, and the Apostles interpret Holy Scripture (CNAC 1.2.5.1).') }),
-    ].filter(Boolean));
-    out.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  } catch (e) {
-    if (e && e.name === 'AbortError') return;
-    b.fail(e.message || String(e));
-  }
 }

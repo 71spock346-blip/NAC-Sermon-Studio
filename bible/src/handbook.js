@@ -754,9 +754,23 @@ export function search(handbooks, q) {
 }
 
 /** The chapters that answer a question best, by how many of its words each carries: [{handbook, chapter, score}], at most `max`. */
+/* The Church's words an Afrikaans question is likely to carry, with their English: the handbooks and the Catechism are in English, so these words find the chapters too. */
+const AF_EN = {
+  doop: 'baptism', gedoop: 'baptised', verseëling: 'sealing', verseël: 'sealing', nagmaal: 'communion', sakrament: 'sacrament', sakramente: 'sacraments',
+  gebed: 'prayer', bid: 'pray', sonde: 'sin', sondes: 'sins', vergifnis: 'forgiveness', vergewing: 'forgiveness', vergewe: 'forgive',
+  amp: 'ministry', ampte: 'ministries', ampsdraer: 'minister', ampsdraers: 'ministers', bedienaar: 'minister', apostel: 'apostle', apostels: 'apostles',
+  gemeente: 'congregation', kerk: 'church', geloof: 'faith', glo: 'believe', wederkoms: 'return', opstanding: 'resurrection', dood: 'death', sterf: 'die',
+  begrafnis: 'funeral', huwelik: 'marriage', troue: 'wedding', seën: 'blessing', seëning: 'blessing', kinders: 'children', kind: 'child', preek: 'sermon',
+  erediens: 'divine service', godsdiens: 'divine service', bybel: 'bible', gees: 'spirit', heilige: 'holy', ontslapenes: 'departed', afgestorwenes: 'departed',
+  bevestiging: 'confirmation', hemel: 'heaven', engel: 'angel', engele: 'angels', skepping: 'creation', priester: 'priest', priesters: 'priests',
+  diaken: 'deacon', evangelis: 'evangelist', herder: 'shepherd', ouderling: 'elder', lyding: 'suffering', genade: 'grace', verlossing: 'redemption', liefde: 'love', hoop: 'hope',
+  gebooie: 'commandments', gebod: 'commandment', belydenis: 'confession', bely: 'confess', jeug: 'youth', sieke: 'sick', siekes: 'sick', offer: 'offering', offers: 'offerings',
+};
+
 export function relevant(handbooks, question, max = 12) {
   const stop = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'is', 'are', 'what', 'how', 'do', 'does', 'i', 'my', 'for', 'on', 'with', 'be', 'it', 'this', 'that', 'can', 'should', 'when', 'who', 'die', 'en', 'van', 'wat', 'hoe', 'is', 'moet', 'kan', 'ek', 'my', 'n', 'vir', 'om', 'te', 'nie']);
-  const words = [...new Set(String(question || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(w => w.length > 2 && !stop.has(w)))];
+  const asked = String(question || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(w => w.length > 2 && !stop.has(w));
+  const words = [...new Set(asked.flatMap(w => (AF_EN[w] ? [w, ...AF_EN[w].split(' ')] : [w])))];   // an Afrikaans word brings its English along
   if (!words.length) return [];
   const stems = words.map(w => w.replace(/(ing|ers|er|es|s|ed|ly)$/i, '')).filter(w => w.length > 2);
   const scored = [];
