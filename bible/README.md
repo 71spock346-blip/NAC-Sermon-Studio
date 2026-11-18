@@ -340,7 +340,11 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   the cards (after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`). **Print** on a card,
   and at the top of the list, opens "Print or save" (`src/handbook-pdf.js`): the card, or
   all the cards, as a PDF on A4 or A5 with the label left and the words right, with Save as
-  PDF, Print and Share as in Prepare.
+  PDF, Print and Share as in Prepare. A card is fitted on one page in the largest letters
+  that fit there (`fitCard` tries the sizes by drawing the card on scratch paper, never
+  under 9 pt; a card too long for that gets the fewest pages and the largest letters that
+  keep it to them), the sheet says how the cards go on the paper chosen (`cardNote`), and
+  Ctrl+P on a card prints that same PDF (`printNow`, the key handler in `liturgy.js`).
 - **Handbooks.** `src/handbooks.js` is the Church's handbooks for ministers: the *Guide for
   Ministers* (the rule book), the *"Serving and Leading"* guiding principle and the *Liturgy
   of the New Apostolic Church* (2024), or any other handbook with numbered chapters. They are
@@ -369,7 +373,9 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   clear type, with Save as PDF, Print and Share as in Prepare. The browser's own Print
   (Ctrl+P) on a page under Handbooks, the Liturgy or the Catechism gives the page alone,
   without the app around it, on white paper whatever the look on the screen (`styles.css`,
-  `@media print`); every other section prints as it did.
+  `@media print`); every other section prints as it did. On an altar card Ctrl+P is taken
+  by the app and prints the card's fitted PDF; the browser's own menu still prints the
+  screen's page there.
 - **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
   in IndexedDB on the device (`src/store.js`). At start the app asks the browser to keep
   that storage when the device runs short of space (`app.js keepData`,

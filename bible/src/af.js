@@ -1877,4 +1877,12 @@ export const AF = {
   "This section and those under it": "Hierdie afdeling en dié daaronder",
   "This card": "Hierdie kaart",
   "All the cards": "Al die kaarte",
+  // how the cards go on the paper chosen: a card is fitted on one page when its words can be read at that size
+  "This card fits on one page.": "Hierdie kaart pas op een bladsy.",
+  "On A5 this card takes {n} pages. On A4 it fits on one page.": "Op A5 neem hierdie kaart {n} bladsye op. Op A4 pas dit op een bladsy.",
+  "This card is too long for one page: it takes {n} pages.": "Hierdie kaart is te lank vir een bladsy: dit neem {n} bladsye op.",
+  "Each card fits on one page.": "Elke kaart pas op een bladsy.",
+  "Longer than one page: {n} of the {m} cards.": "Langer as een bladsy: {n} van die {m} kaarte.",
+  "On A4: {n} of the {m}.": "Op A4: {n} van die {m}.",
+  "On A4 each card fits on one page.": "Op A4 pas elke kaart op een bladsy.",
 };

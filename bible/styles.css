@@ -1410,6 +1410,7 @@ body.showing { overflow: hidden; }
 /* "Print or save" behind the Print button of a page under Handbooks (handbook-pdf.js): a row per thing to print, its name over its buttons */
 .print-lead { margin: 0 0 12px; max-width: 60ch; line-height: 1.5; }
 .print-paper { margin: 0 0 14px; gap: 10px; }
+.print-note { margin: -4px 0 16px; min-height: 1.5em; max-width: 60ch; line-height: 1.5; }   /* how the cards go on the paper chosen; its room is kept while that is worked out, so the rows below do not jump */
 .print-rows { gap: 14px; margin-top: 0; }
 .print-rows .out-row .out-label { flex: 1 0 100%; }
 
