@@ -44,7 +44,7 @@
 import { el, clear, toast, confirmBox, busy, seg, sheet, fmtDate, SIZES } from './ui.js';
 import { state, saveHandbook, deleteHandbook, saveSetting } from './store.js';
 import { t, lang } from './i18n.js';
-import { KNOWN, fromPages, fromText, parse, search } from './handbook.js';
+import { KNOWN, fromPages, fromText, parse, search, chaptersUnder } from './handbook.js';
 import { CREED } from './creed.js';   // the Creed, part of the app
 import { askBox, hrefOf, indexAt, label } from './ask.js';   // "Ask the handbooks", and the link and label of a chapter
 import * as Cat from './catechism.js';   // the Catechism: searched and asked here too, once its text is on the device
@@ -325,7 +325,7 @@ function chapterPage(container, hb, addr) {
         others.length ? seg([hb, ...others].map(x => [x.language, x.language.toUpperCase()]), hb.language, v => { picked.set(hb.key, v); render(container, ['handbooks', hb.key, addr]); }, { label: t('Language') }) : null,
         el('span', { class: 'btns' }, [
           el('button', { class: 'btn small ghost', type: 'button', text: 'Aa', 'aria-label': t('Text size'), onclick: () => sizeSheet(body) }),
-          printButton(() => printSheet(printRows(hb, c))),
+          printRows(hb, c).length ? printButton(() => printSheet(printRows(hb, c))) : null,
         ]),
       ]),
       c.blocks.length ? body : null,
@@ -379,12 +379,14 @@ function wholePage(container, hb) {
 /**
  * What a chapter's Print gives (handbook-pdf.js printSheet): the chapter on
  * its own, when it has words of its own, and with every chapter under it,
- * when there are any; an article of the Creed on its own.
+ * when there are any (by their numbers, also where the book prints the
+ * number in the title: the Liturgy book's "2.1 Word service" under 2); an
+ * article of the Creed on its own. Nothing for a heading with neither.
  */
 function printRows(hb, c) {
-  const under = c.n && !/^A/.test(c.n) ? hb.chapters.filter(x => x.n.startsWith(c.n + '.')) : [];
+  const under = hb.builtIn ? [] : chaptersUnder(hb.chapters, c);
   const rows = [];
-  if (c.blocks.length || !under.length) rows.push([hb.builtIn ? t('This article') : t('This chapter'), () => chapterPdf(hb, [c], { credit: creditText(hb) })]);
+  if (c.blocks.length) rows.push([hb.builtIn ? t('This article') : t('This chapter'), () => chapterPdf(hb, [c], { credit: creditText(hb) })]);
   if (under.length) rows.push([t('This chapter and the chapters under it'), () => chapterPdf(hb, [c, ...under], { credit: creditText(hb) })]);
   return rows;
 }

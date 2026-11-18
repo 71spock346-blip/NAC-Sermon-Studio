@@ -16,7 +16,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fromText, fromPages, parse, plainText, search, relevant } from '../src/handbook.js';
+import { fromText, fromPages, parse, plainText, search, relevant, numberOf, chaptersUnder } from '../src/handbook.js';
 import { CREED } from '../src/creed.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -84,6 +84,21 @@ if (!file) {
   const found = search([hb], 'visit');
   assert.ok(found.length >= 1 && found[0].chapter.n === '2.2', 'search finds the chapter');
   assert.ok(relevant([hb], 'how do I visit a member?').length >= 1, 'relevant chapters for a question');
+  // the chapters under a chapter, for printing a chapter with all that belongs to it (handbook-pdf.js)
+  const at = n => hb.chapters.find(c => c.n === n);
+  const under = n => chaptersUnder(hb.chapters, at(n)).map(c => c.n);
+  assert.deepEqual(under('2'), ['2.1', '2.2'], 'the chapters under 2');
+  assert.deepEqual(under('3'), ['3.1', '3.1.1', '3.2'], 'the chapters under 3, at every depth');
+  assert.deepEqual(under('3.1'), ['3.1.1'], 'the chapter under 3.1');
+  assert.deepEqual(under('1'), [], 'nothing under the foreword');
+  assert.deepEqual(under('A1'), [], 'nothing under an appendix');
+  // a book that prints a chapter's number in its title only (the Liturgy book): "2.1 Word service" goes under 2, and 12 is not under 1
+  const book = [{ n: '1', title: 'One' }, { n: '', title: '1.1 First' }, { n: '2', title: 'Two' }, { n: '', title: '2.1 Word service' }, { n: '', title: '2.2. Another' }, { n: '', title: 'Closing words' }, { n: '12', title: 'Twelve' }, { n: 'A1', title: 'Appendix 1: 2.5 litres' }, { n: '', title: '1 Corinthians 13 in the divine service' }];
+  assert.deepEqual(book.map(numberOf), ['1', '1.1', '2', '2.1', '2.2', '', '12', '', ''], 'the number a chapter goes by');
+  assert.deepEqual(chaptersUnder(book, book[8]), [], 'a title that opens with a bare number is not a chapter number');
+  assert.deepEqual(chaptersUnder(book, book[2]).map(c => c.title), ['2.1 Word service', '2.2. Another'], 'the chapters numbered in their titles go under 2');
+  assert.deepEqual(chaptersUnder(book, book[0]).map(c => c.title), ['1.1 First'], '12 is not under 1');
+  assert.deepEqual(chaptersUnder(book, book[5]), [], 'nothing under a chapter without a number');
   console.log('\nok  fixture');
 
   // the Creed, which is part of the app (src/creed.js): ten articles in the shape of a loaded handbook, searched and asked like one

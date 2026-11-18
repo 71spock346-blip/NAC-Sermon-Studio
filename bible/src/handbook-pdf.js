@@ -31,6 +31,7 @@ import { t, tl } from './i18n.js';
 import { Writer, winAnsi, download, print as printPdf, share, canShare } from './pdf.js';
 import * as Cat from './catechism.js';
 import { label, addrOf } from './ask.js';
+import { numberOf } from './handbook.js';   // a chapter's number, also where the book prints it in the title
 
 const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as in pdf.js
 const INK = [29, 43, 56];
@@ -76,10 +77,14 @@ export function printSheet(rows, { paper = false } = {}) {
       seg([['a4', 'A4'], ['a5', 'A5']], size, v => { size = v; try { localStorage.setItem('sb-print-paper', v); } catch (e) { /* private mode: this time only */ } }, { label: t('Paper') }),
     ]));
   }
+  let busy = false;   // one PDF at a time: a second tap while a book is being built does nothing
   async function run(make, how) {
+    if (busy) return;
+    busy = true;
     try {
       toast(t('Building the PDF…'));
-      await new Promise(r => setTimeout(r, 30));   // the message shows before the work starts; a whole book takes a moment
+      // the message shows before the work starts, since a whole book takes a moment; a share has to follow the tap at once, or the phone refuses it
+      if (how !== 'share') await new Promise(r => setTimeout(r, 30));
       const r = make(size);
       s.close();
       if (how === 'print') { printPdf(r); toast(t('Sending to the printer…')); }
@@ -88,6 +93,8 @@ export function printSheet(rows, { paper = false } = {}) {
     } catch (e) {
       console.error(e);
       toast(e.message || t('The PDF could not be built.'), true);
+    } finally {
+      busy = false;
     }
   }
   s.body.append(el('div', { class: 'outputs print-rows' }, rows.map(([text, make]) => el('div', { class: 'row out-row' }, [
@@ -132,9 +139,10 @@ function head(w, over, title, under) {
   w.rule();
 }
 
-/** A chapter's or a section's heading inside the text, blue, larger the nearer it is to the top of the book; it goes over to the next page with what follows it. */
-function heading(text, n) {
-  const depth = n && !/^A/.test(n) && n !== 'Intro' ? String(n).split('.').length : 1;
+/** A chapter's or a section's heading inside the text, blue, larger the nearer it is to the top of the book (by its number); it goes over to the next page with what follows it. */
+function heading(text, c) {
+  const n = numberOf(c);
+  const depth = n ? n.split('.').length : 1;
   return [s(text), { style: 'bold', size: depth <= 1 ? 14 : depth === 2 ? 12.5 : 11.5, color: BLUE, after: 2, withNext: true }];
 }
 
@@ -175,11 +183,11 @@ export function chapterPdf(hb, chapters, { whole = false, credit = '' } = {}) {
   const title = whole ? hb.title : label(first);
   const own = hb.ownTitle && hb.ownTitle !== hb.title ? hb.ownTitle : '';
   const under = [own, hb.edition, !whole && !hb.builtIn && first.page ? tl(hb.language, 'Page {page} of the printed book', { page: first.page }) : ''].filter(Boolean).join('  ·  ');
-  head(w, whole ? (hb.org || tl(hb.language, 'New Apostolic Church')) : hb.title, title, under);   // over the whole book, the Church, in the book's language
+  head(w, whole ? ((!hb.builtIn && hb.org) || tl(hb.language, 'New Apostolic Church')) : hb.title, title, under);   // over the whole book, the Church as the book names it; over the Creed, in the Creed's language
 
   const parts = [];
   chapters.forEach((c, i) => {
-    if (i > 0 || whole) parts.push(heading(label(c), c.n));
+    if (i > 0 || whole) parts.push(heading(hb.builtIn ? c.title : label(c), hb.builtIn ? {} : c));   // an article of the Creed under its title alone, as its page shows it
     for (const b of c.blocks) parts.push(blockPart(b));
     if (c.cat) parts.push([s(tl(hb.language, 'In the Catechism: {n}', { n: c.cat })), { size: 9.5, color: MUTED, after: 3 }]);   // under an article of the Creed
     closeChapter(parts);
@@ -188,7 +196,7 @@ export function chapterPdf(hb, chapters, { whole = false, credit = '' } = {}) {
   w.space(2);
   if (credit) w.para(s(credit), { size: 8, color: MUTED, after: 1 });
   w.footer(s(whole ? (own || hb.title) : `${hb.title}  ·  ${label(first)}`));
-  const name = whole ? `${slug(hb.key)}-${hb.language}.pdf` : `${slug(hb.key)}-${slug(addrOf(hb, first))}-${hb.language}.pdf`;
+  const name = whole ? `${slug(hb.key)}-${hb.language}.pdf` : `${slug(hb.key)}-${slug(numberOf(first) || addrOf(hb, first))}-${hb.language}.pdf`;   // by the chapter's number, also where only its title has it
   return { blob: doc.output('blob'), name, title };
 }
 
@@ -211,7 +219,7 @@ export function catechismPdf(sections) {
 
   const parts = [];
   sections.forEach((sec, i) => {
-    if (i) parts.push(heading(name(sec), sec.n));
+    if (i) parts.push(heading(name(sec), sec));
     const summary = Cat.summaryOf(sec.n);
     if (summary.length) {
       parts.push([t('In short'), { style: 'bold', size: 9.5, color: MUTED, after: 0.5, withNext: true }]);
@@ -282,7 +290,7 @@ function column(w, x, width, items, y0) {
  * under it; the words on the right, the booklet's notes in blue italics and
  * its lists with their bullets; a dotted rule between the rows, as on the
  * screen. On A4, or on A5 like the cards at the altar (`paper`), in large
- * letters either way. A row stays on one page when it fits on a page.
+ * letters either way. A row stays on one page when it fits on a page (row).
  * `credit` is the copyright line for the foot (liturgy.js).
  */
 export function cardPdf(bk, cards, { paper = 'a4', credit = '' } = {}) {
@@ -296,20 +304,26 @@ export function cardPdf(bk, cards, { paper = 'a4', credit = '' } = {}) {
     ? { label: 11.5, sub: 9.5, words: 12, small: 10, title: 16, step: 7 }
     : { label: 12.5, sub: 10, words: 13, small: 10.5, title: 18, step: 8 };
 
-  /** The dotted rule between two rows; at the foot of a page the next row simply starts the next page. */
+  const RULE = 6;   // the room the dotted rule takes between two rows
+  /** The dotted rule between two rows. */
   const rule = () => {
     w.y += 2.5;
-    if (w.y + 4 > w.h - w.m) { doc.addPage(); w.y = w.m; return; }
     doc.setDrawColor(LINE[0], LINE[1], LINE[2]);
     doc.setLineWidth(0.3);
     doc.setLineDashPattern([0.6, 1.4], 0);
     doc.line(w.m, w.y, w.w - w.m, w.y);
     doc.setLineDashPattern([], 0);
-    w.y += 3.5;
+    w.y += RULE - 2.5;
   };
 
-  /** One row: the label and its lines on the left, the words on the right, side by side from the same height. */
-  const row = r => {
+  /**
+   * One row: the label and its lines on the left, the words on the right,
+   * side by side from the same height. After another row it comes under a
+   * dotted rule, or, when it no longer fits on the page, at the top of the
+   * next one without a rule over it. Only a row longer than a page is
+   * parted: it starts where it stands and goes on overleaf.
+   */
+  const row = (r, first) => {
     const L = [];
     if (r.label) L.push({ text: s(r.label), size: F.label, style: 'bold', color: BLUE, leading: 1.3, after: 1 });
     for (const x of r.sub || []) L.push({ text: s(x), size: F.sub, style: 'italic', color: MUTED, leading: 1.3, after: 0.5 });
@@ -323,7 +337,12 @@ export function cardPdf(bk, cards, { paper = 'a4', credit = '' } = {}) {
       return { text, size, style, indent: 5 * d, after: 2 };
     });
     const h = Math.max(measure(doc, L, left), measure(doc, R, right));
-    if (w.y + h > w.h - w.m && h <= w.h - 2 * w.m) { doc.addPage(); w.y = w.m; }
+    if (!first) {
+      const foot = w.h - w.m;
+      const long = h > w.h - 2 * w.m;
+      if (w.y + RULE + h <= foot || (long && w.y + RULE + 12 <= foot)) rule();
+      else { doc.addPage(); w.y = w.m; }
+    }
     const y0 = w.y;
     const page = doc.internal.getCurrentPageInfo().pageNumber;
     const a = column(w, w.m, left, L, y0);
@@ -340,7 +359,7 @@ export function cardPdf(bk, cards, { paper = 'a4', credit = '' } = {}) {
     w.font(F.title, 'bold', INK);
     for (const line of doc.splitTextToSize(s(card.title), w.width)) { doc.text(line, w.m, w.y + 5); w.y += F.step; }
     w.y += 3;
-    (card.rows || []).forEach((r, j) => { if (j) rule(); row(r); });
+    (card.rows || []).forEach((r, j) => row(r, !j));
     if (card.edited) { w.y += 3; w.para(s(t('Changed by you on {date}.', { date: fmtDate(card.edited) })), { size: 8.5, color: MUTED, after: 1 }); }
   });
   w.space(3);

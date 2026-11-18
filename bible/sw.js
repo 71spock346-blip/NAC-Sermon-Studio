@@ -17,7 +17,7 @@ var SHELL = [
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=81',
+  'styles.css?v=82',
   'src/app.js?v=82',
   'src/i18n.js',
   'src/af.js',
