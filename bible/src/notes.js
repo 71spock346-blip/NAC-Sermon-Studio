@@ -13,12 +13,21 @@
  * kept, on saving or on translating. `of` marks the note as it was when it was
  * translated, so that a translation says when the note changed after it.
  * Edit changes the language on the screen; the other stays as it is.
+ *
+ * "Listen" on a card reads the note aloud (Jerome: "I want to be able to
+ * listen to these notes too. Cheapest voice possible"): with the voice built
+ * into the phone or the PC (say.js), which costs nothing, or, when Settings
+ * say so or the device has no voice for the note's language, with
+ * ElevenLabs' cheapest model (speech.js makeNote); that recording stays with
+ * the note on this device, so hearing it again is free. One note at a time.
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate, isTouch, lineBox } from './ui.js';
-import { t, lang } from './i18n.js';
+import { el, clear, toast, sheet, confirmBox, busy, fmtDate, isTouch, lineBox } from './ui.js';
+import { t, lang, locale } from './i18n.js';
 import { parseRef, formatRef, BY_ID } from './books.js';
 import { state, saveNote, deleteNote } from './store.js';
 import * as AI from './ai.js';
+import * as Speech from './speech.js';
+import * as Say from './say.js';
 
 export const KINDS = [
   ['thought', 'Thought'],
@@ -180,15 +189,101 @@ async function translate(n, l, redraw) {
   }
 }
 
+/* ---------------------------------------------------------------- hearing a note */
+
+/* The note being heard: {id, lang, job: {stop()}, refresh()}; one at a time, a new one stops it. */
+let hearing = null;
+function stopHearing() {
+  if (!hearing) return;
+  const h = hearing;
+  hearing = null;
+  h.job.stop();
+  h.refresh();
+}
+window.addEventListener('hashchange', stopHearing);   // leaving the page leaves nothing talking
+/* Recordings to play as soon as their card shows them (noteKey). */
+const autoplay = new Set();
+const num = v => Number(v || 0).toLocaleString(locale());
+
+/**
+ * Reads note `n` as shown (`x`) for its card (`card`: {refresh, redraw, play}):
+ * with the device's own voice, or with ElevenLabs' cheapest when Settings say
+ * so, or when the device has no voice for the language and the person agrees.
+ */
+async function hear(n, x, card) {
+  const l = x.lang === 'af' ? 'af' : 'en';
+  stopHearing();
+  const sc = Speech.noteScript(x);
+  if (!sc.text) { toast(t('There is nothing to read in this note.'), true); return; }
+  if (state.settings.voiceNotes === 'eleven' && Speech.ready()) return hearEleven(n, l, sc, card);
+  if (!Say.available()) { toast(t('This browser has no voice of its own. Choose ElevenLabs for notes under Settings → Read aloud.'), true); return; }
+  const voice = Say.voiceFor(l, await Say.voices());
+  if (!voice) {
+    if (Speech.ready() && await confirmBox(t('This device has no voice for {language}. Read the note with ElevenLabs\' cheapest voice instead? About {chars} characters of your plan.', { language: langName(l), chars: num(sc.chars) }), t('Read with ElevenLabs'))) return hearEleven(n, l, sc, card);
+    toast(t('This device has no voice for {language}. Add one in the device\'s text-to-speech settings, or choose ElevenLabs for notes under Settings → Read aloud.', { language: langName(l) }), true);
+    return;
+  }
+  const mine = { id: n.id, lang: l, job: null, refresh: card.refresh };
+  mine.job = await Say.speak(sc.text, voice, { onEnd: err => {
+    if (hearing === mine) hearing = null;
+    card.refresh();
+    if (err) toast(t('The voice stopped: {error}', { error: err.message }), true);
+  } });
+  if (mine.job.over) return;
+  hearing = mine;
+  card.refresh();
+}
+
+/** ElevenLabs reads the note with its cheapest voice; the recording stays with the note on this device, so the next hearing costs nothing. */
+async function hearEleven(n, l, sc, card) {
+  const key = Speech.noteKey(n.id, l);
+  const rec = await Speech.recording(key).catch(() => null);
+  if (rec && rec.key === sc.key) { card.play(); return; }
+  const ctrl = new AbortController();
+  const wait = busy(t('Reading the note aloud'), () => ctrl.abort());
+  wait.say(t('Making the voice… this takes a moment.'));
+  try {
+    const made = await Speech.makeNote(sc, { signal: ctrl.signal, onProgress: (i, k) => { if (k > 1) wait.say(t('Part {i} of {n}…', { i, n: k })); } });
+    await Speech.keep(key, made);
+    wait.done();
+    toast(t('The note is ready to hear.'));
+    autoplay.add(key);
+    card.redraw();
+  } catch (e) {
+    if (ctrl.signal.aborted) { wait.done(); return; }
+    wait.fail(e.message || t('The note could not be read.'));
+  }
+}
+
 /* ---------------------------------------------------------------- the card and the editor */
 
-/** A note as a card: reference, kind, edit, the language switch, title, text. */
+/** A note as a card: reference, kind, listen, edit, the language switch, title, text, and the recording ElevenLabs made, when there is one. */
 export function card(n, onChange) {
   const href = `#read/${n.book}/${n.chapter}${n.verse ? '/' + n.verse : ''}`;
   const box = el('article', { class: 'note' });
-  const draw = () => {
-    const x = textIn(n, shownLang(n));
+  let x = null, btn = null, audio = null, url = '';
+  const isMine = () => !!hearing && hearing.id === n.id && hearing.lang === (x.lang === 'af' ? 'af' : 'en');
+  /** The Listen button and the card's outline as the reading stands, without redrawing (a redraw would stop a playing recording). */
+  const refresh = () => {
+    if (!btn) return;
+    const on = isMine();
+    btn.textContent = on ? t('Stop') : t('Listen');
+    btn.className = on ? 'btn small' : 'btn small ghost';
+    btn.setAttribute('aria-pressed', String(on));
+    btn.setAttribute('aria-label', on ? t('Stop reading') : t('Listen to the note on {ref}', { ref: refLabel(n) }));
+    box.classList.toggle('hearing', on);
+  };
+  const api = { refresh, redraw: () => draw(), play: () => { if (audio) audio.play().catch(() => {}); else autoplay.add(Speech.noteKey(n.id, x.lang === 'af' ? 'af' : 'en')); } };
+  function draw() {
+    x = textIn(n, shownLang(n));
+    const mine = x;
+    const l = x.lang === 'af' ? 'af' : 'en';
+    const key = Speech.noteKey(n.id, l);
     clear(box);
+    audio = null;
+    if (url) { URL.revokeObjectURL(url); url = ''; }
+    btn = el('button', { class: 'btn small ghost', type: 'button', text: t('Listen'), onclick: () => { if (isMine()) stopHearing(); else hear(n, x, api).catch(e => toast(e.message || String(e), true)); } });
+    const hearRow = el('div', { class: 'note-hear' });
     box.append(
       el('div', { class: 'note-top' }, [
         el('div', { class: 'note-head' }, [
@@ -198,6 +293,7 @@ export function card(n, onChange) {
         ]),
         el('div', { class: 'note-meta' }, [
           el('span', { class: 'muted small', text: fmtDate(n.updated) }),
+          btn,
           el('button', { class: 'btn small ghost', type: 'button', text: t('Edit'), 'aria-label': t('Edit the note on {ref}', { ref: refLabel(n) }), onclick: () => editNote(n, onChange, { alt: x.translated }) }),
         ]),
       ]),
@@ -206,8 +302,36 @@ export function card(n, onChange) {
         x.title ? el('div', { class: 'note-title', lang: x.lang, text: x.title }) : null,
       ].filter(Boolean),   // a DOM append() writes a bare null as the word "null"
       el('div', { class: 'note-body', lang: x.lang, text: x.body }),
+      hearRow,
     );
-  };
+    refresh();
+    // the recording ElevenLabs made of this note in this language, when there is one
+    Speech.recording(key).then(rec => {
+      if (!rec || x !== mine) return;   // none, or the card was drawn again meanwhile
+      url = URL.createObjectURL(rec.blob);
+      audio = el('audio', { controls: true, src: url, preload: 'metadata' });
+      const job = { audio, stop: () => audio.pause() };
+      audio.addEventListener('play', () => {
+        if (!(hearing && hearing.job === job)) { stopHearing(); hearing = { id: n.id, lang: l, job, refresh }; }
+        refresh();
+      });
+      const off = () => { if (hearing && hearing.job === job) hearing = null; refresh(); };
+      audio.addEventListener('pause', off);
+      audio.addEventListener('ended', off);
+      const changed = rec.key !== Speech.noteScript(x).key;
+      hearRow.append(
+        audio,
+        el('span', { class: 'muted small', text: t('Read {date} by {voice}. {chars} characters.', { date: fmtDate(rec.at), voice: rec.voice.name, chars: num(rec.chars) }) + (changed ? ' ' + t('The note has changed since.') : '') }),
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: async () => {
+          if (!(await confirmBox(t('Remove this recording? Reading it again uses your ElevenLabs characters again.'), t('Remove'), true))) return;
+          await Speech.forget(key);
+          toast(t('Recording removed.'));
+          draw();
+        } }),
+      );
+      if (autoplay.delete(key)) audio.play().catch(() => {});   // a phone may want a tap on Play instead
+    }).catch(() => {});
+  }
   draw();
   return box;
 }

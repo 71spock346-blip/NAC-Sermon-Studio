@@ -20,6 +20,7 @@ import * as Sync from './sync.js';
 import * as Lock from './lock.js';
 import * as Update from './update.js';
 import * as Speech from './speech.js';
+import * as Say from './say.js';
 import { BOOKS } from './books.js';
 
 export const VERSION = '0.2.0';
@@ -508,6 +509,12 @@ function voiceSection(container) {
   const speedSeg = seg(Speech.SPEEDS, Speech.SPEEDS.some(x => x[0] === S.voiceSpeed) ? S.voiceSpeed : 'normal', v => saveSetting('voiceSpeed', v), { block: true, label: t('Speed') });
   const qualitySeg = seg(Speech.QUALITIES, S.voiceQuality === 'cheaper' ? 'cheaper' : 'best', v => saveSetting('voiceQuality', v), { block: true, label: t('Voice quality') });
   const feelingSeg = seg(Speech.FEELINGS, Speech.FEELINGS.some(x => x[0] === S.voiceFeeling) ? S.voiceFeeling : 'natural', v => saveSetting('voiceFeeling', v), { block: true, label: t('Feeling') });
+  const notesSeg = seg(Speech.NOTE_VOICES, S.voiceNotes === 'eleven' ? 'eleven' : 'device', v => saveSetting('voiceNotes', v), { block: true, label: t('Voice for notes') });
+  const deviceLine = el('span', { class: 'hint muted small' });   // which voices this phone or PC has, once the browser says
+  Say.voices().then(all => {
+    const en = Say.voiceFor('en', all), af = Say.voiceFor('af', all);
+    deviceLine.textContent = t('Voices on this device: {en} for English, {af} for Afrikaans.', { en: en ? en.name : t('no voice'), af: af ? af.name : t('no voice') });
+  }).catch(() => {});
   const toneBox = el('input', { type: 'text', class: 'tone', placeholder: t('For example: gentle, reassuring, encouraging, inspirational'), spellcheck: 'false', autocomplete: 'off' });
   toneBox.value = Speech.toneWords();
   toneBox.addEventListener('change', async () => {
@@ -536,6 +543,9 @@ function voiceSection(container) {
     el('div', { class: 'fields two' }, [
       el('label', { class: 'f' }, [t('Feeling'), feelingSeg, el('span', { class: 'hint muted small', text: t('How much feeling the voice puts in. "Steady" keeps the reading even; "Lively" acts the words out most.') })]),
       el('label', { class: 'f' }, [t('Tone'), toneBox, el('span', { class: 'hint muted small', text: t('Words, in English, that tell the voice how to read. The app puts them in brackets before each paragraph, so they count as characters too. Empty leaves the voice to itself.') })]),
+    ]),
+    el('div', { class: 'fields two' }, [
+      el('label', { class: 'f' }, [t('Voice for notes'), notesSeg, el('span', { class: 'hint muted small', text: t('"This device" uses the voice built into your phone or PC: free, at once, and nothing is sent anywhere. "ElevenLabs" reads a note with the cheapest ElevenLabs voice for its language, half a character per letter, and keeps the recording on this device.') }), deviceLine]),
     ]),
     el('p', { class: 'muted small', text: t('What goes to ElevenLabs: the text of the sermon or of the Guide\'s article, nothing else. ElevenLabs keeps the recordings in your account\'s history, where you can delete them.') }),
   ]));

@@ -99,6 +99,7 @@ export const DEFAULT_SETTINGS = {
   voiceQuality: 'best',   // 'best' (the newest model) or 'cheaper' (the turbo model, half the characters)
   voiceFeeling: 'natural', // how much feeling the voice may put in: 'steady', 'natural' or 'lively' (speech.js FEELINGS, the stability asked of ElevenLabs)
   voiceTone: 'gentle, reassuring, encouraging, inspirational',   // the tone words put before each paragraph for a model that follows them (Jerome's own, 2026-11-18); '' for none
+  voiceNotes: 'device',   // what reads a note: 'device' (the voice built into the phone or PC, free; say.js) or 'eleven' (ElevenLabs' cheapest model; speech.js makeNote)
   helperLock: null,       // the lock on the AI helper (lock.js): {v, salt, hash, iter, at}, a hash of the minister's password, never the password; travels with sync and backup
   helperOpen: '',         // the lock's `at` once the password was typed on this device: the helper is open here. Device only (see lock.js)
   guestAiKey: '',         // a visitor's own Anthropic key for Theology while the helper is locked; this device only, never in a backup or the sync
@@ -222,6 +223,7 @@ export async function saveNote(note) {
 export async function deleteNote(id) {
   state.notes = state.notes.filter(n => n.id !== id);
   await db.del('notes', id);
+  for (const k of await db.keys('audio').catch(() => [])) if (String(k).startsWith(`note:${id}:`)) await db.del('audio', k).catch(() => {});   // its readings go with it (speech.js noteKey)
   await markDeleted('notes', id);
   changed('notes');
 }

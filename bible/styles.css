@@ -590,6 +590,14 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 /* EN | AF over a note (notes.js): the language on the screen, with a line on its translation or the one under way */
 /* EN | AF over a note, and over an answer in Theology (.th-lang) */
 .note-lang, .th-lang { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; }
+/* hearing a note (notes.js): Listen | Stop in the meta row, which drops under the reference on a narrow screen; the card lights up while it reads; the row with ElevenLabs' recording */
+.note-top { flex-wrap: wrap; }
+.note-meta { margin-left: auto; }
+.note.hearing { box-shadow: var(--shadow-card), 0 0 0 2px var(--accent); }
+.note-hear { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; }
+.note-hear:empty { display: none; }
+.note-hear audio { flex: 1 1 240px; min-width: 0; max-width: 100%; height: 36px; }
+.note-hear > span.small { flex: 1 1 14em; min-width: 0; }
 .note-lang .seg.mini, .th-lang .seg.mini { flex: 0 0 auto; }
 .note-lang > .small, .th-lang > .small { flex: 1 1 12em; min-width: 0; }
 .note-lang > .btn, .th-lang > .btn { flex: 0 0 auto; }
