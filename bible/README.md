@@ -397,7 +397,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   side: 1 the text word (the Guide's Bible text), 2 title and message, 3 introduction
   (the Guide's own introduction can be opened beside the person's), 4 main points,
   5 context (the Guide's Context box, with key words, Catechism sections and cross
-  references), 6 summary and conclusion (the Guide's Summary, the application, the
+  references), 6 summary and conclusion (the application, the Guide's Summary, the
   conclusion), then the person's own 7 illustrations and 8 reflection after the
   service, and 9 the slides for the reflection evening. `guides.js prefill` puts each part of the article into its own step;
   `guides.js upgrade` moves the Summary and Context of a preparation made before

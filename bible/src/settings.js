@@ -525,7 +525,7 @@ function voiceSection(container) {
   });
 
   container.append(section(t('Read aloud'), [
-    el('p', { class: 'small', text: t('An ElevenLabs voice can read the sermon to you, under "Print or save" in a preparation: the text word, the introduction, the main points, the summary, the application and the conclusion, as "The sermon" prints them, in English or in Afrikaans. Under step 2 it reads the Guide\'s article too. It works with a key of your own: you pay ElevenLabs for the characters it reads, and the key stays on this device, out of any backup.') }),
+    el('p', { class: 'small', text: t('An ElevenLabs voice can read the sermon to you, under "Print or save" in a preparation: the text word, the introduction, the main points, the application, the summary and the conclusion, as "The sermon" prints them, in English or in Afrikaans. Under step 2 it reads the Guide\'s article too. It works with a key of your own: you pay ElevenLabs for the characters it reads, and the key stays on this device, out of any backup.') }),
     el('p', { class: 'small', text: t('A sermon of about 1,500 words is about 8,000 characters (every letter, space and full stop counts). The free plan gives 10,000 a month, enough for one sermon; the Starter plan (about $6 a month) gives 75,000, about nine sermons. A recording is kept on this device, so listening again costs nothing.') }),
     howToVoiceKey(),
     keyField,
