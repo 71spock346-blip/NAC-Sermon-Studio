@@ -6,8 +6,8 @@
  * form side by side: 1 the text word (the Guide's Bible text), 2 the title
  * and message, 3 the introduction, 4 the main points, 5 the context (the
  * Guide's Context box, with the key words, the Catechism and the cross
- * references), 6 the summary and conclusion (the Guide's Summary, the
- * application, the conclusion); then the person's own 7 illustrations and
+ * references), 6 the summary and conclusion (the application, the Guide's
+ * Summary, the conclusion); then the person's own 7 illustrations and
  * experiences, and 8 a reflection after the service. Everything saves as it
  * is typed. Two printed outputs come from it, in the same order: the full
  * sermon notes and A5 cue cards for the altar.
@@ -463,7 +463,7 @@ function renderEditor(root, s) {
     5: { short: t('Context'), filled: () => has(s.context) || has(s.keywords) || !!(s.catechism || []).length || has(s.crossRefs),
       summary: () => withAi(names([[has(s.context), t('Context')], [has(s.keywords), t('Key words')], [(s.catechism || []).length, tn((s.catechism || []).length, '{n} Catechism section', '{n} Catechism sections')], [has(s.crossRefs), t('Cross references')]]).join(' · ') || none(), s.ai) },
     6: { short: t('Summary'), filled: () => has(s.summary) || has(s.application) || has(s.conclusion),
-      summary: () => names([[has(s.summary), t('Summary')], [has(s.application), t('Application')], [has(s.conclusion), t('Conclusion')]]).join(' · ') || none() },
+      summary: () => names([[has(s.application), t('Application')], [has(s.summary), t('Summary')], [has(s.conclusion), t('Conclusion')]]).join(' · ') || none() },
     7: { short: t('Illustrations'), filled: () => has(s.illustrations), summary: () => short(s.illustrations) || none() },
     print: { short: t('Print'), filled: () => true, summary: () => [t('Sermon notes'), t('The sermon'), t('Cue cards'), t('Hear the sermon')].join(' · ') },
     8: { short: t('After'), filled: () => has(s.reflection), summary: () => short(s.reflection) || none() },
@@ -1515,12 +1515,13 @@ function renderEditor(root, s) {
   }
   renderAi();
 
-  // ---- 6. the summary and conclusion: the Guide ends with its Summary; the sermon gathers its points up and leads to the altar
-  step(6, t('Summary and conclusion'), t('The Guide ends with a summary. Gather the main points up in a few short lines, say what they ask of us this week, and lead to the altar.'),
-    () => clearStep(6, t('the summary and conclusion'), ['summary', 'application', 'conclusion']));
+  // ---- 6. the summary and conclusion: first what the points ask of the congregation, then the summary (the Guide ends with its Summary), then the close
+  // (the application stands before the summary since 2026-11-18: the summary gathers the sermon up at the end)
+  step(6, t('Summary and conclusion'), t('Say what the main points ask of us this week. Then gather them up in a few short lines, as the Guide\'s summary does, and lead to the altar.'),
+    () => clearStep(6, t('the summary and conclusion'), ['application', 'summary', 'conclusion']));
   container.append(
-    field(t('Summary'), 'summary', { rows: 3, placeholder: t('The main points in a few short lines, to gather them up at the end') }),
     field(t('Application for the congregation'), 'application', { rows: 4, placeholder: t('What does this ask of us this week? Name it for the people in front of you.') }),
+    field(t('Summary'), 'summary', { rows: 3, placeholder: t('The main points in a few short lines, to gather them up at the end') }),
     field(t('Conclusion'), 'conclusion', { rows: 3, placeholder: t('Sum up the main points in a line or two, then lead to the altar: forgiveness, Holy Communion, the hope we share') }),
   );
 
@@ -1542,7 +1543,7 @@ function renderEditor(root, s) {
   ]));
 
   // ---- output
-  step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the summary, the application and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar, in large type: the introduction and each main point with its main thoughts under it, and your own thought on the point in blue.'));
+  step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar, in large type: the introduction and each main point with its main thoughts under it, and your own thought on the point in blue.'));
   async function run(make, how) {
     try {
       await Cat.loadText().catch(() => false);
@@ -1571,7 +1572,7 @@ function renderEditor(root, s) {
   // ---- hear the sermon (speech.js, listen.js): the same text as "The sermon", read by an ElevenLabs voice; the recording stays with this preparation on this device
   sermonCard = listenCard({
     title: t('Hear the sermon'), id: s.id,
-    noKey: t('An ElevenLabs voice can read the sermon to you: the text word, the introduction, the main points, the summary, the application and the conclusion, as "The sermon" prints them. Add your ElevenLabs key under Settings → Read aloud first.'),
+    noKey: t('An ElevenLabs voice can read the sermon to you: the text word, the introduction, the main points, the application, the summary and the conclusion, as "The sermon" prints them. Add your ElevenLabs key under Settings → Read aloud first.'),
     empty: t('Write the introduction, the main points, the application or the conclusion first.'),
     script: rec => (rec && rec.source === 'outline' && s.build ? Speech.script(s, { outline: s.build }) : Speech.script(s)),
     read: ({ outline = null } = {}, o) => Speech.make(s, { outline, ...o }),
