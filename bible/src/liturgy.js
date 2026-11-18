@@ -15,10 +15,10 @@
  * #liturgy lists the cards in the app's language, or in the other language
  * when only that booklet is loaded; #liturgy/<key> opens one card, with an
  * EN | AF switch when both booklets are loaded. While a card is open the
- * screen is asked to stay awake. On a PC Liturgy has its own place in the
- * side menu; the phone's bar keeps five tabs, so there it is listed under
- * More (more.js) and reached from the top of Prepare as well, and More stays
- * lit while it is open (app.js).
+ * screen is asked to stay awake. Liturgy is listed under Handbooks
+ * (handbooks.js), on a PC and on a phone, and Handbooks stays lit while it
+ * is open (app.js); on a phone it is reached from the top of Prepare as
+ * well.
  *
  * A card's words can be changed by hand (Edit on the card): when the Church
  * changes a wording or the booklet has a misprint, the card should say what
@@ -54,7 +54,7 @@ function cardLang() {
 const bookletName = l => (l === 'af' ? t('Afrikaans booklet') : t('English booklet'));
 const loadLabel = l => (l === 'af' ? t('Load the Afrikaans booklet (PDF)') : t('Load the English booklet (PDF)'));
 
-/** The chalice on the Liturgy tab (index.html), for the shortcut at the top of Prepare on a phone. */
+/** The chalice on the Liturgy tab (index.html), for the shortcut at the top of Prepare on a phone and the row under Handbooks. */
 export function icon() {
   const span = el('span', { class: 'ico', 'aria-hidden': 'true' });
   span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h11l-.9 6.2A4.6 4.6 0 0 1 12 13a4.6 4.6 0 0 1-4.6-3.8z"/><path d="M12 13v5.5"/><path d="M8 21h8"/><path d="M8.5 18.5h7"/></svg>';
@@ -68,7 +68,7 @@ function pencil() {
   return span;
 }
 
-/** The link to Liturgy at the top of the Prepare list: the phone's bar has no Liturgy tab, only More (styles.css hides this on a PC). */
+/** The link to Liturgy at the top of the Prepare list: on a phone the altar cards are otherwise two taps away, under Handbooks (styles.css hides this on a PC). */
 export function shortcut() {
   return el('a', { class: 'lit-shortcut', href: '#liturgy' }, [
     icon(),
@@ -99,6 +99,7 @@ function listPage(container) {
   const l = listLang();
   const bk = booklet(l);
   container.append(
+    crumbs([[t('Handbooks'), '#handbooks']]),   // the Liturgy is listed under Handbooks (handbooks.js)
     el('div', { class: 'docbar' }, [el('h2', { text: t('Liturgy') })]),
     el('p', { class: 'lit-lead', text: t('The words said at the altar, from the Church\'s booklet "Liturgy for altar use": the divine service and each act of blessing, card by card, as the booklet prints them.') }),
   );
@@ -189,7 +190,7 @@ function cardPage(container, key) {
   const both = LANGS.every(x => booklet(x) && booklet(x).cards.some(c => c.key === key));
   const body = el('div', { class: 'lit-card size-' + (state.settings.fontSize || 'm'), lang: l }, card.rows.map(row));
   container.append(
-    crumbs([[t('Liturgy'), '#liturgy']]),
+    crumbs([[t('Handbooks'), '#handbooks'], [t('Liturgy'), '#liturgy']]),
     el('div', { class: 'page lit-page' }, [
       el('p', { class: 'eyebrow', text: bk.org || t('New Apostolic Church') }),
       el('div', { class: 'docbar' }, [
@@ -323,7 +324,7 @@ function editPage(container, key, l, bk, card) {
   ]);
 
   container.append(
-    crumbs([[t('Liturgy'), '#liturgy']]),
+    crumbs([[t('Handbooks'), '#handbooks'], [t('Liturgy'), '#liturgy']]),
     el('div', { class: 'page lit-page' }, [
       el('p', { class: 'eyebrow', text: t('Changing the words') }),
       el('div', { class: 'docbar' }, [el('h2', { text: card.title, lang: l }), buttons()]),

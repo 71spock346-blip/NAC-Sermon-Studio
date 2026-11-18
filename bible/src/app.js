@@ -17,7 +17,11 @@
  *
  * #seating opens the seating and communion plan, #seating/<id> a saved one,
  * and #choir the choir programme. #more is the phone's fifth tab (more.js):
- * the sections the bar has no room for, one under the other. #reminders is
+ * the sections the bar has no room for, one under the other, the Tools
+ * (Seating, Choir, Reminders, MIS, Reflection evening) under their heading
+ * as in the PC's side menu. The Catechism and the Liturgy are listed under
+ * Handbooks (handbooks.js), which stays lit while one of them is open, on a
+ * phone and on a PC. #reminders is
  * the birthdays and anniversaries (#reminders/people the roster,
  * #reminders/import the listings). #plan is the month plan (#plan/2025-10 one
  * month of it): the district's programme with who holds each service.
@@ -44,7 +48,7 @@ import * as Reminders from './reminders.js';
 import * as Plan from './plan.js';   // the month plan: the district's programme with who holds each service
 import * as Settings from './settings.js';
 import * as More from './more.js';
-import * as Mis from './mis.js';   // the phone's More tab: the sections its bar has no room for
+import * as Mis from './mis.js';   // the Church's MIS: a section whose button opens the site itself
 import * as Sync from './sync.js';
 import * as Update from './update.js';   // a newer version of the app on the site: a bar offers to load it
 
@@ -88,8 +92,8 @@ function route() {
     b.classList.toggle('active', on);
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
-    // the phone's bar lists seven of the sections under More, so More stays lit while one of them is open (a PC shows every section, and no More)
-    b.classList.toggle('also', b.dataset.tab === 'more' && More.isMore(tab));
+    // a section listed under another lights that one too: More while one of its sections is open (the phone's bar; a PC shows them in the menu, and no More), Handbooks while the Catechism or the Liturgy is open
+    b.classList.toggle('also', (b.dataset.tab === 'more' && More.isMore(tab)) || (b.dataset.tab === 'handbooks' && Handbooks.holds(tab)));
   }
   for (const panel of $$('main .tab')) panel.hidden = panel.id !== 'tab-' + tab;
   const container = $('#tab-' + tab);

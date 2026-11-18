@@ -21,18 +21,20 @@
  * article with the Catechism's section on it), and searched and asked like
  * the others; there is nothing to load or remove.
  *
- * #handbooks lists the loaded handbooks with a word search across them;
- * #handbooks/search/<words> is that search; #handbooks/<key> is a
+ * #handbooks lists the Church's books with a word search across the
+ * handbooks; #handbooks/search/<words> is that search; #handbooks/<key> is a
  * handbook's table of contents; #handbooks/<key>/<n> is one chapter (n is
- * its number, or 'i<k>' for a chapter without one). On a PC Handbooks has
- * its own place in the side menu after Catechism; the phone's bar keeps five
- * tabs, so there it is listed under More (more.js), and More stays lit while
- * it is open (app.js). Where the AI helper is unlocked (lock.js), the list
- * page also has "Ask the handbooks" (ask.js): Claude answers a question from
- * the chapters that fit it, naming them; a locked device shows nothing of
- * that. The Catechism keeps its own tab, but once its text is on the device
- * (Settings → Catechism) it is listed here as well, and its sections are
- * searched and asked together with the handbooks (catechism.js asHandbook).
+ * its number, or 'i<k>' for a chapter without one). Handbooks is the door to
+ * the Church's books: on a PC it has its own place in the side menu after
+ * Prepare, and on a phone the fourth place in the bar. The Catechism
+ * (catechism.js, #catechism) and the Liturgy, the altar cards (liturgy.js,
+ * #liturgy), keep their own screens but are listed here, first in the list,
+ * and Handbooks stays lit while one of them is open (app.js, holds()). Once
+ * the Catechism's text is on the device (Settings → Catechism) its sections
+ * are searched and asked together with the handbooks (catechism.js
+ * asHandbook). Where the AI helper is unlocked (lock.js), the list page also
+ * has "Ask the handbooks" (ask.js): Claude answers a question from the
+ * chapters that fit it, naming them; a locked device shows nothing of that.
  */
 import { el, clear, toast, confirmBox, busy, seg, sheet, fmtDate, SIZES } from './ui.js';
 import { state, saveHandbook, deleteHandbook, saveSetting } from './store.js';
@@ -41,7 +43,12 @@ import { KNOWN, fromPages, fromText, parse, search } from './handbook.js';
 import { CREED } from './creed.js';   // the Creed, part of the app
 import { askBox, hrefOf, indexAt, label } from './ask.js';   // "Ask the handbooks", and the link and label of a chapter
 import * as Cat from './catechism.js';   // the Catechism: searched and asked here too, once its text is on the device
+import { icon as chalice } from './liturgy.js';   // the chalice of the Liturgy, for its row
 import * as Sync from './sync.js';
+
+/** The sections listed under Handbooks that have screens of their own: Handbooks stays lit in the menu and the bar while one of them is open (app.js). */
+export const UNDER = ['catechism', 'liturgy'];
+export const holds = tab => UNDER.includes(tab);
 
 /** One line on each handbook the app knows by name, for the list while it is not loaded yet. */
 const ABOUT = {
@@ -88,6 +95,13 @@ function childrenOf(hb, c) {
 function icon() {
   const span = el('span', { class: 'ico', 'aria-hidden': 'true' });
   span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5h6a3 3 0 0 1 3 3v12a2.5 2.5 0 0 0-2.5-2.5h-6.5z"/><path d="M21.5 5h-6a3 3 0 0 0-3 3v12a2.5 2.5 0 0 1 2.5-2.5h6.5z"/></svg>';
+  return span;
+}
+
+/** The Catechism's own icon, from its button in the menu (index.html), so its row is told apart from the handbooks. */
+function catIcon() {
+  const span = el('span', { class: 'ico', 'aria-hidden': 'true' });
+  span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M12 6v8M8.5 9.5h7"/></svg>';
   return span;
 }
 
@@ -147,7 +161,7 @@ function listPage(container, q) {
   const asked = cat ? [...books, cat] : books;
   container.append(
     el('div', { class: 'docbar' }, [el('h2', { text: t('Handbooks') })]),
-    el('p', { class: 'hb-lead', text: t('The Church\'s Creed and handbooks for ministers, to read and to search: the ten Articles of Faith, the Guide for Ministers, the "Serving and Leading" principle and the full Liturgy book.') }),
+    el('p', { class: 'hb-lead', text: t('The Church\'s books for your work as a minister, to read and to search: the Catechism, the Creed, the words at the altar, the Guide for Ministers, the "Serving and Leading" principle and the full Liturgy book.') }),
     searchBox(asked, q),
   );
   const list = el('div', { class: 'list lit-list hb-list' });
@@ -156,7 +170,9 @@ function listPage(container, q) {
     el('span', { class: 'grow' }, [el('b', { text: hb.title }), el('span', { class: 'muted small snippet', text: aboutLine(hb) })]),
     el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
   ]));
-  rows.splice(books[0] && books[0].key === 'creed' ? 1 : 0, 0, catRow(cat));   // the Catechism after the Creed: the Church's teaching, then its rules
+  // the Catechism first, the Church's teaching, and after the Creed the altar cards; then the handbooks loaded from their files
+  rows.splice(0, 0, catRow(cat));
+  rows.splice(books[0] && books[0].key === 'creed' ? 2 : 1, 0, liturgyRow());
   list.append(...rows);
   container.append(el('h3', { class: 'sub', text: t('Read') }), list);
   const ask = askBox(asked, cat ? { lead: t('Claude reads the chapters of the handbooks, and the sections of the Catechism, that fit your question and answers from them in plain words, naming them, so you can check what the books say. The answer is not kept.') } : {});
@@ -188,13 +204,25 @@ function listPage(container, q) {
   container.append(section, credit());
 }
 
-/** The Catechism's row in the list: read on its own tab; searched and asked here too once its text is on the device (Settings → Catechism). */
+/** The Catechism's row in the list: it opens its own screen (#catechism); searched and asked here too once its text is on the device (Settings → Catechism). */
 function catRow(cat) {
   return el('a', { class: 'item', href: '#catechism' }, [
-    icon(),
+    catIcon(),
     el('span', { class: 'grow' }, [
       el('b', { text: t('Catechism of the New Apostolic Church') }),
-      el('span', { class: 'muted small snippet', text: cat ? t('The Church\'s teaching, on its own tab. Searched and asked here too.') : t('The Church\'s teaching, on its own tab. Load its text under Settings to search and ask it here too.') }),
+      el('span', { class: 'muted small snippet', text: cat ? t('The Church\'s teaching, chapter by chapter. Searched and asked here too.') : t('The Church\'s teaching, chapter by chapter. Load its text under Settings to search and ask it here too.') }),
+    ]),
+    el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
+  ]);
+}
+
+/** The Liturgy's row: the altar cards, on their own screen (#liturgy, liturgy.js); the full Liturgy book of 2024 is a handbook in the list below it. */
+function liturgyRow() {
+  return el('a', { class: 'item', href: '#liturgy' }, [
+    chalice(),
+    el('span', { class: 'grow' }, [
+      el('b', { text: t('Liturgy') }),
+      el('span', { class: 'muted small snippet', text: t('The words at the altar, card by card') }),
     ]),
     el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
   ]);

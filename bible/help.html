@@ -32,11 +32,14 @@ Catechism of the New Apostolic Church refers to a verse, and preparing a divine 
 Everything you write stays on your own device. There is no account and no server.</p>
 
 <h2>Finding your way</h2>
-<p>On a PC every part of the app is in the blue menu on the left. On a phone the bar at the bottom holds <b>Read</b>,
-<b>Notes</b>, <b>Prepare</b> and <b>Catechism</b>, and a fifth tab, <b>More</b>, lists the rest: Reflection evening,
-Liturgy, Handbooks, Theology, Seating, Choir, Reminders, Month plan, MIS and Settings. While one of those is open, More stays lit, so a tap on it brings the
-list back.</p>
-<p><b>MIS</b>, before Settings, opens the Church's own MIS site. In the installed app it opens over the app: on a phone
+<p>On a PC every part of the app is in the blue menu on the left; Seating, Choir, Reminders, MIS and Reflection evening
+stand together there under the heading <b>Tools</b>. On a phone the bar at the bottom holds <b>Read</b>, <b>Notes</b>,
+<b>Prepare</b> and <b>Handbooks</b>, and a fifth tab, <b>More</b>, lists the rest: Theology, Month plan, the Tools under
+their heading, and Settings. While one of those is open, More stays lit, so a tap on it brings the list back.</p>
+<p><b>Handbooks</b> is the door to the Church's books: the Catechism, the Creed, the Liturgy (the words at the altar) and
+the handbooks for ministers, each a row in its list. While the Catechism or the Liturgy is open, Handbooks stays lit, so
+a tap on it brings the list back.</p>
+<p><b>MIS</b>, under Tools, opens the Church's own MIS site. In the installed app it opens over the app: on a phone
 with a Done or ✕ at the top to come back, on a PC in the app's window with a bar at the top whose ✕ brings the app back.
 In a browser it opens in a tab of its own. Sign in there as always; the app never sees or keeps your password. The MIS
 cannot sit inside the app's own page: it signs you in with a cookie, which a browser holds back inside another site's
@@ -99,13 +102,13 @@ or Afrikaans. Each device keeps its own choice.</p>
 </ul>
 
 <h2>Catechism</h2>
-<p>The Catechism tab lists the Catechism's chapters and sections. Open a section to see the Bible verses it quotes.
+<p>Catechism, the first row under <b>Handbooks</b>, lists the Catechism's chapters and sections. Open a section to see the Bible verses it quotes.
 The text of the sections is the Church's copyright, so it is not part of the public app: load it once on each device
 under Settings → Catechism, from the file <i>catechism-text.json</i> that is made from the Catechism PDF
 (<code>python3 bible/tools/build_catechism.py catechism.txt catechism-toc.txt --text catechism-text.json</code>, where
 <i>catechism.txt</i> is the PDF as text from <code>pdftotext -layout</code>). It stays in this browser on this device
 and is not in the backup file.</p>
-<p>With the text loaded you can read every section in the Catechism tab, with the book's own summary at the top and
+<p>With the text loaded you can read every section under Catechism, with the book's own summary at the top and
 "see 4.2" links between sections; search the whole Catechism by word; tap the <b>C</b> on a verse to see the summary
 of each section that quotes it; and open a section under a service preparation with "Read". Without it, each section
 links to the same text at nak.org. The Catechism's text and index are in English, so search it with English words.</p>
@@ -148,8 +151,8 @@ before you save it.</p>
 <p>Liturgy holds the Church's altar booklet, <i>Liturgy for Altar Use</i>: the words said at the altar in the divine
 service and in each act of blessing (adoption, confirmation, a wedding, a funeral, the blessing before a birth, a
 wedding anniversary, Holy Baptism), one card per rite, as the booklet prints them: the label on the left, the words on
-the right, the booklet's notes in italics and its lists. On a PC it has its own place in the side menu; on a phone it
-is under <b>More</b>, and at the top of <b>Prepare</b> as well.</p>
+the right, the booklet's notes in italics and its lists. It is a row under <b>Handbooks</b>, on a PC and on a phone, and
+on a phone it sits at the top of <b>Prepare</b> as well.</p>
 <p>The booklet is the Church's own, so it is not part of the app. Load its PDF once under Liturgy: <b>Load the English
 booklet (PDF)</b> or <b>Load the Afrikaans booklet (PDF)</b>, or both. The app reads the cards from the file on the
 device itself (no Claude, no key, a few seconds), keeps them in this browser and sends them to your other devices through
@@ -176,9 +179,9 @@ chapter of the Catechism that explains it (2.4), and it is searched and asked li
 the <i>Guide for Ministers</i> (the rule book: ministry, the divine service, the sacraments and acts of blessing,
 pastoral care, administration, the competency profiles), the <i>"Serving and Leading"</i> guiding principle, and the
 <i>Liturgy of the New Apostolic Church</i> of 2024. Another handbook in the same shape, with numbered chapters, can
-be loaded as well. The Catechism keeps its own tab, but once its text is loaded under Settings it is listed here too,
-and its sections are searched and asked together with the handbooks. On a PC Handbooks is in the side menu after
-Catechism; on a phone it is under <b>More</b>.</p>
+be loaded as well. The Catechism and the Liturgy (the altar cards) are rows in the list too, the Catechism first, each
+opening its own screen; once the Catechism's text is loaded under Settings, its sections are searched and asked together
+with the handbooks. On a PC Handbooks is in the side menu after Prepare; on a phone it is the fourth tab of the bar.</p>
 <p>The handbooks are the Church's own, so they are not part of the app. Load each one once under Handbooks, as its
 PDF or as a text file saved from the PDF: <b>Load it (PDF or text file)</b> under its name. The app reads the chapters from
 the file on the device itself (no Claude, no key, a few seconds for a PDF), keeps them in this browser and sends them
@@ -363,7 +366,7 @@ question at a time. The app makes the slides for that evening in the Church's bl
 word, the main points from the Guide, one slide for each question, and a word of thanks to close. Each slide comes
 with notes for the one who leads the evening.</p>
 <ol>
-  <li>Tap <b>Reflection evening</b> in the side menu (on a phone: <b>More</b>, then <b>Reflection evening</b>). Choose
+  <li>Tap <b>Reflection evening</b> under Tools in the side menu (on a phone: <b>More</b>, then <b>Reflection evening</b> under Tools). Choose
     the service<span class="mo" hidden>, or load the Church's reflection guide there</span>. Evenings with slides come first, under <b>Your
     slides</b>. You can also open the preparation of the service and tap <b>Make the slides</b> under step 9.</li>
   <li class="mo" hidden><b>The Church's reflection guide:</b> the one-page PDF for the evening. Tap <b>Load the reflection guide
@@ -590,11 +593,15 @@ die Kategismus van die Nuwe Apostoliese Kerk na 'n vers verwys, en 'n godsdiens 
 Alles wat jy skryf, bly op jou eie toestel. Daar is geen rekening en geen bediener nie.</p>
 
 <h2>Vind jou pad</h2>
-<p>Op 'n rekenaar is elke deel van die app in die blou kieslys links. Op 'n foon hou die balk onderaan <b>Bybel</b>,
-<b>Notas</b>, <b>Voorberei</b> en <b>Kategismus</b>, en 'n vyfde oortjie, <b>Meer</b>, lys die res: Besinningsaand,
-Liturgie, Handboeke, Teologie, Sitplekke, Koor, Herinneringe, Maandplan, MIS en Verstellings. Terwyl een daarvan oop is, bly Meer aan, sodat een tik daarop die
-lys terugbring.</p>
-<p><b>MIS</b>, voor Verstellings, maak die Kerk se eie MIS-webwerf oop. In die geïnstalleerde app maak dit bo-oor die app
+<p>Op 'n rekenaar is elke deel van die app in die blou kieslys links; Sitplekke, Koor, Herinneringe, MIS en
+Besinningsaand staan daar saam onder die opskrif <b>Hulpmiddels</b>. Op 'n foon hou die balk onderaan <b>Bybel</b>,
+<b>Notas</b>, <b>Voorberei</b> en <b>Handboeke</b>, en 'n vyfde oortjie, <b>Meer</b>, lys die res: Teologie, Maandplan,
+die Hulpmiddels onder hul opskrif, en Verstellings. Terwyl een daarvan oop is, bly Meer aan, sodat een tik daarop die lys
+terugbring.</p>
+<p><b>Handboeke</b> is die deur na die Kerk se boeke: die Kategismus, die Geloofsbelydenis, die Liturgie (die woorde by
+die altaar) en die handboeke vir ampsdraers, elk 'n ry in sy lys. Terwyl die Kategismus of die Liturgie oop is, bly
+Handboeke aan, sodat een tik daarop die lys terugbring.</p>
+<p><b>MIS</b>, onder Hulpmiddels, maak die Kerk se eie MIS-webwerf oop. In die geïnstalleerde app maak dit bo-oor die app
 oop: op 'n foon met 'n Done of ✕ bo-aan om terug te kom, op 'n rekenaar in die app se venster met 'n balk bo-aan waarvan
 die ✕ die app terugbring. In 'n blaaier maak dit in sy eie oortjie oop. Meld daar aan soos altyd; die app sien of bewaar
 nooit jou wagwoord nie. Die MIS kan nie binne die app se eie blad sit nie: dit meld jou met 'n koekie aan, wat 'n blaaier
@@ -658,14 +665,14 @@ gewys word. Elke toestel hou sy eie keuse.</p>
 </ul>
 
 <h2>Kategismus</h2>
-<p>Die Kategismus-oortjie lys die Kategismus se hoofstukke en afdelings. Maak 'n afdeling oop om die Bybelverse te
+<p>Kategismus, die eerste ry onder <b>Handboeke</b>, lys die Kategismus se hoofstukke en afdelings. Maak 'n afdeling oop om die Bybelverse te
 sien wat dit aanhaal. Die teks van die afdelings is die Kerk se kopiereg, dus is dit nie deel van die openbare app
 nie: laai dit een keer op elke toestel onder Verstellings → Kategismus, uit die lêer <i>catechism-text.json</i> wat
 uit die Kategismus-PDF gemaak word
 (<code>python3 bible/tools/build_catechism.py catechism.txt catechism-toc.txt --text catechism-text.json</code>, waar
 <i>catechism.txt</i> die PDF as teks uit <code>pdftotext -layout</code> is). Dit bly in hierdie blaaier op hierdie
 toestel en is nie in die rugsteunlêer nie.</p>
-<p>Met die teks gelaai kan jy elke afdeling in die Kategismus-oortjie lees, met die boek se eie samevatting bo-aan en
+<p>Met die teks gelaai kan jy elke afdeling onder Kategismus lees, met die boek se eie samevatting bo-aan en
 "sien 4.2"-skakels tussen afdelings; die hele Kategismus per woord deursoek; op die <b>C</b> by 'n vers tik om die
 samevatting te sien van elke afdeling wat dit aanhaal; en 'n afdeling onder 'n godsdiensvoorbereiding met "Lees"
 oopmaak. Daarsonder skakel elke afdeling na dieselfde teks by nak.org. Die Kategismus se teks en indeks is in Engels,
@@ -711,8 +718,8 @@ nog verander voordat jy dit stoor.</p>
 <p>Liturgie hou die Kerk se altaarboekie, <i>Liturgie vir Altaar Gebruik</i>: die woorde wat by die altaar gesê word in
 die godsdiens en in elke seënhandeling (opname, konfirmasie, 'n huwelik, 'n begrafnis, die seën voor 'n geboorte, 'n
 huweliksherdenking, die Heilige Doop), een kaart per handeling, soos die boekie dit druk: die etiket links, die woorde
-regs, die boekie se aantekeninge in skuinsdruk en sy lyste. Op 'n rekenaar het dit sy eie plek in die kantkieslys; op 'n
-foon is dit onder <b>Meer</b>, en ook bo-aan <b>Voorberei</b>.</p>
+regs, die boekie se aantekeninge in skuinsdruk en sy lyste. Dit is 'n ry onder <b>Handboeke</b>, op 'n rekenaar en op 'n
+foon, en op 'n foon sit dit ook bo-aan <b>Voorberei</b>.</p>
 <p>Die boekie is die Kerk se eie, dus is dit nie deel van die app nie. Laai sy PDF een keer onder Liturgie: <b>Laai die
 Engelse boekie (PDF)</b> of <b>Laai die Afrikaanse boekie (PDF)</b>, of albei. Die app lees die kaarte uit die lêer op
 die toestel self (geen Claude, geen sleutel, 'n paar sekondes), hou hulle in hierdie blaaier en stuur hulle deur die
@@ -740,9 +747,10 @@ artikel, elk met 'n skakel na die hoofstuk van die Kategismus wat dit verduideli
 deursoek en gevra. Die handboeke is die <i>Guide for Ministers</i> (die reëlboek: die amp, die godsdiens, die
 sakramente en seënhandelinge, sielsorg, administrasie, die bevoegdheidsprofiele), die rigsnoer <i>"Serving and
 Leading"</i>, en die <i>Liturgy of the New Apostolic Church</i> van 2024. Nog 'n handboek in dieselfde vorm, met
-genommerde hoofstukke, kan ook gelaai word. Die Kategismus hou sy eie oortjie, maar sodra sy teks onder Verstellings
-gelaai is, word dit hier ook gelys, en sy afdelings word saam met die handboeke deursoek en gevra. Op 'n rekenaar is
-Handboeke in die kantkieslys ná Kategismus; op 'n foon is dit onder <b>Meer</b>.</p>
+genommerde hoofstukke, kan ook gelaai word. Die Kategismus en die Liturgie (die altaarkaarte) is ook rye in die lys, die
+Kategismus eerste, elk met sy eie skerm; sodra die Kategismus se teks onder Verstellings gelaai is, word sy afdelings saam
+met die handboeke deursoek en gevra. Op 'n rekenaar is Handboeke in die kantkieslys ná Voorberei; op 'n foon is dit die
+vierde oortjie van die balk.</p>
 <p>Die handboeke is die Kerk se eie, dus is hulle nie deel van die app nie. Laai elkeen een keer onder Handboeke, as
 sy PDF of as 'n tekslêer wat uit die PDF gestoor is: <b>Laai dit (PDF of tekslêer)</b> onder sy naam. Die app lees die
 hoofstukke uit die lêer op die toestel self (geen Claude, geen sleutel, 'n paar sekondes vir 'n PDF), hou hulle in
@@ -911,7 +919,7 @@ Die app maak die skyfies vir daardie aand in die Kerk se blou voorkoms: die pree
 die Handleiding, een skyfie vir elke vraag, en 'n woord van dank om af te sluit. Elke skyfie kom met notas vir die een
 wat die aand lei.</p>
 <ol>
-  <li>Tik op <b>Besinningsaand</b> in die symenu (op 'n foon: <b>Meer</b>, dan <b>Besinningsaand</b>). Kies die
+  <li>Tik op <b>Besinningsaand</b> onder Hulpmiddels in die symenu (op 'n foon: <b>Meer</b>, dan <b>Besinningsaand</b> onder Hulpmiddels). Kies die
     godsdiens<span class="mo" hidden>, of laai die Kerk se besinningsgids daar</span>. Aande met skyfies staan eerste, onder <b>Jou skyfies</b>. Jy kan ook
     die voorbereiding van die godsdiens oopmaak en op <b>Maak die skyfies</b> onder stap 9 tik.</li>
   <li class="mo" hidden><b>Die Kerk se besinningsgids:</b> die PDF van een bladsy vir die aand. Tik op <b>Laai die besinningsgids

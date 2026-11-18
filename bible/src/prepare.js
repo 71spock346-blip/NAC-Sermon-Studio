@@ -1285,7 +1285,7 @@ function renderEditor(root, s) {
     if (Cat.hasText() && !Cat.textReady()) { Cat.loadText().then(renderCatechism); }
     const secs = sectionsForRef(s.ref);
     if (!s.ref) { catBox.append(el('span', { class: 'muted small', text: t('Give a reference above to see the Catechism sections that refer to it.') })); }
-    else if (!secs.length) { catBox.append(el('span', { class: 'muted small', text: t('The Catechism does not quote these verses directly. Search the Catechism tab by subject instead.') })); }
+    else if (!secs.length) { catBox.append(el('span', { class: 'muted small', text: t('The Catechism does not quote these verses directly. Search the Catechism by subject instead.') })); }
     const chosen = new Set((s.catechism || []).map(c => c.n));
     for (const sec of secs) {
       catBox.append(catRow(sec, chosen.has(sec.n), on => {
