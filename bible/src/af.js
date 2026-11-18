@@ -427,7 +427,7 @@ export const AF = {
 
   // printing
   "Print or save": "Druk of stoor",
-  "The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar, in large type: the introduction and each main point with its main thoughts under it, and your own thought on the point in blue.": "Die preeknotas dra alles hierbo, in die volgorde van die stappe. Die preek is net die teks, in leesvolgorde en in groot duidelike letters: die tekswoord, die inleiding, die hoofpunte, die toepassing, die samevatting en die slot, met die illustrasies. Die preekkaarte is regop A5-kaarte vir die altaar, in groot letters: die inleiding en elke hoofpunt met sy hoofgedagtes daaronder, en jou eie gedagte oor die punt in blou.",
+  "The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar: under each heading only short cues in strong colours, with # between them, as on your own cards. Read shows the sermon or the cards on the screen in large type.": "Die preeknotas dra alles hierbo, in die volgorde van die stappe. Die preek is net die teks, in leesvolgorde en in groot duidelike letters: die tekswoord, die inleiding, die hoofpunte, die toepassing, die samevatting en die slot, met die illustrasies. Die preekkaarte is regop A5-kaarte vir die altaar: onder elke opskrif net kort wenke in sterk kleure, met # tussenin, soos op jou eie kaarte. Lees wys die preek of die kaarte op die skerm in groot letters.",
   // the sermon itself as a PDF (pdf.js sermonTextPdf)
   "There is nothing to print yet: write the introduction, the main points, the application or the conclusion first.": "Daar is nog niks om te druk nie: skryf eers die inleiding, die hoofpunte, die toepassing of die slot.",
   "Illustration: ": "Illustrasie: ",
@@ -495,12 +495,17 @@ export const AF = {
   "Sermon notes": "Preeknotas",
   "Cue card": "Preekkaart",
   "Cue cards": "Preekkaarte",
+  // the words on the cue cards (cues.js, prepare.js under Print or save) and the readings on the screen (read.js)
+  "Words on the cards": "Woorde op die kaarte",
+  "On the cards, under each heading, there are only short cues: # one # for each thought #, each in its own colour. Type your own here, with # between them. A line left empty gets its cues from your text above.": "Op die kaarte staan onder elke opskrif net kort wenke: # een # vir elke gedagte #, elk in sy eie kleur. Tik jou eie hier, met # tussenin. 'n Leë reël kry sy wenke uit jou teks hierbo.",
+  "Fill in": "Vul in",
+  "To print on A5 cards: in the print window, open More settings and choose A5 as the paper size.": "Om op A5-kaarte te druk: maak in die drukvenster Meer instellings oop en kies A5 as die papiergrootte.",
+  "There is nothing to read yet: write the introduction, the main points, the application or the conclusion first.": "Daar is nog niks om te lees nie: skryf eers die inleiding, die hoofpunte, die toepassing of die slot.",
+  "There is nothing on the cards yet: write the main points first, or type the cues under Print or save.": "Daar is nog niks op die kaarte nie: skryf eers die hoofpunte, of tik die wenke onder Druk of stoor.",
   "Introduction, from the Guide": "Inleiding, uit die Handleiding",
   "Main points, from the Divine Service Guide": "Hoofpunte, uit die Handleiding vir Godsdienste",
   "From the Divine Service Guide": "Uit die Handleiding vir Godsdienste",
   "In short: ": "Kortliks: ",
-  "Apply: ": "Toepassing: ",
-  "Close: ": "Slot: ",
   "The PDF library did not load. Reload the page while online.": "Die PDF-biblioteek het nie gelaai nie. Herlaai die bladsy terwyl jy aanlyn is.",
 
   // ---- the Catechism (catechism.js)

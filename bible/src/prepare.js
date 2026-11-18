@@ -82,6 +82,8 @@ import * as Bible from './bible.js';
 import * as Cat from './catechism.js';
 import * as Notes from './notes.js';
 import * as Pdf from './pdf.js';
+import * as Cues from './cues.js';   // the words on the cue cards, and the lines to type them in under Print or save
+import * as Read from './read.js';   // the sermon and the cue cards on the screen
 import * as Guides from './guides.js';
 import * as AI from './ai.js';
 import * as Reflect from './reflect.js';
@@ -386,7 +388,8 @@ function renderEditor(root, s) {
     setTimeout(() => { savedBadge.hidden = true; }, 1500);
   }, 500);
   let sermonCard = null;   // the player under Print or save (listen.js): it says when the sermon has changed since it was read
-  const touch = () => { save(); if (sermonCard) sermonCard.check(); refreshSteps(); };
+  let refreshCues = null;   // the lines of cue words under Print or save follow the text (see there)
+  const touch = () => { save(); if (sermonCard) sermonCard.check(); refreshSteps(); if (refreshCues) refreshCues(); };
   const inputs = {};   // key -> its box, so a suggestion can be put into it
 
   // the title of a section of the sermon, above its box: styled as a heading (see #tab-prepare .f-title in styles.css)
@@ -1441,7 +1444,7 @@ function renderEditor(root, s) {
     const mine = (p, i) => (old || []).find(x => x && p.from === 'guide' && x.guide === p.n) || (old || []).find(x => x && norm(x.heading) && norm(x.heading) === norm(p.heading)) || (old || [])[i] || {};
     s.points = list.map((p, i) => {
       const was = mine(p, i);
-      return { heading: p.heading, body: p.body, ...(p.from === 'guide' ? { guide: p.n } : {}), ...(was.thought ? { thought: was.thought } : {}), ...(was.talk ? { talk: was.talk } : {}), ...(was.read ? { read: was.read } : {}) };
+      return { heading: p.heading, body: p.body, ...(p.from === 'guide' ? { guide: p.n } : {}), ...(was.thought ? { thought: was.thought } : {}), ...(was.talk ? { talk: was.talk } : {}), ...(was.read ? { read: was.read } : {}), ...(was.cues ? { cues: was.cues } : {}) };
     });
     touch(); renderPoints();
     toast(done || t('All main points added.'), false, have.length ? () => { s.points = old; touch(); renderPoints(); } : null);
@@ -1543,7 +1546,7 @@ function renderEditor(root, s) {
   ]));
 
   // ---- output
-  step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar, in large type: the introduction and each main point with its main thoughts under it, and your own thought on the point in blue.'));
+  step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar: under each heading only short cues in strong colours, with # between them, as on your own cards. Read shows the sermon or the cards on the screen in large type.'));
   async function run(make, how) {
     try {
       await Cat.loadText().catch(() => false);
@@ -1553,20 +1556,62 @@ function renderEditor(root, s) {
       else { Pdf.download(r); toast(t('Saved ') + r.name); }
     } catch (e) { toast(e.message || t('The PDF could not be built.'), true); }
   }
-  /** One printed output: its name, then Save as PDF, Print and, on a phone that can, Share. A declaration: the breakdown's panel above uses it too. */
-  function outRow(label, make, share) {
+  /** One printed output: its name, then Read (where it can be read on the screen, read.js), Save as PDF, Print and, on a phone that can, Share. A declaration: the breakdown's panel above uses it too. */
+  function outRow(label, make, share, read) {
     return el('div', { class: 'row out-row' }, [
       el('span', { class: 'out-label', text: label }),
+      read ? el('button', { class: 'btn small ghost', type: 'button', text: t('Read'), onclick: read }) : null,
       el('button', { class: 'btn small', type: 'button', text: t('Save as PDF'), onclick: () => run(make, 'download') }),
       el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(make, 'print') }),
       share && Pdf.canShare() ? el('button', { class: 'btn small ghost', type: 'button', text: t('Share'), onclick: () => run(make, 'share') }) : null,
     ]);
   }
+  const cueService = () => (Guides.findService(s) || {}).service;   // the Guide's article this preparation is linked to
   container.append(el('div', { class: 'outputs' }, [
     outRow(t('Sermon notes'), Pdf.sermonPdf, true),
-    outRow(t('The sermon'), Pdf.sermonTextPdf, true),
-    // while the person's own introduction is empty, the cards carry the Guide's (pdf.js cueIntro)
-    outRow(t('Cue cards'), x => Pdf.cueCardPdf(x, { service: (Guides.findService(x) || {}).service }), false),
+    outRow(t('The sermon'), Pdf.sermonTextPdf, true, () => Read.sermon(s)),
+    // while the person's own introduction is empty, the cards carry the Guide's (cues.js introText)
+    outRow(t('Cue cards'), x => Pdf.cueCardPdf(x, { service: cueService() }), false, () => Read.cues(s, { service: cueService() })),
+  ]));
+
+  // ---- the words on the cue cards (cues.js): one line per heading. His own cues, with # between them; while a line
+  // is empty, the box shows in grey the cues the app takes from the text, and "Fill in" puts them in the line to change
+  const cueRows = el('div', { class: 'cue-rows' });
+  let drawn = [];   // the lines as they stand: {part, box, fill, name}
+  const typedOf = part => (part.key === 'point' ? part.p.cues : (s.cues || {})[part.key]) || '';
+  const setTyped = (part, v) => { if (part.key === 'point') part.p.cues = v; else { s.cues = s.cues || {}; s.cues[part.key] = v; } };
+  const sameLine = (a, b) => a.key === b.key && (a.key !== 'point' || a.p === b.p);
+  const ghost = part => Cues.cueLine(part.auto) || '# … # …';
+  refreshCues = () => {
+    const parts = Cues.cueParts(s, { service: cueService(), lang: AI.langOf(s) });
+    if (parts.length === drawn.length && parts.every((part, i) => sameLine(part, drawn[i].part))) {
+      // the same lines: only their names and the grey cues follow the text, so a line being typed in is left alone
+      drawn.forEach((d, i) => { d.part = parts[i]; d.name.textContent = Pdf.cueHeading(parts[i]); d.box.placeholder = ghost(parts[i]); d.fill.hidden = !!d.box.value.trim() || !parts[i].auto.length; });
+      return;
+    }
+    clear(cueRows);
+    drawn = parts.map(part => {
+      const d = { part };
+      d.name = el('span', { class: 'f-title', text: Pdf.cueHeading(part) });
+      d.box = lineBox({ value: typedOf(part), placeholder: ghost(part), class: 'cue-box' });
+      d.fill = el('button', { class: 'btn small ghost', type: 'button', text: t('Fill in'), onclick: () => {
+        d.box.value = Cues.cueLine(d.part.auto);
+        fit(d.box);
+        d.box.dispatchEvent(new Event('input', { bubbles: true }));
+        d.box.focus();
+      } });
+      d.box.addEventListener('input', () => { setTyped(d.part, d.box.value); d.fill.hidden = !!d.box.value.trim() || !d.part.auto.length; touch(); });
+      d.fill.hidden = !!d.box.value.trim() || !part.auto.length;
+      cueRows.append(el('label', { class: 'f cue-row' }, [d.name, el('div', { class: 'row line' }, [d.box, d.fill])]));
+      return d;
+    });
+  };
+  refreshCues();
+  container.append(el('div', { class: 'cues' }, [
+    el('span', { class: 'f-title', text: t('Words on the cards') }),
+    el('p', { class: 'muted small', text: t('On the cards, under each heading, there are only short cues: # one # for each thought #, each in its own colour. Type your own here, with # between them. A line left empty gets its cues from your text above.') }),
+    cueRows,
+    el('p', { class: 'muted small a5', text: t('To print on A5 cards: in the print window, open More settings and choose A5 as the paper size.') }),
   ]));
 
   // ---- hear the sermon (speech.js, listen.js): the same text as "The sermon", read by an ElevenLabs voice; the recording stays with this preparation on this device

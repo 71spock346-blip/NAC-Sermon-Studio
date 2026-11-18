@@ -8,10 +8,12 @@
  *                  the outline Claude built, with each illustration under
  *                  the point it serves
  *   Cue cards      A5 portrait, the size of the minister's cards on the altar,
- *                  large type: text word, theme, the introduction, and each
- *                  main point with its main thoughts under it and the
- *                  minister's own thought on it; a point is never split over
- *                  two cards
+ *                  large type: text word, theme, and under each heading (the
+ *                  introduction, each main point, the application, the
+ *                  conclusion) one line of short cues in strong colours, as
+ *                  the minister writes his own cards (cues.js); a part is
+ *                  never split over two cards. read.js shows the same on
+ *                  the screen
  *   Guide breakdown  A4 portrait, the Guide's article piece by piece as
  *                  Claude broke it down: a study sheet to read beside the booklet
  *   In plain words A4 portrait, large clear type: the Guide's article as one
@@ -33,6 +35,7 @@ import { audienceOf, audienceLabel, modelLabel, langOf } from './ai.js';
 import * as S from './slides.js';
 import { findService, headingIn } from './guides.js';   // the Guide's headings over the breakdown, in the Guide's language
 import { plainParts } from './plain.js';
+import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';   // the words on the cue cards
 
 const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
 const INK = [29, 43, 56];
@@ -192,7 +195,7 @@ function lines(text) {
 
 const SEP = '  \u00b7  ';   // between the parts of the service line
 
-function serviceLine(s) {
+export function serviceLine(s) {
   const parts = [];
   if (s.date) parts.push(new Date(s.date + 'T12:00:00').toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
   if (s.congregation) parts.push(s.congregation);
@@ -432,12 +435,14 @@ function catechismNotes(w, s) {
 /**
  * The cue cards for the altar: A5 portrait, the size of the cards the
  * minister takes to the altar (Jerome: "I use A5 sized cards on the altar").
- * The text word, the message, the introduction, and each main point with its
- * main thoughts under it (see mainThoughts) and the minister's own thought on
- * it in blue. The introduction is the minister's own (step 3); while that is
- * still empty, the Guide's introduction stands there, marked as the Guide's
- * (`service`: the Guide's article the preparation is linked to). The
- * introduction and each point stay on one card; the cards are numbered.
+ * The text word and the message, and then, as he writes his own cards, under
+ * each heading only one line of short cues, "# cue # cue # cue", each cue in
+ * its own colour and the marks in ink (cues.js: his own cues, or one from
+ * each main thought of the part while he has typed none): the introduction
+ * (his own, or the Guide's while his is empty, marked as the Guide's;
+ * `service` is the Guide's article the preparation is linked to), each main
+ * point, the application and the conclusion. A part stays on one card; the
+ * cards are numbered.
  */
 export function cueCardPdf(s, { service = null } = {}) {
   const doc = new (jsPDF())({ unit: 'mm', format: 'a5', orientation: 'portrait' });
@@ -463,110 +468,69 @@ export function cueCardPdf(s, { service = null } = {}) {
   if (s.text) w.para(s.text, { serif: true, style: 'italic', size: 12, after: 3 });
   if (s.theme) w.para(s.theme, { style: 'bold', size: 14, after: 2 });
   if (s.core) w.para(s.core, { size: 12, after: 3 });
-  // a block (the introduction, a point) goes to a new card when it fits on one
-  const block = parts => {
-    w.keep(parts);
-    for (const [text, opts] of parts) w.para(text, opts);
-    w.space(2.5);
-  };
-  const thoughts = text => mainThoughts(text).map(x => [x, { size: 12, indent: 6, bullet: '\u2022', after: 1 }]);
-  const intro = cueIntro(s, service);
-  if (intro) block([[intro.guide ? t('Introduction, from the Guide') : t('Introduction'), { style: 'bold', size: 13, after: 1.5 }], ...thoughts(intro.text)]);
-  const points = (s.points || []).filter(p => p.heading || p.body);
-  points.forEach((p, i) => {
-    // a point without a heading is headed by its first line, as before
-    let heading = (p.heading || '').trim(), body = p.body || '';
-    if (!heading) { const l = lines(body); heading = l[0] || ''; body = l.slice(1).join('\n'); }
-    const mine = shorten(lines(p.thought).join(' '), 30);
-    block([
-      [`${i + 1}. ${heading}`, { style: 'bold', size: 13, after: 1.5 }],
-      ...thoughts(body),
-      mine ? [t('My thought: ') + mine, { size: 12, indent: 6, color: BLUE, after: 1 }] : null,
-    ].filter(Boolean));
-  });
-  // the application and the close stay together on one card
-  const end = [
-    s.application ? [t('Apply: ') + firstLine(s.application), { size: 12, after: 1 }] : null,
-    s.conclusion ? [t('Close: ') + firstLine(s.conclusion), { size: 12, style: 'italic' }] : null,
-  ].filter(Boolean);
-  if (end.length) { w.space(2); w.keep(end); for (const [text, opts] of end) w.para(text, opts); }
+  for (const part of cueParts(s, { service, lang: langOf(s) })) {
+    const cues = cuesOf(part);
+    if (!cues.length && part.key !== 'point') continue;   // a main point stands with its heading alone; the other parts only with cues
+    cueBlock(w, cueHeading(part), cues);
+  }
   w.footer(s.title || '');
   return { blob: doc.output('blob'), name: fileName(s, '-cue-card'), title: ref };
 }
 
+/** The heading of a part of the cue cards, as the cards and the lines under "Print or save" name it (cues.js cueParts). */
+export function cueHeading(part) {
+  if (part.key === 'intro') return part.guide ? t('Introduction, from the Guide') : t('Introduction');
+  if (part.key === 'point') return part.heading ? `${part.i + 1}. ${part.heading}` : t('Main point {n}', { n: part.i + 1 });
+  return part.key === 'application' ? t('Application') : t('Conclusion');
+}
+
+const CUE_SIZE = 14;   // pt, the headings and the cues: large enough to read at a glance from the altar
+
 /**
- * The introduction on the cue cards, {text, guide}: the minister's own, or,
- * while that is empty, the Guide's introduction to the service. A line break
- * in the Guide's text is only where the booklet's line ended, so its
- * paragraphs are put together first, as the screen shows them (guides.js
- * paras); a list in it keeps its lines.
+ * One part of the cue cards: its heading, underlined and with a colon, and
+ * under it the line of cues, "# cue # cue # cue", flowing like text, each
+ * cue's words in its own colour (cues.js CUE_COLORS, in turn) and a mark in
+ * ink before every cue. The part goes to a new card when it does not fit
+ * below and fits on one.
  */
-function cueIntro(s, service) {
-  const own = (s.intro || '').trim();
-  if (own) return { text: own, guide: false };
-  const text = String((service && service.introduction) || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean).map(p => {
-    const items = p.split('\n').filter(x => x.trim());
-    const list = items.length > 1 && items.every(l => /^\s*[-\u2022\u25a0]\s/.test(l));
-    return list ? items.map(l => l.replace(/^\s*[-\u2022\u25a0]\s*/, '')).join('\n') : p.replace(/\s*\n\s*/g, ' ');
-  }).join('\n');
-  return text ? { text, guide: true } : null;
-}
-
-function firstLine(text) {
-  const l = lines(text);
-  return l.length ? l[0] : '';
-}
-
-/*
- * The main thoughts of a main point, for the cue cards: of a point written in
- * paragraphs or lines, the first sentence of each (so a list the minister
- * typed comes through whole); of a point written as one paragraph, its first,
- * middle and last sentence. Each is kept short enough to take in at a glance.
- */
-export function mainThoughts(body) {
-  const paras = lines(body).map(l => l.replace(LIST_MARK, '').trim()).filter(Boolean);
-  const picked = paras.length > 1 ? paras.map(p => sentences(p)[0]) : spread(sentences(paras[0] || ''), 3);
-  return picked.filter(Boolean).map(x => shorten(x, 20));
-}
-
-const LIST_MARK = /^(?:[-\u2013\u2014\u2022*\u00b7]|\d{1,2}[.)]|[a-z][.)])\s+/i;
-// words before a full stop that do not end a sentence: Bible books and short forms, in English and Afrikaans
-const SHORT_FORMS = new Set(('cf e.g i.e etc vs v vv ch st mr mrs dr no nr bv nl ens vgl d.w.s ds ap ' +
-  'gen ex exod lev num deut josh judg sam kgs chr neh esth ps prov eccl isa jer lam ezek dan hos obad mic nah hab zeph hag zech mal ' +
-  'matt mt mk lk jn rom cor gal eph phil col thess tim tit philem heb jas pet rev ' +
-  'eks spr pred jes eseg joh hand kor ef fil kol tess filem jak op').split(' '));
-
-/** A paragraph in its sentences. A full stop after a short form ("Rom.", "e.g.", "bv.") or an initial does not end one. */
-export function sentences(text) {
-  const out = [];
-  const end = /([.!?\u2026])["'\u201d\u2019)\]]*\s+(?=["'\u201c\u2018(]?(?:\p{Lu}|['\u2019]n\s))/gu;
-  let from = 0, m;
-  while ((m = end.exec(text))) {
-    if (m[1] === '.') {
-      const word = ((text.slice(from, m.index).match(/(\S+)$/) || [])[1] || '').replace(/^["'\u201c\u2018(]+/, '').toLowerCase();
-      if (SHORT_FORMS.has(word) || /^\p{L}$/u.test(word) || /^(?:\p{L}\.)+\p{L}$/u.test(word)) continue;
-    }
-    out.push(text.slice(from, m.index + m[0].length).trim());
-    from = m.index + m[0].length;
+function cueBlock(w, heading, cues) {
+  const doc = w.doc;
+  w.font(CUE_SIZE, 'bold', INK);
+  w.lead = CUE_SIZE * 0.3528 * 1.4;   // a little more room between the lines than running text has
+  const lead = w.lead;
+  const head = doc.splitTextToSize(/[:!?.]$/.test(heading) ? heading : heading + ':', w.width);
+  const tokens = [];
+  cues.forEach((cue, i) => {
+    tokens.push({ text: MARK, color: INK });
+    for (const word of cue.split(' ')) tokens.push({ text: word, color: CUE_COLORS[i % CUE_COLORS.length] });
+  });
+  const space = doc.getTextWidth(' ');
+  const rows = tokens.length ? [[]] : [];
+  let x = 0;
+  for (const tk of tokens) {
+    const width = doc.getTextWidth(tk.text);
+    if (x > 0 && x + width > w.width) { rows.push([]); x = 0; }
+    rows[rows.length - 1].push({ text: tk.text, color: tk.color, x });
+    x += width + space;
   }
-  const rest = text.slice(from).trim();
-  if (rest) out.push(rest);
-  return out;
-}
-
-/** k items spread evenly over a list, the first and the last always among them, in their order. */
-function spread(list, k) {
-  if (list.length <= k) return list;
-  const at = new Set();
-  for (let i = 0; i < k; i++) at.add(Math.round(i * (list.length - 1) / (k - 1)));
-  return [...at].sort((a, b) => a - b).map(i => list[i]);
-}
-
-/** A line of at most `max` words; a longer one is cut a few words earlier and ends in an ellipsis. */
-export function shorten(text, max) {
-  const words = String(text || '').split(/\s+/).filter(Boolean);
-  if (words.length <= max) return words.join(' ');
-  return words.slice(0, max - 4).join(' ').replace(/[,;:\u2013\u2014-]+$/, '') + ' \u2026';
+  const height = head.length * lead + 1 + rows.length * lead + 4;
+  if (w.y + height > w.h - w.m && height <= w.h - 2 * w.m) w.page();
+  doc.setDrawColor(INK[0], INK[1], INK[2]);
+  doc.setLineWidth(0.4);
+  for (const line of head) {
+    w.ensure(lead);
+    const base = w.y + lead * 0.75;
+    doc.text(line, w.m, base);
+    doc.line(w.m, base + 1.1, w.m + doc.getTextWidth(line), base + 1.1);
+    w.y += lead;
+  }
+  w.y += 1;
+  for (const row of rows) {
+    w.ensure(lead);
+    for (const tk of row) { doc.setTextColor(tk.color[0], tk.color[1], tk.color[2]); doc.text(tk.text, w.m + tk.x, w.y + lead * 0.75); }
+    w.y += lead;
+  }
+  w.y += 4;
 }
 
 /**
