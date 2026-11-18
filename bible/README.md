@@ -116,7 +116,7 @@ never committed.
 
 ## The Church's MIS
 
-The MIS section (`src/mis.js`; in the side menu before Settings, on a phone under More)
+The MIS section (`src/mis.js`; under Tools in the side menu, on a phone under More, under the same heading)
 opens the Church's MIS, https://mis.nac-sa.org.za/sign-in. The menu button and the More
 row show the section and open the site at once; the section is the place to come back
 to, with a button to open it again. In the installed app (`display-mode: standalone`, or
@@ -156,9 +156,12 @@ Appearance, or the reader's "Aa" button) is mirrored in localStorage so the page
 in the right colours before the database is open. "Easy-read" swaps Montserrat for
 plain letters (Verdana where the device has it) in the whole app, with more room in the
 reading text. Under 760px the tabs are a bar under the thumb (five of them: Read,
-Notes, Prepare, Catechism and More, which lists the other eight sections, `src/more.js`) and
-the text runs full width on white; from 760px they are a side menu with every section and
-each screen is a white page on a pale ground, with the small blue emblem in its corner.
+Notes, Prepare, Handbooks and More, which lists the other eight sections in groups, the
+Tools under a heading, `src/more.js`) and the text runs full width on white; from 760px
+they are a side menu with every section (Seating, Choir, Reminders, MIS and Reflection
+evening grouped under the heading Tools; the Catechism and the Liturgy are rows under
+Handbooks) and each screen is a white page on a pale ground, with the small blue emblem
+in its corner.
 
 `icons/emblem-line.svg` is the official white line emblem, traced from
 `icons/emblem-white.png`; the app draws it through a CSS mask (`.emblem`), so it takes
@@ -331,9 +334,9 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   language (`en`, `af`), travel with the sync and are not in the backup. `#liturgy`
   lists the cards in the app's language (or the other's when only that booklet is
   loaded); `#liturgy/<key>` is one card, with an EN | AF switch when both are loaded, the
-  reader's text sizes under "Aa" and a screen wake lock. A PC has Liturgy in the side
-  menu; the phone's bar keeps five tabs, so there it is listed under More and sits at
-  the top of Prepare as well, and More stays lit. `node tools/test_booklet.mjs booklet.pdf` reads a PDF in Node and prints
+  reader's text sizes under "Aa" and a screen wake lock. Liturgy is a row under
+  Handbooks, with the Catechism, on a PC and on a phone, and Handbooks stays lit while
+  it is open; on a phone the cards sit at the top of Prepare as well. `node tools/test_booklet.mjs booklet.pdf` reads a PDF in Node and prints
   the cards (after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`).
 - **Handbooks.** `src/handbooks.js` is the Church's handbooks for ministers: the *Guide for
   Ministers* (the rule book), the *"Serving and Leading"* guiding principle and the *Liturgy
@@ -351,7 +354,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   the backup. `#handbooks` lists the loaded handbooks with a word search across them (and
   "Ask the handbooks", `src/ask.js`, where the helper is unlocked: Claude answers from the
   chapters `relevant()` picks, naming them; the Catechism, once its text is loaded, is listed,
-  searched and asked here too, and opens on its own tab); `#handbooks/<key>` is a handbook's contents;
+  searched and asked here too, and opens its own screen, as the Liturgy's row does); `#handbooks/<key>` is a handbook's contents;
   `#handbooks/<key>/<n>` one chapter with the chapters under it and previous/next. A PC has
   Handbooks in the side menu after Catechism; a phone lists it under More. `node
   tools/test_handbook.mjs` checks the parser against a made-up fixture
@@ -484,7 +487,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/handbook.js` – reads a handbook (the pages of a PDF, or a text file) into chapters and blocks, and searches them
 - `src/ask.js` – "Ask Claude" about a book: the box, the chapters `relevant()` picks, the answer with its citations as links; under Handbooks and on the Catechism tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
-- `src/more.js` – the phone's More tab: the nine sections its bar has no room for, one under the other
+- `src/more.js` – the phone's More tab: the eight sections its bar has no room for, in groups, the Tools under their heading
 - `src/mis.js` – the MIS section: opens the Church's site over the installed app, or in a tab of its own from a browser
 - `src/reminders.js` – the Reminders tab; `src/reminders-lib.js` (the listing PDFs, the roster, phone numbers, the dates coming up), `src/reminders-templates.js` (the greetings), `src/reminders-ics.js` (the calendar file), `src/reminders-sheet.js` (Excel out and back)
 - `src/plan.js` – the Month plan tab; `src/plan-lib.js` (the district's sheet as a plan: the days, the service days, the events, the calendar feed, the message), `src/plan-xlsx.js` (reading the .xlsx and writing the congregation's column into it, without a library), `src/plan-pdf.js` (the month as a one-page programme)

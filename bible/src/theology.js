@@ -46,7 +46,7 @@
  * opens a sheet on the chosen verses, and the button beside the chapter's
  * title opens the chapter here. On a phone the tab bar keeps five tabs, so
  * there Theology is listed under More (more.js) and reached from the reader;
- * on a PC it has its own place in the side menu.
+ * on a PC it has its own place in the side menu, after Handbooks.
  */
 import { el, clear, toast, sheet, busy, seg, fmtDate, confirmBox } from './ui.js';
 import { t, tn, lang } from './i18n.js';
@@ -537,7 +537,7 @@ function answerParts(d, level, ref, l = '') {
   const list = v => (Array.isArray(v) ? v : []);
   const part = (title, body, cls) => {
     const items = [].concat(body).filter(Boolean);
-    // the heading is in the app's language, what Claude wrote in its own (the Catechism's titles stay as the Catechism tab has them)
+    // the heading is in the app's language, what Claude wrote in its own (the Catechism's titles stay as the Catechism has them)
     if (l) for (const x of items) if (x.setAttribute && !x.classList.contains('th-catrefs')) x.setAttribute('lang', l);
     return items.length ? el('section', { class: 'th-sec' + (cls ? ' ' + cls : '') }, [el('h4', { text: title }), ...items]) : null;
   };
@@ -757,7 +757,7 @@ async function savedPage(level, ref, row, opts = {}) {
     const more = limit ? items.length - limit : 0;
     return [
       ...(more > 0 ? items.slice(0, limit) : items).map(x => section(x.section.n, x.section.title, '', x.extra)),
-      more > 0 ? { p: tn(more, 'And one more section in the Catechism tab.', 'And {n} more sections in the Catechism tab.'), small: true } : null,
+      more > 0 ? { p: tn(more, 'And one more section in the Catechism.', 'And {n} more sections in the Catechism.'), small: true } : null,
     ];
   };
 
