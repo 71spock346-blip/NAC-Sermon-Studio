@@ -1734,3 +1734,47 @@ body.showing { overflow: hidden; }
   .plan-when { flex-basis: 104px; }
   .plan-when b { font-size: 14.5px; }
 }
+
+/* ------------------------------------------------ the cue cards' words and the readings on the screen */
+/* the words on the cue cards (prepare.js, under Print or save): one line per heading; the cues the app takes from the
+   text stand grey in the box until the person types his own */
+.cues { margin-top: 14px; padding: 10px 12px 6px; border-radius: var(--radius); background: var(--card); }
+.cues > .f-title { display: block; margin-bottom: 2px; font: 700 15px/1.35 var(--display); color: var(--head-ink); }
+.cues > p { margin: 0 0 6px; }
+.cues > p.a5 { margin: 8px 0 4px; }
+.cue-rows { display: flex; flex-direction: column; gap: 2px; }
+.cue-rows label.f { margin: 4px 0; }
+#tab-prepare .cue-rows label.f .f-title { font-size: 13.5px; }
+.cue-rows textarea.oneline { font-weight: 600; }
+/* reading on the screen (read.js): the sermon or the cue cards in a sheet, in the reader's text sizes, with the row to change them behind Aa */
+.read-sheet .sheet-card { max-height: 96dvh; }
+.read-size { margin: 0 0 12px; }
+.read-view { line-height: 1.6; padding: 2px 0 10px; max-width: 70ch; }
+.read-view.size-s { font-size: 16px; }
+.read-view.size-m { font-size: 17.5px; }
+.read-view.size-l { font-size: 20.5px; }
+.read-view.size-xl { font-size: 24.5px; }
+@media (min-width: 760px) {
+  .read-view.size-s { font-size: 17px; }
+  .read-view.size-m { font-size: 18.5px; }
+  .read-view.size-l { font-size: 21.5px; }
+  .read-view.size-xl { font-size: 25.5px; }
+}
+.read-view p { margin: 0 0 .7em; }
+.read-view h1 { font: 700 1.35em/1.25 var(--display); color: var(--head-ink); margin: .2em 0 .5em; }
+.read-view h2 { font: 700 1.1em/1.3 var(--display); color: var(--accent-text); margin: 1em 0 .35em; }
+.read-view .read-svc { color: var(--muted); font-size: .8em; margin-bottom: .4em; }
+.read-view .read-ref { color: var(--accent-text); font-weight: 700; font-size: 1.05em; margin-bottom: .4em; }
+.read-view .read-word { font-family: var(--serif); font-style: italic; margin: 0 0 .8em; padding: 0 0 0 .8em; border-left: 3px solid var(--accent); }
+.read-view .read-theme { font-weight: 700; }
+.read-view .read-extra { color: var(--muted); font-size: .85em; margin-bottom: .2em; }
+.read-view .read-in { margin-left: 1em; }
+[data-read="easy"] .read-view { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
+/* the cue cards on the screen: the headings underlined, each cue in its own colour and the marks in ink, as on the printed card (cues.js CUE_COLORS) */
+.cue-view .cue-head { color: var(--ink); text-decoration: underline; text-underline-offset: .15em; margin: .9em 0 .3em; font-size: 1.05em; }
+.cue-view .cue-line { font-weight: 700; line-height: 1.55; }
+.cue-view .cue-mark { color: var(--ink); }
+.cue.c0 { color: var(--cue-0); } .cue.c1 { color: var(--cue-1); } .cue.c2 { color: var(--cue-2); } .cue.c3 { color: var(--cue-3); }
+.cue.c4 { color: var(--cue-4); } .cue.c5 { color: var(--cue-5); } .cue.c6 { color: var(--cue-6); } .cue.c7 { color: var(--cue-7); }
+:root { --cue-0: #6a1b9a; --cue-1: #c62828; --cue-2: #1565c0; --cue-3: #2e7d32; --cue-4: #e65100; --cue-5: #00838f; --cue-6: #ad1457; --cue-7: #6d4c41; }
+:root[data-theme="dark"] { --cue-0: #ce93d8; --cue-1: #ff8a80; --cue-2: #82b1ff; --cue-3: #a5d6a7; --cue-4: #ffab91; --cue-5: #80deea; --cue-6: #f48fb1; --cue-7: #d7ccc8; }
