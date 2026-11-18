@@ -507,6 +507,15 @@ function voiceSection(container) {
   ]);
   const speedSeg = seg(Speech.SPEEDS, Speech.SPEEDS.some(x => x[0] === S.voiceSpeed) ? S.voiceSpeed : 'normal', v => saveSetting('voiceSpeed', v), { block: true, label: t('Speed') });
   const qualitySeg = seg(Speech.QUALITIES, S.voiceQuality === 'cheaper' ? 'cheaper' : 'best', v => saveSetting('voiceQuality', v), { block: true, label: t('Voice quality') });
+  const feelingSeg = seg(Speech.FEELINGS, Speech.FEELINGS.some(x => x[0] === S.voiceFeeling) ? S.voiceFeeling : 'natural', v => saveSetting('voiceFeeling', v), { block: true, label: t('Feeling') });
+  const toneBox = el('input', { type: 'text', class: 'tone', placeholder: t('For example: gentle, reassuring, encouraging, inspirational'), spellcheck: 'false', autocomplete: 'off' });
+  toneBox.value = Speech.toneWords();
+  toneBox.addEventListener('change', async () => {
+    const v = Speech.toneWords(toneBox.value);
+    toneBox.value = v;
+    await saveSetting('voiceTone', v);
+    toast(v ? t('Saved. The voice follows these words from the next reading.') : t('No tone words: the voice reads as it is.'));
+  });
 
   container.append(section(t('Read aloud'), [
     el('p', { class: 'small', text: t('An ElevenLabs voice can read the sermon to you, under "Print or save" in a preparation: the text word, the introduction, the main points, the summary, the application and the conclusion, as "The sermon" prints them, in English or in Afrikaans. Under step 2 it reads the Guide\'s article too. It works with a key of your own: you pay ElevenLabs for the characters it reads, and the key stays on this device, out of any backup.') }),
@@ -523,6 +532,10 @@ function voiceSection(container) {
     el('div', { class: 'fields two' }, [
       el('label', { class: 'f' }, [t('Speed'), speedSeg, el('span', { class: 'hint muted small', text: t('How fast the voice reads. "Slower" helps to hear every word.') })]),
       el('label', { class: 'f' }, [t('Voice quality'), qualitySeg, el('span', { class: 'hint muted small', text: t('"Best" is the newest ElevenLabs voice and counts one character per letter. "Cheaper" counts half a character per letter and sounds a little less natural.') })]),
+    ]),
+    el('div', { class: 'fields two' }, [
+      el('label', { class: 'f' }, [t('Feeling'), feelingSeg, el('span', { class: 'hint muted small', text: t('How much feeling the voice puts in. "Steady" keeps the reading even; "Lively" acts the words out most.') })]),
+      el('label', { class: 'f' }, [t('Tone'), toneBox, el('span', { class: 'hint muted small', text: t('Words, in English, that tell the voice how to read. The app puts them in brackets before each paragraph, so they count as characters too. Empty leaves the voice to itself.') })]),
     ]),
     el('p', { class: 'muted small', text: t('What goes to ElevenLabs: the text of the sermon or of the Guide\'s article, nothing else. ElevenLabs keeps the recordings in your account\'s history, where you can delete them.') }),
   ]));

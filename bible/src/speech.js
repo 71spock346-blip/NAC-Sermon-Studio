@@ -25,10 +25,20 @@
  * takes the turbo model at half the characters. A model the account may not
  * use is passed over for the next in the list, so a change at ElevenLabs
  * does not stop the reading.
+ *
+ * How it reads: every piece goes with voice settings (speak), so a voice's
+ * own settings at ElevenLabs do not decide the delivery: the stability for
+ * the Feeling chosen under Settings (steady, natural or lively), the likeness
+ * to the voice as it was cloned, and the speed. The tone words from Settings
+ * ("gentle, reassuring, encouraging, inspirational", Jerome's own) go before
+ * each paragraph in square brackets for the models that follow such a
+ * direction (v3 and v4), the way ElevenLabs' prompting guide directs a
+ * narration; the older models get the text without them. Words in capitals
+ * (LORD, HERE) are lowered, since the newer models would stress them.
  */
 import { t } from './i18n.js';
 import { AF } from './af.js';
-import { state, db } from './store.js';
+import { state, db, DEFAULT_SETTINGS } from './store.js';
 import * as Pdf from './pdf.js';
 import { langOf } from './ai.js';
 
@@ -63,6 +73,21 @@ export const SPEEDS = [['slower', 'Slower'], ['normal', 'Normal'], ['faster', 'F
 const SPEED = { slower: 0.9, normal: 1, faster: 1.1 };
 export const QUALITIES = [['best', 'Best'], ['cheaper', 'Cheaper']];
 
+/*
+ * How much feeling the voice may put in: the stability asked for with every
+ * piece (ElevenLabs: lower is freer and more expressive, higher is more
+ * even). v3 takes 0, 0.5 or 1 only (Creative, Natural, Robust).
+ */
+export const FEELINGS = [['steady', 'Steady'], ['natural', 'Natural'], ['lively', 'Lively']];
+const STABILITY = { steady: 0.85, natural: 0.5, lively: 0.3 };
+const STABILITY_V3 = { steady: 1, natural: 0.5, lively: 0 };
+const SIMILARITY = 0.75;   // the likeness to the voice as it was cloned: ElevenLabs' usual value
+export const TONE = DEFAULT_SETTINGS.voiceTone;   // the standard tone words
+const TAGS = new Set(['eleven_v3', 'eleven_v4', 'eleven_v4_turbo']);   // the models that follow a direction in square brackets; the older ones would read it aloud
+// words in capitals the voice should see as they are: short names and abbreviations, and roman numerals (ROMAN)
+const KEEP = new Set(['NAC', 'NAK', 'CNAC', 'KNAK', 'MIS', 'NKJV', 'KJV', 'ESV', 'NIV', 'NLT', 'NLV', 'WEB', 'ASV', 'RSV', 'NRSV', 'NASB', 'AMP', 'MSG', 'CEV', 'GNB', 'NBV', 'AFR', 'OT', 'NT', 'AD', 'BC', 'TV', 'CD', 'DVD', 'USA', 'SA', 'UK', 'OK']);
+const ROMAN = /^[IVXLCDM]+$/;
+
 const cache = { plan: null, voices: null, models: null };   // what the key told us this session
 
 /* ------------------------------------------------------------------ the key */
@@ -82,7 +107,7 @@ function apiError(status, text) {
   try {
     const d = JSON.parse(text).detail;
     if (typeof d === 'string') msg = d;
-    else if (Array.isArray(d)) msg = d.map(x => x && x.msg).filter(Boolean).join(' ');
+    else if (Array.isArray(d)) msg = d.map(x => x && x.msg && ((Array.isArray(x.loc) ? x.loc.filter(p => p !== 'body').join('.') + ': ' : '') + x.msg)).filter(Boolean).join(' ');   // a validation error names its field: "voice_settings.speed: extra fields not permitted"
     else if (d) { code = d.status || ''; msg = d.message || ''; }
   } catch (e) { msg = ''; }
   const e = new Error('');
@@ -194,7 +219,9 @@ const VERSE = { en: ['verse', 'to'], af: ['vers', 'tot'] };
 
 /**
  * Text as a voice should see it: no verse numbers, footnote marks, bullets
- * or links, and "John 3:16-18" said as "John 3 verse 16 to 18".
+ * or links, "John 3:16-18" said as "John 3 verse 16 to 18", and a word in
+ * capitals (LORD, HERE, GOD'S) written as a word, since the newer models
+ * stress capitals; a short abbreviation (NKJV, NAC) or a roman numeral stays.
  * `textWord` also drops the verse numbers the fetched text carries.
  */
 export function clean(text, l, textWord) {
@@ -204,6 +231,8 @@ export function clean(text, l, textWord) {
     .replace(/\[\d{1,3}\]/g, '')
     .replace(/https?:\/\/\S+/g, '')
     .replace(/^[ \t]*(?:[•·▪◦*\-–—]|\d{1,2}[.)])[ \t]+/gm, '')   // bullets and numbered lists: the words alone
+    .replace(/(?<![\p{L}\d])\p{Lu}{2,}(?![\p{L}\d])/gu, w => KEEP.has(w) || ROMAN.test(w) ? w : w[0] + w.slice(1).toLowerCase())
+    .replace(/(\p{Ll})'S(?!\p{L})/gu, "$1's")
     .replace(/(\p{L}\.?\s)(\d{1,3}):(\d{1,3})(?:\s?[-–]\s?(\d{1,3}))?/gu, (m, pre, ch, from, end) => `${pre}${ch} ${verse} ${from}${end ? ` ${to} ${end}` : ''}`);
   if (textWord) v = v.replace(/^\s*\d{1,3}\s+/gm, '').replace(/\s\d{1,3}\s(?=\p{Lu})/gu, ' ');
   return v.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
@@ -282,17 +311,40 @@ function spokenDate(iso, l) {
   return isNaN(d) ? '' : d.toLocaleDateString(l === 'af' ? 'af-ZA' : 'en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-/** The script object every reading starts from. */
+/**
+ * The script object every reading starts from. The pieces carry the tone
+ * words, which ElevenLabs counts as characters too; the mark and the minutes
+ * come from the text alone.
+ */
 function scripted(text, l, title) {
-  const chars = text.length;
+  const spoken = tagged(text, toneWords());
   return {
-    text, lang: l, title, chars,
+    text, lang: l, title, chars: spoken.length,
     words: text ? text.split(/\s+/).length : 0,
-    minutes: Math.max(1, Math.round(chars / CHARS_PER_MINUTE)),
-    pieces: pieces(text),
+    minutes: Math.max(1, Math.round(text.length / CHARS_PER_MINUTE)),
+    pieces: pieces(spoken),
     key: textKey(text),
   };
 }
+
+/** The tone words as Settings holds them, tidied: no brackets, one space between words; '' for none. `v` tidies other text the same way. */
+export function toneWords(v = state.settings.voiceTone) {
+  return String(v == null ? TONE : v).replace(/[[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * The text with the tone before each paragraph, "[gentle, reassuring] Introduction.
+ * …": how the v3 and v4 models take a direction for the words that follow (the
+ * prompting guide puts one at the start of each paragraph of a narration).
+ */
+export function tagged(text, words) {
+  const w = String(words || '').trim();
+  if (!w || !text) return text || '';
+  return text.split(/\n{2,}/).map(p => p.trim() ? `[${w}] ${p.trimStart()}` : p).join('\n\n');
+}
+
+/** The same text without the directions, for a model that would read them aloud. */
+export function untagged(text) { return String(text || '').replace(/(^|\n\n)\[[^\]\n]*\] /g, '$1'); }
 
 /** A short mark of a text: the same text gives the same mark. */
 export function textKey(text) {
@@ -352,6 +404,40 @@ function modelProblem(e) {
 }
 
 /**
+ * What the voice is asked for with every piece: the stability for the
+ * Feeling under Settings, the likeness to the voice, for the older models no
+ * added style and the speaker boost (the newer ones have neither), and the
+ * speed when it is not the usual one.
+ */
+export function voiceSettings(model, s = state.settings) {
+  const f = STABILITY[s.voiceFeeling] === undefined ? 'natural' : s.voiceFeeling;
+  const out = { stability: (model === 'eleven_v3' ? STABILITY_V3 : STABILITY)[f], similarity_boost: SIMILARITY };
+  if (!TAGS.has(model)) { out.style = 0; out.use_speaker_boost = true; }
+  const speed = SPEED[s.voiceSpeed] || 1;
+  if (speed !== 1) out.speed = speed;
+  return out;
+}
+
+/**
+ * The settings without what a model refused (a 422 names the field, like
+ * "voice_settings.speed"): a stability between the steps v3 takes moves to
+ * the nearest step; a named field goes; else the speed, then the style. Null
+ * when nothing is left to take away.
+ */
+export function trimmed(s, msg) {
+  const m = String(msg || '').toLowerCase().replace(/_/g, ' ');
+  const drop = (...keys) => { const r = { ...s }; for (const k of keys) delete r[k]; return r; };
+  if (m.includes('stability') && ![0, 0.5, 1].includes(s.stability)) return { ...s, stability: s.stability >= 0.75 ? 1 : s.stability > 0.25 ? 0.5 : 0 };
+  for (const k of ['speed', 'style', 'use_speaker_boost', 'similarity_boost', 'stability']) {
+    if (k in s && m.includes(k.replace(/_/g, ' ').replace('use ', ''))) return k === 'style' ? drop('style', 'use_speaker_boost') : drop(k);
+  }
+  if ('speed' in s) return drop('speed');
+  if ('style' in s) return drop('style', 'use_speaker_boost');
+  return null;
+}
+const SETTINGS_PROBLEM = /voice.settings|stability|similarity|style|speaker|speed/i;
+
+/**
  * Reads the sermon, from the boxes or from the outline. Resolves to the
  * recording: {blob, chars, voice, model, lang, at, key, source, title,
  * minutes}. onProgress(i, n) says which piece is on its way; `signal` stops it.
@@ -376,20 +462,20 @@ async function speak(sc, { signal, onProgress, source }) {
   let voice = voiceFor(sc.lang);
   const known = await models().catch(() => null);
   const candidates = modelsFor(sc.lang, state.settings.voiceQuality, known);
-  const speed = SPEED[state.settings.voiceSpeed] || 1;
   const list = sc.pieces;
   const parts = [];
   let model = candidates[0];
-  let settings = speed !== 1 ? { speed } : null;
+  let settings = voiceSettings(model);
+  let sent = 0;
   for (let i = 0; i < list.length; i++) {
     if (onProgress) onProgress(i + 1, list.length);
     for (;;) {
       if (signal && signal.aborted) throw stopped();
-      const body = { text: list[i], model_id: model };
+      const text = TAGS.has(model) ? list[i] : untagged(list[i]);   // the tone words only to a model that follows them
+      const body = { text, model_id: model, voice_settings: settings };
       if (!NO_LANGUAGE_CODE.has(model)) body.language_code = sc.lang;
-      if (settings) body.voice_settings = settings;
-      if (i > 0) body.previous_text = list[i - 1].slice(-600);
-      if (i < list.length - 1) body.next_text = list[i + 1].slice(0, 600);
+      if (i > 0) body.previous_text = untagged(list[i - 1]).slice(-600);
+      if (i < list.length - 1) body.next_text = untagged(list[i + 1]).slice(0, 600);
       let r;
       try {
         r = await fetch(`${API}/v1/text-to-speech/${encodeURIComponent(voice.id)}?output_format=mp3_44100_128`, {
@@ -399,21 +485,25 @@ async function speak(sc, { signal, onProgress, source }) {
         if (e && e.name === 'AbortError') throw stopped();
         throw new Error(t('No connection to ElevenLabs. Check your network and try again.'));
       }
-      if (r.ok) { parts.push(await r.arrayBuffer()); break; }
+      if (r.ok) { parts.push(await r.arrayBuffer()); sent += text.length; break; }
       const err = apiError(r.status, await r.text());
       const next = candidates[candidates.indexOf(model) + 1];
       if (err.code === 'voice_not_found' && voice.standard) { voice = fallbackVoice(sc.lang); continue; }   // the standard voice is another account's: one this account has
-      if (modelProblem(err) && next) { model = next; continue; }                       // this account has no such model: the next one
-      if (settings && err.status === 422 && /speed|voice_settings/i.test(err.message)) { settings = null; continue; }   // the model takes no speed: read at the usual pace
+      if (err.status === 422 && SETTINGS_PROBLEM.test(err.message)) {               // the model takes no such setting: once more without it, before any thought of another model
+        const less = trimmed(settings, err.message);
+        if (less) { settings = less; continue; }
+      }
+      if (modelProblem(err) && next) { model = next; settings = voiceSettings(model); continue; }   // this account has no such model: the next one, with its settings
       throw err;
     }
   }
   cache.plan = null;   // the characters used show on the next look
   return {
     blob: new Blob(parts, { type: 'audio/mpeg' }),
-    chars: sc.chars, words: sc.words, minutes: sc.minutes,
+    chars: sent, words: sc.words, minutes: sc.minutes,
     voice: { id: voice.id, name: voice.name }, model, lang: sc.lang,
     at: new Date().toISOString(), key: sc.key, source, title: sc.title,
+    feeling: state.settings.voiceFeeling || 'natural', tone: TAGS.has(model) ? toneWords() : '',
   };
 }
 
