@@ -360,6 +360,7 @@ function renderIndex(container, q) {
   }
   input.addEventListener('input', show);
   container.append(...[
+    el('div', { class: 'crumbs' }, [el('a', { href: '#handbooks', text: t('Handbooks') })]),   // the Catechism is listed under Handbooks (handbooks.js)
     el('div', { class: 'docbar' }, [el('h2', { text: t('Catechism of the New Apostolic Church') })]),
     text
       ? el('p', { class: 'muted small', text: t('Open a chapter to read its sections, see which Bible verses each one quotes, and search the whole text by word. The reader marks every verse the Catechism refers to with a "C".') })
@@ -376,6 +377,7 @@ function renderSection(container, s) {
   const tx = textOf(s.n);
   container.append(
     el('div', { class: 'crumbs' }, [
+      el('a', { href: '#handbooks', text: t('Handbooks') }), ' › ',
       el('a', { href: '#catechism', text: t('Catechism') }),
       parentN && data.byN[parentN] ? [' › ', el('a', { href: `#catechism/${encodeURIComponent(parentN)}`, text: parentN })] : null,
     ].flat()),
