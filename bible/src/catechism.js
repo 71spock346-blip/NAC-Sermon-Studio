@@ -18,12 +18,17 @@
  * that fit it, naming them. For that, and for the Handbooks tab, which
  * searches and asks the Catechism together with the handbooks, asHandbook()
  * gives the Catechism the shape of a loaded handbook (handbook.js).
+ *
+ * With the text here, Print on a section opens "Print or save"
+ * (handbook-pdf.js): the section, or the section with those under it, as a
+ * PDF in large clear type, with Save as PDF, Print and Share as in Prepare.
  */
 import { el, clear } from './ui.js';
 import { t, lang } from './i18n.js';
 import { keyToRef, formatRef } from './books.js';
 import { state, getCatechismText } from './store.js';
 import { askBox } from './ask.js';
+import { printButton, printSheet, catechismPdf } from './handbook-pdf.js';   // Print or save: a section, or a section with those under it, as a PDF
 
 let data = null;
 let loading = null;
@@ -375,6 +380,7 @@ function renderSection(container, s) {
   const parentN = parts(s.n).length > 1 ? s.n.split('.').slice(0, -1).join('.') : null;
   const verses = versesOf(s.n);
   const tx = textOf(s.n);
+  const rows = printRows(s, tx);
   container.append(
     el('div', { class: 'crumbs' }, [
       el('a', { href: '#handbooks', text: t('Handbooks') }), ' › ',
@@ -385,6 +391,7 @@ function renderSection(container, s) {
       el('h2', { text: (s.n === 'Intro' || s.n === 'Appendix' ? '' : s.n + '  ') + s.title }),
       el('div', { class: 'spacer' }),
       el('a', { class: 'btn small ghost', href: url(s), target: '_blank', rel: 'noopener', text: 'nak.org ↗' }),
+      rows.length ? printButton(() => printSheet(rows)) : null,
     ]),
   );
   if (tx && (tx.blocks.length || (tx.summary || []).length)) {
@@ -420,6 +427,21 @@ function renderSection(container, s) {
     }
     container.append(list);
   }
+}
+
+/**
+ * What a section's Print gives (handbook-pdf.js printSheet), once the text
+ * is on the device: the section on its own, when it has text of its own,
+ * and with every section under it, when any of those has text.
+ */
+function printRows(s, tx) {
+  if (!text) return [];
+  const own = tx && (tx.blocks.length || (tx.summary || []).length);
+  const under = data.sections.filter(x => x.n !== s.n && x.n.startsWith(s.n + '.'));
+  const rows = [];
+  if (own) rows.push([t('This section'), () => catechismPdf([s])]);
+  if (under.some(x => textOf(x.n))) rows.push([t('This section and those under it'), () => catechismPdf([s, ...under])]);
+  return rows;
 }
 
 /** Short list of sections for a verse popover: [{n, title, url}] */

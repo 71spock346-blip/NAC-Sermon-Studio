@@ -725,6 +725,29 @@ function frontMatter(front, lines, body, pdf, heads = []) {
 
 /* ---------------------------------------------------------------- reading and searching */
 
+/**
+ * The number a chapter goes by: its own (4.5.1), or the one its title opens
+ * with where the book gives a chapter no number of its own (the Liturgy
+ * book's "2.1 Word service"); '' for a chapter without one, an appendix
+ * (A1) or the Catechism's introduction. In a title only a number with a
+ * point counts: "1 Corinthians 13" is a title, not chapter 1.
+ */
+export function numberOf(c) {
+  if (c.n) return /^\d/.test(c.n) ? c.n : '';
+  const m = String(c.title || '').match(/^(\d+(?:\.\d+)+)\.?\s/);
+  return m ? m[1] : '';
+}
+
+/**
+ * The chapters under a chapter, at every depth, in the book's order: 4.5.1
+ * to 4.5.4 under 4.5, and "2.1 Word service" under 2. For printing a chapter
+ * with all that belongs to it (handbook-pdf.js).
+ */
+export function chaptersUnder(chapters, c) {
+  const n = numberOf(c);
+  return n ? chapters.filter(x => x !== c && numberOf(x).startsWith(n + '.')) : [];
+}
+
 /** Every word of a chapter, for a search and for Claude: the title, then each block as one line. */
 export function plainText(chapter) {
   const out = [(chapter.n ? chapter.n + ' ' : '') + chapter.title];

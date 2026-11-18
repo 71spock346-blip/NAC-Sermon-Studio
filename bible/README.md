@@ -337,7 +337,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   reader's text sizes under "Aa" and a screen wake lock. Liturgy is a row under
   Handbooks, with the Catechism, on a PC and on a phone, and Handbooks stays lit while
   it is open; on a phone the cards sit at the top of Prepare as well. `node tools/test_booklet.mjs booklet.pdf` reads a PDF in Node and prints
-  the cards (after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`).
+  the cards (after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`). **Print** on a card,
+  and at the top of the list, opens "Print or save" (`src/handbook-pdf.js`): the card, or
+  all the cards, as a PDF on A4 or A5 with the label left and the words right, with Save as
+  PDF, Print and Share as in Prepare.
 - **Handbooks.** `src/handbooks.js` is the Church's handbooks for ministers: the *Guide for
   Ministers* (the rule book), the *"Serving and Leading"* guiding principle and the *Liturgy
   of the New Apostolic Church* (2024), or any other handbook with numbered chapters. They are
@@ -360,6 +363,13 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   tools/test_handbook.mjs` checks the parser against a made-up fixture
   (`tools/fixtures/handbook-sample.txt`); with a file it reads a real handbook and prints its
   chapters (a PDF after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`).
+  **Print** on a chapter, a handbook's contents page, the Creed and a Catechism section opens
+  "Print or save" (`src/handbook-pdf.js`, on `pdf.js`'s `Writer`): the chapter, the chapter
+  with those under it, the whole handbook, the Creed or the section as an A4 PDF in large
+  clear type, with Save as PDF, Print and Share as in Prepare. The browser's own Print
+  (Ctrl+P) on a page under Handbooks, the Liturgy or the Catechism gives the page alone,
+  without the app around it, on white paper whatever the look on the screen (`styles.css`,
+  `@media print`); every other section prints as it did.
 - **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
   in IndexedDB on the device (`src/store.js`). At start the app asks the browser to keep
   that storage when the device runs short of space (`app.js keepData`,

@@ -49,7 +49,7 @@ function jsPDF() {
 }
 
 /** A cursor that writes down the page and starts a new one when it runs out. */
-class Writer {
+export class Writer {
   constructor(doc, margin) {
     this.doc = doc;
     this.m = margin;

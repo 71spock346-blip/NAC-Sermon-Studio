@@ -1337,9 +1337,9 @@ body.showing { overflow: hidden; }
 [data-read="easy"] .lit-card { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
 [data-read="easy"] .lit-note { font-style: normal; }
 /* a card's words changed by hand (liturgy.js editPage): the same grid, with a box for the label, the lines under it and each block */
-.lit-page .btns { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: auto; }   /* the buttons stay together when the title line is short */
-.lit-edit-btn .ico { display: inline-flex; }
-.lit-edit-btn .ico svg { width: 15px; height: 15px; display: block; }
+.lit-page .btns, .hb-page .btns { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: auto; }   /* the buttons stay together when the title line is short */
+.lit-edit-btn .ico, .print-btn .ico { display: inline-flex; }
+.lit-edit-btn .ico svg, .print-btn .ico svg { width: 15px; height: 15px; display: block; }
 .lit-changed { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 0; }
 .lit-tag { display: block; font-weight: 400; }
 .lit-hint { margin: -4px 0 12px; max-width: 70ch; line-height: 1.5; }
@@ -1407,6 +1407,58 @@ body.showing { overflow: hidden; }
 .hb-nav a { font-weight: 700; text-decoration: none; max-width: 48%; }
 .hb-nav .hb-next { text-align: right; margin-left: auto; }
 .hb-credit { margin-top: 16px; max-width: 70ch; }
+/* "Print or save" behind the Print button of a page under Handbooks (handbook-pdf.js): a row per thing to print, its name over its buttons */
+.print-lead { margin: 0 0 12px; max-width: 60ch; line-height: 1.5; }
+.print-paper { margin: 0 0 14px; gap: 10px; }
+.print-rows { gap: 14px; margin-top: 0; }
+.print-rows .out-row .out-label { flex: 1 0 100%; }
+
+/*
+ * The browser's own Print (Ctrl+P on a PC) on a page under Handbooks: a
+ * chapter, the Creed, an altar card, a Catechism section come out alone,
+ * without the app around them. The header, the menu, the tab bar, the
+ * messages and an open sheet stay off the paper, the paper is white with
+ * dark letters whatever the look on the screen, and the buttons, the search
+ * and the way to the next chapter stay off too, so the words print as they
+ * read on the screen, in the size chosen under Aa. Paper is as narrow as a
+ * phone to the rules above, so an altar card gets its two columns back.
+ * Only while one of these three sections is open (:has; an older browser
+ * prints the app around the page, as before): every other section and the
+ * seating plan's own sheet (below) print as they did. The Print button
+ * gives the same words as a PDF (handbook-pdf.js).
+ */
+@media print {
+  #tab-handbooks, #tab-liturgy, #tab-catechism {
+    color-scheme: light;
+    --bg: #fff; --surface: #fff; --surface-2: #f3f7fb; --card: #edf4fb;
+    --ink: #1d2b38; --ink-2: #3a4b5c; --muted: #5b6b7b;
+    --line: rgba(29, 64, 99, .2); --line-strong: rgba(29, 64, 99, .4); --btn-line: rgba(1, 104, 181, .38);
+    --accent: #0168b5; --accent-ink: #fff; --accent-text: #0168b5; --accent-soft: #e3eef9;
+    --head-ink: #0168b5; --label-ink: #0168b5; --danger: #b0302a; --danger-soft: #fbe9e7;
+    --highlight: #dcebf8; --highlight-bar: #0168b5;
+    --mark-c: #5f36ad; --mark-c-bg: #ece5fa; --mark-n: #8a5200; --mark-n-bg: #fbeccf;
+    --c-blue: #0168b5; --c-amber: #8a5200; --c-purple: #5f36ad; --c-green: #1f6b3a; --c-red: #a3302a; --c-slate: #4b5563;
+    color: var(--ink); max-width: none;
+  }
+  :root:has(:is(#tab-handbooks, #tab-liturgy, #tab-catechism):not([hidden])),
+  :root:has(:is(#tab-handbooks, #tab-liturgy, #tab-catechism):not([hidden])) body { color-scheme: light; background: #fff; min-height: 0; }   /* the paper's edge too, where the print dialog is set to print backgrounds; no empty sheet after a short page */
+  :root:has(:is(#tab-handbooks, #tab-liturgy, #tab-catechism):not([hidden])) :is(header.top, nav.side, .update-bar, .toast, .overlay, .splash) { display: none !important; }
+  :root:has(:is(#tab-handbooks, #tab-liturgy, #tab-catechism):not([hidden])) .shell { display: block; min-height: 0; }
+  :root:has(:is(#tab-handbooks, #tab-liturgy, #tab-catechism):not([hidden])) main { padding: 0; }
+  :is(#tab-handbooks, #tab-liturgy, #tab-catechism) .page { background: none; box-shadow: none; border-radius: 0; padding: 0; }
+  :is(#tab-handbooks, #tab-liturgy, #tab-catechism) .page::after { display: none; }
+  #tab-liturgy .lit-row { grid-template-columns: minmax(130px, 2fr) 5fr; gap: 4px 22px; }   /* the label beside the words, as the booklet prints them */
+  #tab-handbooks .crumbs, #tab-liturgy .crumbs, #tab-catechism .crumbs,
+  #tab-handbooks .docbar .btn, #tab-liturgy .docbar .btn, #tab-catechism .docbar .btn,
+  #tab-handbooks .docbar .seg, #tab-liturgy .docbar .seg,
+  #tab-handbooks .hb-search, #tab-handbooks .hb-ask, #tab-catechism .cat-ask, #tab-catechism input[type="search"],
+  #tab-handbooks .hb-nav, #tab-handbooks .hb-cat, #tab-handbooks .lit-books, #tab-liturgy .lit-books, #tab-liturgy .lit-fullbook,
+  #tab-liturgy .lit-changed .btn, #tab-liturgy .lit-actions, #tab-handbooks .chev, #tab-liturgy .chev { display: none !important; }
+  :is(#tab-handbooks, #tab-catechism) .hb-text, #tab-catechism .cat-text { max-width: none; }
+  :is(#tab-handbooks, #tab-liturgy, #tab-catechism) :is(.docbar, .hb-h, h3.sub) { break-after: avoid; }   /* a heading stays with what follows it */
+  :is(#tab-handbooks, #tab-liturgy) :is(.lit-row, .hb-li, .lit-li) { break-inside: avoid; }   /* a row of a card stays whole: its label never parts from its words */
+  :is(#tab-handbooks, #tab-liturgy, #tab-catechism) p { orphans: 3; widows: 3; }
+}
 .hb-ask { margin: 18px 0 6px; }
 .hb-ask .hb-q { width: 100%; margin: 8px 0 10px; }
 .hb-answer { margin-top: 12px; }

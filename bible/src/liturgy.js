@@ -26,12 +26,18 @@
  * the card, the booklet's own rows are kept under `orig` so "Back to the
  * booklet's words" can put them back, and the booklet's row gets `updated`,
  * which the sync compares, so the change reaches the other devices.
+ *
+ * Print on a card, and at the top of the list, opens "Print or save"
+ * (handbook-pdf.js): the card, or all the cards, as a PDF on A4 or on A5
+ * like the cards at the altar, with Save as PDF, Print and Share as in
+ * Prepare.
  */
 import { el, clear, toast, confirmBox, busy, seg, sheet, fmtDate, lineBox, SIZES } from './ui.js';
 import { state, saveLiturgy, deleteLiturgy, saveSetting } from './store.js';
 import { t, lang } from './i18n.js';
 import * as Sync from './sync.js';
 import { editedRows } from './booklet.js';
+import { printButton, printSheet, cardPdf } from './handbook-pdf.js';   // Print or save: a card, or all the cards, as a PDF on A4 or A5
 
 const LANGS = ['en', 'af'];
 
@@ -91,8 +97,11 @@ function crumbs(links) {
   return el('div', { class: 'crumbs' }, parts);
 }
 
+/** The copyright line, on the screen and at the foot of a PDF. */
+const creditText = () => t('Liturgy for Altar Use © New Apostolic Church Cape. Loaded by you onto your own device for your use at the altar; it is not part of the public app.');
+
 function credit() {
-  return el('p', { class: 'muted small lit-credit', text: t('Liturgy for Altar Use © New Apostolic Church Cape. Loaded by you onto your own device for your use at the altar; it is not part of the public app.') });
+  return el('p', { class: 'muted small lit-credit', text: creditText() });
 }
 
 function listPage(container) {
@@ -100,7 +109,10 @@ function listPage(container) {
   const bk = booklet(l);
   container.append(
     crumbs([[t('Handbooks'), '#handbooks']]),   // the Liturgy is listed under Handbooks (handbooks.js)
-    el('div', { class: 'docbar' }, [el('h2', { text: t('Liturgy') })]),
+    el('div', { class: 'docbar' }, [
+      el('h2', { text: t('Liturgy') }),
+      bk ? printButton(() => printSheet([[t('All the cards'), paper => cardPdf(bk, bk.cards, { paper, credit: creditText() })]], { paper: true })) : null,   // the booklet shown, every card on a page of its own
+    ]),
     el('p', { class: 'lit-lead', text: t('The words said at the altar, from the Church\'s booklet "Liturgy for altar use": the divine service and each act of blessing, card by card, as the booklet prints them.') }),
   );
   if (!bk) {
@@ -199,6 +211,7 @@ function cardPage(container, key) {
         el('span', { class: 'btns' }, [
           el('button', { class: 'btn small ghost', type: 'button', text: 'Aa', 'aria-label': t('Text size'), onclick: () => sizeSheet(body) }),
           el('button', { class: 'btn small ghost lit-edit-btn', type: 'button', 'aria-label': t('Edit the words of this card'), onclick: () => { clear(container); editPage(container, key, l, bk, card); } }, [pencil(), t('Edit')]),
+          printButton(() => printSheet([[t('This card'), paper => cardPdf(bk, [card], { paper, credit: creditText() })]], { paper: true })),
         ]),
       ]),
       body,
