@@ -430,8 +430,17 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   and "Remove". The standard voices (`STANDARD_VOICES`) are Jerome's own clones, one per
   language; a key whose account lacks them gets `voice_not_found` and the reading falls
   back to the chosen English voice or to George. Settings → Read aloud holds the
-  key, what the plan has left, the voice for each language with a sample, the speed and
-  the quality.
+  key, what the plan has left, the voice for each language with a sample, the speed,
+  the quality, the feeling and the tone words. Every piece goes with `voice_settings`
+  (`voiceSettings`): the stability for the Feeling chosen (`FEELINGS`: steady 0.85,
+  natural 0.5, lively 0.3; `eleven_v3` takes 1, 0.5 or 0), the likeness 0.75, for the
+  older models style 0 and the speaker boost, and the speed when it is not normal; a 422
+  that names a field drops it (`trimmed`) and sends the piece again. The tone words
+  (`settings.voiceTone`, Jerome's "gentle, reassuring, encouraging, inspirational") go
+  before each paragraph in square brackets (`tagged`) for v3 and v4, the way ElevenLabs'
+  prompting guide directs a narration, and count as characters; the older models get the
+  text without them (`untagged`). `clean` lowers words in capitals (LORD, HERE), which
+  the newer models would stress; short abbreviations and roman numerals stay.
 - **Reflection evening.** "Reflection evening" has its own place in the side menu
   (`#reflect`, `prepare.js renderReflect`): load the Church's reflection guide, the
   evenings with slides, and the latest services held. `src/reflect.js` is the screen
