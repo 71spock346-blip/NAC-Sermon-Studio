@@ -35,6 +35,11 @@
  * asHandbook). Where the AI helper is unlocked (lock.js), the list page also
  * has "Ask the handbooks" (ask.js): Claude answers a question from the
  * chapters that fit it, naming them; a locked device shows nothing of that.
+ *
+ * Print on a chapter, on a handbook's contents page and on the Creed opens
+ * "Print or save" (handbook-pdf.js): the chapter, the chapter with those
+ * under it, the whole handbook, the whole Creed or one article as a PDF in
+ * large clear type, with Save as PDF, Print and Share as in Prepare.
  */
 import { el, clear, toast, confirmBox, busy, seg, sheet, fmtDate, SIZES } from './ui.js';
 import { state, saveHandbook, deleteHandbook, saveSetting } from './store.js';
@@ -45,6 +50,7 @@ import { askBox, hrefOf, indexAt, label } from './ask.js';   // "Ask the handboo
 import * as Cat from './catechism.js';   // the Catechism: searched and asked here too, once its text is on the device
 import { icon as chalice } from './liturgy.js';   // the chalice of the Liturgy, for its row
 import * as Sync from './sync.js';
+import { printButton, printSheet, chapterPdf } from './handbook-pdf.js';   // Print or save: a chapter, the chapters under it, the whole book or the Creed as a PDF
 
 /** The sections listed under Handbooks that have screens of their own: Handbooks stays lit in the menu and the bar while one of them is open (app.js). */
 export const UNDER = ['catechism', 'liturgy'];
@@ -142,10 +148,14 @@ function crumbs(links) {
   return el('div', { class: 'crumbs' }, parts);
 }
 
-/** The copyright line: the handbooks are loaded by the minister himself; the Creed is part of the app. */
+/** The copyright line: the handbooks are loaded by the minister himself; the Creed is part of the app. On the screen, and at the foot of a PDF. */
+function creditText(hb) {
+  if (hb && hb.builtIn) return t('The Creed of the New Apostolic Church © New Apostolic Church International, Zurich. The ten Articles of Faith, as the Church confesses them; part of the app.');
+  return t('The handbooks are © New Apostolic Church International, Zurich. Loaded by you onto your own device for your own work as a minister; they are not part of the public app.');
+}
+
 function credit(hb) {
-  if (hb && hb.builtIn) return el('p', { class: 'muted small hb-credit', text: t('The Creed of the New Apostolic Church © New Apostolic Church International, Zurich. The ten Articles of Faith, as the Church confesses them; part of the app.') });
-  return el('p', { class: 'muted small hb-credit', text: t('The handbooks are © New Apostolic Church International, Zurich. Loaded by you onto your own device for your own work as a minister; they are not part of the public app.') });
+  return el('p', { class: 'muted small hb-credit', text: creditText(hb) });
 }
 
 /** "Current as of 15.01.2025 (Version 4) · 104 pages · 271 chapters"; for the Creed, what it is. */
@@ -277,6 +287,7 @@ function contentsPage(container, hb) {
       el('div', { class: 'docbar' }, [
         el('h2', { text: hb.title, lang: hb.language }),
         others.length ? seg([hb, ...others].map(x => [x.language, x.language.toUpperCase()]), hb.language, v => { picked.set(hb.key, v); render(container, ['handbooks', hb.key]); }, { label: t('Language') }) : null,
+        el('span', { class: 'btns' }, [printButton(() => printSheet([[t('The whole handbook'), () => chapterPdf(hb, hb.chapters, { whole: true, credit: creditText(hb) })]]))]),
       ]),
       el('p', { class: 'muted small', text: [hb.ownTitle && hb.ownTitle !== hb.title ? hb.ownTitle : '', aboutLine(hb), t('Loaded {date} from {file}.', { date: fmtDate(hb.loadedAt), file: hb.fileName || t('a file') })].filter(Boolean).join(' · ') }),
       searchBox([hb], '', hb),
@@ -312,7 +323,10 @@ function chapterPage(container, hb, addr) {
       el('div', { class: 'docbar' }, [
         el('h2', { text: label(c), lang: hb.language }),
         others.length ? seg([hb, ...others].map(x => [x.language, x.language.toUpperCase()]), hb.language, v => { picked.set(hb.key, v); render(container, ['handbooks', hb.key, addr]); }, { label: t('Language') }) : null,
-        el('button', { class: 'btn small ghost', type: 'button', text: 'Aa', 'aria-label': t('Text size'), onclick: () => sizeSheet(body) }),
+        el('span', { class: 'btns' }, [
+          el('button', { class: 'btn small ghost', type: 'button', text: 'Aa', 'aria-label': t('Text size'), onclick: () => sizeSheet(body) }),
+          printButton(() => printSheet(printRows(hb, c))),
+        ]),
       ]),
       c.blocks.length ? body : null,
       kids.length ? el('div', {}, [
@@ -350,13 +364,29 @@ function wholePage(container, hb) {
       el('div', { class: 'docbar' }, [
         el('h2', { text: hb.title, lang: hb.language }),
         others.length ? seg([hb, ...others].map(x => [x.language, x.language.toUpperCase()]), hb.language, v => { picked.set(hb.key, v); render(container, ['handbooks', hb.key]); }, { label: t('Language') }) : null,
-        el('button', { class: 'btn small ghost', type: 'button', text: 'Aa', 'aria-label': t('Text size'), onclick: () => sizeSheet(body) }),
+        el('span', { class: 'btns' }, [
+          el('button', { class: 'btn small ghost', type: 'button', text: 'Aa', 'aria-label': t('Text size'), onclick: () => sizeSheet(body) }),
+          printButton(() => printSheet([[t('The whole Creed'), () => chapterPdf(hb, hb.chapters, { whole: true, credit: creditText(hb) })]])),
+        ]),
       ]),
       el('p', { class: 'muted small', text: t('The ten Articles of Faith, as the Church confesses them. Each article is explained in the Catechism, chapter 2.4; part of the app, nothing to load.') }),
       body,
       credit(hb),
     ]),
   );
+}
+
+/**
+ * What a chapter's Print gives (handbook-pdf.js printSheet): the chapter on
+ * its own, when it has words of its own, and with every chapter under it,
+ * when there are any; an article of the Creed on its own.
+ */
+function printRows(hb, c) {
+  const under = c.n && !/^A/.test(c.n) ? hb.chapters.filter(x => x.n.startsWith(c.n + '.')) : [];
+  const rows = [];
+  if (c.blocks.length || !under.length) rows.push([hb.builtIn ? t('This article') : t('This chapter'), () => chapterPdf(hb, [c], { credit: creditText(hb) })]);
+  if (under.length) rows.push([t('This chapter and the chapters under it'), () => chapterPdf(hb, [c, ...under], { credit: creditText(hb) })]);
+  return rows;
 }
 
 /** "In the Catechism: 2.4.4 ›": the section of the Catechism that explains an article of the Creed. */

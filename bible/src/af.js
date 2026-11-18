@@ -1861,4 +1861,20 @@ export const AF = {
   "The Church's teaching, chapter by chapter. Searched and asked here too.": "Die Kerk se leer, hoofstuk vir hoofstuk. Dit word hier ook deursoek en gevra.",
   "The Church's teaching, chapter by chapter. Load its text under Settings to search and ask it here too.": "Die Kerk se leer, hoofstuk vir hoofstuk. Laai sy teks onder Verstellings om dit hier ook te deursoek en te vra.",
   "Claude reads the chapters of the handbooks, and the sections of the Catechism, that fit your question and answers from them in plain words, naming them, so you can check what the books say. The answer is not kept.": "Claude lees die hoofstukke van die handboeke, en die afdelings van die Kategismus, wat by jou vraag pas en antwoord daaruit in gewone woorde, met hulle by die naam, sodat jy kan nagaan wat die boeke sê. Die antwoord word nie bewaar nie.",
+
+  // ---- Print or save under Handbooks: a chapter, the Creed, a Catechism section or an altar card as a PDF (handbook-pdf.js)
+  "Print or save as PDF": "Druk of stoor as PDF",
+  "As a PDF in large clear type, to keep, to print or to send on.": "As 'n PDF in groot duidelike letters, om te hou, te druk of aan te stuur.",
+  "Building the PDF…": "Bou die PDF…",
+  "There is nothing to print.": "Daar is niks om te druk nie.",
+  "Page {page} of the printed book": "Bladsy {page} van die gedrukte boek",
+  "This chapter": "Hierdie hoofstuk",
+  "This chapter and the chapters under it": "Hierdie hoofstuk en die hoofstukke daaronder",
+  "This article": "Hierdie artikel",
+  "The whole Creed": "Die hele Geloofsbelydenis",
+  "The whole handbook": "Die hele handboek",
+  "This section": "Hierdie afdeling",
+  "This section and those under it": "Hierdie afdeling en dié daaronder",
+  "This card": "Hierdie kaart",
+  "All the cards": "Al die kaarte",
 };
