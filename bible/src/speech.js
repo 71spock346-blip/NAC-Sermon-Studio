@@ -6,7 +6,7 @@
  * (settings.voiceKey, kept on the device like the Anthropic key: out of any
  * backup, carried to the other device only with "Carry my keys"). What is
  * read is the same text as "The sermon" in pdf.js (sermonParts): the text
- * word, the introduction, the main points, the summary, the application and
+ * word, the introduction, the main points, the application, the summary and
  * the conclusion, with the illustrations under the parts they serve, from the
  * boxes of the preparation or from the outline Claude built. The headings
  * are spoken in the language of the preparation, not of the app.
@@ -267,8 +267,8 @@ export function script(s, { outline = null } = {}) {
   if (c.intro) push(w('Introduction'), withExtras(c.intro, c.after.intro));
   for (const p of c.points) push(w('Main point {n}').replace('{n}', p.n) + (p.heading ? ': ' + p.heading : ''), withExtras(p.body, p.extras));
   if (c.after.loose.length) push(w('Illustrations'), extras(c.after.loose));
-  if (c.summary) push(w('Summary'), c.summary);
   if (c.application) push(w('Application for the congregation'), withExtras(c.application, c.after.application));
+  if (c.summary) push(w('Summary'), c.summary);
   if (c.conclusion) push(w('Conclusion'), withExtras(c.conclusion, c.after.conclusion));
 
   return scripted(parts.empty ? '' : clean(blocks.join('\n\n'), l), l, parts.title);

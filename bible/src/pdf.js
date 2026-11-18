@@ -266,9 +266,9 @@ export function sermonPdf(s) {
     catechismNotes(w, s);
   }
   if (s.crossRefs) { w.heading(t('Cross references')); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); }
-  // 6. the summary and conclusion
-  if (s.summary) { w.heading(t('Summary')); w.para(s.summary); }
+  // 6. the summary and conclusion, in the order of the boxes: the application, then the summary that gathers up, then the close
   if (s.application) { w.heading(t('Application for the congregation')); w.para(s.application); }
+  if (s.summary) { w.heading(t('Summary')); w.para(s.summary); }
   if (s.conclusion) { w.heading(t('Conclusion')); w.para(s.conclusion); }
   // 7. and 8. the person's own
   if (s.illustrations) { w.heading(t('Illustrations and experiences')); w.para(s.illustrations); }
@@ -329,8 +329,8 @@ export function sermonParts(s, { outline = null } = {}) {
 
 /**
  * The sermon itself, in reading order and in large clear type, to read from:
- * the text word, the introduction, the main points, the summary, the
- * application and the conclusion, with each illustration under the part it
+ * the text word, the introduction, the main points, the application, the
+ * summary and the conclusion, with each illustration under the part it
  * serves. From the boxes of the preparation, or, with `outline`, as Claude
  * built it, with where the person's thoughts went at the end.
  */
@@ -371,8 +371,8 @@ export function sermonTextPdf(s, { outline = null } = {}) {
     extras(p.extras);
   }
   if (c.after.loose.length) { w.heading(t('Illustrations')); extras(c.after.loose); }
-  if (c.summary) { w.heading(t('Summary')); w.para(c.summary, read); }
   if (c.application) { w.heading(t('Application for the congregation')); w.para(c.application, read); extras(c.after.application); }
+  if (c.summary) { w.heading(t('Summary')); w.para(c.summary, read); }
   if (c.conclusion) { w.heading(t('Conclusion')); w.para(c.conclusion, read); extras(c.after.conclusion); }
   if (c.outline) {
     w.space(2);

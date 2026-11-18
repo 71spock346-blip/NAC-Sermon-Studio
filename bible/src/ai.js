@@ -890,7 +890,7 @@ Put nothing outside the JSON fields.`;
  * points, application, conclusion and illustrations, each with a line on why
  * it works. Draws on the text and its chapter, the Guide's article, the
  * minister's own notes in the other steps (his draft of the introduction,
- * main points, summary, application and conclusion, his understanding of the
+ * main points, application, summary and conclusion, his understanding of the
  * text under step 5), the ticked Catechism sections and the minister's
  * experience and illustration notes.
  */
@@ -920,8 +920,8 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   const draft = [
     s.intro ? `Introduction: ${s.intro}` : '',
     where.mode === 'guide' ? ownPointsLine(s, where) : points.map((p, i) => `Main point ${i + 1}: ${p.heading}${p.body ? ' – ' + p.body : ''}`).join('\n'),
-    s.summary ? `Summary: ${s.summary}` : '',
     s.application ? `Application: ${s.application}` : '',
+    s.summary ? `Summary: ${s.summary}` : '',
     s.conclusion ? `Conclusion: ${s.conclusion}` : '',
     s.illustrations ? `Illustrations: ${s.illustrations}` : '',
   ].filter(Boolean);
