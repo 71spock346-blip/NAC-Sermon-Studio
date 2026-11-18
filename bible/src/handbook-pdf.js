@@ -273,16 +273,21 @@ export function catechismPdf(sections) {
 /*
  * A card lies at the altar as one sheet, so it is fitted on its paper: on one
  * page whenever its words can still be read at that size, in the largest
- * letters that fit, up to the large type of a short card. Only a card too
- * long for that takes a second page, and then it has the largest letters
- * that keep it to those pages. Everything on the card keeps its proportion to
- * the words: the labels, the notes, the title and the room between the rows.
+ * letters that fit, up to the large type of a short card. The lines close up
+ * before the letters grow smaller, since at an altar the size of the letters
+ * counts for more than the room between the lines. Only a card too long for
+ * that takes a second page, and then it has the largest letters that keep it
+ * to its sheets, front and back (fitCard). Everything on the card keeps its
+ * proportion to the words: the labels, the notes, the title and the room
+ * between the rows.
  */
 const PAPER = {
   a4: { format: 'a4', side: 14, foot: 14, words: 13, gap: 6 },
   a5: { format: 'a5', side: 10, foot: 12, words: 12, gap: 4 },   // like the cards at the altar; the foot stays clear of the page's footer line
 };
-const SMALLEST = 9;    // points: words smaller than this are not read at an altar, so a card that long goes over the page
+const OPEN = 1.4;      // the distance from line to line of the words, in letter sizes, on a card with room to spare
+const CLOSE = 1.2;     // and at its closest
+const SMALLEST = 10;   // points: words smaller than this are not read at an altar, so a card that long goes over the page
 const STEP = 0.25;     // the letters are tried a quarter of a point at a time
 const TINY = 8;        // the lines under a label and the booklet's small print never go under this
 
@@ -332,15 +337,19 @@ function column(doc, g, x, width, items, y0) {
 }
 
 /**
- * Draws one card from the top of the last page of `doc`, its words `pt`
- * points large, and gives the number of pages it took. The label of each
- * row is on the left, in blue, with the booklet's lines under it; the words
- * are on the right, the booklet's notes in blue italics and its lists with
- * their bullets; a dotted rule lies between the rows, as on the screen. The
- * copyright line `credit` closes the card.
+ * Draws one card from the top of the last page of `doc`, set as `set` says
+ * ({pt, lines}: the size of its words in points, and the distance from line
+ * to line in letter sizes, OPEN to CLOSE), and gives the number of pages it
+ * took. The label of each row is on the left, in blue, with the booklet's
+ * lines under it; the words are on the right, the booklet's notes in blue
+ * italics and its lists with their bullets; a dotted rule lies between the
+ * rows, as on the screen. The copyright line `credit` closes the card.
  */
-function drawCard(doc, P, pt, bk, card, credit) {
-  const k = pt / P.words;   // 1 is the large type; the room between the lines and the rows shrinks with the letters
+function drawCard(doc, P, set, bk, card, credit) {
+  const pt = set.pt, lines = set.lines || OPEN;
+  const k = pt / P.words;   // 1 is the large type; the room between the rows shrinks with the letters
+  const air = Math.min(1, Math.max(0, (lines - CLOSE) / (OPEN - CLOSE)));   // 1 with room to spare, 0 with the lines at their closest: the rows and the paragraphs close up with the lines
+  const under = (1.6 + 0.4 * air) * k;   // the room under a paragraph
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   const g = { top: P.side, foot: H - P.foot };
   const x = P.side, width = W - 2 * P.side;
@@ -356,16 +365,16 @@ function drawCard(doc, P, pt, bk, card, credit) {
   for (const line of doc.splitTextToSize(s(card.title), width)) { doc.text(line, x, y + title * 0.28); y += title * 0.445; }
   y += 3 * k;
 
-  const RULE = 6 * k;   // the room the dotted rule takes between two rows
+  const RULE = (5 + air) * k;   // the room the dotted rule takes between two rows
   /** The dotted rule between two rows. */
   const rule = () => {
-    y += 2.5 * k;
+    y += RULE * 5 / 12;
     doc.setDrawColor(LINE[0], LINE[1], LINE[2]);
     doc.setLineWidth(0.3);
     doc.setLineDashPattern([0.6, 1.4], 0);
     doc.line(x, y, W - x, y);
     doc.setLineDashPattern([], 0);
-    y += RULE - 2.5 * k;
+    y += RULE * 7 / 12;
   };
 
   /**
@@ -377,17 +386,18 @@ function drawCard(doc, P, pt, bk, card, credit) {
    */
   const row = (r, first) => {
     const L = [];
-    if (r.label) L.push({ text: s(r.label), size: pt * 0.96, style: 'bold', color: BLUE, leading: 1.3, after: k });
-    for (const sub of r.sub || []) L.push({ text: s(sub), size: Math.max(TINY, pt * 0.78), style: 'italic', color: MUTED, leading: 1.3, after: 0.5 * k });
+    const tight = Math.min(1.3, lines);   // a label's own lines
+    if (r.label) L.push({ text: s(r.label), size: pt * 0.96, style: 'bold', color: BLUE, leading: tight, after: k });
+    for (const sub of r.sub || []) L.push({ text: s(sub), size: Math.max(TINY, pt * 0.78), style: 'italic', color: MUTED, leading: tight, after: 0.5 * k });
     const R = (r.blocks || []).map(b => {
       const d = Math.min(3, Math.max(0, b.d || 0));
       const text = glued(s(runText(b.t)));
       const small = every(b.t, 's');
       const size = small ? Math.max(TINY, pt * 0.82) : pt;
       const style = styleOf(b.t);
-      if (b.k === 'li') return { text, size, style, indent: 5 * k * Math.max(0, d - 1), bullet: BULLET[d] || BULLET[1], hang: 4.5 * k, after: 1.5 * k };
-      if (b.k === 'note') return { text, size: small ? size : pt * 0.92, style: style === 'normal' ? 'italic' : style, color: BLUE, indent: 5 * k * d, after: 2 * k };
-      return { text, size, style, indent: 5 * k * d, after: 2 * k };
+      if (b.k === 'li') return { text, size, style, leading: lines, indent: 5 * k * Math.max(0, d - 1), bullet: BULLET[d] || BULLET[1], hang: 4.5 * k, after: under * 0.75 };
+      if (b.k === 'note') return { text, size: small ? size : pt * 0.92, style: style === 'normal' ? 'italic' : style, color: BLUE, leading: lines, indent: 5 * k * d, after: under };
+      return { text, size, style, leading: lines, indent: 5 * k * d, after: under };
     });
     const h = Math.max(measure(doc, L, left), measure(doc, R, right));
     if (!first) {
@@ -411,30 +421,53 @@ function drawCard(doc, P, pt, bk, card, credit) {
 }
 
 /**
- * How a card goes on its paper: {pt, pages}, the size of its words and the
- * pages it takes. A card that fits on one page in the large type has it;
- * else it gets the fewest pages its words can be read on (never smaller
- * than SMALLEST) and the largest letters that keep it to them. Each try
- * draws the card on a sheet of scratch paper, so the size found is the size
- * that is drawn.
+ * The ways a card can be set on a paper, from the best to read to the one
+ * that takes the least room: the large type with its lines closing up, then
+ * the letters growing smaller with the lines at their closest.
+ */
+function settings(P) {
+  const list = [];
+  for (let lines = OPEN; lines > CLOSE + 0.001; lines -= 0.05) list.push({ pt: P.words, lines: Math.round(lines * 100) / 100 });
+  for (let pt = P.words; pt >= SMALLEST; pt -= STEP) list.push({ pt, lines: CLOSE });
+  return list;
+}
+
+/**
+ * How a card goes on its paper: {pt, lines, pages}, the size of its words,
+ * the distance from line to line and the pages it takes. A card that fits on
+ * one page with words that can be read there (never smaller than SMALLEST)
+ * is on one page, in the first of the settings that fits. A longer card
+ * keeps to the fewest sheets of paper, printed front and back, in the first
+ * setting that keeps it to them: its letters are not made smaller only to
+ * leave the back of its last sheet empty. Each try draws the card on a sheet
+ * of scratch paper, so the setting found is the one that is drawn.
  */
 function fitCard(lib, P, bk, card, credit) {
-  const pagesAt = pt => drawCard(new lib({ unit: 'mm', format: P.format, orientation: 'portrait' }), P, pt, bk, card, credit);
-  const large = pagesAt(P.words);
-  if (large === 1) return { pt: P.words, pages: 1 };
-  const pages = pagesAt(SMALLEST);
-  if (pages === large) return { pt: P.words, pages };   // smaller letters would save no page
-  let lo = 0, hi = Math.round((P.words - SMALLEST) / STEP);   // steps up from the smallest: lo keeps to the pages, hi does not
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if (pagesAt(SMALLEST + mid * STEP) <= pages) lo = mid; else hi = mid;
+  const tries = settings(P), last = tries.length - 1, seen = [];
+  const pagesAt = i => seen[i] || (seen[i] = drawCard(new lib({ unit: 'mm', format: P.format, orientation: 'portrait' }), P, tries[i], bk, card, credit));
+  const as = i => ({ pt: tries[i].pt, lines: tries[i].lines, pages: pagesAt(i) });
+  if (pagesAt(0) === 1) return as(0);
+  const least = pagesAt(last);
+  if (least === 1) {
+    // on one page every setting takes less room than the one before it, so the first that fits is found by halving
+    let no = 0, yes = last;
+    while (yes - no > 1) {
+      const mid = (no + yes) >> 1;
+      if (pagesAt(mid) === 1) yes = mid; else no = mid;
+    }
+    return as(yes);
   }
-  return { pt: SMALLEST + lo * STEP, pages };
+  // Over more pages a row that moves on to the next page leaves room behind it, so a setting
+  // can take fewer pages than one after it: each is tried in turn.
+  const most = 2 * Math.ceil(least / 2);   // both sides of the sheets it needs at the least
+  let i = 0;
+  while (i < last && pagesAt(i) > most) i++;
+  return as(i);
 }
 
 const paperOf = paper => PAPER[paper === 'a5' ? 'a5' : 'a4'];
 
-/** How the cards would go on a paper, without building the PDF: for each, {pt, pages} (fitCard). */
+/** How the cards would go on a paper, without building the PDF: for each, {pt, lines, pages} (fitCard). */
 export function cardFit(bk, cards, { paper = 'a4', credit = '' } = {}) {
   const lib = jsPDF(), P = paperOf(paper);
   return cards.map(card => fitCard(lib, P, bk, card, credit));
@@ -481,7 +514,7 @@ export function cardPdf(bk, cards, { paper = 'a4', credit = '' } = {}) {
   const fit = cards.map((card, i) => {
     if (i) doc.addPage();
     const f = fitCard(lib, P, bk, card, credit);
-    drawCard(doc, P, f.pt, bk, card, credit);
+    drawCard(doc, P, f, bk, card, credit);
     return f;
   });
   const cover = bk.cover || t('Liturgy for altar use');

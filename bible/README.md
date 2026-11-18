@@ -341,10 +341,12 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   and at the top of the list, opens "Print or save" (`src/handbook-pdf.js`): the card, or
   all the cards, as a PDF on A4 or A5 with the label left and the words right, with Save as
   PDF, Print and Share as in Prepare. A card is fitted on one page in the largest letters
-  that fit there (`fitCard` tries the sizes by drawing the card on scratch paper, never
-  under 9 pt; a card too long for that gets the fewest pages and the largest letters that
-  keep it to them), the sheet says how the cards go on the paper chosen (`cardNote`), and
-  Ctrl+P on a card prints that same PDF (`printNow`, the key handler in `liturgy.js`).
+  that fit there (`fitCard` tries the settings by drawing the card on scratch paper: first
+  the lines close up, from 1.4 to 1.2 letter sizes apart, then the letters grow smaller,
+  never under 10 pt; a card too long for that keeps to the fewest sheets, printed front and
+  back, in the largest letters that keep it to them), the sheet says how the cards go on
+  the paper chosen (`cardNote`), and Ctrl+P on a card prints that same PDF (`printNow`, the
+  key handler in `liturgy.js`).
 - **Handbooks.** `src/handbooks.js` is the Church's handbooks for ministers: the *Guide for
   Ministers* (the rule book), the *"Serving and Leading"* guiding principle and the *Liturgy
   of the New Apostolic Church* (2024), or any other handbook with numbered chapters. They are
