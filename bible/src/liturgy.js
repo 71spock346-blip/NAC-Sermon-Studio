@@ -39,7 +39,7 @@ import { state, saveLiturgy, deleteLiturgy, saveSetting } from './store.js';
 import { t, lang } from './i18n.js';
 import * as Sync from './sync.js';
 import { editedRows } from './booklet.js';
-import { printButton, printSheet, printNow, cardPdf, cardNote } from './handbook-pdf.js';   // Print or save: a card, or all the cards, as a PDF on A4 or A5
+import { printButton, printSheet, printNow, cardPdf, cardNote } from './handbook-pdf.js';   // Print or save: a card, or all the cards, as a PDF on A4, on A5 or on one side of an A5 card
 
 const LANGS = ['en', 'af'];
 

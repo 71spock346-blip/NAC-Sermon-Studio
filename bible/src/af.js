@@ -1885,4 +1885,11 @@ export const AF = {
   "Longer than one page: {n} of the {m} cards.": "Langer as een bladsy: {n} van die {m} kaarte.",
   "On A4: {n} of the {m}.": "Op A4: {n} van die {m}.",
   "On A4 each card fits on one page.": "Op A4 pas elke kaart op een bladsy.",
+  // "A5, one side": a long card kept on one side of an A5 card, in smaller letters; the sheet says the size
+  "A5, one side": "A5, een kant",
+  "On one side, in {pt} point letters.": "Op een kant, in letters van {pt} punt.",
+  "Too long for one side: {n} sides, in {pt} point letters.": "Te lank vir een kant: {n} kante, in letters van {pt} punt.",
+  "Each card is on one side.": "Elke kaart is op een kant.",
+  "Longer than one side: {n} of the {m} cards.": "Langer as een kant: {n} van die {m} kaarte.",
+  "The smallest letters are {pt} point.": "Die kleinste letters is {pt} punt.",
 };

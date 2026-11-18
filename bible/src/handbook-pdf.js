@@ -18,7 +18,8 @@
  *               and the words on the right, as the booklet prints them. A
  *               card is fitted on one page, in the largest letters that fit
  *               there; only a card too long to be read at that size takes a
- *               second page.
+ *               second page. "A5, one side" keeps such a card on one side of
+ *               its A5 card, in smaller letters.
  *
  * Every page has the same Print button (printButton), which opens the same
  * sheet (printSheet): a row for each thing the page can give, with Save as
@@ -29,7 +30,7 @@
  * winAnsi): Afrikaans and English print whole.
  */
 import { el, toast, seg, sheet, fmtDate } from './ui.js';
-import { t, tl } from './i18n.js';
+import { t, tl, lang } from './i18n.js';
 import { Writer, winAnsi, download, print as printPdf, share, canShare } from './pdf.js';
 import * as Cat from './catechism.js';
 import { label, addrOf } from './ask.js';
@@ -57,18 +58,19 @@ export function printButton(onclick) {
   return el('button', { class: 'btn small ghost print-btn', type: 'button', title: t('Print or save as PDF'), 'aria-label': t('Print or save as PDF'), onclick }, [ico, t('Print')]);
 }
 
-/** The paper the altar cards are printed on, as last chosen on this device: A4, or A5 like the cards at the altar. */
+/** The paper the altar cards are printed on, as last chosen on this device: A4, A5 like the cards at the altar, or one side of an A5 card (PAPER). */
 function paperSize() {
-  try { return localStorage.getItem('sb-print-paper') === 'a5' ? 'a5' : 'a4'; } catch (e) { return 'a4'; }
+  try { return paperKey(localStorage.getItem('sb-print-paper')); } catch (e) { return 'a4'; }
 }
 
 /**
  * The sheet behind every Print button: a row for each thing the page can
  * give ([label, make], make(paper) building {blob, name, title}), each with
  * Save as PDF, Print and, on a phone that can, Share, as under "Print or
- * save" in Prepare. With `paper`, A4 | A5 stands above the rows (the altar
- * cards); the choice is kept on the device. `note(paper)` gives a line for
- * under that choice, which says how the cards go on the paper (cardNote).
+ * save" in Prepare. With `paper`, A4 | A5 | A5, one side stands above the
+ * rows (the altar cards); the choice is kept on the device. `note(paper)`
+ * gives a line for under that choice, which says how the cards go on the
+ * paper (cardNote).
  */
 export function printSheet(rows, { paper = false, note = null } = {}) {
   const s = sheet(t('Print or save'));
@@ -80,7 +82,7 @@ export function printSheet(rows, { paper = false, note = null } = {}) {
     const tell = () => { if (says) setTimeout(() => { try { says.textContent = note(size); } catch (e) { says.textContent = ''; } }, 50); };
     s.body.append(el('div', { class: 'row print-paper' }, [
       el('span', { class: 'small', text: t('Paper') }),
-      seg([['a4', 'A4'], ['a5', 'A5']], size, v => { size = v; try { localStorage.setItem('sb-print-paper', v); } catch (e) { /* private mode: this time only */ } tell(); }, { label: t('Paper') }),
+      seg([['a4', 'A4'], ['a5', 'A5'], ['a5s', t('A5, one side')]], size, v => { size = v; try { localStorage.setItem('sb-print-paper', v); } catch (e) { /* private mode: this time only */ } tell(); }, { label: t('Paper') }),
     ]));
     if (says) s.body.append(says);
     tell();
@@ -280,14 +282,20 @@ export function catechismPdf(sections) {
  * to its sheets, front and back (fitCard). Everything on the card keeps its
  * proportion to the words: the labels, the notes, the title and the room
  * between the rows.
+ *
+ * Who wants a long card on one side of a small card all the same chooses
+ * "A5, one side" (a5s): there the letters go on growing smaller, down to
+ * 7 pt, until the card is on one side. The sheet says what size that takes
+ * (cardNote), so the choice is made with the size in view.
  */
 const PAPER = {
   a4: { format: 'a4', side: 14, foot: 14, words: 13, gap: 6 },
   a5: { format: 'a5', side: 10, foot: 12, words: 12, gap: 4 },   // like the cards at the altar; the foot stays clear of the page's footer line
+  a5s: { format: 'a5', side: 10, foot: 12, words: 12, gap: 4, smallest: 7 },   // one side of an A5 card: the letters go as far down as 7 pt to keep a card on it
 };
 const OPEN = 1.4;      // the distance from line to line of the words, in letter sizes, on a card with room to spare
 const CLOSE = 1.2;     // and at its closest
-const SMALLEST = 10;   // points: words smaller than this are not read at an altar, so a card that long goes over the page
+const SMALLEST = 10;   // points: words smaller than this are not read at an altar, so a card that long goes over the page (a paper's own `smallest` takes its place)
 const STEP = 0.25;     // the letters are tried a quarter of a point at a time
 const TINY = 8;        // the lines under a label and the booklet's small print never go under this
 
@@ -350,6 +358,7 @@ function drawCard(doc, P, set, bk, card, credit) {
   const k = pt / P.words;   // 1 is the large type; the room between the rows shrinks with the letters
   const air = Math.min(1, Math.max(0, (lines - CLOSE) / (OPEN - CLOSE)));   // 1 with room to spare, 0 with the lines at their closest: the rows and the paragraphs close up with the lines
   const under = (1.6 + 0.4 * air) * k;   // the room under a paragraph
+  const tiny = Math.min(TINY, pt * 0.9);   // the small print stays smaller than the words, also on a card in small letters
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   const g = { top: P.side, foot: H - P.foot };
   const x = P.side, width = W - 2 * P.side;
@@ -357,7 +366,7 @@ function drawCard(doc, P, set, bk, card, credit) {
   const before = doc.internal.getNumberOfPages();
   let y = g.top;
 
-  use(doc, { size: Math.max(7, 9 * k), color: MUTED });
+  use(doc, { size: Math.max(Math.min(7, tiny), 9 * k), color: MUTED });
   doc.text(s(bk.org || t('New Apostolic Church')), x, y);
   y += 6 * k;
   const title = pt * 1.38;
@@ -388,12 +397,12 @@ function drawCard(doc, P, set, bk, card, credit) {
     const L = [];
     const tight = Math.min(1.3, lines);   // a label's own lines
     if (r.label) L.push({ text: s(r.label), size: pt * 0.96, style: 'bold', color: BLUE, leading: tight, after: k });
-    for (const sub of r.sub || []) L.push({ text: s(sub), size: Math.max(TINY, pt * 0.78), style: 'italic', color: MUTED, leading: tight, after: 0.5 * k });
+    for (const sub of r.sub || []) L.push({ text: s(sub), size: Math.max(tiny, pt * 0.78), style: 'italic', color: MUTED, leading: tight, after: 0.5 * k });
     const R = (r.blocks || []).map(b => {
       const d = Math.min(3, Math.max(0, b.d || 0));
       const text = glued(s(runText(b.t)));
       const small = every(b.t, 's');
-      const size = small ? Math.max(TINY, pt * 0.82) : pt;
+      const size = small ? Math.max(tiny, pt * 0.82) : pt;
       const style = styleOf(b.t);
       if (b.k === 'li') return { text, size, style, leading: lines, indent: 5 * k * Math.max(0, d - 1), bullet: BULLET[d] || BULLET[1], hang: 4.5 * k, after: under * 0.75 };
       if (b.k === 'note') return { text, size: small ? size : pt * 0.92, style: style === 'normal' ? 'italic' : style, color: BLUE, leading: lines, indent: 5 * k * d, after: under };
@@ -414,7 +423,7 @@ function drawCard(doc, P, set, bk, card, credit) {
   (card.rows || []).forEach((r, j) => row(r, !j));
 
   const tail = [];
-  if (card.edited) tail.push({ text: s(t('Changed by you on {date}.', { date: fmtDate(card.edited) })), size: Math.max(7, 8.5 * k), color: MUTED, leading: 1.35, after: 1 });
+  if (card.edited) tail.push({ text: s(t('Changed by you on {date}.', { date: fmtDate(card.edited) })), size: Math.max(Math.min(7, tiny), 8.5 * k), color: MUTED, leading: 1.35, after: 1 });
   if (credit) tail.push({ text: s(credit), size: Math.max(6.5, 8 * k), color: MUTED, leading: 1.35, after: 1 });
   for (const it of tail) { y += 3 * k; y = column(doc, g, x, width, [it], y).y; }
   return doc.internal.getNumberOfPages() - before + 1;
@@ -423,12 +432,13 @@ function drawCard(doc, P, set, bk, card, credit) {
 /**
  * The ways a card can be set on a paper, from the best to read to the one
  * that takes the least room: the large type with its lines closing up, then
- * the letters growing smaller with the lines at their closest.
+ * the letters growing smaller with the lines at their closest, as far as the
+ * paper lets them (SMALLEST, or the paper's own `smallest`).
  */
 function settings(P) {
   const list = [];
   for (let lines = OPEN; lines > CLOSE + 0.001; lines -= 0.05) list.push({ pt: P.words, lines: Math.round(lines * 100) / 100 });
-  for (let pt = P.words; pt >= SMALLEST; pt -= STEP) list.push({ pt, lines: CLOSE });
+  for (let pt = P.words; pt >= (P.smallest || SMALLEST); pt -= STEP) list.push({ pt, lines: CLOSE });
   return list;
 }
 
@@ -439,8 +449,10 @@ function settings(P) {
  * is on one page, in the first of the settings that fits. A longer card
  * keeps to the fewest sheets of paper, printed front and back, in the first
  * setting that keeps it to them: its letters are not made smaller only to
- * leave the back of its last sheet empty. Each try draws the card on a sheet
- * of scratch paper, so the setting found is the one that is drawn.
+ * leave the back of its last sheet empty. On "A5, one side" the letters may
+ * go further down (the paper's `smallest`), and a card too long even for
+ * that keeps to the fewest pages. Each try draws the card on a sheet of
+ * scratch paper, so the setting found is the one that is drawn.
  */
 function fitCard(lib, P, bk, card, credit) {
   const tries = settings(P), last = tries.length - 1, seen = [];
@@ -459,13 +471,18 @@ function fitCard(lib, P, bk, card, credit) {
   }
   // Over more pages a row that moves on to the next page leaves room behind it, so a setting
   // can take fewer pages than one after it: each is tried in turn.
-  const most = 2 * Math.ceil(least / 2);   // both sides of the sheets it needs at the least
+  const most = P.smallest ? least : 2 * Math.ceil(least / 2);   // both sides of the sheets it needs at the least; on one side, no more pages than it must have
   let i = 0;
   while (i < last && pagesAt(i) > most) i++;
   return as(i);
 }
 
-const paperOf = paper => PAPER[paper === 'a5' ? 'a5' : 'a4'];
+/** The name of a paper that is known (a key of PAPER); A4 for any other. */
+const paperKey = paper => (Object.prototype.hasOwnProperty.call(PAPER, paper) ? paper : 'a4');
+const paperOf = paper => PAPER[paperKey(paper)];
+
+/** A size of letters as it is written: 7.25, and 7,25 in Afrikaans. */
+const points = pt => String(pt).replace('.', lang() === 'af' ? ',' : '.');
 
 /** How the cards would go on a paper, without building the PDF: for each, {pt, lines, pages} (fitCard). */
 export function cardFit(bk, cards, { paper = 'a4', credit = '' } = {}) {
@@ -477,16 +494,20 @@ export function cardFit(bk, cards, { paper = 'a4', credit = '' } = {}) {
  * What the sheet says about the cards before a page is printed (printSheet's
  * `note`): a function of the paper chosen that tells whether the card fits
  * on one page, or how many of the cards do not, and, on A5, what A4 would
- * give. The fitting is done once for each paper.
+ * give. For "A5, one side" it tells the size of the letters that takes. The
+ * fitting is done once for each paper.
  */
 export function cardNote(bk, cards, { credit = '' } = {}) {
   const memo = {};
-  const long = paper => {   // the pages of each card that takes more than one
-    if (!memo[paper]) memo[paper] = cardFit(bk, cards, { paper, credit }).map(f => f.pages).filter(n => n > 1);
-    return memo[paper];
-  };
+  const fits = paper => memo[paper] || (memo[paper] = cardFit(bk, cards, { paper, credit }));
+  const long = paper => fits(paper).map(f => f.pages).filter(n => n > 1);   // the pages of each card that takes more than one
   return paper => {
     const here = long(paper), m = cards.length;
+    if (paperOf(paper).smallest) {   // one side: the sheet says what that takes, the size of the letters
+      const pt = points(Math.min(...fits(paper).map(f => f.pt)));
+      if (m === 1) return here.length ? t('Too long for one side: {n} sides, in {pt} point letters.', { n: here[0], pt }) : t('On one side, in {pt} point letters.', { pt });
+      return (here.length ? t('Longer than one side: {n} of the {m} cards.', { n: here.length, m }) : t('Each card is on one side.')) + ' ' + t('The smallest letters are {pt} point.', { pt });
+    }
     const a4 = paper === 'a5' ? long('a4') : here;   // on A5: what the larger paper would give
     if (m === 1) {
       if (!here.length) return t('This card fits on one page.');
@@ -502,9 +523,10 @@ export function cardNote(bk, cards, { credit = '' } = {}) {
 
 /**
  * Cards of the altar booklet (booklet.js) as one PDF, each fitted on a page
- * of its own (fitCard, drawCard), on A4 or on A5 like the cards at the altar
- * (`paper`). `credit` is the copyright line that closes each card
- * (liturgy.js). The result also says how each card was fitted (`fit`).
+ * of its own (fitCard, drawCard), on A4, on A5 like the cards at the altar,
+ * or on one side of an A5 card (`paper`: a4, a5, a5s). `credit` is the
+ * copyright line that closes each card (liturgy.js). The result also says
+ * how each card was fitted (`fit`).
  */
 export function cardPdf(bk, cards, { paper = 'a4', credit = '' } = {}) {
   if (!cards.length) throw new Error(t('There is nothing to print.'));
