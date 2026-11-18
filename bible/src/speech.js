@@ -72,6 +72,8 @@ const NO_LANGUAGE_CODE = new Set(['eleven_multilingual_v2', 'eleven_multilingual
 export const SPEEDS = [['slower', 'Slower'], ['normal', 'Normal'], ['faster', 'Faster']];
 const SPEED = { slower: 0.9, normal: 1, faster: 1.1 };
 export const QUALITIES = [['best', 'Best'], ['cheaper', 'Cheaper']];
+/* What reads a note (notes.js): the voice built into the device (say.js, free), or ElevenLabs' cheapest model for the language. */
+export const NOTE_VOICES = [['device', 'This device (free)'], ['eleven', 'ElevenLabs (half price)']];
 
 /*
  * How much feeling the voice may put in: the stability asked for with every
@@ -457,11 +459,36 @@ export async function makeGuide(service, guide, { signal, onProgress } = {}) {
   return speak(sc, { signal, onProgress, source: 'guide' });
 }
 
-/** Every piece of a script to ElevenLabs in turn, the answers joined into one MP3. */
-async function speak(sc, { signal, onProgress, source }) {
+/**
+ * A note as a voice reads it (notes.js): the title, then the text, in the
+ * note's language. A short line without a full stop (a heading like "In plain
+ * words") gets one, so the voice pauses after it; "(CNAC 1.2.5.1)" is for the
+ * eye. `x` is {title, body, lang} as notes.js textIn() gives it.
+ */
+export function noteScript(x) {
+  const l = x.lang === 'af' ? 'af' : 'en';
+  const raw = [x.title, x.body].map(s => String(s || '').trim()).filter(Boolean).join('\n\n');
+  const text = clean(raw, l)
+    .replace(/\s*\((?:CNAC|KNAK)\s*[\d.]+(?:\s*[,;]\s*[\d.]+)*\)/g, '')
+    .replace(/^(.{1,60}[^.!?:…;,\n])\n(?=\S)/gmu, '$1.\n');
+  return scripted(text, l, String(x.title || '').trim());
+}
+
+/** The key of a note's recording in the audio store, one per language it is heard in (store.js deleteNote removes them). */
+export const noteKey = (id, l) => `note:${id}:${l}`;
+
+/** Reads a note (`sc` from noteScript) with the cheapest model for its language: the turbo or flash model, half a character per letter. */
+export async function makeNote(sc, { signal, onProgress } = {}) {
+  headers();
+  if (!sc.text) throw new Error(t('There is nothing to read in this note.'));
+  return speak(sc, { signal, onProgress, source: 'note', quality: 'cheaper' });
+}
+
+/** Every piece of a script to ElevenLabs in turn, the answers joined into one MP3. `quality` overrides the one under Settings. */
+async function speak(sc, { signal, onProgress, source, quality }) {
   let voice = voiceFor(sc.lang);
   const known = await models().catch(() => null);
-  const candidates = modelsFor(sc.lang, state.settings.voiceQuality, known);
+  const candidates = modelsFor(sc.lang, quality || state.settings.voiceQuality, known);
   const list = sc.pieces;
   const parts = [];
   let model = candidates[0];

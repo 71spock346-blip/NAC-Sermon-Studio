@@ -444,6 +444,19 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   prompting guide directs a narration, and count as characters; the older models get the
   text without them (`untagged`). `clean` lowers words in capitals (LORD, HERE), which
   the newer models would stress; short abbreviations and roman numerals stay.
+- **Hear a note.** "Listen" on a note card (`notes.js hear`) reads the note as shown, in
+  its language, with the voice built into the device: `src/say.js` wraps the browser's
+  `speechSynthesis` (free, nothing sent anywhere), picks the region's voice (af-ZA,
+  en-ZA, then en-GB), reads in pieces of 220 letters so Chrome does not cut off, takes
+  the Speed setting as its rate, and reads one note at a time; leaving the page stops it.
+  `settings.voiceNotes` = `'eleven'` reads a note with ElevenLabs' cheapest model for the
+  language instead (`speech.js makeNote`, quality `cheaper`, so the turbo or flash model
+  at half a character per letter); the recording is kept in the audio store under
+  `note:<id>:<lang>`, shown on the card with Remove, played again for nothing, and
+  removed with the note (`store.js deleteNote`). A device without a voice for the
+  language offers the ElevenLabs reading once per tap, when a key is set, or says how to
+  add a voice. `speech.js noteScript` shapes the text: title, then body, a short heading
+  line given its full stop, "(CNAC …)" dropped.
 - **Reflection evening.** "Reflection evening" has its own place in the side menu
   (`#reflect`, `prepare.js renderReflect`): load the Church's reflection guide, the
   evenings with slides, and the latest services held. `src/reflect.js` is the screen
@@ -505,6 +518,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/pdf.js` – printed outputs
 - `src/speech.js` – read aloud: the sermon or the Guide's article spoken by an ElevenLabs voice, the pieces it goes in, the recording kept on the device
 - `src/listen.js` – the player card under a text read aloud: estimate, Read aloud, the player, Read again, Save as MP3, Remove
+- `src/say.js` – the device's own voice (the browser's speechSynthesis): reads a note free, in short pieces, one at a time
 - `src/reflect.js`, `src/slides.js` – the reflection evening: the screen and the show; the slide layout, the facilitator's notes and the PowerPoint file
 - `src/ui.js` – small DOM helpers (elements, sheets, toasts, the theme, segmented choices, text boxes that grow with their text)
 - `vendor/jspdf.umd.min.js` – jsPDF 2.5.2 (MIT)
