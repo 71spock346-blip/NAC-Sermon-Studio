@@ -30,14 +30,16 @@
  * Print on a card, and at the top of the list, opens "Print or save"
  * (handbook-pdf.js): the card, or all the cards, as a PDF on A4 or on A5
  * like the cards at the altar, with Save as PDF, Print and Share as in
- * Prepare.
+ * Prepare. A card is fitted on one page when its words can be read at that
+ * size, and the sheet says so before a page is printed. Ctrl+P on a card
+ * prints that same PDF (the keys below).
  */
 import { el, clear, toast, confirmBox, busy, seg, sheet, fmtDate, lineBox, SIZES } from './ui.js';
 import { state, saveLiturgy, deleteLiturgy, saveSetting } from './store.js';
 import { t, lang } from './i18n.js';
 import * as Sync from './sync.js';
 import { editedRows } from './booklet.js';
-import { printButton, printSheet, cardPdf } from './handbook-pdf.js';   // Print or save: a card, or all the cards, as a PDF on A4 or A5
+import { printButton, printSheet, printNow, cardPdf, cardNote } from './handbook-pdf.js';   // Print or save: a card, or all the cards, as a PDF on A4, on A5 or on one side of an A5 card
 
 const LANGS = ['en', 'af'];
 
@@ -85,8 +87,27 @@ export function shortcut() {
 
 /* ---------------------------------------------------------------- the screens */
 
+/*
+ * Ctrl+P (Cmd+P on a Mac) while a card is open prints the card's own PDF,
+ * the one page the Print button gives, on the paper last chosen. Without
+ * this the browser would print the screen's page, which runs over two
+ * sheets for a long card. `openCard` builds the PDF of the card that is
+ * open; it is empty on the list and while a card is being changed, where
+ * the browser prints as it always does. So does the browser's own menu, and
+ * a card whose PDF cannot be built.
+ */
+let openCard = null;
+document.addEventListener('keydown', e => {
+  if (!openCard || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || String(e.key).toLowerCase() !== 'p') return;
+  const tab = document.getElementById('tab-liturgy');
+  if (!tab || tab.hidden) return;   // another section is showing: the card's page is only kept behind it
+  if (e.repeat) { e.preventDefault(); return; }   // the keys held down: one print, and not the browser's own after it
+  if (printNow(openCard)) e.preventDefault();
+});
+
 export function render(container, route) {
   clear(container);
+  openCard = null;
   if (route[1]) cardPage(container, route[1]);
   else { letSleep(); listPage(container); }
 }
@@ -111,7 +132,7 @@ function listPage(container) {
     crumbs([[t('Handbooks'), '#handbooks']]),   // the Liturgy is listed under Handbooks (handbooks.js)
     el('div', { class: 'docbar' }, [
       el('h2', { text: t('Liturgy') }),
-      bk ? printButton(() => printSheet([[t('All the cards'), paper => cardPdf(bk, bk.cards, { paper, credit: creditText() })]], { paper: true })) : null,   // the booklet shown, every card on a page of its own
+      bk ? printButton(() => printSheet([[t('All the cards'), paper => cardPdf(bk, bk.cards, { paper, credit: creditText() })]], { paper: true, note: cardNote(bk, bk.cards, { credit: creditText() }) })) : null,   // the booklet shown, every card on a page of its own
     ]),
     el('p', { class: 'lit-lead', text: t('The words said at the altar, from the Church\'s booklet "Liturgy for altar use": the divine service and each act of blessing, card by card, as the booklet prints them.') }),
   );
@@ -200,6 +221,8 @@ function cardPage(container, key) {
     return;
   }
   const both = LANGS.every(x => booklet(x) && booklet(x).cards.some(c => c.key === key));
+  const pdf = paper => cardPdf(bk, [card], { paper, credit: creditText() });   // this card, fitted on its paper
+  openCard = pdf;   // Ctrl+P gives what the Print button gives
   const body = el('div', { class: 'lit-card size-' + (state.settings.fontSize || 'm'), lang: l }, card.rows.map(row));
   container.append(
     crumbs([[t('Handbooks'), '#handbooks'], [t('Liturgy'), '#liturgy']]),
@@ -211,7 +234,7 @@ function cardPage(container, key) {
         el('span', { class: 'btns' }, [
           el('button', { class: 'btn small ghost', type: 'button', text: 'Aa', 'aria-label': t('Text size'), onclick: () => sizeSheet(body) }),
           el('button', { class: 'btn small ghost lit-edit-btn', type: 'button', 'aria-label': t('Edit the words of this card'), onclick: () => { clear(container); editPage(container, key, l, bk, card); } }, [pencil(), t('Edit')]),
-          printButton(() => printSheet([[t('This card'), paper => cardPdf(bk, [card], { paper, credit: creditText() })]], { paper: true })),
+          printButton(() => printSheet([[t('This card'), pdf]], { paper: true, note: cardNote(bk, [card], { credit: creditText() }) })),
         ]),
       ]),
       body,
@@ -249,6 +272,7 @@ function sizeSheet(body) {
  * compares. Nothing is kept until Save, so Cancel simply shows the card.
  */
 function editPage(container, key, l, bk, card) {
+  openCard = null;   // the boxes are not the card: Ctrl+P is the browser's here
   const entries = [];   // one per row on the screen: {label: box, sub: box or null, boxes: [{block, ta}], node}
   const form = el('div', { class: 'lit-card lit-edit size-' + (state.settings.fontSize || 'm'), lang: l });
 

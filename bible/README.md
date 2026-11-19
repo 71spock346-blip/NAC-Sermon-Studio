@@ -339,8 +339,17 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   it is open; on a phone the cards sit at the top of Prepare as well. `node tools/test_booklet.mjs booklet.pdf` reads a PDF in Node and prints
   the cards (after `npm install --no-save pdfjs-dist@5.4.624` in `bible/`). **Print** on a card,
   and at the top of the list, opens "Print or save" (`src/handbook-pdf.js`): the card, or
-  all the cards, as a PDF on A4 or A5 with the label left and the words right, with Save as
-  PDF, Print and Share as in Prepare.
+  all the cards, as a PDF on A4, A5 or "A5, one side" with the label left and the words right,
+  with Save as PDF, Print and Share as in Prepare. A card is fitted on one page in the largest letters
+  that fit there (`fitCard` tries the settings by drawing the card on scratch paper: first
+  the lines close up, from 1.4 to 1.2 letter sizes apart, then the letters grow smaller,
+  never under 10 pt; a card too long for that keeps to the fewest sheets, printed front and
+  back, in the largest letters that keep it to them), the sheet says how the cards go on
+  the paper chosen (`cardNote`), and Ctrl+P on a card prints that same PDF (`printNow`, the
+  key handler in `liturgy.js`). "A5, one side" (`a5s` in `PAPER`) is the same A5 page with
+  the letters allowed down to 7 pt, for who wants a long card on one side of a small card:
+  the Divine Service is on one side in 8 pt, only Holy Baptism still takes two, and the
+  sheet says the size of the letters.
 - **Handbooks.** `src/handbooks.js` is the Church's handbooks for ministers: the *Guide for
   Ministers* (the rule book), the *"Serving and Leading"* guiding principle and the *Liturgy
   of the New Apostolic Church* (2024), or any other handbook with numbered chapters. They are
@@ -369,7 +378,9 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   clear type, with Save as PDF, Print and Share as in Prepare. The browser's own Print
   (Ctrl+P) on a page under Handbooks, the Liturgy or the Catechism gives the page alone,
   without the app around it, on white paper whatever the look on the screen (`styles.css`,
-  `@media print`); every other section prints as it did.
+  `@media print`); every other section prints as it did. On an altar card Ctrl+P is taken
+  by the app and prints the card's fitted PDF; the browser's own menu still prints the
+  screen's page there.
 - **Storage.** Notes, preparations, settings and what Claude wrote in Theology live
   in IndexedDB on the device (`src/store.js`). At start the app asks the browser to keep
   that storage when the device runs short of space (`app.js keepData`,
