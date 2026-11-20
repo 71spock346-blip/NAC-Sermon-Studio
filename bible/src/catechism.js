@@ -25,7 +25,7 @@
  * PDF in large clear type, with Save as PDF, Print and Share as in Prepare.
  */
 import { el, clear } from './ui.js';
-import { t, lang } from './i18n.js';
+import { t, tn, lang } from './i18n.js';
 import { keyToRef, formatRef } from './books.js';
 import { state, getCatechismText } from './store.js';
 import { askBox } from './ask.js';
@@ -359,7 +359,7 @@ function renderIndex(container, q) {
       results.append(el('a', { class: 'item cat depth' + Math.min(q ? 1 : depth, 4), href: `#catechism/${encodeURIComponent(s.n)}` }, [
         el('span', { class: 'num', text: s.n === 'Intro' ? '' : s.n }),
         el('span', { class: 'grow' }, [s.title, h.snippet ? el('span', { class: 'snippet muted small', text: h.snippet }) : null]),
-        el('span', { class: 'count muted', text: refs ? t('{n} refs', { n: refs }) : '' }),
+        el('span', { class: 'count muted', text: refs ? tn(refs, '{n} verse', '{n} verses') : '' }),
       ]));
     }
     if (hits.length > 200) results.append(el('p', { class: 'muted small', text: t('Showing 200 of {total}. Add a word to narrow it.', { total: hits.length }) }));

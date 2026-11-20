@@ -391,7 +391,7 @@ function askCard(level, ref, opts, redraw) {
     el('p', { text: what }),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small ai-btn', type: 'button', onclick: () => ask(level, ref, opts, redraw) }, [sparkle(), t('Ask Claude')]),
-      el('span', { class: 'muted small grow', text: t('About a minute, with your own Anthropic key. The cost shows with the answer, usually under 20 US cents.') }),
+      el('span', { class: 'muted small grow', text: t('About a minute.') }),
     ]),
     el('p', { class: 'muted small th-measure', text: measureLine() }),
   ]);

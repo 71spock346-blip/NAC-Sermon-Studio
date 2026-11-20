@@ -75,7 +75,6 @@ export function askBox(books, o = {}) {
     ta,
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small ai-btn', type: 'button', onclick: () => ask(ta.value.trim(), books, w, out) }, [sparkle(), t('Ask Claude')]),
-      el('span', { class: 'muted small grow', text: t('With your own Anthropic key; usually under 10 US cents an answer.') }),
     ]),
     out,
   ]);
