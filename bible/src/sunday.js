@@ -4,7 +4,9 @@
  * title, and how far the preparation is; under it, one tap to each thing
  * used at the altar: the cue cards and the sermon on the screen (read.js),
  * the altar card of the Liturgy for that kind of service (liturgy.js) and
- * the text word alone in large letters. After the service, "Mark as held"
+ * the text word alone in large letters; and Altar mode (altar.js), which
+ * puts the cue cards and the altar card on one full screen, a swipe apart,
+ * for the service itself. After the service, "Mark as held"
  * puts the next service in its place (the toast has Undo). The two services
  * after it are listed under the card.
  *
@@ -22,11 +24,12 @@
  * says a Guide can be loaded.
  */
 import { el, clear, toast, fmtDate, today } from './ui.js';
-import { t, tn, lang, locale } from './i18n.js';
+import { t, tn, locale } from './i18n.js';
 import { state, saveSermon } from './store.js';
 import { formatRef } from './books.js';
 import * as Guides from './guides.js';
 import * as Read from './read.js';
+import { cardFor } from './liturgy.js';   // the altar card for a kind of service
 import { newFromService, FILLED } from './prepare.js';
 import { sermonParts } from './pdf.js';
 import { cueParts, cuesOf } from './cues.js';
@@ -142,7 +145,9 @@ function card(x, past, redraw) {
     title ? el('p', { class: 'sunday-title', text: title }) : null,
     s ? stateLine(s) : el('div', { class: 'sunday-state' }, [el('span', { class: 'pill status', text: t('Not started yet') })]),
     el('div', { class: 'row' }, s ? [
-      el('a', { class: 'btn', href: `#prepare/${s.id}`, text: t('Open the preparation') }),
+      // the service itself: the cue cards and the altar card on one full screen (altar.js)
+      el('a', { class: 'btn altar-btn', href: `#altar/${s.id}` }, [el('span', { class: 'ico', 'aria-hidden': 'true', html: CHALICE }), t('Altar mode')]),
+      el('a', { class: 'btn ghost', href: `#prepare/${s.id}`, text: t('Open the preparation') }),
       over ? el('button', { class: 'btn ghost', type: 'button', text: t('Mark as held'), onclick: () => markHeld(s, redraw) }) : null,
     ] : [
       el('button', { class: 'btn', type: 'button', text: t('Prepare this service'), onclick: () => newFromService(x.guide, x.i) }),
@@ -167,23 +172,6 @@ function row(icon, name, line, { href = null, onclick = null, lang: l = null } =
   ]);
 }
 
-/** The key of the altar card for a kind of service (booklet.js KEYS): the funeral's, the wedding's, else the divine service's. */
-function cardKey(occasion) {
-  if (occasion === 'Funeral service') return 'funeral';
-  if (occasion === 'Wedding') return 'wedding';
-  return 'divine-service';
-}
-
-/** That card in the loaded altar booklet, in the app's language or else in the other: {card, l}, or null while no booklet has it. */
-function altarCard(key) {
-  for (const l of [lang(), lang() === 'af' ? 'en' : 'af']) {
-    const bk = state.liturgy.find(b => b.id === l);
-    const card = bk && (bk.cards || []).find(c => c.key === key);
-    if (card) return { card, l };
-  }
-  return null;
-}
-
 /** "Introduction · 3 main points · Application · Conclusion": what the cue cards hold, or that they hold nothing yet. */
 function cuesLine(s, service) {
   const parts = cueParts(s, { service, lang: AI.langOf(s) }).filter(p => cuesOf(p).length);
@@ -200,15 +188,14 @@ function cuesLine(s, service) {
 /** The rows under "At the altar": the cue cards and the sermon (a preparation only), the altar card and the text word in large letters. */
 function altarRows(x, service) {
   const s = x.s;
-  const key = cardKey(s ? s.occasion : Guides.occasionFor(x.svc));
-  const found = altarCard(key);
+  const { key, card, l } = cardFor(s ? s.occasion : Guides.occasionFor(x.svc));   // liturgy.js: the card for this kind of service
   const rows = [];
   if (s) {
     rows.push(row(CARDS, t('Cue cards'), cuesLine(s, service), { onclick: () => Read.cues(s, { service }) }));
     rows.push(row(SERMON, t('The sermon'), sermonParts(s).empty ? t('Nothing written yet') : t('Read it on the screen in large letters'), { onclick: () => Read.sermon(s) }));
   }
-  rows.push(found
-    ? row(CHALICE, t('Altar card: {card}', { card: found.card.title }), t('The words at the altar, in large letters'), { href: `#liturgy/${key}`, lang: found.l })
+  rows.push(card
+    ? row(CHALICE, t('Altar card: {card}', { card: card.title }), t('The words at the altar, in large letters'), { href: `#liturgy/${key}`, lang: l })
     : row(CHALICE, t('Altar card'), t('Load the altar booklet under Handbooks first'), { href: '#liturgy' }));
   rows.push(row(WORD, t('The text word, large'), [refText(x.as), x.as.translation].filter(Boolean).join(' · ') || t('No text word yet'), { onclick: () => Read.word(x.as) }));
   return rows;

@@ -77,6 +77,10 @@ export const AF = {
   "Start a preparation under Prepare: it shows here with its date, its text word and its cue cards.": "Begin 'n voorbereiding onder Diens Voorbereiding: dit verskyn hier met sy datum, sy tekswoord en sy preekkaarte.",
   "Go to Prepare": "Gaan na Diens Voorbereiding",
   "The Catechism, the Creed, the Liturgy and the handbooks for ministers": "Die Kategismus, die Geloofsbelydenis, die Liturgie en die handboeke vir ampsdraers",
+  // ---- Altar mode (altar.js): the cue cards and the altar card on one full screen
+  "Altar mode": "Altaarmodus",
+  "Back to Sunday": "Terug na Sondag",
+  "Nothing on the cards yet: write the main points under Prepare, or type the cues under Print or save.": "Nog niks op die kaarte nie: skryf die hoofpunte onder Diens Voorbereiding, of tik die wenke onder Druk of stoor.",
   // a newer version of the app on the site (update.js; Settings → About)
   "A newer version of the app is ready.": "'n Nuwer weergawe van die app is gereed.",
   "Update now": "Dateer nou op",

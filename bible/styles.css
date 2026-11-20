@@ -1353,6 +1353,32 @@ body.showing { overflow: hidden; }
 .sunday-held { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: -6px 0 18px; padding: 10px 14px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14px; line-height: 1.4; }
 .sunday-rows .more-row { width: 100%; border: 0; font: inherit; cursor: pointer; text-align: left; }
 .sunday-rows .more-row b { font-size: 16.5px; }
+.sunday-card .altar-btn .ico { display: inline-flex; }
+.sunday-card .altar-btn .ico svg { width: 18px; height: 18px; display: block; }
+
+/* ---------------------------------------------------------------- Altar mode (altar.js): the cue cards and the altar card, a swipe apart, on one full screen */
+body.altar header.top, body.altar nav.side, body.altar .update-bar { display: none !important; }   /* nothing else on the screen; the bar offering a new version waits for after the service */
+body.altar main { padding: 0; }
+body.altar .shell { min-height: 0; display: block; }   /* no column for the hidden menu on a PC */
+.altar { display: flex; flex-direction: column; height: 100dvh; background: var(--bg); }
+.altar-bar { flex: 0 0 auto; padding: 4px 8px 8px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.altar-top { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.altar-close { text-decoration: none; }
+.altar-what { flex: 1 1 auto; min-width: 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.altar-bar .seg { display: flex; width: 100%; max-width: 640px; margin: 0 auto; flex-wrap: nowrap; }   /* the names of the panes: the one on the screen is lit */
+.altar-bar .seg button { min-width: 0; padding: 8px 6px; white-space: nowrap; }
+.altar-sizes { flex: 0 0 auto; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.altar-panes { display: flex; flex: 1 1 auto; min-height: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; }   /* one pane a screen wide, snapping into place: a swipe moves to the next */
+.altar-panes::-webkit-scrollbar { display: none; }
+.altar-pane { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; overflow-y: auto; overscroll-behavior: contain; padding: 12px 16px calc(28px + env(safe-area-inset-bottom)); }
+.altar-pane > .read-view, .altar-pane > .altar-card { max-width: 72ch; margin: 0 auto; }
+.altar-pane > .read-view { padding-bottom: 0; }
+.altar-card-title { font: 700 1.35em/1.25 var(--display); color: var(--head-ink); margin: .2em 0 .6em; }
+.altar-card .lit-card { margin: 0; }
+.altar-card .lit-credit { margin-top: 20px; }
+.altar-empty { padding: 24px 0; }
+.altar-empty p { margin: 0 0 12px; line-height: 1.55; }
+@media (min-width: 760px) { .altar-pane { padding: 20px 28px 40px; } }
 .more-row .chev { color: var(--muted); font-size: 24px; line-height: 1; flex: 0 0 auto; }
 .more-row.ext .chev { font-size: 20px; }   /* the arrow of a link that opens outside the app */
 

@@ -29,6 +29,11 @@
  * #reminders/import the listings). #plan is the month plan (#plan/2025-10 one
  * month of it): the district's programme with who holds each service.
  *
+ * #altar/<id> is Altar mode (altar.js): the cue cards and the altar card of
+ * one preparation on one full screen, a swipe apart, opened from the Sunday
+ * card; the header, the menu and the bar are hidden while it is open
+ * (body.altar).
+ *
  * #sync/<code> is the link a sync QR code or "Copy link" carries: it opens
  * Settings and offers to join with that code (sync.js keeps the devices the
  * same from then on). When a sync brings changes from another device, the
@@ -52,12 +57,14 @@ import * as Plan from './plan.js';   // the month plan: the district's programme
 import * as Settings from './settings.js';
 import * as More from './more.js';
 import * as Sunday from './sunday.js';   // the front door: the next divine service, one tap to each thing used at the altar
+import * as Altar from './altar.js';   // Altar mode: the cue cards and the altar card on one full screen, from the Sunday card
 import * as Mis from './mis.js';   // the Church's MIS: a section whose button opens the site itself
 import * as Sync from './sync.js';
 import * as Update from './update.js';   // a newer version of the app on the site: a bar offers to load it
 
 const TABS = {
   sunday: Sunday.render,
+  altar: Altar.render,
   read: Reader.render,
   notes: Notes.render,
   prepare: Prepare.render,
@@ -92,6 +99,7 @@ function route() {
     return;
   }
   const tab = TABS[parts[0]] ? parts[0] : (parts.length ? 'read' : 'sunday');   // no address: the app opens on Sunday, the next service; one it does not know opens the reader
+  document.body.classList.toggle('altar', tab === 'altar');   // Altar mode has the whole screen: the header, the menu and the bar go (styles.css)
   for (const b of $$('.tabs button')) {
     const on = b.dataset.tab === tab;
     b.classList.toggle('active', on);
@@ -172,6 +180,7 @@ function onSynced(e) {
   const typing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
   if (typing || $('.overlay')) return;
   if (tab === 'read') return;                               // the reader keeps its place; the notes show on the next chapter
+  if (tab === 'altar') return;                              // nothing is pulled from under the person at the altar
   if ((tab === 'prepare' || tab === 'reflect') && hash.length > 1) return;   // an open preparation or evening is not pulled from under the person
   if (tab === 'notes' && !parts.includes('notes')) return;
   if (tab === 'catechism' && !parts.includes('catechism')) return;

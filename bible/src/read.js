@@ -6,7 +6,9 @@
  * "I want to be able to also just read the sermon onscreen"). The Read
  * buttons under "Print or save" in prepare.js open them, and the rows under
  * "At the altar" on the Sunday screen (sunday.js), which also opens the text
- * word alone (word).
+ * word alone (word). Altar mode (altar.js) draws the same readings into its
+ * own panes with article() and the fill… functions, so the sermon and the
+ * cards look the same wherever they are read.
  */
 import { el, sheet, seg, toast, SIZES } from './ui.js';
 import { t } from './i18n.js';
@@ -23,9 +25,15 @@ import { langOf } from './ai.js';
  * illustration under the part it serves, as "The sermon" prints it.
  */
 export function sermon(s, { outline = null } = {}) {
-  const { c, ref, title, empty } = sermonParts(s, { outline });
-  if (empty) { toast(t('There is nothing to read yet: write the introduction, the main points, the application or the conclusion first.'), true); return false; }
-  const art = open(t('The sermon'), s);
+  const parts = sermonParts(s, { outline });
+  if (parts.empty) { toast(t('There is nothing to read yet: write the introduction, the main points, the application or the conclusion first.'), true); return false; }
+  fillSermon(open(t('The sermon'), s), s, parts);
+  return true;
+}
+
+/** The sermon into an article (article()): its head, then a section per part. `parts` is pdf.js sermonParts of the preparation. */
+export function fillSermon(art, s, parts = sermonParts(s)) {
+  const { c, ref, title } = parts;
   head(art, s, { ref, title: s.title || s.theme || !ref ? title : '' });
   const section = (heading, body, extras = []) => {
     if (heading) art.append(el('h2', { text: heading }));
@@ -42,7 +50,6 @@ export function sermon(s, { outline = null } = {}) {
   if (c.application) section(t('Application for the congregation'), c.application, c.after.application);
   if (c.summary) section(t('Summary'), c.summary);
   if (c.conclusion) section(t('Conclusion'), c.conclusion, c.after.conclusion);
-  return true;
 }
 
 /**
@@ -52,10 +59,20 @@ export function sermon(s, { outline = null } = {}) {
  * to, whose introduction gives the cues while the minister's own is empty).
  */
 export function cues(s, { service = null } = {}) {
-  const parts = cueParts(s, { service, lang: langOf(s) }).filter(p => cuesOf(p).length || p.key === 'point');
-  const { ref } = sermonParts(s);
+  const parts = cueList(s, service);
   if (!parts.length && !(s.text || s.theme || s.core)) { toast(t('There is nothing on the cards yet: write the main points first, or type the cues under Print or save.'), true); return false; }
-  const art = open(t('Cue cards'), s, 'cue-view');
+  fillCues(open(t('Cue cards'), s, 'cue-view'), s, parts);
+  return true;
+}
+
+/** The parts of the cue cards that have cues on them (a main point always, so that its heading shows), as the cards print them. */
+export function cueList(s, service = null) {
+  return cueParts(s, { service, lang: langOf(s) }).filter(p => cuesOf(p).length || p.key === 'point');
+}
+
+/** The cue cards into an article: the text word and the message, then a heading and its line of cues for each part (cueList). */
+export function fillCues(art, s, parts) {
+  const { ref } = sermonParts(s);
   head(art, s, { ref: ref || s.title || '', theme: s.theme, core: s.core });
   for (const part of parts) {
     const heading = cueHeading(part);
@@ -66,7 +83,6 @@ export function cues(s, { service = null } = {}) {
     list.forEach((cue, i) => line.append(el('span', { class: 'cue-mark', text: MARK }), ' ', el('span', { class: `cue c${i % CUE_COLORS.length}`, text: cue }), ' '));
     art.append(line);
   }
-  return true;
 }
 
 /**
@@ -76,12 +92,21 @@ export function cues(s, { service = null } = {}) {
  */
 export function word(s) {
   if (!String(s.text || '').trim()) { toast(t('There is no text word yet: choose the verses under step 1 of the preparation.'), true); return false; }
-  const art = open(t('The text word'), s);
-  head(art, s, { ref: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || '') });
+  fillWord(open(t('The text word'), s), s);
   return true;
 }
 
+/** The text word into an article: the service line, the reference and the verses. */
+export function fillWord(art, s) {
+  head(art, s, { ref: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || '') });
+}
+
 /* ------------------------------------------------------------- the sheet */
+
+/** The article a reading is drawn in: the reader's text size (Settings, or Aa), in the language of the preparation; `cls` marks the cue cards (cue-view). */
+export function article(s, cls = '') {
+  return el('article', { class: ['read-view', cls, 'size-' + (state.settings.fontSize || 'm')].filter(Boolean).join(' '), lang: langOf(s) });
+}
 
 /**
  * The sheet that holds a reading, with the article in it: the reader's text
@@ -92,7 +117,7 @@ export function word(s) {
 function open(name, s, cls = '') {
   const sh = sheet(name, { wide: true, onclose: letSleep });
   sh.root.classList.add('read-sheet');
-  const art = el('article', { class: ['read-view', cls, 'size-' + (state.settings.fontSize || 'm')].filter(Boolean).join(' '), lang: langOf(s) });
+  const art = article(s, cls);
   const sizes = el('div', { class: 'read-size', hidden: true }, seg(SIZES, state.settings.fontSize || 'm', async v => {
     await saveSetting('fontSize', v);
     art.className = art.className.replace(/size-\w+/, 'size-' + v);
