@@ -8,9 +8,15 @@
  * on YouVersion or BibleGateway. The Theology button beside the chapter's
  * title opens the background to the chapter and its book.
  *
- * The bar above the text keeps to the essentials: book, chapter, Go to, the
- * translation and "Aa", which opens the reading choices (text size, theme,
- * language, Compare, Beside) in a sheet so the text starts high on a phone.
+ * The bar above the text keeps to the essentials: book, chapter, the box
+ * that finds a verse, the translation and "Aa", which opens the reading
+ * choices (text size, theme, language, Compare, Beside) in a sheet so the
+ * text starts high on a phone.
+ *
+ * The box takes a place or words. A place ("Joh 3:16", "Ps 23") opens there.
+ * Words ("shepherd want") are searched in the open translation, and the
+ * verses that carry them are listed in place of the chapter, at
+ * #read/search/<words> (search.js); a tap on one opens it here.
  */
 import { el, $, clear, toast, sheet, copyText, seg, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
 import { t, tn, lang, LANGS, requestLang } from './i18n.js';
@@ -23,8 +29,10 @@ import * as Notes from './notes.js';
 import * as Prepare from './prepare.js';
 import * as Theology from './theology.js';
 import { unpastedCard, pasteSheet } from './paste.js';
+import * as Search from './search.js';   // the verses that carry the words typed in the box
 
 let current = { book: 'PSA', chapter: 23, verse: null };
+let found = null;          // a search shown in place of the chapter: {q, where}; null while a chapter is open
 
 // "Beside" opens BibleSA in its own window next to the app. BibleSA refuses to be
 // shown inside another site, so the window is the only way to keep it in view;
@@ -43,17 +51,31 @@ let container = null;
 document.addEventListener('keydown', e => {
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
   if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-  if (!location.hash.startsWith('#read') || !container || $('.overlay')) return;
+  if (!location.hash.startsWith('#read') || !container || found || $('.overlay')) return;   // a list of found verses is not a chapter to turn
   const t = e.target;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
   e.preventDefault();
   step(e.key === 'ArrowRight' ? 1 : -1);
 });
 
+/** What a search's address carries, read back: the words as typed, or '' when the address is broken. */
+function typed(part) {
+  try { return decodeURIComponent(part || '').trim(); } catch (e) { return ''; }
+}
+
 export function render(root, route) {
   container = root;
   selected = new Set();
   const [, book, chapter, verse] = route;
+  found = book === 'search' && typed(chapter) ? { q: typed(chapter), where: verse || 'all' } : null;
+  if (found) {
+    // #read/search/<words>/<where>: the bar stays on the chapter last read, which is the way back
+    const [b, c] = (state.settings.lastRef || 'PSA.23').split('.');
+    current = { book: BY_ID[b] ? b : 'PSA', chapter: parseInt(c, 10) || 1, verse: null };
+    scrollToVerse = null;
+    draw();
+    return;
+  }
   if (book && BY_ID[book]) {
     current = { book, chapter: Math.max(1, parseInt(chapter, 10) || 1), verse: parseInt(verse, 10) || null };
   } else {
@@ -69,6 +91,20 @@ export function render(root, route) {
 }
 
 export function currentRef() { return { ...current }; }
+
+/**
+ * Gives a box the longest of these hints that fits in it whole, so that a
+ * hint is never cut off. The hints go from the longest to the shortest, and
+ * the last one is kept when none fits.
+ */
+function fitHint(input, hints) {
+  const cs = getComputedStyle(input);
+  const pen = document.createElement('canvas').getContext('2d');
+  pen.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  // the room for letters: the box without its border and padding (a browser's clientWidth of a text box may or may not hold the padding), less a little
+  const room = input.getBoundingClientRect().width - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 8;
+  input.placeholder = hints.find(h => pen.measureText(h).width <= room) || hints[hints.length - 1];
+}
 
 async function draw() {
   clear(container);
@@ -94,16 +130,29 @@ async function draw() {
   bookSel.addEventListener('change', () => go(bookSel.value, 1));
   chapSel.addEventListener('change', () => go(current.book, parseInt(chapSel.value, 10)));
 
-  const narrow = matchMedia('(max-width: 759.98px)').matches;
-  const gotoInput = el('input', { type: 'search', placeholder: narrow ? t('Go to Ps 130:7…') : t('Go to: Ps 130:7, John 3:16…'), 'aria-label': t('Go to a reference'), enterkeyhint: 'go', autocomplete: 'off', spellcheck: 'false' });
-  const gotoForm = el('form', { class: 'goto', onsubmit: e => {
+  // ---- the box that finds a verse: a place opens there, words are searched (search.js)
+  // the examples: a place in the language of the book names, words in the language of the open Bible, since those are the words it is searched for
+  const place = lang === 'af' ? 'Joh 3:16' : 'John 3:16';
+  const words = /^af/i.test(String((src && src.lang) || '')) ? 'my herder' : 'my shepherd';
+  const what = t('Find a verse: type a place such as “{place}”, or words of the verse', { place });
+  const gotoInput = el('input', { type: 'search', placeholder: t('Find a verse…'), 'aria-label': what, title: what, enterkeyhint: 'search', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', value: found ? found.q : '' });
+  const gotoForm = el('form', { class: 'goto', role: 'search', onsubmit: e => {
     e.preventDefault();
-    const ref = parseRef(gotoInput.value);
-    if (!ref) { toast(t('That reference was not understood. Try "Psalm 130:7".'), true); return; }
-    gotoInput.value = '';
+    const text = gotoInput.value.trim();
+    if (!text) return;
     gotoInput.blur();
-    location.hash = `#read/${ref.book}/${ref.chapter}${ref.verse ? '/' + ref.verse : ''}`;
-  } }, [gotoInput, el('button', { class: 'btn small ghost', type: 'submit', text: t('Go') })]);
+    // a place carries a number ("John 3", "Ps 23:1", "1 John"); a word alone is searched, for "wisdom" and "mark" are words as well as books
+    const ref = /\d/.test(text) ? parseRef(text, { loose: true }) : null;
+    if (ref) {
+      if (!ref.verse && ref.chapter > 1 && counts[ref.book] === 1) { ref.verse = ref.verseEnd = ref.chapter; ref.chapter = 1; }   // "Jude 5": a book of one chapter is named by its verse
+      gotoInput.value = '';
+      location.hash = `#read/${ref.book}/${ref.chapter}${ref.verse ? '/' + ref.verse : ''}`;
+      return;
+    }
+    Search.forget();
+    const to = Search.hrefOf(text);
+    if (location.hash === to) draw(); else location.hash = to;
+  } }, [gotoInput, el('button', { class: 'btn small ghost', type: 'submit', text: t('Search') })]);
 
   const srcSel = el('select', { id: 'r-src', 'aria-label': t('Translation') });
   const cmpSel = el('select', { id: 'r-cmp', 'aria-label': t('Compare with') }, el('option', { value: '', text: t('Compare: none') }));
@@ -126,12 +175,26 @@ async function draw() {
       ]),
       el('div', { class: 'row tools' }, [gotoForm, srcSel, cmpSel, viewBtn]),
     ]));
+  // the examples show where the box has room for the whole of them (a PC); a phone's box keeps the three words.
+  // Measured again once the app's own letters have arrived: they are wider than the letters a device shows meanwhile.
+  const hints = [t('Find a verse: “{place}” or “{words}”', { place, words }), t('“{place}” or “{words}”', { place, words }), t('Find a verse…')];
+  fitHint(gotoInput, hints);
+  if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(() => { if (gotoInput.isConnected) fitHint(gotoInput, hints); }).catch(() => {});
+
+  // ---- a search: the verses that carry the words, in place of the chapter
+  if (found) {
+    container.append(Search.page({ q: found.q, where: found.where, srcId, back: { href: `#read/${current.book}/${current.chapter}`, label: formatRef({ book: current.book, chapter: current.chapter }, lang) } }));
+    return;
+  }
 
   // ---- the text
   const page = el('div', { class: 'page reader' });
   const article = el('article', { class: 'scripture size-' + (state.settings.fontSize || 'm'), lang: src && src.lang ? String(src.lang).slice(0, 2) : 'en' });
   if (besideExt) { container.append(besideBar(besideExt)); followBeside(besideExt); }
   container.append(page);
+  // a verse opened from a search: the list it came from is one tap back
+  const list = Search.wayBack(current.book, current.chapter);
+  if (list) page.append(el('p', { class: 'crumbs found-back' }, el('a', { href: list.href, text: '‹ ' + t('Back to the verses with “{q}”', { q: list.q }) })));
   page.append(article);
   const heading = formatRef({ book: current.book, chapter: current.chapter }, lang);
   article.append(el('header', { class: 'chap-head' }, [
@@ -266,6 +329,8 @@ function viewSheet(srcId) {
     await saveSetting('fontSize', v);
     const art = $('.scripture', container);
     if (art) art.className = 'scripture size-' + v;
+    const list = $('.found-body', container);   // the verses of a search are read in the same size
+    if (list) list.className = 'found-body size-' + v;
   }, { block: true, label: t('Text size') });
   const themeSeg = seg(THEMES, state.settings.theme || 'system', async v => { await saveSetting('theme', v); applyTheme(v); }, { block: true, label: t('Theme') });
   const readSeg = seg(READS, state.settings.readMode || 'book', async v => { await saveSetting('readMode', v); applyRead(v); }, { block: true, label: t('Letters and spacing') });

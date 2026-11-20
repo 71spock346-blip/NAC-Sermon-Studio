@@ -520,9 +520,13 @@ nav.side .lang-switch { align-self: flex-start; margin-bottom: 4px; }
 .readbar .nav .btn { padding-left: 0; padding-right: 0; width: 36px; flex: 0 0 auto; font-size: 20px; font-weight: 500; }
 .readbar .nav select { width: auto; flex: 1 1 140px; }
 .readbar .nav #r-chapter { flex: 0 1 84px; }
-.readbar .goto { display: flex; gap: 6px; flex: 2 1 220px; min-width: 0; }
+/* the box that finds a verse takes the room: the translation is a short name (KJV), and Compare is a few words;
+   in a narrow PC window the box has a row of its own, with the translation, Compare and Aa under it */
+.readbar .goto { display: flex; gap: 6px; flex: 2 1 260px; min-width: 0; }
+@media (min-width: 760px) and (max-width: 959.98px) { .readbar .goto { flex-basis: 100%; } }
 .readbar .goto input { flex: 1 1 auto; }
-.readbar .tools select { width: auto; flex: 0 1 190px; }
+.readbar .tools select { width: auto; flex: 0 1 170px; }
+.readbar .tools #r-src { flex: 0 1 130px; }
 .readbar .tools #r-view { flex: 0 0 auto; font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: .02em; }
 .readbar .tools #r-view svg { width: 14px; height: 14px; }
 
@@ -566,6 +570,35 @@ footer.copyright .elsewhere a { text-decoration: none; font-weight: 700; padding
 footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .fums img { width: 1px; height: 1px; }
 .chapter-notes { margin-top: 8px; }
+
+/* the verses a search found, in place of the chapter (search.js): a heading that says how many, a line that says
+   which Bible was searched, and each verse as a row to tap, its words marked, in the reader's own letters and size */
+.found-wait { margin: 14px 0; }
+.found-head { align-items: flex-start; margin: 6px 0 6px; }
+.found-head h2 { overflow-wrap: anywhere; text-wrap: balance; }
+.found-head .btn { flex: 0 0 auto; }
+.found-notes p { margin: 0 0 8px; max-width: 70ch; line-height: 1.5; }
+.found-notes .found-note { font-size: 14.5px; color: var(--ink-2); padding: 10px 12px; border-radius: var(--radius-s); background: var(--card); }
+.found-where { margin: 4px 0 0; }
+.found-where select { width: auto; max-width: 100%; flex: 0 1 340px; }
+.found-book { margin-top: 12px; }
+.found-book .item b { display: block; font-size: 16px; }
+.found-body h3.sub { margin: 20px 0 0; }
+.found-list { margin-top: 10px; }
+.found-verse { align-items: flex-start; padding-top: 13px; padding-bottom: 13px; }
+.found-verse .grow b { display: block; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.found-verse .snippet { font-family: var(--serif); color: var(--ink); line-height: 1.6; margin-top: 3px; overflow-wrap: anywhere; }
+.found-body.size-s .snippet { font-size: 15px; }
+.found-body.size-m .snippet { font-size: 16px; }
+.found-body.size-l .snippet { font-size: 18.5px; }
+.found-body.size-xl .snippet { font-size: 22px; }
+.found-verse mark { background: var(--mark-n-bg); color: inherit; font-weight: 700; border-radius: 4px; padding: 1px 2px; margin: 0 -2px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.found-verse .chev, .found-book .chev { color: var(--muted); font-size: 22px; line-height: 1; flex: 0 0 auto; }
+.found-verse .chev { align-self: center; }
+.found-more { margin-top: 12px; }
+.found-back { margin: 0 0 4px; }
+.found-back a { display: inline-block; padding: 6px 0; }
+[data-read="easy"] .found-verse .snippet { line-height: 1.8; }
 
 /* the bar that appears when verses are selected */
 .vactions { position: sticky; bottom: calc(10px + var(--tabbar) + var(--update-h, 0px)); z-index: 6; background: var(--bar); color: var(--bar-ink); border-radius: 14px; padding: 8px 10px; margin-top: 12px; box-shadow: var(--shadow-pop); }
@@ -827,16 +860,21 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
   .readbar .nav select { flex: 1 1 0; }
   .readbar .nav #r-chapter { flex: 0 1 88px; }
   .readbar .nav .btn { width: 44px; }
-  .readbar .goto { flex: 1 1 150px; }
-  .readbar .goto .btn { display: none; }           /* the keyboard's Go key submits */
+  .readbar .goto { flex: 1 1 120px; }              /* with the translation and Aa on one row from 360px */
+  .readbar .goto .btn { display: none; }           /* the keyboard's Search key submits */
   .readbar .tools #r-cmp { display: none; }        /* Compare lives under Aa on a phone */
-  .readbar .tools #r-src { flex: 0 1 118px; }
+  .readbar .tools #r-src { flex: 0 1 106px; }
   .scripture.size-s { font-size: 17px; }
   .scripture.size-m { font-size: 18.5px; }
   .scripture.size-l { font-size: 21.5px; }
   .scripture.size-xl { font-size: 25.5px; }
   .verse { padding: 6px 10px; }
   .chap-head { margin-top: 8px; }
+  .found-body.size-s .snippet { font-size: 16px; }
+  .found-body.size-m .snippet { font-size: 17px; }
+  .found-body.size-l .snippet { font-size: 19.5px; }
+  .found-body.size-xl .snippet { font-size: 23px; }
+  .found-where select { flex: 1 1 100%; }
 
   /* 16px or more stops a phone browser zooming the page when a field is focused */
   input[type=text], input[type=date], input[type=time], input[type=number], input[type=password],
@@ -919,6 +957,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
   .chap-head h2 { font-size: 1.9em; }
   .scripture { padding-top: 0; }
   footer.copyright { margin-top: 18px; }
+  .found .list { box-shadow: none; border: 1px solid var(--line); }
   .sec { padding: 20px 22px 18px; }
   .help header.top { display: flex; }
 }

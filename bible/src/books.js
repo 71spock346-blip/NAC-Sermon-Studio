@@ -5,6 +5,8 @@
  * and YouVersion use, so one reference addresses every text source. The
  * Apocrypha sit between the testaments in the King James order.
  */
+import { distance } from './search-lib.js';   // how far a misspelt book name is from a real one
+
 export const BOOKS = [
   // id, English, Afrikaans, group, abbreviations (lower case, no spaces or dots)
   ['GEN', 'Genesis', 'Genesis', 'ot', ['gen', 'ge', 'gn']],
@@ -123,16 +125,43 @@ export function findBook(text) {
 }
 
 /**
- * Parse a reference such as "Psalm 130:7", "Ps 130:1-2", "Lukas 8:16",
- * "1 Kor 13", "Psalm 57v10", "John 3:16-18", "Openb 21".
- * Returns {book, chapter, verse, verseEnd} or null.
+ * The book a misspelt name most likely means ("Jhon", "Revelations",
+ * "1 Corintians"): the one book whose name or abbreviation is nearest, a
+ * letter or two off. Null when two books are as near, or when the name has
+ * fewer than four letters (too many books are one letter from "Jo").
  */
-export function parseRef(text) {
+function nearBook(text) {
+  const key = fold(text);
+  if (key.length < 4) return null;
+  const max = key.length >= 7 ? 2 : 1;
+  let best = max + 1, ids = new Set();
+  for (const [name, id] of LOOKUP) {
+    if (name.length < 4) continue;
+    const d = distance(key, name, Math.min(max, best));
+    if (d > max || d > best) continue;
+    if (d < best) { best = d; ids = new Set(); }
+    ids.add(id);
+  }
+  return ids.size === 1 ? BY_ID[[...ids][0]] : null;
+}
+
+/**
+ * Parse a reference such as "Psalm 130:7", "Ps 130:1-2", "Lukas 8:16",
+ * "1 Kor 13", "Psalm 57v10", "John 3:16-18", "Openb 21", and the ways
+ * people type one: "Joh 3.16", "John 3 16", "Joh 3 vers 16".
+ * Returns {book, chapter, verse, verseEnd} or null.
+ *
+ * With {loose: true} a slip in the book's name is forgiven ("Jhon 3:16",
+ * "Revelations 21"). The reader's box asks for that; everything else wants
+ * only what is certain.
+ */
+export function parseRef(text, { loose = false } = {}) {
   if (!text) return null;
-  let s = text.trim().replace(/\./g, ' ').replace(/\s+/g, ' ');
-  const m = s.match(/^([1-3]?\s*[a-zA-ZÀ-ɏ][a-zA-ZÀ-ɏ ]*?)\s*(\d+)?(?:\s*[:v]\s*(\d+)\s*(?:[-–—]\s*(\d+))?)?(?:[,;].*)?$/);
+  const s = String(text).trim().replace(/\./g, ' ').replace(/\b(?:chapter|chap|hoofstuk|hfst)\b/gi, ' ').replace(/\s+/g, ' ').trim();
+  // the verse's ":" or "v" only counts after a chapter number: "Rev 21" is chapter 21, not "Re" verse 21
+  const m = s.match(/^([1-3]?\s*[a-zA-ZÀ-ɏ][a-zA-ZÀ-ɏ ]*?)\s*(?:(\d+)(?:\s*(?::|verses?|vers|vs|v)?\s*(\d+)\s*(?:[-–—]\s*(\d+))?)?)?(?:[,;].*)?$/i);
   if (!m) return null;
-  const book = findBook(m[1]);
+  const book = findBook(m[1]) || (loose ? nearBook(m[1]) : null);
   if (!book) return null;
   const chapter = m[2] ? parseInt(m[2], 10) : 1;
   const verse = m[3] ? parseInt(m[3], 10) : null;
