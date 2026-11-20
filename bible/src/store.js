@@ -347,7 +347,7 @@ export async function wipeTexts() {
   changed('texts');
 }
 
-/* ---- the text of the Catechism, loaded from the file the build script makes ----
+/* ---- the text of the Catechism, read from its PDF under Church files (files.js, catechism-pdf.js) or loaded from the file the build script made ----
    The Church's text is for the person's own study, so it lives on the device
    only: its own store, not in the backup. 'meta' is read at start (is it
    there, which edition); 'text' holds the sections and is read when needed. */
@@ -355,7 +355,7 @@ export async function saveCatechismText(data) {
   if (!data || data.app !== 'nac-study-bible-catechism' || !Array.isArray(data.sections) || !data.sections.length) throw new Error(t('Not a Catechism text file from this app'));
   const sections = data.sections.filter(x => x && x.n && Array.isArray(x.blocks));
   if (!sections.length) throw new Error(t('The file holds no Catechism sections'));
-  const meta = { edition: data.edition || 'Catechism of the New Apostolic Church', copyright: data.copyright || '', builtAt: data.builtAt || '', sections: sections.length, loadedAt: new Date().toISOString() };
+  const meta = { edition: data.edition || 'Catechism of the New Apostolic Church', language: data.language || 'en', copyright: data.copyright || '', builtAt: data.builtAt || '', source: data.source || 'file', fileName: data.fileName || '', sections: sections.length, loadedAt: new Date().toISOString() };
   await db.put('catechism', { key: 'text', value: sections });
   await db.put('catechism', { key: 'meta', value: meta });
   state.catechism = meta;

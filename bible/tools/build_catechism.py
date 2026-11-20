@@ -28,7 +28,9 @@ same pages: paragraphs, lists, the summaries the book prints at the end of
 each group of sections, footnotes, and the table of the Ten Commandments.
 That file is the Church's copyrighted text, so it is not committed and not
 published with the app: the person loads it into the app on their own
-device (Settings > Catechism), where it stays.
+device (Church files), where it stays. Since November 2026 the app reads the
+PDF itself on the device (src/catechism-pdf.js), so this file is only needed
+where that cannot be done; the two give the same sections.
 
 Text file:
   {"app": "nac-study-bible-catechism", "version": 1, "edition": "...",

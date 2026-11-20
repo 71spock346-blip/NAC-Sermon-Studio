@@ -42,10 +42,15 @@ services after it are listed under the card.</p>
 <p>On a PC every part of the app is in the blue menu on the left; Seating, Choir, Reminders, MIS and Reflection evening
 stand together there under the heading <b>Tools</b>. On a phone the bar at the bottom holds <b>Sunday</b>, <b>Read</b>,
 <b>Notes</b> and <b>Prepare</b>, and a fifth tab, <b>More</b>, lists the rest: Handbooks, Theology, Month plan, the Tools
-under their heading, and Settings. While one of those is open, More stays lit, so a tap on it brings the list back.</p>
+under their heading, Church files and Settings. While one of those is open, More stays lit, so a tap on it brings the list back.</p>
 <p><b>Handbooks</b> is the door to the Church's books: the Catechism, the Creed, the Liturgy (the words at the altar) and
 the handbooks for ministers, each a row in its list. While the Catechism or the Liturgy is open, Handbooks stays lit on a
 PC, and More on a phone, so a tap on it brings the list back.</p>
+<p><b>Church files</b>, in the menu on a PC and under More on a phone, is where the Church's own texts are loaded, each
+once from its own file: the text of the Catechism (from the Catechism's PDF), the altar booklet in English and in
+Afrikaans, the handbooks for ministers and, where the AI helper is unlocked, the Divine Service Guide. A row per file
+says whether it is on this device, with one <b>Load</b> button and, once it is loaded, <b>Remove</b>. What is loaded
+reaches your other devices through the sync and is not in the backup file.</p>
 <p><b>MIS</b>, under Tools, opens the Church's own MIS site. In the installed app it opens over the app: on a phone
 with a Done or ✕ at the top to come back, on a PC in the app's window with a bar at the top whose ✕ brings the app back.
 In a browser it opens in a tab of its own. Sign in there as always; the app never sees or keeps your password. The MIS
@@ -126,11 +131,11 @@ or Afrikaans. Each device keeps its own choice.</p>
 
 <h2>Catechism</h2>
 <p>Catechism, the first row under <b>Handbooks</b>, lists the Catechism's chapters and sections. Open a section to see the Bible verses it quotes.
-The text of the sections is the Church's copyright, so it is not part of the public app: load it once on each device
-under Settings → Catechism, from the file <i>catechism-text.json</i> that is made from the Catechism PDF
-(<code>python3 bible/tools/build_catechism.py catechism.txt catechism-toc.txt --text catechism-text.json</code>, where
-<i>catechism.txt</i> is the PDF as text from <code>pdftotext -layout</code>). It stays in this browser on this device
-and is not in the backup file.</p>
+The text of the sections is the Church's copyright, so it is not part of the public app: load it once under
+<b>Church files</b>, straight from the Church's own PDF of the Catechism (<b>Load the Catechism (PDF)</b>). The app reads
+the sections out of the PDF on the device itself, page by page, and matches them to the built-in index; it takes a minute
+or so. The text stays on your devices (it reaches the others through the sync) and is not in the backup file. A
+<i>catechism-text.json</i> made earlier with <code>bible/tools/build_catechism.py</code> loads there too.</p>
 <p>With the text loaded you can read every section under Catechism, with the book's own summary at the top and
 "see 4.2" links between sections; search the whole Catechism by word; tap the <b>C</b> on a verse to see the summary
 of each section that quotes it; and open a section under a service preparation with "Read". Without it, each section
@@ -178,10 +183,10 @@ service and in each act of blessing (adoption, confirmation, a wedding, a funera
 wedding anniversary, Holy Baptism), one card per rite, as the booklet prints them: the label on the left, the words on
 the right, the booklet's notes in italics and its lists. It is a row under <b>Handbooks</b>, on a PC and on a phone, and
 on a phone it sits at the top of <b>Prepare</b> as well.</p>
-<p>The booklet is the Church's own, so it is not part of the app. Load its PDF once under Liturgy: <b>Load the English
-booklet (PDF)</b> or <b>Load the Afrikaans booklet (PDF)</b>, or both. The app reads the cards from the file on the
+<p>The booklet is the Church's own, so it is not part of the app. Load its PDF once under <b>Church files</b>: <b>Load it (PDF)</b> on the
+row of the English booklet or of the Afrikaans one, or both. The app reads the cards from the file on the
 device itself (no Claude, no key, a few seconds), keeps them in this browser and sends them to your other devices through
-the sync, so one load is enough. They are not in the backup file. <b>Remove</b> takes a booklet off your devices again
+the sync, so one load is enough. They are not in the backup file. Under Church files, <b>Remove</b> takes a booklet off your devices again
 (Undo brings it back), and the PDF can be loaded anew at any time; <b>Load a newer file</b> replaces a booklet.</p>
 <p>The cards show in the app's language, or in the other language when only that booklet is loaded, and a card has an
 <b>EN | AF</b> switch when both are loaded. <b>Aa</b> sets the text size, the same sizes as in the reader, up to Pulpit.
@@ -216,13 +221,13 @@ the <i>Guide for Ministers</i> (the rule book: ministry, the divine service, the
 pastoral care, administration, the competency profiles), the <i>"Serving and Leading"</i> guiding principle, and the
 <i>Liturgy of the New Apostolic Church</i> of 2024. Another handbook in the same shape, with numbered chapters, can
 be loaded as well. The Catechism and the Liturgy (the altar cards) are rows in the list too, the Catechism first, each
-opening its own screen; once the Catechism's text is loaded under Settings, its sections are searched and asked together
+opening its own screen; once the Catechism's text is loaded under Church files, its sections are searched and asked together
 with the handbooks. On a PC Handbooks is in the side menu after Prepare; on a phone it is the fourth tab of the bar.</p>
-<p>The handbooks are the Church's own, so they are not part of the app. Load each one once under Handbooks, as its
+<p>The handbooks are the Church's own, so they are not part of the app. Load each one once under <b>Church files</b>, as its
 PDF or as a text file saved from the PDF: <b>Load it (PDF or text file)</b> under its name. The app reads the chapters from
 the file on the device itself (no Claude, no key, a few seconds for a PDF), keeps them in this browser and sends them
-to your other devices through the sync, so one load is enough. They are not in the backup file. Under <b>The files</b>
-each handbook has a line with its edition and when it was loaded; <b>Remove</b> takes it off your devices again (Undo
+to your other devices through the sync, so one load is enough. They are not in the backup file. Under Church files
+each handbook has a row with its edition and when it was loaded; <b>Remove</b> takes it off your devices again (Undo
 brings it back) and <b>Load a newer file</b> replaces it. A handbook loaded in English and in Afrikaans has an
 <b>EN | AF</b> switch on its pages.</p>
 <p>The list opens a handbook's <b>Contents</b>: its chapters by number. A chapter shows its text as the book prints
@@ -466,7 +471,7 @@ password</b> on a device that is still unlocked, or tap "AI helper" five times a
 password</b>: your sync code removes the lock. Anyone else may still <b>Ask Claude</b> in Theology, with a key of
 their own; the minister's key is never used for that.</p>
 <ul>
-  <li><b>The Divine Service Guide:</b> in the Prepare tab, <b>Load a Guide (PDF)</b> takes the month's Guide
+  <li><b>The Divine Service Guide:</b> in the Prepare tab (and under Church files), <b>Load a Guide (PDF)</b> takes the month's Guide
     (English or Afrikaans). Claude reads every service out of it: date, Bible text, title, message, the article, the
     Context box, the Summary and the Catechism sections it cites. The services are then listed in the Prepare tab;
     tap one and a preparation opens with the text word, title, message, main points, context and summary filled in,

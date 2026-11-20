@@ -6,7 +6,8 @@
  * minister has them on the phone or the PC at the altar, in large letters.
  *
  * The booklet is the Church's own text, so it is not in the app: the
- * minister loads its PDF once, in English, in Afrikaans or both. booklet.js
+ * minister loads its PDF once under Church files (files.js), in English, in
+ * Afrikaans or both. booklet.js
  * reads the PDF on the device itself (no AI, no key) into cards, which are
  * kept in the `liturgy` store, one row per language (id 'en' or 'af'), from
  * where they travel with the sync to the other devices. They are not in the
@@ -42,10 +43,10 @@ import * as Sync from './sync.js';
 import { editedRows } from './booklet.js';
 import { printButton, printSheet, printNow, cardPdf, cardNote } from './handbook-pdf.js';   // Print or save: a card, or all the cards, as a PDF on A4, on A5 or on one side of an A5 card
 
-const LANGS = ['en', 'af'];
+export const LANGS = ['en', 'af'];
 
-/** The loaded booklet in a language, or null. */
-const booklet = l => state.liturgy.find(b => b.id === l) || null;
+/** The loaded booklet in a language, or null. Church files (files.js) lists both and loads them. */
+export const booklet = l => state.liturgy.find(b => b.id === l) || null;
 
 /** The language of the list: the app's, or the other one when only that booklet is loaded. */
 function listLang() {
@@ -59,9 +60,6 @@ function cardLang() {
   if (picked && picked.under === lang() && booklet(picked.l)) return picked.l;
   return listLang();
 }
-
-const bookletName = l => (l === 'af' ? t('Afrikaans booklet') : t('English booklet'));
-const loadLabel = l => (l === 'af' ? t('Load the Afrikaans booklet (PDF)') : t('Load the English booklet (PDF)'));
 
 /** The chalice on the Liturgy tab (index.html), for the shortcut at the top of Prepare on a phone and the row under Handbooks. */
 export function icon() {
@@ -139,8 +137,8 @@ function listPage(container) {
   );
   if (!bk) {
     container.append(el('div', { class: 'lit-empty' }, [
-      el('p', { text: t('The booklet is the Church\'s own, so it is not part of the app. Load its PDF here once, in English or in Afrikaans or both: the app reads the cards from it on this device itself, and they reach your other devices through the sync.') }),
-      el('div', { class: 'row' }, LANGS.map(x => el('button', { class: 'btn small', type: 'button', text: loadLabel(x), onclick: () => load(container) }))),
+      el('p', { text: t('The booklet is the Church\'s own, so it is not part of the app. Load its PDF once under Church files, in English or in Afrikaans or both: the app reads the cards from it on this device itself, and they reach your other devices through the sync.') }),
+      el('div', { class: 'row' }, [el('a', { class: 'btn small', href: '#files', text: t('Open Church files') })]),
     ]));
   } else {
     if (l !== lang()) {
@@ -156,23 +154,10 @@ function listPage(container) {
     }
     container.append(list);
   }
-  // the booklets on this device, one line each, with the buttons to load or remove them
-  const books = el('div', { class: 'lit-books' }, [el('h3', { class: 'sub', text: t('The booklets') })]);
-  for (const x of LANGS) {
-    const b = booklet(x);
-    books.append(el('div', { class: 'lit-book' }, [
-      el('div', {}, [el('b', { text: bookletName(x) + ': ' }), b
-        ? t('{cover}, {n} cards, loaded {date} from {file}.', { cover: b.cover || t('Liturgy for altar use'), n: b.cards.length, date: fmtDate(b.loadedAt), file: b.fileName || 'PDF' })
-        : t('not loaded yet.')]),
-      el('div', { class: 'row' }, [
-        el('button', { class: 'btn small' + (b ? ' ghost' : ''), type: 'button', text: b ? t('Load a newer file') : loadLabel(x), onclick: () => loadOver(container, b) }),
-        b ? el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove'), onclick: () => remove(container, x) }) : null,
-      ]),
-    ]));
-  }
-  // the full liturgy book of 2024, of which these cards are the short form, lives under Handbooks
+  // the booklets are loaded and removed under Church files (files.js); the full liturgy book of 2024, of which these cards are the short form, lives under Handbooks
   const book = state.handbooks.find(h => h.key === 'liturgy');
-  container.append(books, el('p', { class: 'small lit-fullbook' }, [
+  container.append(el('p', { class: 'small lit-fullbook' }, [
+    ...(bk ? [t('The booklets are loaded and removed under '), el('a', { href: '#files', text: t('Church files') }), '. '] : []),
     book ? t('The full Liturgy book of 2024, with the long form of the service and every act of blessing, is under ') : t('The full Liturgy book of 2024, with the long form of the service and every act of blessing, can be loaded under '),
     el('a', { href: book ? '#handbooks/liturgy' : '#handbooks', text: t('Handbooks') }),
     '.',
@@ -434,28 +419,16 @@ async function restore(container, bk, card) {
   toast(t('The booklet\'s words are back.'), false, async () => { put(card, before); await touch(bk); render(container, ['liturgy', card.key]); });
 }
 
-/* ---------------------------------------------------------------- loading a booklet */
+/* ---------------------------------------------------------------- loading a booklet (from Church files, files.js) */
 
-/** "Load a newer file" over a booklet with cards changed by hand asks first: the file's words take their place. */
-function loadOver(container, b) {
-  if (!b || !b.cards.some(c => c.edited)) { load(container); return; }
-  confirmBox(t('Some cards of this booklet have words you changed. A new file puts its own words on every card again. Load it anyway?'), t('Load the file')).then(ok => { if (ok) load(container); });
+/** "Load a newer file" over a booklet with cards changed by hand asks first: the file's words take their place. True when the file may be loaded. */
+export async function mayReplace(b) {
+  if (!b || !b.cards.some(c => c.edited)) return true;
+  return confirmBox(t('Some cards of this booklet have words you changed. A new file puts its own words on every card again. Load it anyway?'), t('Load the file'));
 }
 
-/** The file picker, then the wait while the PDF is read on the device; the booklet is saved under the language it is in. */
-function load(container) {
-  const input = el('input', { type: 'file', accept: 'application/pdf,.pdf', hidden: true });
-  document.body.append(input);
-  input.addEventListener('change', async () => {
-    const file = input.files[0];
-    input.remove();
-    if (file) await read(file, container);
-  });
-  input.addEventListener('cancel', () => input.remove());
-  input.click();
-}
-
-async function read(file, container) {
+/** Reads the booklet's PDF on the device (booklet.js) and keeps it under the language it is in: the row saved, or null when the file could not be read (the sheet says why). */
+export async function read(file) {
   const b = busy(t('Reading the booklet'));
   try {
     b.say(t('Opening {file}…', { file: file.name }));
@@ -475,14 +448,16 @@ async function read(file, container) {
     picked = null;
     b.done();
     toast(row.language === 'af' ? t('Afrikaans booklet loaded: {n} cards.', { n: row.cards.length }) : t('English booklet loaded: {n} cards.', { n: row.cards.length }));
-    render(container, ['liturgy']);
+    return row;
   } catch (e) {
     console.error(e);
     b.fail(e.message || t('The file could not be read.'));
+    return null;
   }
 }
 
-async function remove(container, l) {
+/** Removes the booklet in a language (with Undo); `after` draws the screen it was removed from again. */
+export async function remove(l, after) {
   const kept = booklet(l);
   if (!kept) return;
   const q = l === 'af'
@@ -491,10 +466,10 @@ async function remove(container, l) {
   if (!(await confirmBox(q, t('Remove'), true))) return;
   await deleteLiturgy(l);
   picked = null;
-  render(container, ['liturgy']);
+  after();
   toast(l === 'af' ? t('Afrikaans booklet removed.') : t('English booklet removed.'), false, async () => {
     await saveLiturgy(kept);
-    render(container, ['liturgy']);
+    after();
   });
 }
 

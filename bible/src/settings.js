@@ -12,9 +12,8 @@ import { t, tn, LANGS, requestLang, locale } from './i18n.js';
 import * as Seating from './seating.js';
 import * as ChoirTab from './choir.js';
 import * as Reminders from './reminders.js';
-import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts, saveCatechismText, deleteCatechismText } from './store.js';
+import { state, saveSetting, exportAll, importAll, clearCache, wipeAll, textCount, exportTexts, importTexts, wipeTexts } from './store.js';
 import * as Bible from './bible.js';
-import * as Cat from './catechism.js';
 import * as AI from './ai.js';
 import * as Sync from './sync.js';
 import * as Lock from './lock.js';
@@ -122,7 +121,7 @@ export function render(container) {
   ]));
 
   myTextsSection(trans);
-  catechismSection(container);
+  filesSection(container);
   aiSection(container);
   voiceSection(container);
 
@@ -295,38 +294,13 @@ function myTextsSection(container) {
   );
 }
 
-/** The text of the Catechism: loaded from its file onto this device, shown and printed from here. */
-function catechismSection(container) {
-  const meta = state.catechism;
-  const fileInput = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
-  fileInput.addEventListener('change', async () => {
-    const f = fileInput.files[0];
-    if (!f) return;
-    try {
-      const m = await saveCatechismText(JSON.parse(await f.text()));
-      Cat.forgetText();
-      toast(t('Catechism loaded: {n} sections.', { n: m.sections }));
-      render(root);
-    } catch (e) { toast(e.message || t('That file could not be read.'), true); }
-    fileInput.value = '';
-  });
-  container.append(section(t('Catechism'), [
-    el('p', { class: 'small', text: t('The index of the Catechism (section numbers, titles and the Bible verses each section quotes) is built in. The text of the sections is the Church\'s copyright, so it is not part of the public app: load it here from its file, and it stays in this browser on this device. You can then read every section in the Catechism tab and under a service preparation, search the Catechism by word, and print the sections you tick into your sermon notes. The file is made from the Catechism PDF with tools/build_catechism.py (see the help page); load it once on each device you use.') }),
-    el('p', { class: 'small' }, meta
-      ? [el('b', { text: t('Loaded on this device: ') }), t('{n} sections, {edition}{built}, loaded {date}.', { n: meta.sections, edition: meta.edition, built: meta.builtAt ? t(', file built {date}', { date: meta.builtAt }) : '', date: fmtDate(meta.loadedAt) })]
-      : [el('b', { text: t('Not loaded on this device. ') }), t('Until it is, the app links each section to nak.org and the sermon notes list the chosen sections by number and title.')]),
-    el('div', { class: 'row' }, [
-      el('button', { class: 'btn small', type: 'button', text: meta ? t('Load a newer Catechism file') : t('Load the Catechism text file'), onclick: () => fileInput.click() }),
-      meta ? el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove the Catechism text'), onclick: async () => {
-        if (await confirmBox(Sync.isOn() ? t('Remove the text of the Catechism from this device and, through sync, from your other devices? The index stays, and you can load the file again later.') : t('Remove the text of the Catechism from this device? The index stays, and you can load the file again later.'), t('Remove'), true)) {
-          await deleteCatechismText();
-          Cat.forgetText();
-          toast(t('Catechism text removed.'));
-          render(root);
-        }
-      } }) : null,
-      fileInput,
-    ]),
+/** The Church's own texts are loaded under Church files (files.js); this section points there, since the Catechism loaded here until November 2026. */
+function filesSection(container) {
+  container.append(section(t('Church files'), [
+    el('p', { class: 'small', text: AI.unlocked()
+      ? t('The text of the Catechism, the altar booklet, the handbooks for ministers and the Divine Service Guides are the Church\'s own, so they are not part of the app. Each is loaded once from its own file under Church files, where a row shows what is on this device.')
+      : t('The text of the Catechism, the altar booklet and the handbooks for ministers are the Church\'s own, so they are not part of the app. Each is loaded once from its own file under Church files, where a row shows what is on this device.') }),
+    el('div', { class: 'row' }, [el('a', { class: 'btn small', href: '#files', text: t('Open Church files') })]),
   ]));
 }
 

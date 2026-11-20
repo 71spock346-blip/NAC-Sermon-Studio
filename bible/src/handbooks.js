@@ -8,7 +8,8 @@
  * same shape (numbered chapters) can be loaded as well.
  *
  * The handbooks are the Church's own text, so they are not in the app: the
- * minister loads each one once, as the PDF or as a text file saved from it.
+ * minister loads each one once under Church files (files.js), as the PDF or
+ * as a text file saved from it.
  * handbook.js reads it on the device itself (no AI, no key) into chapters,
  * which are kept in the `handbooks` store, one row per handbook and
  * language (id '<key>:<language>', e.g. 'guide-for-ministers:en'), from
@@ -30,7 +31,7 @@
  * (catechism.js, #catechism) and the Liturgy, the altar cards (liturgy.js,
  * #liturgy), keep their own screens but are listed here, first in the list,
  * and Handbooks stays lit while one of them is open (app.js, holds()). Once
- * the Catechism's text is on the device (Settings → Catechism) its sections
+ * the Catechism's text is on the device (loaded under Church files) its sections
  * are searched and asked together with the handbooks (catechism.js
  * asHandbook). Where the AI helper is unlocked (lock.js), the list page also
  * has "Ask the handbooks" (ask.js): Claude answers a question from the
@@ -56,20 +57,13 @@ import { printButton, printSheet, chapterPdf } from './handbook-pdf.js';   // Pr
 export const UNDER = ['catechism', 'liturgy'];
 export const holds = tab => UNDER.includes(tab);
 
-/** One line on each handbook the app knows by name, for the list while it is not loaded yet. */
-const ABOUT = {
-  'guide-for-ministers': () => t('The rule book for ministers: ministry, the divine service, the sacraments and acts of blessing, pastoral care, administration, and the competency profiles.'),
-  'serving-and-leading': () => t('The guiding principle for everyone who leads in the Church: serving, authority, delegation, communication, conflict resolution.'),
-  'liturgy': () => t('The full liturgy book of 2024: the divine service in its short and long form, the special services, the sacraments and every act of blessing.'),
-};
-
 /* ---------------------------------------------------------------- which handbook, which chapter */
 
 /** The handbooks on this device: the Creed, which is part of the app, and those loaded from their files (a loaded copy with the Creed's own id would stand in for the built-in one). */
 const all = () => [...CREED.filter(c => !state.handbooks.some(h => h.id === c.id)), ...state.handbooks];
 
-/** The copies of a handbook, the app's language first. */
-const copies = key => all().filter(h => h.key === key).sort((a, b) => (a.language === lang() ? -1 : b.language === lang() ? 1 : a.language.localeCompare(b.language)));
+/** The copies of a handbook, the app's language first (Church files, files.js, lists them). */
+export const copies = key => all().filter(h => h.key === key).sort((a, b) => (a.language === lang() ? -1 : b.language === lang() ? 1 : a.language.localeCompare(b.language)));
 
 /** The handbook to show under a key: the copy in the app's language, else the other one; null when none is loaded. */
 const bookOf = key => copies(key)[0] || null;
@@ -159,7 +153,7 @@ function credit(hb) {
 }
 
 /** "Current as of 15.01.2025 (Version 4) · 104 pages · 271 chapters"; for the Creed, what it is. */
-function aboutLine(hb) {
+export function aboutLine(hb) {
   if (hb.builtIn) return t('The ten Articles of Faith. Part of the app, nothing to load.');
   return [hb.edition, hb.pages ? t('{n} pages', { n: hb.pages }) : '', t('{n} chapters', { n: hb.chapters.length })].filter(Boolean).join(' · ');
 }
@@ -187,40 +181,25 @@ function listPage(container, q) {
   container.append(el('h3', { class: 'sub', text: t('Read') }), list);
   const ask = askBox(asked, cat ? { lead: t('Claude reads the chapters of the handbooks, and the sections of the Catechism, that fit your question and answers from them in plain words, naming them, so you can check what the books say. The answer is not kept.') } : {});
   if (ask) container.append(ask);
-  // the handbooks loaded from their files, one line each, with the buttons to load or remove them; the known ones are listed even before they are loaded, and while none is, what loading means
-  const section = el('div', { class: 'lit-books' }, [el('h3', { class: 'sub', text: t('The files') })]);
+  // the handbooks are loaded and removed under Church files (files.js), a row each; while none is loaded, what loading means
   if (!files.length) {
-    section.append(el('div', { class: 'lit-empty' }, [
-      el('p', { text: t('The handbooks are the Church\'s own, so they are not part of the app. Load each one here once, as its PDF or as a text file saved from it: the app reads the chapters from the file on this device itself, and they reach your other devices through the sync.') }),
+    container.append(el('div', { class: 'lit-empty' }, [
+      el('p', { text: t('The handbooks are the Church\'s own, so they are not part of the app. Load each one once under Church files, as its PDF or as a text file saved from it: the app reads the chapters from the file on this device itself, and they reach your other devices through the sync.') }),
+      el('div', { class: 'row' }, [el('a', { class: 'btn small', href: '#files', text: t('Open Church files') })]),
     ]));
+  } else {
+    container.append(el('p', { class: 'small lit-fullbook' }, [t('The handbooks are loaded and removed under '), el('a', { href: '#files', text: t('Church files') }), '.']));
   }
-  const keys = [...KNOWN.map(([key]) => key), ...files.map(h => h.key).filter(k => !KNOWN.some(([key]) => key === k))];
-  for (const key of keys) {
-    const all = copies(key);
-    const known = KNOWN.find(([k]) => k === key);
-    const title = all[0] ? all[0].title : known[2];
-    section.append(el('div', { class: 'lit-book' }, [
-      el('div', {}, [el('b', { text: title + ': ' }), all.length
-        ? all.map(hb => t('{language}, {about}, loaded {date} from {file}.', { language: hb.language === 'af' ? t('Afrikaans') : hb.language === 'de' ? t('German') : t('English'), about: aboutLine(hb), date: fmtDate(hb.loadedAt), file: hb.fileName || t('a file') })).join(' ')
-        : t('not loaded yet.')]),
-      !all.length && ABOUT[key] ? el('div', { class: 'muted small', text: ABOUT[key]() }) : null,
-      el('div', { class: 'row' }, [
-        el('button', { class: 'btn small' + (all.length ? ' ghost' : ''), type: 'button', text: all.length ? t('Load a newer file') : t('Load it (PDF or text file)'), onclick: () => load(container) }),
-        ...all.map(hb => el('button', { class: 'btn small ghost danger', type: 'button', text: all.length > 1 ? t('Remove ({language})', { language: hb.language.toUpperCase() }) : t('Remove'), onclick: () => remove(container, hb) })),
-      ]),
-    ]));
-  }
-  section.append(el('div', { class: 'row' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Load another handbook'), onclick: () => load(container) })]));
-  container.append(section, credit());
+  container.append(credit());
 }
 
-/** The Catechism's row in the list: it opens its own screen (#catechism); searched and asked here too once its text is on the device (Settings → Catechism). */
+/** The Catechism's row in the list: it opens its own screen (#catechism); searched and asked here too once its text is on the device (loaded under Church files). */
 function catRow(cat) {
   return el('a', { class: 'item', href: '#catechism' }, [
     catIcon(),
     el('span', { class: 'grow' }, [
       el('b', { text: t('Catechism of the New Apostolic Church') }),
-      el('span', { class: 'muted small snippet', text: cat ? t('The Church\'s teaching, chapter by chapter. Searched and asked here too.') : t('The Church\'s teaching, chapter by chapter. Load its text under Settings to search and ask it here too.') }),
+      el('span', { class: 'muted small snippet', text: cat ? t('The Church\'s teaching, chapter by chapter. Searched and asked here too.') : t('The Church\'s teaching, chapter by chapter. Load it under Church files to search and ask it here too.') }),
     ]),
     el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
   ]);
@@ -429,22 +408,10 @@ function sizeSheet(body) {
   }, { block: true, label: t('Text size') }));
 }
 
-/* ---------------------------------------------------------------- loading a handbook */
+/* ---------------------------------------------------------------- loading a handbook (from Church files, files.js) */
 
-/** The file picker, then the wait while the file is read on the device; the handbook is saved under its own key and language. */
-function load(container) {
-  const input = el('input', { type: 'file', accept: 'application/pdf,.pdf,text/plain,.txt', hidden: true });
-  document.body.append(input);
-  input.addEventListener('change', async () => {
-    const file = input.files[0];
-    input.remove();
-    if (file) await read(file, container);
-  });
-  input.addEventListener('cancel', () => input.remove());
-  input.click();
-}
-
-async function read(file, container) {
+/** Reads a handbook's file (PDF or text) on the device and keeps it under its key and language: the row saved, or null when the file could not be read (the sheet says why). */
+export async function read(file) {
   const b = busy(t('Reading the handbook'));
   try {
     b.say(t('Opening {file}…', { file: file.name }));
@@ -470,24 +437,25 @@ async function read(file, container) {
     picked.delete(row.key);
     b.done();
     toast(t('{title} loaded: {n} chapters.', { title: row.title, n: row.chapters.length }));
-    location.hash = `#handbooks/${encodeURIComponent(row.key)}`;
-    if (location.hash === `#handbooks/${encodeURIComponent(row.key)}`) render(container, ['handbooks', row.key]);
+    return row;
   } catch (e) {
     console.error(e);
     b.fail(e.message || t('The file could not be read.'));
+    return null;
   }
 }
 
-async function remove(container, hb) {
+/** Removes a loaded handbook (with Undo); `after` draws the screen it was removed from again. */
+export async function remove(hb, after) {
   const q = Sync.isOn()
     ? t('Remove {title} from this device and, through sync, from your other devices? You can load the file again later.', { title: hb.title })
     : t('Remove {title} from this device? You can load the file again later.', { title: hb.title });
   if (!(await confirmBox(q, t('Remove'), true))) return;
   await deleteHandbook(hb.id);
   picked.delete(hb.key);
-  render(container, ['handbooks']);
+  after();
   toast(t('{title} removed.', { title: hb.title }), false, async () => {
     await saveHandbook(hb);
-    render(container, ['handbooks']);
+    after();
   });
 }

@@ -8,8 +8,9 @@
  * person browse or search the sections.
  *
  * The text of the sections is the Church's copyright, so it is not published
- * with the app. Settings > Catechism loads the file that tools/build_catechism.py
- * makes from the Catechism PDF into this browser only. Once it is there, the
+ * with the app. Church files (files.js) reads it from the Catechism's own PDF on
+ * the device (catechism-pdf.js), or loads the file tools/build_catechism.py made
+ * from the PDF, into this browser only. Once it is there, the
  * sections are read here, shown under a service preparation, and printed in
  * the sermon notes; without it the app links to the section at nak.org.
  *
@@ -369,7 +370,7 @@ function renderIndex(container, q) {
     el('div', { class: 'docbar' }, [el('h2', { text: t('Catechism of the New Apostolic Church') })]),
     text
       ? el('p', { class: 'muted small', text: t('Open a chapter to read its sections, see which Bible verses each one quotes, and search the whole text by word. The reader marks every verse the Catechism refers to with a "C".') })
-      : el('p', { class: 'muted small' }, [t('The chapters below are an index. Open a section to see which Bible verses it quotes and to read the section itself at nak.org. To read the sections here and print them in your sermon notes, load the Catechism text under '), el('a', { href: '#settings', text: t('Settings') }), '.']),
+      : el('p', { class: 'muted small' }, [t('The chapters below are an index. Open a section to see which Bible verses it quotes and to read the section itself at nak.org. To read the sections here and print them in your sermon notes, load the Catechism text under '), el('a', { href: '#files', text: t('Church files') }), '.']),
     text ? askBox([asHandbook()], askWords()) : null,   // "Ask the Catechism": with the text here and the helper unlocked
     input, results].filter(Boolean));
   show();
@@ -403,7 +404,7 @@ function renderSection(container, s) {
     container.append(el('p', { class: 'muted small', text: t('This heading has no text of its own; its sections below carry it.') + ' ' + t('Printed edition page {page}.', { page: s.page || '–' }) }));
   } else {
     container.append(el('p', { class: 'muted small' }, [
-      t('Printed edition page {page}.', { page: s.page || '–' }) + ' ' + t('The text of this section is read at nak.org, or here once the Catechism text is loaded under '), el('a', { href: '#settings', text: t('Settings') }), '.',
+      t('Printed edition page {page}.', { page: s.page || '–' }) + ' ' + t('The text of this section is read at nak.org, or here once the Catechism text is loaded under '), el('a', { href: '#files', text: t('Church files') }), '.',
     ]));
   }
   if (children.length) {

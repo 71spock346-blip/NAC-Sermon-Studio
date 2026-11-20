@@ -1321,7 +1321,7 @@ function renderEditor(root, s) {
     }
     catNote.textContent = Cat.hasText()
       ? t('Ticked sections go into the sermon notes as chosen above.')
-      : t('The text of the Catechism is not loaded on this device, so the notes list the ticked sections by number and title. Load it under Settings → Catechism to read the sections here and print them.');
+      : t('The text of the Catechism is not loaded on this device, so the notes list the ticked sections by number and title. Load it under Church files to read the sections here and print them.');
   }
   renderCatechism();
 
