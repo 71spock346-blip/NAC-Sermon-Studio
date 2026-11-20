@@ -79,6 +79,7 @@ export const AF = {
   "Prepare this service": "Berei hierdie godsdiens voor",
   "Marked as held: {service}.": "As gehou gemerk: {service}.",
   "{service} is not marked as held yet.": "{service} is nog nie as gehou gemerk nie.",
+  "Not marked as held yet.": "Nog nie as gehou gemerk nie.",
   "At the altar": "By die altaar",
   "After that": "Daarna",
   "Read it on the screen in large letters": "Lees dit op die skerm in groot letters",
@@ -314,7 +315,6 @@ export const AF = {
   "Service preparations ({n})": "Voorbereidings ({n})",
   "New preparation": "Nuwe voorbereiding",
   "‹ All preparations": "‹ Alle voorbereidings",
-  "Each card is one divine service: the text word, the message from the Divine Service Guide, your own thoughts, and the printed sermon notes and cue card.": "Elke kaart is een godsdiens: die tekswoord, die boodskap uit die Handleiding vir Godsdienste, jou eie gedagtes, en die gedrukte preeknotas en preekkaart.",
   "No preparations yet. Tap \"New preparation\", or select verses in the reader and choose \"Prepare a service\".": "Nog geen voorbereidings nie. Tik op \"Nuwe voorbereiding\", of kies verse in die leser en kies \"Berei 'n godsdiens voor\".",
   "Search preparations": "Soek voorbereidings",
   "Search by text, congregation or theme…": "Soek volgens teks, gemeente of tema…",
@@ -683,7 +683,6 @@ export const AF = {
   "Do you have this Guide in English too? Load it as well. Each service is then linked to the same one in Afrikaans, and each preparation can follow either language.": "Het jy hierdie Handleiding ook in Engels? Laai dit ook. Elke godsdiens word dan aan dieselfde een in Afrikaans gekoppel, en elke voorbereiding kan enige van die twee tale volg.",
   "Linked to the English Guide of the same month.": "Gekoppel aan die Engelse Handleiding van dieselfde maand.",
   "Linked to the Afrikaans Guide of the same month.": "Gekoppel aan die Afrikaanse Handleiding van dieselfde maand.",
-  "Tap a service to start its preparation, or to open the one already started. Loaded {date} from \"{file}\".": "Tik op 'n godsdiens om sy voorbereiding te begin, of om die een wat reeds begin is oop te maak. Gelaai {date} uit \"{file}\".",
   // the services already held, out of the way in the Prepare list (guides.js heldToggle, prepare.js renderList)
   "Show held services ({n})": "Wys dienste wat gehou is ({n})",
   "Hide held services": "Verberg dienste wat gehou is",
@@ -704,7 +703,6 @@ export const AF = {
   "This cost {cost}.": "Dit het {cost} gekos.",
   "(the earlier copy was replaced)": "(die vorige kopie is vervang)",
   "No Guide is loaded on this device yet. Load the month's PDF in the Prepare list first.": "Geen Handleiding is nog op hierdie toestel gelaai nie. Laai eers die maand se PDF in die lys onder Diens Voorbereiding.",
-  "a PDF": "'n PDF",
 
   // ---- pasting a chapter in (paste.js)
   "Paste the chapter": "Plak die hoofstuk",

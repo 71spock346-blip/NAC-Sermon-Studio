@@ -260,9 +260,11 @@ export function render(container, route) {
    card, guides.js heldToggle); the choice holds while the app is open. A search finds them all the same. */
 let heldShown = false;
 
-function renderList(container) {
+function renderList(container, q = '') {
   const search = el('input', { type: 'search', placeholder: t('Search by text, congregation or theme…'), 'aria-label': t('Search preparations'), autocomplete: 'off' });
+  search.value = q;
   const list = el('div', { class: 'list' });
+  const redraw = () => renderList(clear(container), search.value);   // the whole screen, so the Guide's card follows a change of status
   function show() {
     clear(list);
     const q = search.value.trim().toLowerCase();
@@ -281,6 +283,11 @@ function renderList(container) {
         Reflect.hasSlides(s) ? el('span', { class: 'pill kind slides', text: t('Slides') }) : null,
         el('span', { class: 'pill status ' + (s.status || 'draft'), text: t(STATUS_LABEL[s.status] || 'Draft') }),
       ]));
+      // the day of the service has come and gone: one tap under its row clears it from the list (Undo in the toast)
+      if (s.date && s.date <= today() && s.status !== 'held') list.append(el('div', { class: 'held-line' }, [
+        el('span', { class: 'grow muted', text: t('Not marked as held yet.') }),
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Mark as held'), onclick: () => markHeld(s, redraw) }),
+      ]));
     }
     // held services are the oldest, at the end of the list: the row that brings them back stands where they show
     if (held) list.append(Guides.heldToggle(held, heldShown, () => { heldShown = !heldShown; show(); Guides.refocus(list); }));
@@ -293,8 +300,7 @@ function renderList(container) {
       el('div', { class: 'spacer' }),
       el('button', { class: 'btn small', type: 'button', text: t('New preparation'), onclick: () => newBlank() }),
     ]),
-    el('p', { class: 'muted small', text: t('Each card is one divine service: the text word, the message from the Divine Service Guide, your own thoughts, and the printed sermon notes and cue card.') }),
-    ...[Guides.card({ onPrepare: newFromService, onChange: () => renderList(clear(container)) })].filter(Boolean),   // null on a locked device without a Guide (lock.js)
+    ...[Guides.card({ onPrepare: newFromService, onChange: redraw })].filter(Boolean),   // null on a locked device without a Guide (lock.js)
     search, list);
   show();
 }
@@ -303,6 +309,20 @@ async function newBlank() {
   const s = blank();
   await saveSermon(s);
   location.hash = `#prepare/${s.id}`;
+}
+
+/** Marks a preparation as held and draws the screen again (here and on the Sunday tab); the toast's Undo puts its status back. */
+export async function markHeld(s, redraw) {
+  const was = s.status || 'draft';
+  s.status = 'held';
+  await saveSermon(s);
+  redraw();
+  const ref = s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || '');
+  toast(t('Marked as held: {service}.', { service: [fmtDate(s.date, true), ref].filter(Boolean).join(', ') }), false, async () => {
+    s.status = was;
+    await saveSermon(s);
+    redraw();
+  });
 }
 
 /* ---------------------------------------------------------------- reflection evenings */

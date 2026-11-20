@@ -691,7 +691,6 @@ export function card({ onPrepare, onChange }) {
         el('span', { class: 'small', text: t('The Guide in:') }),
         seg(month.editions.map(g => [g.id, editionLabel(g)]), current.id, id => { current = month.editions.find(g => g.id === id) || current; keep = current.language; remember(); draw(); }, { label: t('Language of the Guide') }),
       ]) : null,
-      el('p', { class: 'small muted', text: t('Tap a service to start its preparation, or to open the one already started. Loaded {date} from "{file}".', { date: fmtDate(current.loadedAt), file: current.fileName || t('a PDF') }) }),
       el('div', { class: 'list' }, visible.length || !held
         ? [toggle, ...visible.map(r => serviceRow(current, r.i, onPrepare, r.done))]   // held services come early in the month, so they show under the row that brings them
         : [el('p', { class: 'muted', text: t('All services in this Guide are held.') }), toggle]),

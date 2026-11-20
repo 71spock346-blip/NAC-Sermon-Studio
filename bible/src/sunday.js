@@ -23,14 +23,14 @@
  * work: a locked device (lock.js) shows the same, only without the line that
  * says a Guide can be loaded.
  */
-import { el, clear, toast, fmtDate, today } from './ui.js';
+import { el, clear, fmtDate, today } from './ui.js';
 import { t, tn, locale } from './i18n.js';
 import { state, saveSermon } from './store.js';
 import { formatRef } from './books.js';
 import * as Guides from './guides.js';
 import * as Read from './read.js';
 import { cardFor } from './liturgy.js';   // the altar card for a kind of service
-import { newFromService, FILLED } from './prepare.js';
+import { newFromService, FILLED, markHeld } from './prepare.js';   // markHeld: the same routine as under a past service in the Prepare list
 import { sermonParts } from './pdf.js';
 import { cueParts, cuesOf } from './cues.js';
 import * as AI from './ai.js';
@@ -106,19 +106,6 @@ function heading(next, past) {
   if (!next) return t('This Sunday');
   if (past) return t('The last service');
   return noon(next.date).getDay() === 0 && daysTo(next.date) <= 6 ? t('This Sunday') : t('The next service');
-}
-
-/** Marks a preparation as held and draws the screen again; the toast's Undo puts its status back. */
-async function markHeld(s, redraw) {
-  const was = s.status || 'draft';
-  s.status = 'held';
-  await saveSermon(s);
-  redraw();
-  toast(t('Marked as held: {service}.', { service: [fmtDate(s.date, true), refText(s)].filter(Boolean).join(', ') }), false, async () => {
-    s.status = was;
-    await saveSermon(s);
-    redraw();
-  });
 }
 
 /** The status pill and "5 of 7 steps filled": the steps of the sermon itself, as the editor's step bar marks them (prepare.js FILLED). */
