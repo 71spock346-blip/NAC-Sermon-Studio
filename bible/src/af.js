@@ -282,6 +282,8 @@ export const AF = {
   "The note in {language} was changed after this translation.": "Die nota in {language} is ná hierdie vertaling verander.",
   "Translate again": "Vertaal weer",
   "Translate again? Your own changes to the note in {language} are replaced.": "Vertaal weer? Jou eie veranderinge aan die nota in {language} word vervang.",
+  "This note is in {language} only.": "Hierdie nota is net in {language}.",
+  "Translate into {language}": "Vertaal na {language}",
   "The note is translated ({cost}).": "Die nota is vertaal ({cost}).",
   "The note is translated.": "Die nota is vertaal.",
   "You are changing the note in {language}. The note in {other} stays as it is.": "Jy verander die nota in {language}. Die nota in {other} bly soos dit is.",

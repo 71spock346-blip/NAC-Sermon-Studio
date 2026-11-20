@@ -122,17 +122,23 @@ function shownLang(n) {
   return app === own || (n.alt && n.alt.lang === app) ? app : own;
 }
 
-/** EN | AF over a note's text, with a line on the translation shown, or on the one under way. */
+/**
+ * EN | AF under the words of a note that has both languages, with a line on
+ * the translation shown; while Claude translates a note (from the editor,
+ * editNote), the line on that instead. Nothing on a note in one language:
+ * the cards are for reading, and the switch only where it has two texts to switch between.
+ */
 function langRow(n, x, redraw) {
   const job = working.get(n.id);
   const own = noteLang(n);
+  const both = !!(n.alt && n.alt.lang && n.alt.lang !== own);
+  if (!both && !job) return null;
   const open = AI.unlocked();   // translating is Claude's work, the minister's own (lock.js); locked, the switch only flips between the texts the note has
-  if (!open && !(n.alt && n.alt.lang && n.alt.lang !== own)) return null;
   const button = l => el('button', {
     type: 'button', text: l.toUpperCase(), title: langName(l), class: x.lang === l ? 'on' : null, 'aria-pressed': String(x.lang === l),
     disabled: !!job, onclick: () => choose(n, l, redraw),
   });
-  const row = el('div', { class: 'note-lang' }, [el('div', { class: 'seg mini', role: 'group', 'aria-label': t('Language of this note') }, [button('en'), button('af')])]);
+  const row = el('div', { class: 'note-lang' }, both ? [el('div', { class: 'seg mini', role: 'group', 'aria-label': t('Language of this note') }, [button('en'), button('af')])] : []);
   if (job) {
     job.label = el('span', { class: 'small muted', role: 'status', text: t('Claude is translating this note into {language}…', { language: langName(job.l) }) });
     row.append(job.label, el('button', { class: 'btn small ghost', type: 'button', text: t('Cancel'), onclick: () => job.ctrl.abort() }));
@@ -147,14 +153,14 @@ function langRow(n, x, redraw) {
   return row;
 }
 
-/** A tap on EN or AF: show that language, translating the note first when it has no text in it yet. */
+/** A tap on EN or AF: show that language (the switch only shows where the note has both; a language it lacks would be translated first). */
 function choose(n, l, redraw) {
   if (working.has(n.id)) return;
   if (l === noteLang(n) || (n.alt && n.alt.lang === l)) { picked.set(n.id, { l, ui: lang() }); redraw(); return; }
   translate(n, l, redraw);
 }
 
-/** Claude translates the note into `l`; the translation is kept in the note, in place of an earlier one. */
+/** Claude translates the note into `l` (the editor's "Translate into …", or "Translate again" on the card); the translation is kept in the note, in place of an earlier one. */
 async function translate(n, l, redraw) {
   if (working.has(n.id)) return;
   if (!AI.unlocked()) return;   // not offered on a locked device (lock.js); the switch only flips between the texts a note has
@@ -257,7 +263,7 @@ async function hearEleven(n, l, sc, card) {
 
 /* ---------------------------------------------------------------- the card and the editor */
 
-/** A note as a card: reference, kind, listen, edit, the language switch, title, text, and the recording ElevenLabs made, when there is one. */
+/** A note as a card: the words first (reference and kind, title, text), the language switch where it has both languages, then the date, Listen and Edit, and the recording ElevenLabs made, when there is one. */
 export function card(n, onChange) {
   const href = `#read/${n.book}/${n.chapter}${n.verse ? '/' + n.verse : ''}`;
   const box = el('article', { class: 'note' });
@@ -284,24 +290,24 @@ export function card(n, onChange) {
     if (url) { URL.revokeObjectURL(url); url = ''; }
     btn = el('button', { class: 'btn small ghost', type: 'button', text: t('Listen'), onclick: () => { if (isMine()) stopHearing(); else hear(n, x, api).catch(e => toast(e.message || String(e), true)); } });
     const hearRow = el('div', { class: 'note-hear' });
+    // the words first, so that a long list reads like a page: the verse and the kind, the title, the text;
+    // then the switch where the note has both languages, and under everything the date, Listen and Edit
     box.append(
-      el('div', { class: 'note-top' }, [
-        el('div', { class: 'note-head' }, [
-          el('a', { class: 'ref', href, text: refLabel(n) }),
-          el('span', { class: 'pill kind ' + n.kind, text: kindLabel(n.kind) }),
-          ...(n.tags || []).map(tag => el('span', { class: 'pill', text: '#' + tag })),
-        ]),
-        el('div', { class: 'note-meta' }, [
-          el('span', { class: 'muted small', text: fmtDate(n.updated) }),
-          btn,
-          el('button', { class: 'btn small ghost', type: 'button', text: t('Edit'), 'aria-label': t('Edit the note on {ref}', { ref: refLabel(n) }), onclick: () => editNote(n, onChange, { alt: x.translated }) }),
-        ]),
+      el('div', { class: 'note-head' }, [
+        el('a', { class: 'ref', href, text: refLabel(n) }),
+        el('span', { class: 'pill kind ' + n.kind, text: kindLabel(n.kind) }),
+        ...(n.tags || []).map(tag => el('span', { class: 'pill', text: '#' + tag })),
       ]),
       ...[
-        langRow(n, x, draw),
         x.title ? el('div', { class: 'note-title', lang: x.lang, text: x.title }) : null,
+        el('div', { class: 'note-body', lang: x.lang, text: x.body }),
+        langRow(n, x, draw),
       ].filter(Boolean),   // a DOM append() writes a bare null as the word "null"
-      el('div', { class: 'note-body', lang: x.lang, text: x.body }),
+      el('div', { class: 'note-foot' }, [
+        el('span', { class: 'muted small', text: fmtDate(n.updated) }),
+        btn,
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Edit'), 'aria-label': t('Edit the note on {ref}', { ref: refLabel(n) }), onclick: () => editNote(n, onChange, { alt: x.translated }) }),
+      ]),
       hearRow,
     );
     refresh();
@@ -366,11 +372,12 @@ export function editNote(note, onSaved, { alt = false } = {}) {
   body.value = (inAlt ? n.alt.body : n.body) || '';
   const tagsInput = lineBox({ value: (n.tags || []).join(', '), placeholder: t('grace, prayer, youth (optional, comma separated)') });
 
-  const saveBtn = el('button', { class: 'btn', type: 'button', text: t('Save'), onclick: async () => {
+  /** Keeps the note as the fields have it and closes the sheet: the note, or null while something is missing. */
+  async function save() {
     const r = checkRef();
-    if (!r) { toast(t('Please give the verse this note belongs to.'), true); refInput.focus(); return; }
+    if (!r) { toast(t('Please give the verse this note belongs to.'), true); refInput.focus(); return null; }
     const title = titleInput.value.trim(), text = body.value.trim();
-    if (!text && !title) { toast(t('Write something first.'), true); body.focus(); return; }
+    if (!text && !title) { toast(t('Write something first.'), true); body.focus(); return null; }
     Object.assign(n, { book: r.book, chapter: r.chapter, verse: r.verse, verseEnd: r.verseEnd, kind: kindSel.value,
       tags: tagsInput.value.split(/[,;]/).map(x => x.trim().replace(/^#/, '')).filter(Boolean) });
     if (inAlt) {
@@ -386,7 +393,18 @@ export function editNote(note, onSaved, { alt = false } = {}) {
     toast(t('Note saved.'));
     s.close();
     if (onSaved) onSaved(n);
-  } });
+    return n;
+  }
+  const saveBtn = el('button', { class: 'btn', type: 'button', text: t('Save'), onclick: save });
+  // Claude's translation of a kept note into its other language (translate): offered here, once per note, rather than on every card
+  const other = own === 'af' ? 'en' : 'af';
+  const translateRow = n.id && !inAlt && !n.alt && AI.unlocked() ? el('div', { class: 'row line note-translate' }, [
+    el('span', { class: 'small muted', text: t('This note is in {language} only.', { language: langName(own) }) }),
+    el('button', { class: 'btn small ghost', type: 'button', text: t('Translate into {language}', { language: langName(other) }), onclick: async () => {
+      const kept = await save();   // what is in the boxes is what gets translated
+      if (kept) translate(kept, other, () => { if (onSaved) onSaved(kept); });
+    } }),
+  ]) : null;
   const row = el('div', { class: 'row end' }, [
     n.id ? el('button', { class: 'btn ghost danger', type: 'button', text: t('Delete'), onclick: async () => {
       if (await confirmBox(n.alt ? t('Delete this note, in both languages? This cannot be undone.') : t('Delete this note? This cannot be undone.'), t('Delete'), true)) {
@@ -412,6 +430,7 @@ export function editNote(note, onSaved, { alt = false } = {}) {
     ]),
     el('label', { class: 'f' }, [t('Note'), body]),
     el('label', { class: 'f' }, [t('Tags'), tagsInput]),
+    ...[translateRow].filter(Boolean),
     row,
   );
   if (!isTouch()) setTimeout(() => (n.book ? body : refInput).focus(), 50);
@@ -425,7 +444,7 @@ export function render(container, route) {
   clear(container);
   if (route[1]) {
     const n = state.notes.find(x => x.id === route[1]);
-    if (n) { editNote(n, () => { location.hash = '#notes'; }); }
+    if (n) { editNote(n, () => { if (location.hash === '#notes') show(); else location.hash = '#notes'; }); }   // show() draws the list again (a translation from the editor ends on it)
   }
   const search = el('input', { type: 'search', placeholder: t('Search notes: a word, a tag, or a reference such as "Ps 23"…'), 'aria-label': t('Search notes'), autocomplete: 'off' });
   const list = el('div', { class: 'notes' });
