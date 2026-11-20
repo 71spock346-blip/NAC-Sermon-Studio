@@ -27,7 +27,7 @@
  * Guide's introduction can be read under step 3, beside the person's own.
  * "Suggest the sermon" under step 4 asks for the build itself:
  * introduction, main points, application, conclusion and illustrations;
- * "Suggest answers" under step 5 asks for the
+ * "Help me understand the text" under step 5 asks for the
  * context of the text, key words, Catechism sections, cross references and
  * what the text gives each main point. Each suggestion comes with a
  * "Use" button, so nothing lands in the notes that the person did not choose,
@@ -1549,7 +1549,7 @@ function renderEditor(root, s) {
     aiBox.hidden = !AI.unlocked();   // the helper is locked here (lock.js)
     if (aiBox.hidden) return;
     const a = s.ai;
-    const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askAi }, [sparkle(), a ? t('Ask again') : t('Suggest answers')]);
+    const btn = el('button', { class: 'btn small ai-btn', type: 'button', onclick: askAi }, [sparkle(), a ? t('Ask again') : t('Help me understand the text')]);
     const drop = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Remove'), onclick: () => {
       s.ai = null; touch(); renderAi();
       toast(t('Suggestions removed.'), false, () => { s.ai = a; touch(); renderAi(); });

@@ -560,7 +560,7 @@ export const AF = {
   "Step {n} cleared.": "Stap {n} uitgevee.",
 
   // Claude's suggestions in Prepare
-  "Suggest answers": "Stel antwoorde voor",
+  "Help me understand the text": "Help my om die teks te verstaan",
   "Suggest again": "Stel weer voor",
   "Suggest the sermon": "Stel die preek voor",
   "Ask again": "Vra weer",
@@ -624,7 +624,8 @@ export const AF = {
   "© New Apostolic Church International, Zurich. Loaded on this device for personal study.": "© Nuwe Apostoliese Kerk Internasionaal, Zürich. Op hierdie toestel gelaai vir persoonlike studie.",
   "Bible references": "Bybelverwysings",
   "Bible references ({n})": "Bybelverwysings ({n})",
-  "{n} refs": "{n} verw.",
+  "{n} verse": "{n} vers",
+  "{n} verses": "{n} verse",
   "In short": "Kortliks",
   "In this section": "In hierdie afdeling",
   "Loading the Catechism index…": "Laai die Kategismus-indeks…",
@@ -934,7 +935,7 @@ export const AF = {
   "The slides take the title and text word from the preparation, and the Church's four usual questions.": "Die skyfies neem die titel en tekswoord uit die voorbereiding, en die Kerk se vier gewone vrae.",
   // Claude in Theology for anyone, with a key of their own (settings.js guestAiSection, guides.js noKey, ai.js)
   "A key of your own is needed": "'n Sleutel van jou eie word benodig",
-  "In Theology, Claude answers with a key of your own from Anthropic: you pay only for what you use, usually under 20 US cents an answer, and the key stays on this device.": "Onder Teologie antwoord Claude met 'n sleutel van jou eie van Anthropic: jy betaal net vir wat jy gebruik, gewoonlik minder as 20 Amerikaanse sent per antwoord, en die sleutel bly op hierdie toestel.",
+  "In Theology, Claude answers with a key of your own from Anthropic: you pay only for what you use, and the key stays on this device.": "Onder Teologie antwoord Claude met 'n sleutel van jou eie van Anthropic: jy betaal net vir wat jy gebruik, en die sleutel bly op hierdie toestel.",
   "In Theology, Claude (the AI from Anthropic) can write the background of a book, a chapter or a passage, in line with the Catechism. It works with a key of your own: you pay Anthropic only for what you use, usually under 20 US cents an answer, and the key stays on this device, out of any backup.": "Onder Teologie kan Claude (die KI van Anthropic) die agtergrond van 'n boek, 'n hoofstuk of 'n gedeelte skryf, in lyn met die Kategismus. Dit werk met 'n sleutel van jou eie: jy betaal Anthropic net vir wat jy gebruik, gewoonlik minder as 20 Amerikaanse sent per antwoord, en die sleutel bly op hierdie toestel, buite enige rugsteun.",
   "Your Anthropic key": "Jou Anthropic-sleutel",
   "The key works. Claude is ready in Theology.": "Die sleutel werk. Claude is gereed onder Teologie.",
@@ -1313,7 +1314,7 @@ export const AF = {
   "Claude writes the background of these verses: what they say, their setting and writer, the key words, what the Church teaches on them, how other Christians read them, and how they point to Christ.": "Claude skryf die agtergrond van hierdie verse: wat hulle sê, hulle agtergrond en skrywer, die sleutelwoorde, wat die Kerk daaroor leer, hoe ander Christene hulle lees, en hoe hulle na Christus wys.",
   "Claude writes the background of this chapter: what happens or is said in it, its setting, how it is built, its key words and themes, what the Church teaches on it, how other Christians read it, and how it points to Christ.": "Claude skryf die agtergrond van hierdie hoofstuk: wat daarin gebeur of gesê word, die agtergrond, hoe dit opgebou is, sy sleutelwoorde en temas, wat die Kerk daaroor leer, hoe ander Christene dit lees, en hoe dit na Christus wys.",
   "Claude writes the background of the book and its writer: when and why it was written, how it is built, its key words and themes, what the Church teaches on it, how other Christians read it, and how it points to Christ.": "Claude skryf die agtergrond van die boek en sy skrywer: wanneer en waarom dit geskryf is, hoe dit opgebou is, sy sleutelwoorde en temas, wat die Kerk daaroor leer, hoe ander Christene dit lees, en hoe dit na Christus wys.",
-  "About a minute, with your own Anthropic key. The cost shows with the answer, usually under 20 US cents.": "Omtrent 'n minuut, met jou eie Anthropic-sleutel. Die koste wys saam met die antwoord, gewoonlik minder as 20 Amerikaanse sent.",
+  "About a minute.": "Omtrent 'n minuut.",
   "Ask Claude": "Vra Claude",
   "Written {date} by {model}{cost}.": "Geskryf op {date} deur {model}{cost}.",
   // an answer in English and in Afrikaans: the EN | AF switch over it
@@ -1923,7 +1924,6 @@ export const AF = {
   "Ask the handbooks": "Vra die handboeke",
   "Claude reads the chapters that fit your question and answers from them in plain words, naming the chapters, so you can check what the book says. The answer is not kept.": "Claude lees die hoofstukke wat by jou vraag pas en antwoord daaruit in gewone woorde, met die hoofstukke by die naam, sodat jy kan nagaan wat die boek sê. Die antwoord word nie bewaar nie.",
   "A question for the handbooks: \"How long may the sermon be?\", \"Who may hold a prayer service?\"…": "'n Vraag vir die handboeke: \"Hoe lank mag die preek wees?\", \"Wie mag 'n gebedsdiens hou?\"…",
-  "With your own Anthropic key; usually under 10 US cents an answer.": "Met jou eie Anthropic-sleutel; gewoonlik onder 10 Amerikaanse sent per antwoord.",
   "Type a question first.": "Tik eers 'n vraag.",
   "No chapter carries the words of that question. Try other words.": "Geen hoofstuk dra die woorde van daardie vraag nie. Probeer ander woorde.",
   "Claude is reading {n} chapters of the handbooks. This takes about half a minute.": "Claude lees {n} hoofstukke van die handboeke. Dit neem omtrent 'n halwe minuut.",
