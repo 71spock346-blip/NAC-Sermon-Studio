@@ -81,6 +81,18 @@ export async function bookIndex(sourceId) {
   return idx.books;
 }
 
+/**
+ * One whole book of a built-in translation, for the search (search.js):
+ * {id, chapters: [[verse, …], …]}, or null when the translation does not
+ * have the book. It is not kept here: the search keeps what it reads.
+ */
+export async function bookFile(sourceId, book) {
+  const r = await fetch(`data/${sourceId}/${book}.json`);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`Could not load ${book} (${r.status})`);
+  return r.json();
+}
+
 export async function copyrightOf(sourceId) {
   const s = source(sourceId);
   if (!s) return '';
@@ -134,10 +146,14 @@ async function apiGet(path) {
   } catch (e) {
     throw new Error(t('No connection to API.Bible. Check your network, or read the bundled KJV.'));
   }
-  if (r.status === 401 || r.status === 403) throw new Error(t('API.Bible did not accept the key. Check it in Settings.'));
   if (r.status === 204 || r.status === 404) return null;
-  if (r.status === 429) throw new Error(t('API.Bible limit reached for this month. Cached chapters still work.'));
-  if (!r.ok) throw new Error(t('API.Bible error {status}', { status: r.status }));
+  if (!r.ok) {
+    const e = new Error(r.status === 401 || r.status === 403 ? t('API.Bible did not accept the key. Check it in Settings.')
+      : r.status === 429 ? t('API.Bible limit reached for this month. Cached chapters still work.')
+      : t('API.Bible error {status}', { status: r.status }));
+    e.status = r.status;   // for a caller that can do something else on one answer (apiSearch)
+    throw e;
+  }
   return readJson(r);
 }
 
@@ -185,6 +201,31 @@ async function apiChapter(bibleId, book, chapter) {
   };
   cachePut(cacheKey, out).catch(() => {});
   return out;
+}
+
+/**
+ * The verses of an API.Bible translation that carry the words typed
+ * (search.js): {verses: [{id, text}], total, fums}. API.Bible does the
+ * searching: a verse must have every word, in any order, and it forgives a
+ * spelling slip by itself (fuzziness AUTO). The best matches come first.
+ * `range` narrows the search to a stretch of the Bible, as a passage id such
+ * as "MAT.1.1-REV.22.21".
+ */
+export async function apiSearch(bibleId, words, { range = '', limit = 50, offset = 0 } = {}) {
+  const q = `query=${encodeURIComponent(words)}&limit=${limit}&offset=${offset}` + (range ? `&range=${encodeURIComponent(range)}` : '');
+  let res;
+  try {
+    res = await apiGet(`/bibles/${bibleId}/search?${q}&sort=relevance&fuzziness=AUTO`);
+  } catch (e) {
+    // the key reads this translation, so a refusal here is about searching it
+    if (e.status === 401 || e.status === 403) throw new Error(t('API.Bible does not allow a search in this translation.'));
+    if (e.status !== 400) throw e;
+    res = await apiGet(`/bibles/${bibleId}/search?${q}`);   // the order and the forgiving of slips were refused: the plain search
+  }
+  if (!res) throw new Error(t('API.Bible has no search for this translation.'));   // no answer at all (204 or 404); a search without verses is answered with an empty list
+  const data = res.data || {};
+  const verses = (data.verses || []).map(v => ({ id: String(v.id || ''), text: String(v.text || '').replace(/\s+/g, ' ').trim() }));
+  return { verses, total: Number(data.total) || verses.length, fums: res.meta && res.meta.fumsNoScript ? res.meta.fumsNoScript : '' };
 }
 
 /* ---------------------------------------------------------------- YouVersion Platform */

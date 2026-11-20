@@ -206,6 +206,27 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   they require) and the [YouVersion Platform](https://platform.youversion.com)
   (chapter HTML parsed into verses by `parseYvHtml`; cached 7 days). Without a key
   the reader links to the same chapter on YouVersion and BibleGateway.
+- **Finding a verse.** The box in the reader's bar takes a place or words
+  (`reader.js`). A text with a number is tried as a place first (`books.js parseRef`,
+  which also reads "Joh 3.16", "John 3 16", "Ps 23 vers 1" and, from this box, a
+  book name with a slip in it: "Jhon 3:16"). Anything else is searched: the verses
+  that carry the words are listed in place of the chapter at `#read/search/<words>`,
+  with `/ot`, `/ap`, `/nt` or a book's id after it to narrow the list
+  (`src/search.js`). The finding itself is `src/search-lib.js`, plain functions
+  over text that `node tools/test_search.mjs` checks against both built-in Bibles:
+  a verse must have every word that carries meaning; a word finds its endings
+  ("love" finds "loved" and "loveth"), today's English finds the King James's
+  ("your" finds "thy"), a word no verse has is looked up by its spelling
+  ("sheperd" finds "shepherd") and the page says so; the small words ("the",
+  "my") only decide the order; words in quotes must stand side by side; when no
+  verse has all the words, the verses with most of them are given. The verses
+  with the words close together come first. What is searched is the translation
+  the reader is set to: the KJV and the WEB are read whole, once, and searched on
+  the device; a pasted version in the chapters pasted; an API.Bible translation by
+  API.Bible's own search, with the person's key (nothing of it is kept); a
+  YouVersion translation cannot be searched, and then, or when API.Bible does not
+  answer, the KJV is searched and the page says so. The page always names the
+  text that was searched.
 - **Catechism.** `data/catechism.json` is an index: section numbers, titles, the id of
   each section's page at nak.org, and the Bible verses each section quotes. The text
   of the sections is the Church's copyright and is not in the repository or on the
@@ -412,7 +433,10 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   `BLOB_READ_WRITE_TOKEN` instead). Until then it answers 503 and the app says the
   storage still has to be switched on.
 - **Offline.** `sw.js` serves the shell network-first and the texts, library and
-  icons cache-first. Settings → Offline fetches all texts once.
+  icons cache-first. Settings → Offline fetches all texts once. The books of the
+  two built-in Bibles are kept in a cache of their own (`TEXTS` in `sw.js`), which
+  a new version of the app does not throw away, so they are fetched once and the
+  search works without a connection after an update too.
 - **Sunday.** `src/sunday.js` is the front door, where the app opens: the next divine
   service, the first still to come that is not marked as held, or a service of a loaded
   Guide with no preparation yet, which one tap starts. The card has the date ("Today",
@@ -525,7 +549,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `api/sync.js` – the sync server (Vercel function, Vercel Blob); `package.json` holds its one dependency
 - `api/plan.js` – the month plan's calendar feed for Google Calendar (Vercel function, Vercel Blob)
 - `icons/` – the emblem (SVG and the PNG sizes a phone's home screen wants; `emblem-white.png` and `emblem-blue.png` for the slides)
-- `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#notes`,
+- `src/app.js` – start-up and the hash router (`#read/PSA/130/7`, `#read/search/shepherd%20want`, `#notes`,
   `#prepare/<id>`, `#reflect/<id>`, `#catechism/3.4.1`, `#theology/ROM/8`, `#liturgy/baptism`, `#handbooks/guide-for-ministers/4.5.4`, `#reminders/people`, `#plan/2025-10`, `#settings`)
 - `src/books.js` – the 80 books, English and Afrikaans names, reference parsing
 - `src/i18n.js`, `src/af.js` – the language of the interface: `t()` and the Afrikaans table
@@ -542,6 +566,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/ask.js` – "Ask Claude" about a book: the box, the chapters `relevant()` picks, the answer with its citations as links; under Handbooks and on the Catechism tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
 - `src/sunday.js` – the Sunday tab, the front door where the app opens: the next divine service, how far its preparation is, one tap to the cue cards, the sermon, the altar card and the text word in large letters, Mark as held
+- `src/search.js` – the verses a search found, in the reader: reading the built-in Bibles whole, the pasted chapters, API.Bible's search; `src/search-lib.js` – the finding itself (word endings, spelling, order), without the page
 - `src/more.js` – the phone's More tab: the nine sections its bar has no room for, in groups, Handbooks first and the Tools under their heading
 - `src/mis.js` – the MIS section: opens the Church's site over the installed app, or in a tab of its own from a browser
 - `src/reminders.js` – the Reminders tab; `src/reminders-lib.js` (the listing PDFs, the roster, phone numbers, the dates coming up), `src/reminders-templates.js` (the greetings), `src/reminders-ics.js` (the calendar file), `src/reminders-sheet.js` (Excel out and back)
@@ -560,7 +585,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
 - `vendor/pdfjs/` – pdf.js 5.4.624 (Apache 2.0; `vendor/pdfjs.LICENSE`), fetched only when an altar booklet or a listing is loaded
 - `vendor/write-excel-file.min.js`, `vendor/read-excel-file.min.js` – write-excel-file and read-excel-file (MIT; `vendor/excel.LICENSE`), fetched only when a spreadsheet is made or read
-- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_booklet.mjs` for the altar booklet, `test_handbook.mjs` for the handbooks (with `fixtures/handbook-sample.txt`, a made-up handbook), `test_plan.mjs` for the month plan, `fixtures/` the fictional listing PDFs for the Reminders tab, in both layouts the office has printed (with a Month column, and November’s without one), and `plan-sample.xlsx`, a made-up district programme for the month plan
+- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_search.mjs` for the Bible search and the typed references, `test_booklet.mjs` for the altar booklet, `test_handbook.mjs` for the handbooks (with `fixtures/handbook-sample.txt`, a made-up handbook), `test_plan.mjs` for the month plan, `fixtures/` the fictional listing PDFs for the Reminders tab, in both layouts the office has printed (with a Month column, and November’s without one), and `plan-sample.xlsx`, a made-up district programme for the month plan
 
 ## Rebuilding the data
 
@@ -593,8 +618,11 @@ same in both), then run `python3 tools/check_theology.py` from `bible/`.
 Bump `VERSION` in `sw.js` so phones pick up the new build, and the `?v=` on
 `styles.css` and `src/app.js` in `index.html` (and `styles.css` in `help.html`) when
 those change. Run `python3 tools/check_i18n.py` so every new text has its Afrikaans, and
-`python3 tools/check_theology.py` when the book introductions change. The Vercel
-project for this app has its root directory set to `bible`.
+`python3 tools/check_theology.py` when the book introductions change. When a file
+under `data/kjv/` or `data/web/` changes, give `TEXTS` in `sw.js` a new name: the
+books stay on a device from one version to the next, and only a new name makes it
+fetch them again. Run `node tools/test_search.mjs` after a change to the search or
+to `parseRef`. The Vercel project for this app has its root directory set to `bible`.
 
 ## Licences
 
