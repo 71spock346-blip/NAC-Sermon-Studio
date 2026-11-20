@@ -11,7 +11,7 @@
  * cards look the same wherever they are read.
  */
 import { el, sheet, seg, toast, SIZES } from './ui.js';
-import { t } from './i18n.js';
+import { t, tl } from './i18n.js';
 import { state, saveSetting } from './store.js';
 import { sermonParts, serviceLine, cueHeading } from './pdf.js';
 import { formatRef } from './books.js';
@@ -34,22 +34,23 @@ export function sermon(s, { outline = null } = {}) {
 /** The sermon into an article (article()): its head, then a section per part. `parts` is pdf.js sermonParts of the preparation. */
 export function fillSermon(art, s, parts = sermonParts(s)) {
   const { c, ref, title } = parts;
+  const L = langOf(s);   // the headings in the sermon's language, as the prints have them
   head(art, s, { ref, title: s.title || s.theme || !ref ? title : '' });
   const section = (heading, body, extras = []) => {
     if (heading) art.append(el('h2', { text: heading }));
     art.append(...paras(body));
     for (const x of extras) {
-      if (x.kind === 'illustration') art.append(el('p', { class: 'read-extra' }, [el('b', { text: t('Illustration: ') + (x.title || '') })]));
-      else if (x.kind === 'lighter') art.append(el('p', { class: 'read-extra' }, [el('b', { text: t('A lighter moment') })]));
+      if (x.kind === 'illustration') art.append(el('p', { class: 'read-extra' }, [el('b', { text: tl(L, 'Illustration: ') + (x.title || '') })]));
+      else if (x.kind === 'lighter') art.append(el('p', { class: 'read-extra' }, [el('b', { text: tl(L, 'A lighter moment') })]));
       art.append(...paras(x.body, x.kind === 'text' ? '' : 'read-in'));
     }
   };
-  if (c.intro) section(t('Introduction'), c.intro, c.after.intro);
+  if (c.intro) section(tl(L, 'Introduction'), c.intro, c.after.intro);
   for (const p of c.points) section(`${p.n}. ${p.heading}`.trim(), p.body, p.extras);
-  if (c.after.loose.length) section(t('Illustrations'), '', c.after.loose);
-  if (c.application) section(t('Application for the congregation'), c.application, c.after.application);
-  if (c.summary) section(t('Summary'), c.summary);
-  if (c.conclusion) section(t('Conclusion'), c.conclusion, c.after.conclusion);
+  if (c.after.loose.length) section(tl(L, 'Illustrations'), '', c.after.loose);
+  if (c.application) section(tl(L, 'Application for the congregation'), c.application, c.after.application);
+  if (c.summary) section(tl(L, 'Summary'), c.summary);
+  if (c.conclusion) section(tl(L, 'Conclusion'), c.conclusion, c.after.conclusion);
 }
 
 /**
@@ -75,7 +76,7 @@ export function fillCues(art, s, parts) {
   const { ref } = sermonParts(s);
   head(art, s, { ref: ref || s.title || '', theme: s.theme, core: s.core });
   for (const part of parts) {
-    const heading = cueHeading(part);
+    const heading = cueHeading(part, langOf(s));
     art.append(el('h2', { class: 'cue-head', text: /[:!?.]$/.test(heading) ? heading : heading + ':' }));
     const list = cuesOf(part);
     if (!list.length) continue;
