@@ -569,7 +569,7 @@ export function noKey() {
     s.body.append(
       el('p', { text: t('In Theology, Claude answers with a key of your own from Anthropic: you pay only for what you use, usually under 20 US cents an answer, and the key stays on this device.') }),
       el('p', { class: 'small' }, [t('Get the key at console.anthropic.com and paste it under Settings → AI helper. The settings page has the steps.')]),
-      el('div', { class: 'row end' }, [el('a', { class: 'btn', href: '#settings', text: t('Open Settings'), onclick: () => s.close() })]),
+      el('div', { class: 'row end' }, [el('a', { class: 'btn', href: '#settings/ai', text: t('Open Settings'), onclick: () => s.close() })]),
     );
     return;
   }
@@ -577,7 +577,7 @@ export function noKey() {
   s.body.append(
     el('p', { text: t('Claude reads the Guide, makes the suggestions and writes the theology with a key of your own, so that you pay only for what you use and the key stays on this device.') }),
     el('p', { class: 'small' }, [t('Get the key at console.anthropic.com and paste it under Settings → AI helper. The settings page has the steps.')]),
-    el('div', { class: 'row end' }, [el('a', { class: 'btn', href: '#settings', text: t('Open Settings'), onclick: () => s.close() })]),
+    el('div', { class: 'row end' }, [el('a', { class: 'btn', href: '#settings/ai', text: t('Open Settings'), onclick: () => s.close() })]),
   );
 }
 

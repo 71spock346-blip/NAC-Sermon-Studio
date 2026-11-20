@@ -90,7 +90,7 @@ function route() {
   if (parts[0] === 'sync') {
     // a scanned or pasted sync link: the code must not stay in the address bar or the history
     const code = parts[1] || '';
-    history.replaceState(null, '', '#settings');
+    history.replaceState(null, '', '#settings/sync');
     route();
     if (code) Settings.joinSheet(code);
     return;

@@ -5,7 +5,8 @@
  * backup, offline texts, and the copyright notices the bundled texts and
  * API.Bible ask for. The AI helper's section also holds the lock on the
  * helper (lock.js): choosing the password, unlocking a device, and, for
- * anyone else, the key of their own for Claude in Theology.
+ * anyone else, the key of their own for Claude in Theology. The tab is a
+ * list of these sections (SECTIONS); each opens on its own.
  */
 import { el, clear, toast, confirmBox, download, today, sheet, busy, fmtDate, seg, copyText, THEMES, SIZES, READS, applyTheme, applyRead } from './ui.js';
 import { t, tn, LANGS, requestLang, locale } from './i18n.js';
@@ -31,20 +32,68 @@ function section(title, children) {
   return el('section', { class: 'sec' }, [el('div', { class: 'docbar' }, [el('h2', { text: title })]), ...children]);
 }
 
-export function render(container) {
-  root = container;
-  clear(container);
-  const S = state.settings;
+/*
+ * The sections, in the order a new minister needs them: the language, who
+ * you are, sync, the Church's files and the translations first; then what
+ * belongs to this device; the keys for the voice and for Claude last.
+ * #settings lists them, a row each with one line on what is inside;
+ * #settings/<id> opens one on its own, with "‹ Settings" above it.
+ */
+const GROUPS = [['start', () => t('Start here')], ['device', () => t('This device')], ['keys', () => t('The voice and Claude')]];
+const SECTIONS = [
+  { id: 'language', group: 'start', title: () => t('Language'), line: () => t('English or Afrikaans: the screens, the help page and the printed headings'), draw: languageSection },
+  { id: 'you', group: 'start', title: () => t('You'), line: () => state.settings.name ? [state.settings.name, state.settings.congregation].filter(Boolean).join(' · ') : t('Your name and congregation'), draw: youSection },
+  { id: 'sync', group: 'start', title: () => t('Sync between your devices'), line: () => Sync.isOn() ? t('On: this device keeps up with your others') : t('Off: keep your phone and PC the same with one code'), draw: syncSection },
+  { id: 'files', group: 'start', title: () => t('Church files'), line: () => t('The Catechism, the altar booklet, the handbooks and the Guides'), draw: filesSection },
+  { id: 'translations', group: 'start', title: () => t('Translations'), line: () => t('The Bibles in the reader, and the keys that fetch the copyrighted ones'), draw: translationsSection },
+  { id: 'appearance', group: 'device', title: () => t('Appearance'), line: () => t('Look, text size, letters and spacing, book names'), draw: appearanceSection },
+  { id: 'backup', group: 'device', title: () => t('Backup'), line: () => t('Save a file of your notes and preparations, or load one'), draw: backupSection },
+  { id: 'offline', group: 'device', title: () => t('Offline'), line: () => t('Have the whole KJV, WEB and Catechism index on this device'), draw: offlineSection },
+  { id: 'apps', group: 'device', title: () => t('The seating, choir and reminders apps'), line: () => t('Bring in a file from one of the old apps'), draw: oldAppsSection },
+  { id: 'about', group: 'device', title: () => t('About'), line: () => t('Version, help, copyright, and erasing this device'), draw: aboutSection },
+  { id: 'voice', group: 'keys', title: () => t('Read aloud'), line: () => t('The ElevenLabs voice that reads the sermon, with its key'), draw: voiceSection },
+  { id: 'ai', group: 'keys', title: () => t('AI helper'), line: () => Lock.unlocked() ? t('Claude, its key, the lock and how you preach') : t('Claude in Theology, with a key of your own'), draw: aiSection },
+];
+let view = '';   // the open section's id, or '' for the list; a redraw after a change (render(root)) keeps it
 
-  // ---- language
+export function render(container, route) {
+  root = container;
+  if (route) view = SECTIONS.some(s => s.id === route[1]) ? route[1] : '';
+  clear(container);
+  const sec = SECTIONS.find(s => s.id === view);
+  if (!sec) { list(container); return; }
+  container.append(el('p', { class: 'crumbs' }, el('a', { href: '#settings', text: '‹ ' + t('Settings') })));
+  sec.draw(container);
+}
+
+/** The list: a row per section in three groups, each row with one line on what is inside. */
+function list(container) {
+  const nav = el('nav', { class: 'more-list settings-list', 'aria-label': t('Settings') });
+  for (const [g, title] of GROUPS) {
+    const box = el('div', { class: 'more-group' }, [el('h3', { class: 'sub', text: title() })]);
+    for (const s of SECTIONS.filter(x => x.group === g)) {
+      box.append(el('a', { class: 'more-row plain', href: '#settings/' + s.id }, [
+        el('span', { class: 'grow' }, [el('b', { text: s.title() }), el('span', { class: 'muted small', text: s.line() })]),
+        el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
+      ]));
+    }
+    nav.append(box);
+  }
+  container.append(el('div', { class: 'docbar' }, [el('h2', { text: t('Settings') })]), nav);
+}
+
+function languageSection(container) {
+  const S = state.settings;
   const uiSeg = seg(LANGS, S.uiLang || 'en', v => requestLang(v), { block: true, label: t('Language of the app') });
   container.append(section(t('Language'), [
     el('label', { class: 'f' }, [t('Language of the app'), uiSeg, el('span', { class: 'hint muted small', text: Lock.unlocked()
       ? t('The screens, the buttons, the help page and the headings in the printed notes. Switching also sets the book names and the language of Claude\'s suggestions below; each can be changed on its own afterwards. The Bible text stays in the translation you choose.')
       : t('The screens, the buttons, the help page and the headings in the printed notes. Switching also sets the book names below; each can be changed on its own afterwards. The Bible text stays in the translation you choose.') })]),
   ]));
+}
 
-  // ---- about you
+function youSection(container) {
+  const S = state.settings;
   const nameInput = el('input', { type: 'text', value: S.name || '', placeholder: t('Your name'), autocomplete: 'name' });
   nameInput.addEventListener('change', () => saveSetting('name', nameInput.value.trim()));
   const congInput = el('input', { type: 'text', value: S.congregation || '', placeholder: t('Your usual congregation') });
@@ -56,10 +105,10 @@ export function render(container) {
       el('label', { class: 'f' }, [t('Congregation'), congInput]),
     ]),
   ]));
+}
 
-  syncSection(container);
-
-  // ---- appearance
+function appearanceSection(container) {
+  const S = state.settings;
   const themeSeg = seg(THEMES, S.theme || 'system', async v => { await saveSetting('theme', v); applyTheme(v); }, { block: true, label: t('Look') });
   const sizeSeg = seg(SIZES, S.fontSize || 'm', v => saveSetting('fontSize', v), { block: true, label: t('Text size in the reader') });
   const readSeg = seg(READS, S.readMode || 'book', async v => { await saveSetting('readMode', v); applyRead(v); }, { block: true, label: t('Letters and spacing') });
@@ -74,8 +123,10 @@ export function render(container) {
     ]),
     el('label', { class: 'f' }, [t('Book names'), langSel]),
   ]));
+}
 
-  // ---- translations: the two licensed services, each with its own key
+/** The two licensed services, each with its own key, and the texts pasted in by hand. */
+function translationsSection(container) {
   const trans = section(t('Translations'), [
     el('p', { class: 'small' }, [
       t('The King James Version (with the Apocrypha) and the World English Bible are built in and work offline. '),
@@ -121,11 +172,9 @@ export function render(container) {
   ]));
 
   myTextsSection(trans);
-  filesSection(container);
-  aiSection(container);
-  voiceSection(container);
+}
 
-  // ---- backup
+function backupSection(container) {
   const fileInput = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
   fileInput.addEventListener('change', async () => {
     const f = fileInput.files[0];
@@ -153,8 +202,10 @@ export function render(container) {
       fileInput,
     ]),
   ]));
+}
 
-  // ---- the two apps that used to stand on their own
+/** The three apps that used to stand on their own: their files come in here. */
+function oldAppsSection(container) {
   const oldInput = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
   oldInput.addEventListener('change', async () => {
     const f = oldInput.files[0];
@@ -184,8 +235,9 @@ export function render(container) {
       oldInput,
     ]),
   ]));
+}
 
-  // ---- offline
+function offlineSection(container) {
   const progress = el('span', { class: 'muted small', role: 'status' });
   const dlBtn = el('button', { class: 'btn small ghost', type: 'button', text: t('Download all texts for offline'), onclick: async () => {
     dlBtn.disabled = true;
@@ -204,8 +256,9 @@ export function render(container) {
     el('p', { class: 'small', text: t('The app keeps every chapter you open. To have the whole KJV, WEB and Catechism index ready without a connection (about 10 MB), download them once here. The Catechism text, once loaded, is already on the device. Add the app to your home screen to open it like any other app.') }),
     el('div', { class: 'row' }, [dlBtn, progress]),
   ]));
+}
 
-  // ---- about
+function aboutSection(container) {
   container.append(section(t('About'), [
     el('p', { class: 'small' }, [
       t('Study Bible {version}. A personal study tool for preparing divine services. ', { version: Update.versionText(VERSION) }),
