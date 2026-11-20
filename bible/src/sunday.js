@@ -208,14 +208,16 @@ function laterRow(x) {
   return row(CAL, name, [x.svc.title || '', t('Not started yet')].filter(Boolean).join(' · '), { onclick: () => newFromService(x.guide, x.i) });
 }
 
-/** While there is no service at all: where to start. Loading a Guide is Claude's work, the minister's own (lock.js), so a locked device is not told of it. */
+/** While there is no service at all: where to start. Reading a Guide's PDF is Claude's work, the minister's own (lock.js); a locked device is told of the Guide file another minister sends (guides.js). */
 function empty() {
-  const guide = AI.unlocked() && !Guides.all().length;
+  const guide = !Guides.all().length;
   return el('div', { class: 'sunday-card sunday-empty' }, [
     el('p', { text: t('No service is planned yet.') }),
-    el('p', { class: 'muted small', text: guide
-      ? t('Start a preparation under Prepare, or load this month\'s Guide there: its services then show here, with one tap to prepare each.')
-      : t('Start a preparation under Prepare: it shows here with its date, its text word and its cue cards.') }),
+    el('p', { class: 'muted small', text: !guide
+      ? t('Start a preparation under Prepare: it shows here with its date, its text word and its cue cards.')
+      : AI.unlocked()
+        ? t('Start a preparation under Prepare, or load this month\'s Guide there: its services then show here, with one tap to prepare each.')
+        : t('Start a preparation under Prepare, or load the month\'s Guide there, the file another minister sent you: its services then show here, with one tap to prepare each.') }),
     el('div', { class: 'row' }, [el('a', { class: 'btn', href: '#prepare', text: t('Go to Prepare') })]),
   ]);
 }

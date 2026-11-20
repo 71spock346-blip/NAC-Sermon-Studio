@@ -8,13 +8,18 @@
  *
  * The files: the text of the Catechism (catechism.js shows it), the altar
  * booklet in English and in Afrikaans (liturgy.js), the handbooks for
- * ministers (handbooks.js) and, where the AI helper is unlocked, the Divine
- * Service Guides (guides.js; Claude reads them, so a locked device shows no
- * row for them). Until November 2026 each loaded in a place of its own, the
+ * ministers (handbooks.js) and the Divine Service Guides (guides.js). Claude
+ * reads a Guide's PDF, so only an unlocked device offers that; any device
+ * loads the Guide file another minister sent, and sends the month's Guide on
+ * as such a file. Until November 2026 each loaded in a place of its own, the
  * booklet under Liturgy, the handbooks under Handbooks, the Catechism under
  * Settings and the Guide under Prepare, which a new minister could not find;
  * those places now point here. Prepare keeps its Guide card, since the Guide
  * is read there.
+ *
+ * On an installed phone app, the share sheet of WhatsApp lists the app
+ * (manifest.json share_target): a Guide file shared to it comes through sw.js
+ * to #files/shared, and takeShared() loads it as if it had been picked here.
  *
  * The Catechism's own PDF is read here as the booklet and the handbooks are:
  * pdf.js takes the pieces of text off every page (booklet.js readPages) and
@@ -46,15 +51,16 @@ const ABOUT = {
 
 let root = null;   // the screen, so a row can draw it again after a load or a removal
 
-export function render(container) {
+export function render(container, parts = []) {
   root = container;
   clear(container);
+  if (parts[1] === 'shared') takeShared();   // a file shared to the app (sw.js): loaded once the screen stands
   const list = el('div', { class: 'files-list' }, [
     catechismRow(),
     ...Liturgy.LANGS.map(bookletRow),
     ...handbookRows(),
     el('div', { class: 'row files-more' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Load another handbook'), onclick: loadHandbook })]),
-    AI.unlocked() ? guidesRow() : null,   // the Guide is Claude's to read: a locked device shows no row for it
+    guidesRow(),
   ]);
   container.append(
     el('div', { class: 'docbar' }, [el('h2', { text: t('Church files') })]),
@@ -151,17 +157,57 @@ function handbookRows() {
   });
 }
 
-/** The Divine Service Guides (guides.js), read by Claude here or under Prepare: the months on this device. */
+/**
+ * The Divine Service Guides (guides.js): the months on this device. Where
+ * the helper is unlocked Claude reads the PDF, here or under Prepare; on any
+ * device the Guide file another minister sent loads with no key, and the
+ * month's Guide goes on to another minister as such a file.
+ */
 function guidesRow() {
   const months = Guides.months();
+  const reads = AI.unlocked();
   return fileRow({
     icon: 'prepare',
     title: t('Divine Service Guides'),
     loaded: months.length > 0,
     lines: months.length ? [t('On this device: {list}.', { list: months.map(m => Guides.monthName(m) + ' (' + m.editions.map(g => Guides.editionLabel(g)).join(', ') + ')').join(', ') })] : [],
-    about: t('The month\'s Guide for the divine services, which Claude reads into the services of the month, with their text words, messages and articles; a preparation starts from it. It is loaded here or under Prepare, where it is read.'),
-    buttons: [el('button', { class: 'btn small' + (months.length ? ' ghost' : ''), type: 'button', text: t('Load a Guide (PDF)'), onclick: async () => { if (await Guides.load()) redraw(); } })],
+    about: reads
+      ? t('The month\'s Guide for the divine services, which Claude reads into the services of the month, with their text words, messages and articles; a preparation starts from it. "Send this month\'s Guide" makes a file of it for another minister (WhatsApp on a phone), who loads it here with no key.')
+      : t('The month\'s Guide for the divine services: its services with their text words, messages and articles, so a preparation starts with the main points filled in. Another minister sends it to you as a file from the app (WhatsApp on a phone); load that file here.'),
+    buttons: [
+      reads ? el('button', { class: 'btn small' + (months.length ? ' ghost' : ''), type: 'button', text: t('Load a Guide (PDF)'), onclick: async () => { if (await Guides.load()) redraw(); } }) : null,
+      el('button', { class: 'btn small' + (reads || months.length ? ' ghost' : ''), type: 'button', text: t('Load a Guide file'), onclick: async () => { if (await Guides.loadFile()) redraw(); } }),
+      months.length ? el('button', { class: 'btn small', type: 'button', text: t('Send this month\'s Guide'), onclick: () => Guides.sendAny() }) : null,
+    ],
   });
+}
+
+/* ---------------------------------------------------------------- a file shared to the app */
+
+/*
+ * The share sheet of an Android phone lists the installed app (manifest.json
+ * share_target). The file shared to it comes as a POST, which sw.js keeps in
+ * a cache of its own and answers by opening #files/shared; here the file is
+ * taken out of that cache and loaded as if it had been picked: the Guide file
+ * another minister sent over WhatsApp.
+ */
+const SHARED_CACHE = 'bible-shared', SHARED_KEY = 'shared-file';
+
+async function takeShared() {
+  let file = null;
+  try {
+    const c = await caches.open(SHARED_CACHE);
+    const res = await c.match(SHARED_KEY);
+    if (res) {
+      const name = decodeURIComponent(res.headers.get('X-File-Name') || '') || SHARED_KEY;
+      file = new File([await res.blob()], name, { type: res.headers.get('Content-Type') || '' });
+      await c.delete(SHARED_KEY);
+    }
+  } catch (e) { console.warn(e); }
+  history.replaceState(null, '', '#files');   // the address is the screen's own again, so a reload does not look for the file twice
+  if (!file) return;
+  if (/\.json$/i.test(file.name) || /json/i.test(file.type)) { if (await Guides.readFile(file)) redraw(); return; }
+  toast(t('The app cannot load that file. It takes the Guide file another minister sent from the app.'), true);
 }
 
 /* ---------------------------------------------------------------- loading */
