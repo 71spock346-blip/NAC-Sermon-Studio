@@ -529,6 +529,16 @@ nav.side .lang-switch { align-self: flex-start; margin-bottom: 4px; }
 .readbar .tools #r-src { flex: 0 1 130px; }
 .readbar .tools #r-view { flex: 0 0 auto; font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: .02em; }
 .readbar .tools #r-view svg { width: 14px; height: 14px; }
+/* the phone's row (below): the chapter's name, the magnifier and the ✕ of the box; a PC has the two rows above instead */
+#r-place, #r-find, #r-find-close { display: none; }
+/* the book and chapter chooser on a phone (reader.js chooseSheet): the chapters before and after, the book, a grid of its chapters */
+.pick-turn { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 14px; }
+.pick-turn .btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-turn .btn:disabled { visibility: hidden; }
+.chap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 6px; margin-top: 14px; }
+.chap-no { min-height: 46px; border: 1px solid var(--btn-line); border-radius: var(--radius-s); background: var(--surface); color: var(--accent-text); font: 600 16px/1 var(--sans); cursor: pointer; }
+.chap-no.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+@media (hover: hover) and (pointer: fine) { .chap-no:not(.on):hover { background: var(--accent-soft); } }
 
 .paste-card { border-radius: var(--radius); padding: 12px 14px; margin: 6px 0 14px; background: var(--card); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
 .paste-card p { margin: 0 0 6px; }
@@ -861,14 +871,31 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
   @media (max-width: 349.98px) { .tabs button { font-size: 10px; } .tabs .ico { width: 40px; } }   /* the smallest phones */
 
   .docbar h2, h2.title { font-size: 22px; }
-  .readbar { position: static; padding-top: 0; margin-top: 0; }
-  .readbar .nav select { flex: 1 1 0; }
-  .readbar .nav #r-chapter { flex: 0 1 88px; }
-  .readbar .nav .btn { width: 44px; }
-  .readbar .goto { flex: 1 1 120px; }              /* with the translation and Aa on one row from 360px */
+  /*
+   * The reader's bar is one row: the chapter's name (the book and chapter
+   * chooser), the magnifier (the box that finds a verse), the translation
+   * and Aa. The two rows a PC shows are flattened (display: contents) and
+   * the book, the chapter, ‹ › and Compare are hidden: they live in the
+   * chooser, at the end of the chapter and under Aa. The bar spans the
+   * width under the blue header, stays at the top, slides away as you read
+   * down and comes back when you scroll up (reader.js, .away).
+   */
+  .readbar { position: sticky; top: var(--top); display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; padding: 8px 12px; margin: -12px -12px 8px; transition: transform .25s ease; }
+  .readbar.away { transform: translateY(calc(-100% - 2px)); }
+  .readbar .row { display: contents; }
+  .readbar .nav .btn, .readbar #r-book, .readbar #r-chapter, .readbar #r-cmp, .readbar .goto { display: none; }
+  .readbar #r-place { display: inline-flex; order: 1; flex: 1 1 auto; min-width: 0; justify-content: flex-start; align-items: center; gap: 4px; padding: 8px 8px 8px 10px; font-size: 16px; }
+  .readbar #r-place .bk { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .readbar #r-place b { flex: 0 0 auto; }
+  .readbar #r-place .chev, .readbar .tools #r-view span { display: none; }   /* the two are plainly buttons: the room goes to the book's name */
+  .readbar #r-find { display: inline-flex; order: 2; color: var(--accent-text); }
+  .readbar .tools #r-src { order: 3; flex: 0 1 auto; width: auto; padding-right: 28px; background-position: right 7px center; }   /* as wide as its names: KJV, NKJV, AFR83 */
+  .readbar .tools #r-view { order: 4; padding-left: 10px; padding-right: 10px; }
+  /* the magnifier opens the box in place of the row; ✕ closes it again (reader.js finding) */
+  .readbar.finding #r-place, .readbar.finding #r-find, .readbar.finding #r-src, .readbar.finding #r-view { display: none; }
+  .readbar.finding .goto { display: flex; flex: 1 1 auto; align-items: center; }
   .readbar .goto .btn { display: none; }           /* the keyboard's Search key submits */
-  .readbar .tools #r-cmp { display: none; }        /* Compare lives under Aa on a phone */
-  .readbar .tools #r-src { flex: 0 1 106px; }
+  .readbar .goto #r-find-close { display: inline-flex; }
   .scripture.size-s { font-size: 17px; }
   .scripture.size-m { font-size: 18.5px; }
   .scripture.size-l { font-size: 21.5px; }
