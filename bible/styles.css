@@ -667,8 +667,13 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .step-chev { flex: 0 0 auto; width: 30px; height: 30px; margin-top: 3px; border-radius: 999px; background: var(--chevron) center / 22px 22px no-repeat; transition: transform .2s ease; }
 .step-head.fold.open .step-chev { transform: rotate(180deg); }
 @media (hover: hover) and (pointer: fine) { .step-toggle:hover .step-title { text-decoration: underline; text-underline-offset: 3px; } .step-toggle:hover .step-chev { background-color: var(--accent-soft); } }
-.step-head.fold .step-hint { flex: 1 1 100%; order: 3; margin: 0 0 2px 50px; }   /* under the title row, in line with the title: the circle and the gap before it */
-.step-head.fold:not(.open) .step-hint { display: none; }
+.step-head.fold .step-hint, .step-head.fold .step-hint-more { flex: 1 1 100%; order: 3; margin: 0 0 2px 50px; }   /* under the title row, in line with the title: the circle and the gap before it */
+.step-head.fold:not(.open) .step-hint, .step-head.fold:not(.open) .step-hint-more { display: none; }
+/* the small "?" after a step's line or a Claude button's: it opens the longer note under them (prepare.js hintPair) */
+.hint-q { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin: -4px 0 -4px 6px; padding: 0; border-radius: 999px; border: 1px solid var(--btn-line); background: var(--surface); color: var(--accent-text); font: 700 14px/1 var(--display); vertical-align: middle; cursor: pointer; }
+.hint-q[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.ai-hint { margin: 0; flex: 1 1 200px; min-width: 0; }
+.ai-hint-more { margin: 6px 0 0; max-width: 70ch; }
 .step-head.fold .step-clear { margin-left: auto; }
 @media (max-width: 759.98px) { .step-head.fold .step-clear { order: 4; } }   /* on a phone "Clear this step" goes under the hint, as before */
 .step-body { padding-bottom: 4px; }

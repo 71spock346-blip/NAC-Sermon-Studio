@@ -329,7 +329,6 @@ export const AF = {
 
   // step 1
   "The text word": "Die tekswoord",
-  "Read it slowly, more than once, and pray before writing anything. Fetch the text from a translation, or type it in yourself.": "Lees dit stadig, meer as een keer, en bid voordat jy iets skryf. Haal die teks uit 'n vertaling, of tik dit self in.",
   "Reference": "Verwysing",
   "Choose a translation to fetch from, or type the text yourself.": "Kies 'n vertaling om uit te haal, of tik die teks self.",
   "Typed / pasted": "Getik / geplak",
@@ -346,6 +345,21 @@ export const AF = {
 
   // step 2: the title and message (the steps follow the order of the Guide's article)
   "Title and message": "Titel en boodskap",
+  // ---- one line per step, the longer note behind "?" (prepare.js hintPair)
+  "More about this": "Meer hieroor",
+  "As in the Guide: make the people feel welcome and open the door to the text.": "Soos in die Handleiding: laat die mense welkom voel en maak die deur na die teks oop.",
+  "An evening when the congregation looks back on this service and talks about it.": "'n Aand waarop die gemeente terugkyk na hierdie godsdiens en daaroor praat.",
+  "Claude takes the Guide's article apart, sentence by sentence, in plain words.": "Claude haal die Handleiding se artikel uitmekaar, sin vir sin, in gewone woorde.",
+  "Claude proposes how to build this sermon from the text, the Guide and your thoughts.": "Claude stel voor hoe om hierdie preek uit die teks, die Handleiding en jou gedagtes te bou.",
+  "Claude answers the questions above from the text, the Guide's article and the Catechism.": "Claude beantwoord die vrae hierbo uit die teks, die Handleiding se artikel en die Kategismus.",
+  "Read it slowly, more than once, and pray before writing anything.": "Lees dit stadig, meer as een keer, en bid voordat jy iets skryf.",
+  "Fetch the text from a translation with the buttons below, or type it in yourself.": "Haal die teks met die knoppies hieronder uit 'n vertaling, of tik dit self in.",
+  "First the Guide's title and message, then the core thought in your own words.": "Eers die Handleiding se titel en boodskap, dan die kerngedagte in jou eie woorde.",
+  "The parts of the Guide's article, in its order, are main point 1, 2, 3.": "Die dele van die Handleiding se artikel, in sy volgorde, is hoofpunt 1, 2, 3.",
+  "The setting of the text: who speaks, to whom, and why; and the Catechism sections that quote it.": "Die agtergrond van die teks: wie praat, met wie, en waarom; en die Kategismus-afdelings wat dit aanhaal.",
+  "What the main points ask of us this week, then a few short lines that lead to the altar.": "Wat die hoofpunte hierdie week van ons vra, dan 'n paar kort reëls wat na die altaar lei.",
+  "The sermon notes, the sermon in large type, and the cue cards for the altar.": "Die preeknotas, die preek in groot letters, en die preekkaarte vir die altaar.",
+  "The slides show the sermon, its text word, the main points from the Guide and the questions, one at a time.": "Die skyfies wys die preek, sy tekswoord, die hoofpunte uit die Handleiding en die vrae, een op 'n slag.",
   "As the Guide gives them: first the title, then the message. Then write the core thought in your own words. The Guide gives the direction; the sermon is how it reaches this congregation.": "Soos die Handleiding hulle gee: eers die titel, dan die boodskap. Skryf dan die kerngedagte in jou eie woorde. Die Handleiding gee die rigting; die preek is hoe dit hierdie gemeente bereik.",
   "Message of the service": "Boodskap van die godsdiens",
   "The theme in one sentence": "Die tema in een sin",
@@ -407,7 +421,6 @@ export const AF = {
 
   // step 3: the introduction
   "Introduction": "Inleiding",
-  "As in the Guide, the sermon opens with an introduction. Make the people feel welcome and open the door to the text.": "Soos in die Handleiding begin die preek met 'n inleiding. Laat die mense welkom voel en maak die deur na die teks oop.",
   "The Guide's introduction": "Die Handleiding se inleiding",
   "Your introduction": "Jou inleiding",
   "How you will begin: a question, a picture from daily life, the setting of the text": "Hoe jy gaan begin: 'n vraag, 'n beeld uit die daaglikse lewe, die agtergrond van die teks",
@@ -1118,7 +1131,6 @@ export const AF = {
   "Make the slides": "Maak die skyfies",
   "Open the slides": "Maak die skyfies oop",
   "With the questions from the reflection guide.": "Met die vrae uit die besinningsgids.",
-  "An evening when the congregation looks back on this service and talks about it. The slides show the sermon, its text word, the main points from the Guide and the questions, one at a time.": "'n Aand waarop die gemeente terugkyk na hierdie godsdiens en daaroor praat. Die skyfies wys die preek, sy tekswoord, die hoofpunte uit die Handleiding en die vrae, een op 'n slag.",
   "Load the reflection guide (PDF)": "Laai die besinningsgids (PDF)",
   "Load another reflection guide": "Laai 'n ander besinningsgids",
   "Or choose the service": "Of kies die godsdiens",
@@ -1687,7 +1699,6 @@ export const AF = {
   "What goes to ElevenLabs: the text of the sermon or of the Guide's article, nothing else. ElevenLabs keeps the recordings in your account's history, where you can delete them.": "Wat na ElevenLabs gaan: die teks van die preek of van die Handleiding se artikel, niks anders nie. ElevenLabs hou die opnames in jou rekening se geskiedenis, waar jy dit kan uitvee.",
   "Under your name at the bottom left, choose \"API keys\" and create a key. Leave its access as it is. Copy it: it is shown once.": "Onder jou naam links onder, kies \"API keys\" en maak 'n sleutel. Laat sy toegang soos dit is. Kopieer dit: dit word een keer gewys.",
   "Paste the key below and tap \"Check key\".": "Plak die sleutel hieronder en tik \"Kontroleer sleutel\".",
-  "An ElevenLabs voice can read the sermon to you: the text word, the introduction, the main points, the application, the summary and the conclusion, as \"The sermon\" prints them. Add your ElevenLabs key under Settings → Read aloud first.": "'n ElevenLabs-stem kan die preek vir jou lees: die tekswoord, die inleiding, die hoofpunte, die toepassing, die samevatting en die slot, soos \"Die preek\" dit druk. Voeg eers jou ElevenLabs-sleutel onder Verstellings → Lees hardop by.",
   "About {words} words, {minutes} minutes of listening, {chars} characters of your ElevenLabs plan.": "Omtrent {words} woorde, {minutes} minute om na te luister, {chars} karakters van jou ElevenLabs-plan.",
   "Write the introduction, the main points, the application or the conclusion first.": "Skryf eers die inleiding, die hoofpunte, die toepassing of die slot.",
   "Read {date} by {voice}, {from}. {chars} characters, about {minutes} minutes.": "Gelees {date} deur {voice}, {from}. {chars} karakters, omtrent {minutes} minute.",
@@ -1706,7 +1717,6 @@ export const AF = {
   "\"Read aloud\" has a voice read it to you.": "\"Lees hardop\" laat 'n stem dit vir jou lees.",
   // the Guide's article read aloud (prepare.js renderGuide, listen.js, speech.js guideScript)
   "Hear the Guide": "Luister na die Handleiding",
-  "An ElevenLabs voice can read the Guide's article to you. Add your ElevenLabs key under Settings → Read aloud first.": "'n ElevenLabs-stem kan die Handleiding se artikel vir jou lees. Voeg eers jou ElevenLabs-sleutel onder Verstellings → Lees hardop by.",
   "There is nothing to read in this article.": "Daar is niks om in hierdie artikel te lees nie.",
   "from the Guide": "uit die Handleiding",
   "The article has changed since this was read.": "Die artikel het verander sedert dit gelees is.",
