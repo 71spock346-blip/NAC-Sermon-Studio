@@ -624,18 +624,18 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .notes { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .note { border-radius: var(--radius); padding: 12px 14px; background: var(--surface); box-shadow: var(--shadow-card); margin-top: 8px; }
 .notes .note { margin-top: 0; }
-.note-top { display: flex; gap: 8px; align-items: flex-start; }
+/* a note card (notes.js card): the words first (the verse and the kind, the title, the text), then EN | AF where the note has both languages, then the date, Listen and Edit */
 .note-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
 .note-head .ref { font-weight: 700; text-decoration: none; }
-.note-meta { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; white-space: nowrap; }
-.note-title { font: 700 16.5px/1.3 var(--display); color: var(--head-ink); margin-top: 8px; }
+.note-title { font: 700 16.5px/1.3 var(--display); color: var(--head-ink); margin-top: 6px; }
 .note-body { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 3px; font-size: 15px; color: var(--ink-2); }
-/* EN | AF over a note (notes.js): the language on the screen, with a line on its translation or the one under way */
-/* EN | AF over a note, and over an answer in Theology (.th-lang) */
+.note-foot { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.note-foot .small { margin-right: auto; }
+/* EN | AF under a note that has both languages, and over an answer in Theology (.th-lang) */
 .note-lang, .th-lang { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; }
-/* hearing a note (notes.js): Listen | Stop in the meta row, which drops under the reference on a narrow screen; the card lights up while it reads; the row with ElevenLabs' recording */
-.note-top { flex-wrap: wrap; }
-.note-meta { margin-left: auto; }
+/* the editor's line to have Claude translate a note that has one language (notes.js editNote) */
+.note-translate { margin-top: 2px; }
+/* hearing a note (notes.js): Listen | Stop in the foot; the card lights up while it reads; the row with ElevenLabs' recording */
 .note.hearing { box-shadow: var(--shadow-card), 0 0 0 2px var(--accent); }
 .note-hear { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; }
 .note-hear:empty { display: none; }
