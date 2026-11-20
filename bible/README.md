@@ -156,11 +156,11 @@ Appearance, or the reader's "Aa" button) is mirrored in localStorage so the page
 in the right colours before the database is open. "Easy-read" swaps Montserrat for
 plain letters (Verdana where the device has it) in the whole app, with more room in the
 reading text. Under 760px the tabs are a bar under the thumb (five of them: Sunday,
-Read, Notes, Prepare and More, which lists the other nine sections in groups, Handbooks
+Read, Notes, Prepare and More, which lists the other ten sections in groups, Handbooks
 first and the Tools under a heading, `src/more.js`) and the text runs full width on white;
 from 760px they are a side menu with every section (Sunday first; Seating, Choir,
 Reminders, MIS and Reflection evening grouped under the heading Tools; the Catechism and
-the Liturgy are rows under Handbooks) and each screen is a white page on a pale ground,
+the Liturgy are rows under Handbooks; Church files sits before Settings) and each screen is a white page on a pale ground,
 with the small blue emblem in its corner.
 
 `icons/emblem-line.svg` is the official white line emblem, traced from
@@ -230,8 +230,13 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - **Catechism.** `data/catechism.json` is an index: section numbers, titles, the id of
   each section's page at nak.org, and the Bible verses each section quotes. The text
   of the sections is the Church's copyright and is not in the repository or on the
-  site: `tools/build_catechism.py --text` writes it to `catechism-text.json`, which the
-  person loads under Settings → Catechism into IndexedDB on their own device. With it
+  site: the person loads it under Church files (`src/files.js`) straight from the
+  Catechism's PDF, which `src/catechism-pdf.js` reads on the device (pdf.js through
+  `booklet.js readPages`; the sections matched to the index by number and title, with
+  the summaries, the footnotes and the table of the Ten Commandments) into IndexedDB; the
+  `catechism-text.json` that `tools/build_catechism.py --text` made from the PDF's text
+  loads there too. `node tools/test_catechism_pdf.mjs` checks the parser against a
+  made-up fixture, and with a PDF or a pages file reads the real book. With it
   loaded, `src/catechism.js` shows the sections (with the book's own summaries,
   footnotes and the table of the Ten Commandments), searches them by word, and
   `src/pdf.js` prints the sections chosen for a service into the sermon notes. Where the
@@ -343,10 +348,16 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   changes, the translation says so and offers "Translate again" (the old translation goes under
   the new one, as with Ask again). The list under Theology and a chapter's passages show each
   place once, in the language it opens in.
+- **Church files.** `src/files.js` (`#files`) is the one place where the Church's own texts
+  are loaded, each once from its own file: the text of the Catechism, the altar booklet in
+  English and in Afrikaans, the handbooks for ministers and, where the helper is unlocked,
+  the Divine Service Guides. A row per file says whether it is on this device, with one
+  Load button and Remove; Liturgy, Handbooks, the Catechism and Settings point here. On a
+  PC it sits in the side menu before Settings; a phone lists it under More.
 - **Liturgy.** `src/liturgy.js` is the Church's altar booklet, *Liturgy for Altar Use*
   (English and Afrikaans), one card per rite with the words said at the altar. The
   booklet is the Church's text, so it is not in the repository: the person loads its PDF
-  under Liturgy, and `src/booklet.js` reads it on the device with pdf.js
+  under Church files (`src/files.js`), and `src/booklet.js` reads it on the device with pdf.js
   (`vendor/pdfjs/`, fetched only then): `readPages` takes every piece of text with its
   place, letters and size, and the dotted rules between the rows; `parse` turns the pages
   into cards (`{key, title, rows}`; a row `{label, sub, blocks}`; a block a paragraph, a
@@ -374,8 +385,8 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - **Handbooks.** `src/handbooks.js` is the Church's handbooks for ministers: the *Guide for
   Ministers* (the rule book), the *"Serving and Leading"* guiding principle and the *Liturgy
   of the New Apostolic Church* (2024), or any other handbook with numbered chapters. They are
-  the Church's text, so nothing of them is in the repository: the person loads each one once,
-  as the PDF or as a text file saved from it, and `src/handbook.js` reads it on the device
+  the Church's text, so nothing of them is in the repository: the person loads each one once
+  under Church files, as the PDF or as a text file saved from it, and `src/handbook.js` reads it on the device
   (the PDF through `booklet.js readPages` and pdf.js) into chapters: `{n, title, level,
   page, blocks}`, a block a paragraph, a heading inside the chapter, a list item with its
   depth, a quotation (the Liturgy's binding texts) or a footnote, with italics, bold, small

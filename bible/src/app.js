@@ -9,7 +9,8 @@
  * of one, #catechism/3.4.1 opens a Catechism section, #theology/ROM/8 opens
  * the background to a chapter (theology.js), #liturgy/baptism opens a card
  * of the altar booklet (liturgy.js), #handbooks/<key>/<n> a chapter of one of
- * the Church's handbooks (handbooks.js), #settings is settings.
+ * the Church's handbooks (handbooks.js), #files is Church files (files.js),
+ * where the Church's own texts are loaded, #settings is settings.
  * The back button therefore works as people expect, and a link to a verse
  * can be shared.
  *
@@ -50,6 +51,7 @@ import * as Cat from './catechism.js';
 import * as Theology from './theology.js';
 import * as Liturgy from './liturgy.js';
 import * as Handbooks from './handbooks.js';   // the Church's handbooks, read from their files on the device
+import * as Files from './files.js';   // Church files: the Church's own texts, each loaded once from its file
 import * as Seating from './seating.js';
 import * as ChoirTab from './choir.js';
 import * as Reminders from './reminders.js';
@@ -76,6 +78,7 @@ const TABS = {
   plan: Plan.render,
   catechism: Cat.render,
   handbooks: Handbooks.render,
+  files: Files.render,
   theology: Theology.render,
   settings: Settings.render,
   mis: Mis.render,
@@ -187,6 +190,7 @@ function onSynced(e) {
   if (tab === 'theology' && (hash.length > 1 || !parts.includes('theology'))) return;   // an open book or chapter keeps its place; the list shows what came
   if (tab === 'liturgy' && (hash.length > 1 || !parts.includes('liturgy'))) return;      // a card open at the altar is not redrawn under the person
   if (tab === 'handbooks' && (hash.length > 1 || !parts.includes('handbooks'))) return;  // an open chapter keeps its place; the list shows what came
+  if (tab === 'files' && !parts.some(p => p === 'catechism' || p === 'liturgy' || p === 'handbooks' || p === 'guides')) return;   // the rows follow what is loaded
   if (tab === 'sunday' && !parts.some(p => p === 'sermons' || p === 'guides' || p === 'liturgy' || p === 'settings')) return;   // the next service follows the preparations, the Guides and the altar booklet
   if (tab === 'plan' && !parts.includes('plans')) return;
   if ((tab === 'prepare' || tab === 'reflect') && !parts.some(p => p === 'sermons' || p === 'guides' || p === 'settings')) return;

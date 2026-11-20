@@ -519,7 +519,7 @@ export function refocus(root) {
 let shown = null;
 
 /** "November 2026", in the language of the app. */
-function monthName(m) {
+export function monthName(m) {
   return new Date(m.year, m.month - 1, 15).toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
 }
 

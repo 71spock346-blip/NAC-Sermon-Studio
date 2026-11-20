@@ -10,7 +10,7 @@
  * rows come in groups, as the side menu has them: Handbooks (which had the
  * bar's fourth place until Sunday took it, November 2026), Theology and the
  * Month plan; then the Tools (Seating, Choir, Reminders, MIS, Reflection
- * evening) under their heading; then Settings. While one of those sections
+ * evening) under their heading; then Church files and Settings. While one of those sections
  * is open, More stays lit in the bar (app.js route), so the way back to the
  * list is plain; so it is while the Catechism or the Liturgy is open, since
  * they are listed under Handbooks.
@@ -29,6 +29,7 @@ import { VERSION } from './settings.js';
 import { versionText } from './update.js';
 import * as Mis from './mis.js';
 import { holds } from './handbooks.js';   // the sections listed under Handbooks: More is lit for them too
+import { unlocked } from './lock.js';   // the Guides are Claude's to read: the Church files row names them only where the helper is open
 
 /**
  * The sections that live under More on a phone, in groups and in the order
@@ -50,6 +51,7 @@ export const MORE = [
     ['reflect', () => t('Slides and questions for the evening')],
   ] },
   { rows: [
+    ['files', () => (unlocked() ? t('The Catechism, the altar booklet, the handbooks and the Guides, each loaded once from its file') : t('The Catechism, the altar booklet and the handbooks, each loaded once from its file'))],
     ['settings', () => t('Language, letters, sync and keys')],
   ] },
 ];
