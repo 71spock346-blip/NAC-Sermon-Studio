@@ -18,7 +18,7 @@
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;if(sessionStorage.getItem('sb-splash'))document.documentElement.dataset.splash='off';}catch(e){}</script>
 <!-- Montserrat, the letters of the app, kept with it and fetched first so the words do not jump -->
 <link rel="preload" href="vendor/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=84">
+<link rel="stylesheet" href="styles.css?v=85">
 </head>
 <body>
 <!-- The welcome screen, like the blue title slide: shown while the app starts, gone after a moment or a tap (app.js hideSplash). -->
@@ -47,13 +47,15 @@
     </div>
   </header>
 
-  <!-- The sections: a side menu on a PC, with Seating, Choir, Reminders, MIS and Reflection evening grouped under Tools; on a phone a bar at the bottom with Read, Notes, Prepare, Handbooks and More, where More lists the rest, the Tools under their heading (styles.css, more.js). -->
+  <!-- The sections: a side menu on a PC, with Seating, Choir, Reminders, MIS and Reflection evening grouped under Tools; on a phone a bar at the bottom with Sunday, Read, Notes, Prepare and More, where More lists the rest, Handbooks first and the Tools under their heading (styles.css, more.js). Sunday is the front door, the next divine service (sunday.js), where the app opens. -->
   <nav class="side" aria-label="Sections" data-t-aria="Sections">
-    <a class="brand" href="#read"><span class="emblem" aria-hidden="true"></span><span class="brand-label" data-t="New Apostolic Church">New Apostolic Church</span><span class="brand-name" data-t="Study Bible">Study Bible</span></a>
+    <a class="brand" href="#sunday"><span class="emblem" aria-hidden="true"></span><span class="brand-label" data-t="New Apostolic Church">New Apostolic Church</span><span class="brand-name" data-t="Study Bible">Study Bible</span></a>
     <div class="tabs" role="tablist" aria-orientation="vertical">
+      <button type="button" role="tab" id="tab-btn-sunday" aria-controls="tab-sunday" data-tab="sunday"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M9 15.5l2 2 4-4"/></svg></span><span class="lbl" data-t="Sunday">Sunday</span></button>
       <button type="button" role="tab" id="tab-btn-read" aria-controls="tab-read" data-tab="read"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5c3-1 6-1 9 .5v14c-3-1.5-6-1.5-9-.5z"/><path d="M21 5.5c-3-1-6-1-9 .5v14c3-1.5 6-1.5 9-.5z"/></svg></span><span class="lbl" data-t="Read|tab">Read</span></button>
       <button type="button" role="tab" id="tab-btn-notes" aria-controls="tab-notes" data-tab="notes"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span><span class="lbl" data-t="Notes">Notes</span></button>
       <button type="button" role="tab" id="tab-btn-prepare" aria-controls="tab-prepare" data-tab="prepare"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h4"/></svg></span><span class="lbl lbl-long" data-t="Prepare|tab">Prepare</span><span class="lbl lbl-short" data-t="Prepare|short">Prepare</span></button>
+      <!-- Handbooks: in the side menu on a PC; on a phone a row under More, since Sunday has the bar's place it had (styles.css hides this button there) -->
       <button type="button" role="tab" id="tab-btn-handbooks" aria-controls="tab-handbooks" data-tab="handbooks"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5h6a3 3 0 0 1 3 3v12a2.5 2.5 0 0 0-2.5-2.5h-6.5z"/><path d="M21.5 5h-6a3 3 0 0 0-3 3v12a2.5 2.5 0 0 1 2.5-2.5h6.5z"/></svg></span><span class="lbl" data-t="Handbooks">Handbooks</span></button>
       <!-- the Catechism and the Liturgy (the altar cards) are listed under Handbooks (handbooks.js): their buttons stay here for the names, the icons and the panels, but are not shown (styles.css) -->
       <button type="button" role="tab" id="tab-btn-catechism" aria-controls="tab-catechism" data-tab="catechism"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M12 6v8M8.5 9.5h7"/></svg></span><span class="lbl" data-t="Catechism">Catechism</span></button>
@@ -84,6 +86,7 @@
   </nav>
 
   <main id="content" tabindex="-1">
+    <section class="tab" id="tab-sunday" role="tabpanel" aria-labelledby="tab-btn-sunday" hidden></section>
     <section class="tab" id="tab-read" role="tabpanel" aria-labelledby="tab-btn-read" hidden></section>
     <section class="tab" id="tab-notes" role="tabpanel" aria-labelledby="tab-btn-notes" hidden></section>
     <section class="tab" id="tab-prepare" role="tabpanel" aria-labelledby="tab-btn-prepare" hidden></section>
@@ -105,6 +108,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="vendor/jspdf.umd.min.js?v=9" defer></script>
-<script type="module" src="src/app.js?v=84"></script>
+<script type="module" src="src/app.js?v=85"></script>
 </body>
 </html>

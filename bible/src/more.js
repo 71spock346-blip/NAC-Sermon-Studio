@@ -4,20 +4,21 @@
  * The app has many sections. A PC lists them all in the side menu, but a bar
  * the width of a phone holds five names at a size that can be read; with
  * more, the last ones were cut off the edge of the screen. So the phone's
- * bar keeps the four used most (Read, Notes, Prepare, Handbooks) and a fifth
+ * bar keeps the four used most (Sunday, Read, Notes, Prepare) and a fifth
  * tab, More, which is this page: the other sections one under the other, as
  * big rows with the icon, the name and one line on what each is for. The
- * rows come in groups, as the side menu has them: Theology and the Month
- * plan; then the Tools (Seating, Choir, Reminders, MIS, Reflection evening)
- * under their heading; then Settings. While one of those sections is open,
- * More stays lit in the bar (app.js route), so the way back to the list is
- * plain.
+ * rows come in groups, as the side menu has them: Handbooks (which had the
+ * bar's fourth place until Sunday took it, November 2026), Theology and the
+ * Month plan; then the Tools (Seating, Choir, Reminders, MIS, Reflection
+ * evening) under their heading; then Settings. While one of those sections
+ * is open, More stays lit in the bar (app.js route), so the way back to the
+ * list is plain; so it is while the Catechism or the Liturgy is open, since
+ * they are listed under Handbooks.
  *
  * Theology is still reached from the reader as well; this page gives each
  * section a front door of its own. On a PC the More tab is not shown
  * (styles.css), though #more still draws this page. The Catechism and the
- * Liturgy are not here: they are listed under Handbooks (handbooks.js),
- * which has the fourth place in the bar.
+ * Liturgy are not rows here: they are listed under Handbooks (handbooks.js).
  *
  * The Church's MIS is a section like the others (mis.js); its row here also
  * opens the site itself straight away, as the menu button does.
@@ -27,6 +28,7 @@ import { t } from './i18n.js';
 import { VERSION } from './settings.js';
 import { versionText } from './update.js';
 import * as Mis from './mis.js';
+import { holds } from './handbooks.js';   // the sections listed under Handbooks: More is lit for them too
 
 /**
  * The sections that live under More on a phone, in groups and in the order
@@ -36,6 +38,7 @@ import * as Mis from './mis.js';
  */
 export const MORE = [
   { rows: [
+    ['handbooks', () => t('The Catechism, the Creed, the Liturgy and the handbooks for ministers')],
     ['theology', () => t('The background to a book, a chapter or verses')],
     ['plan', () => t('The month\'s services and who holds them')],
   ] },
@@ -53,7 +56,8 @@ export const MORE = [
 
 /** Is this section one of those listed under More? Then the More tab is lit while it is open. */
 export function isMore(tab) {
-  return MORE.some(group => group.rows.some(([key]) => key === tab));
+  const key = holds(tab) ? 'handbooks' : tab;   // the Catechism and the Liturgy are listed under Handbooks
+  return MORE.some(group => group.rows.some(([k]) => k === key));
 }
 
 /** The More page: a row per section, in groups. The icon and the name come from the section's own button in the side menu, so they stay the same. */

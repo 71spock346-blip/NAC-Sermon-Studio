@@ -126,6 +126,23 @@ const short = (text, n = 90) => { const v = String(text || '').trim().replace(/\
 const STATUS = [['draft', 'Draft'], ['ready', 'Ready'], ['held', 'Held']];
 const STATUS_LABEL = Object.fromEntries(STATUS);
 
+/** Something typed in a box: not empty once the spaces are gone. */
+const typed = v => !!(v || '').trim();
+/**
+ * Has a step something in it? Steps 1 to 7, the sermon itself: the editor's
+ * step bar marks these solid (STEPS in renderEditor), and the Sunday screen
+ * counts them for "5 of 7 steps filled" (sunday.js).
+ */
+export const FILLED = {
+  1: s => !!s.ref || typed(s.refText) || typed(s.text),
+  2: s => typed(s.title) || typed(s.theme) || typed(s.core) || typed(s.guide),
+  3: s => typed(s.intro),
+  4: s => (s.points || []).some(p => p && !emptyPoint(p)),
+  5: s => typed(s.context) || typed(s.keywords) || !!(s.catechism || []).length || typed(s.crossRefs),
+  6: s => typed(s.summary) || typed(s.application) || typed(s.conclusion),
+  7: s => typed(s.illustrations),
+};
+
 /* How the breakdown's panel shows the article on this device: 'pieces' (with the Use buttons) or 'plain' (as one piece in plain words, plain.js). */
 let breakViewNow = null;
 function breakView() {
@@ -452,22 +469,22 @@ function renderEditor(root, s) {
   const STEPS = {
     service: { short: t('Service'), filled: () => true,
       summary: () => [fmtDate(s.date, true), (s.congregation || '').trim(), s.occasion ? t(s.occasion) : '', s.audience ? t(AI.audienceLabel(s.audience)) : ''].filter(Boolean).join(' · ') || t('The date, the congregation and the occasion') },
-    1: { short: t('Text'), filled: () => !!s.ref || has(s.refText) || has(s.text),
+    1: { short: t('Text'), filled: () => FILLED[1](s),
       summary: () => (s.ref || has(s.refText) ? [s.ref ? formatRef(s.ref, lang) : s.refText.trim(), (s.translation || '').trim()].filter(Boolean).join(' · ') : none()) },
-    2: { short: t('Title'), filled: () => has(s.title) || has(s.theme) || has(s.core) || has(s.guide),
+    2: { short: t('Title'), filled: () => FILLED[2](s),
       summary: () => withAi(short(s.title) || short(s.theme) || short(s.core) || short(s.guide) || none(), s.breakdown) },
-    3: { short: t('Intro'), filled: () => has(s.intro), summary: () => short(s.intro) || none() },
-    4: { short: t('Points'), filled: () => (s.points || []).some(p => p && !emptyPoint(p)),
+    3: { short: t('Intro'), filled: () => FILLED[3](s), summary: () => short(s.intro) || none() },
+    4: { short: t('Points'), filled: () => FILLED[4](s),
       summary: () => {
         const pts = (s.points || []).filter(p => p && !emptyPoint(p));
         const heads = pts.map(p => (p.heading || '').trim()).filter(Boolean);
         return withAi(pts.length ? tn(pts.length, '{n} main point', '{n} main points') + (heads.length ? ': ' + heads.join(' · ') : '') : none(), s.build);
       } },
-    5: { short: t('Context'), filled: () => has(s.context) || has(s.keywords) || !!(s.catechism || []).length || has(s.crossRefs),
+    5: { short: t('Context'), filled: () => FILLED[5](s),
       summary: () => withAi(names([[has(s.context), t('Context')], [has(s.keywords), t('Key words')], [(s.catechism || []).length, tn((s.catechism || []).length, '{n} Catechism section', '{n} Catechism sections')], [has(s.crossRefs), t('Cross references')]]).join(' · ') || none(), s.ai) },
-    6: { short: t('Summary'), filled: () => has(s.summary) || has(s.application) || has(s.conclusion),
+    6: { short: t('Summary'), filled: () => FILLED[6](s),
       summary: () => names([[has(s.application), t('Application')], [has(s.summary), t('Summary')], [has(s.conclusion), t('Conclusion')]]).join(' · ') || none() },
-    7: { short: t('Illustrations'), filled: () => has(s.illustrations), summary: () => short(s.illustrations) || none() },
+    7: { short: t('Illustrations'), filled: () => FILLED[7](s), summary: () => short(s.illustrations) || none() },
     print: { short: t('Print'), filled: () => true, summary: () => [t('Sermon notes'), t('The sermon'), t('Cue cards'), t('Hear the sermon')].join(' · ') },
     8: { short: t('After'), filled: () => has(s.reflection), summary: () => short(s.reflection) || none() },
     9: { short: t('Evening'), filled: () => Reflect.hasSlides(s), summary: () => (Reflect.hasSlides(s) ? t('The slides are made.') : t('No slides yet.')) },

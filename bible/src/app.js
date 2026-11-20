@@ -1,7 +1,9 @@
 /*
  * Start-up and navigation.
  *
- * The address decides the screen: #read/PSA/130/7 opens Psalm 130 at verse 7,
+ * The address decides the screen: #sunday is the front door, the next divine
+ * service with one tap to the cue cards and the altar card (sunday.js), where
+ * the app opens; #read/PSA/130/7 opens Psalm 130 at verse 7,
  * #notes lists the notes, #prepare/<id> opens one service preparation,
  * #reflect lists the reflection evenings and #reflect/<id> opens the slides
  * of one, #catechism/3.4.1 opens a Catechism section, #theology/ROM/8 opens
@@ -19,9 +21,10 @@
  * and #choir the choir programme. #more is the phone's fifth tab (more.js):
  * the sections the bar has no room for, one under the other, the Tools
  * (Seating, Choir, Reminders, MIS, Reflection evening) under their heading
- * as in the PC's side menu. The Catechism and the Liturgy are listed under
- * Handbooks (handbooks.js), which stays lit while one of them is open, on a
- * phone and on a PC. #reminders is
+ * as in the PC's side menu, and Handbooks, since Sunday has the bar's place
+ * it had. The Catechism and the Liturgy are listed under Handbooks
+ * (handbooks.js), which stays lit while one of them is open on a PC; on a
+ * phone More is lit for all three. #reminders is
  * the birthdays and anniversaries (#reminders/people the roster,
  * #reminders/import the listings). #plan is the month plan (#plan/2025-10 one
  * month of it): the district's programme with who holds each service.
@@ -48,11 +51,13 @@ import * as Reminders from './reminders.js';
 import * as Plan from './plan.js';   // the month plan: the district's programme with who holds each service
 import * as Settings from './settings.js';
 import * as More from './more.js';
+import * as Sunday from './sunday.js';   // the front door: the next divine service, one tap to each thing used at the altar
 import * as Mis from './mis.js';   // the Church's MIS: a section whose button opens the site itself
 import * as Sync from './sync.js';
 import * as Update from './update.js';   // a newer version of the app on the site: a bar offers to load it
 
 const TABS = {
+  sunday: Sunday.render,
   read: Reader.render,
   notes: Notes.render,
   prepare: Prepare.render,
@@ -86,7 +91,7 @@ function route() {
     route();
     return;
   }
-  const tab = TABS[parts[0]] ? parts[0] : 'read';
+  const tab = TABS[parts[0]] ? parts[0] : (parts.length ? 'read' : 'sunday');   // no address: the app opens on Sunday, the next service; one it does not know opens the reader
   for (const b of $$('.tabs button')) {
     const on = b.dataset.tab === tab;
     b.classList.toggle('active', on);
@@ -163,7 +168,7 @@ function onSynced(e) {
     if ((state.settings.uiLang || 'en') !== lang()) applyLang(state.settings.uiLang || 'en');
   }
   const hash = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  const tab = TABS[hash[0]] ? hash[0] : 'read';
+  const tab = TABS[hash[0]] ? hash[0] : (hash.length ? 'read' : 'sunday');
   const typing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
   if (typing || $('.overlay')) return;
   if (tab === 'read') return;                               // the reader keeps its place; the notes show on the next chapter
@@ -173,6 +178,7 @@ function onSynced(e) {
   if (tab === 'theology' && (hash.length > 1 || !parts.includes('theology'))) return;   // an open book or chapter keeps its place; the list shows what came
   if (tab === 'liturgy' && (hash.length > 1 || !parts.includes('liturgy'))) return;      // a card open at the altar is not redrawn under the person
   if (tab === 'handbooks' && (hash.length > 1 || !parts.includes('handbooks'))) return;  // an open chapter keeps its place; the list shows what came
+  if (tab === 'sunday' && !parts.some(p => p === 'sermons' || p === 'guides' || p === 'liturgy' || p === 'settings')) return;   // the next service follows the preparations, the Guides and the altar booklet
   if (tab === 'plan' && !parts.includes('plans')) return;
   if ((tab === 'prepare' || tab === 'reflect') && !parts.some(p => p === 'sermons' || p === 'guides' || p === 'settings')) return;
   route();
