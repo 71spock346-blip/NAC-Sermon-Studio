@@ -6,19 +6,22 @@
  * deployed. The Bible texts, the Catechism index, the PDF library and the
  * icons are fetched cache-first, since they are large and change rarely; the
  * Settings tab can fetch all of the texts once so the whole Bible is on the
- * device. Requests to API.Bible are not touched here: bible.js keeps those
+ * device. The books of the two Bibles are kept in a cache of their own
+ * (TEXTS), which a new version of the app does not throw away: the search
+ * reads the whole Bible, and it should have to be fetched once, not after
+ * every update. Requests to API.Bible are not touched here: bible.js keeps those
  * chapters in IndexedDB for 30 days. Nor is the app's own sync server
  * (/api/sync, and the month plan's feed /api/plan): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
  */
-var VERSION = 'bible-2026-11-18i';
+var VERSION = 'bible-2026-11-20a';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=84',
-  'src/app.js?v=84',
+  'styles.css?v=85',
+  'src/app.js?v=85',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -28,6 +31,8 @@ var SHELL = [
   'src/catechism.js',
   'src/theology.js',
   'src/reader.js',
+  'src/search.js',
+  'src/search-lib.js',
   'src/paste.js',
   'src/notes.js',
   'src/prepare.js',
@@ -109,6 +114,10 @@ var SHELL = [
 ];
 // Big and slow to change: worth keeping rather than re-fetching.
 var CACHE_FIRST = /(vendor\/|icons\/|data\/)/;
+// The books of the built-in Bibles (data/kjv/GEN.json ...) stay on the device from one version of the app to the next.
+// Give TEXTS a new name whenever one of those files changes: that is what makes the devices fetch the texts again.
+var TEXTS = 'bible-texts-1';
+var IS_TEXT = /\/data\/(?:kjv|web)\/[A-Z0-9]+\.json$/;
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
@@ -122,13 +131,30 @@ self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys()
       .then(function (keys) {
-        return Promise.all(keys.map(function (k) {
-          return k === VERSION ? null : caches.delete(k);
-        }));
+        var old = keys.filter(function (k) { return k !== VERSION && k !== TEXTS; });
+        // the books an older version kept in its own cache move to TEXTS before that cache goes
+        return Promise.all(old.map(keepTexts)).then(function () {
+          return Promise.all(old.map(function (k) { return caches.delete(k); }));
+        });
       })
       .then(function () { return self.clients.claim(); })
   );
 });
+
+/** Copies the Bible's books from an older cache into TEXTS. A book that cannot be copied is simply fetched again when it is asked for. */
+function keepTexts(name) {
+  return Promise.all([caches.open(name), caches.open(TEXTS)]).then(function (pair) {
+    var from = pair[0], to = pair[1];
+    return from.keys().then(function (reqs) {
+      return Promise.all(reqs.filter(isText).map(function (req) {
+        return from.match(req).then(function (res) { return res ? to.put(req, res) : null; });
+      }));
+    });
+  }).catch(function () {});
+}
+function isText(req) {
+  return IS_TEXT.test(new URL(req.url).pathname);
+}
 
 function fromCache(req) {
   return caches.match(req).then(function (hit) {
@@ -138,7 +164,7 @@ function fromCache(req) {
 function store(req, res) {
   if (res && res.ok && res.type === 'basic') {
     var copy = res.clone();
-    caches.open(VERSION).then(function (c) { c.put(req, copy); });
+    caches.open(isText(req) ? TEXTS : VERSION).then(function (c) { c.put(req, copy); });
   }
   return res;
 }

@@ -283,6 +283,11 @@ export async function getText(version, book, chapter) {
   return hasText(version, book, chapter) ? db.get('texts', textKey(version, book, chapter)) : null;
 }
 
+/** Every chapter of one version that was pasted in, for the Bible search: [{book, chapter, verses: [{n, text}]}]. */
+export async function allTexts(version) {
+  return (await db.all('texts')).filter(row => row.version === version);
+}
+
 export async function saveText(version, book, chapter, verses, title) {
   const row = { key: textKey(version, book, chapter), version, book, chapter, verses, title: title || '', at: new Date().toISOString() };
   await db.put('texts', row);
