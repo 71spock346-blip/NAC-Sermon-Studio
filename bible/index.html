@@ -18,7 +18,7 @@
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;if(sessionStorage.getItem('sb-splash'))document.documentElement.dataset.splash='off';}catch(e){}</script>
 <!-- Montserrat, the letters of the app, kept with it and fetched first so the words do not jump -->
 <link rel="preload" href="vendor/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=85">
+<link rel="stylesheet" href="styles.css?v=87">
 </head>
 <body>
 <!-- The welcome screen, like the blue title slide: shown while the app starts, gone after a moment or a tap (app.js hideSplash). -->
@@ -87,6 +87,7 @@
 
   <main id="content" tabindex="-1">
     <section class="tab" id="tab-sunday" role="tabpanel" aria-labelledby="tab-btn-sunday" hidden></section>
+    <section class="tab" id="tab-altar" aria-label="Altar mode" data-t-aria="Altar mode" hidden></section>   <!-- the cue cards and the altar card on one full screen (altar.js), from the Sunday card; no tab of its own -->
     <section class="tab" id="tab-read" role="tabpanel" aria-labelledby="tab-btn-read" hidden></section>
     <section class="tab" id="tab-notes" role="tabpanel" aria-labelledby="tab-btn-notes" hidden></section>
     <section class="tab" id="tab-prepare" role="tabpanel" aria-labelledby="tab-btn-prepare" hidden></section>
@@ -108,6 +109,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="vendor/jspdf.umd.min.js?v=9" defer></script>
-<script type="module" src="src/app.js?v=85"></script>
+<script type="module" src="src/app.js?v=87"></script>
 </body>
 </html>

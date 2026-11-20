@@ -18,7 +18,8 @@
  * screen is asked to stay awake. Liturgy is listed under Handbooks
  * (handbooks.js), on a PC and on a phone, and Handbooks stays lit while it
  * is open (app.js); on a phone it is reached from the top of Prepare as
- * well.
+ * well. The Sunday screen (sunday.js) and Altar mode (altar.js) open the
+ * card for the kind of service at hand (cardFor).
  *
  * A card's words can be changed by hand (Edit on the card): when the Church
  * changes a wording or the booklet has a misprint, the card should say what
@@ -119,7 +120,7 @@ function crumbs(links) {
 }
 
 /** The copyright line, on the screen and at the foot of a PDF. */
-const creditText = () => t('Liturgy for Altar Use © New Apostolic Church Cape. Loaded by you onto your own device for your use at the altar; it is not part of the public app.');
+export const creditText = () => t('Liturgy for Altar Use © New Apostolic Church Cape. Loaded by you onto your own device for your use at the altar; it is not part of the public app.');
 
 function credit() {
   return el('p', { class: 'muted small lit-credit', text: creditText() });
@@ -206,6 +207,33 @@ function row(r) {
   ]);
 }
 
+/** The key of the card for a kind of service (booklet.js KEYS): the funeral's, the wedding's, else the divine service's. */
+export function cardKey(occasion) {
+  if (occasion === 'Funeral service') return 'funeral';
+  if (occasion === 'Wedding') return 'wedding';
+  return 'divine-service';
+}
+
+/**
+ * That card in a loaded booklet, in the app's language or else in the other:
+ * {key, card, l, bk}, with `card` null while no booklet has it. The Sunday
+ * screen's row and Altar mode (altar.js) go by it.
+ */
+export function cardFor(occasion) {
+  const key = cardKey(occasion);
+  for (const l of [lang(), lang() === 'af' ? 'en' : 'af']) {
+    const bk = booklet(l);
+    const card = bk && (bk.cards || []).find(c => c.key === key);
+    if (card) return { key, card, l, bk };
+  }
+  return { key, card: null, l: null, bk: null };
+}
+
+/** A card's rows drawn for the screen, in the reader's text size: the card's own page here, and a pane of Altar mode. */
+export function cardBody(card, l) {
+  return el('div', { class: 'lit-card size-' + (state.settings.fontSize || 'm'), lang: l }, card.rows.map(row));
+}
+
 function cardPage(container, key) {
   let l = cardLang();
   let bk = booklet(l);
@@ -223,7 +251,7 @@ function cardPage(container, key) {
   const both = LANGS.every(x => booklet(x) && booklet(x).cards.some(c => c.key === key));
   const pdf = paper => cardPdf(bk, [card], { paper, credit: creditText() });   // this card, fitted on its paper
   openCard = pdf;   // Ctrl+P gives what the Print button gives
-  const body = el('div', { class: 'lit-card size-' + (state.settings.fontSize || 'm'), lang: l }, card.rows.map(row));
+  const body = cardBody(card, l);
   container.append(
     crumbs([[t('Handbooks'), '#handbooks'], [t('Liturgy'), '#liturgy']]),
     el('div', { class: 'page lit-page' }, [

@@ -444,7 +444,12 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   title, the status and "5 of 7 steps filled" (`prepare.js FILLED`), and under it one
   tap to the cue cards and the sermon on the screen (`read.js`), the altar card of the
   Liturgy for that kind of service (`#liturgy/divine-service`, `funeral` or `wedding`)
-  and the text word alone in large letters (`read.js word`). "Mark as held" (with Undo)
+  and the text word alone in large letters (`read.js word`). **Altar mode** on the card
+  (`src/altar.js`, `#altar/<id>`) is the service itself on one full screen: the cue cards,
+  then the altar card, a swipe apart (panes that snap sideways; the names at the top and
+  the arrow keys move too), and the sermon as a third pane when it is written, in the
+  reader's text size, the screen kept awake, the header, menu and bar hidden (`body.altar`).
+  "Mark as held" (with Undo)
   puts the next service in its place; a past service not marked as held is named under
   the card with the same button, and the two services after the next are listed. On a
   phone Sunday has the first place in the bar, and Handbooks moved under More.
@@ -566,6 +571,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/ask.js` – "Ask Claude" about a book: the box, the chapters `relevant()` picks, the answer with its citations as links; under Handbooks and on the Catechism tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
 - `src/sunday.js` – the Sunday tab, the front door where the app opens: the next divine service, how far its preparation is, one tap to the cue cards, the sermon, the altar card and the text word in large letters, Mark as held
+- `src/altar.js` – Altar mode: the cue cards, the altar card and the sermon of one preparation on one full screen, a swipe apart, from the Sunday card
 - `src/search.js` – the verses a search found, in the reader: reading the built-in Bibles whole, the pasted chapters, API.Bible's search; `src/search-lib.js` – the finding itself (word endings, spelling, order), without the page
 - `src/more.js` – the phone's More tab: the nine sections its bar has no room for, in groups, Handbooks first and the Tools under their heading
 - `src/mis.js` – the MIS section: opens the Church's site over the installed app, or in a tab of its own from a browser
