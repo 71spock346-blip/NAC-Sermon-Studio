@@ -4,12 +4,15 @@
  * type, with the reader's text size behind Aa and the screen kept awake, so
  * that the phone or the PC can stand in for the paper (Jerome, 2026-11-18:
  * "I want to be able to also just read the sermon onscreen"). The Read
- * buttons under "Print or save" in prepare.js open them.
+ * buttons under "Print or save" in prepare.js open them, and the rows under
+ * "At the altar" on the Sunday screen (sunday.js), which also opens the text
+ * word alone (word).
  */
 import { el, sheet, seg, toast, SIZES } from './ui.js';
 import { t } from './i18n.js';
 import { state, saveSetting } from './store.js';
 import { sermonParts, serviceLine, cueHeading } from './pdf.js';
+import { formatRef } from './books.js';
 import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';
 import { langOf } from './ai.js';
 
@@ -63,6 +66,18 @@ export function cues(s, { service = null } = {}) {
     list.forEach((cue, i) => line.append(el('span', { class: 'cue-mark', text: MARK }), ' ', el('span', { class: `cue c${i % CUE_COLORS.length}`, text: cue }), ' '));
     art.append(line);
   }
+  return true;
+}
+
+/**
+ * The text word alone, in large letters: the service line, the reference and
+ * the verses, to read out at the altar from the phone or the PC. `s` is a
+ * preparation, or a Guide's service in that shape (sunday.js).
+ */
+export function word(s) {
+  if (!String(s.text || '').trim()) { toast(t('There is no text word yet: choose the verses under step 1 of the preparation.'), true); return false; }
+  const art = open(t('The text word'), s);
+  head(art, s, { ref: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || '') });
   return true;
 }
 

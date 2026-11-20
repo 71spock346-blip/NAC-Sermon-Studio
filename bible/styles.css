@@ -836,13 +836,13 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
     box-shadow: 0 -2px 10px rgba(16, 56, 96, .06); padding-bottom: env(safe-area-inset-bottom);
   }
   /*
-   * Five tabs share the bar equally: Read, Notes, Prepare, Handbooks (where
-   * the Catechism and the altar cards are listed too) and More, which lists
-   * the other sections (more.js; the rule that hides them from the bar is with
-   * the Theology styles below). A tab with a long name (Handboeke) is never
-   * narrower than its name, so on a narrow phone it takes a little more room
-   * from the short ones instead of being cut; the letters grow with the width
-   * of the phone, from 11px to 12.5px.
+   * Five tabs share the bar equally: Sunday (the front door, sunday.js), Read,
+   * Notes, Prepare and More, which lists the other sections, Handbooks first
+   * (more.js; the rule that hides them from the bar is with the Theology
+   * styles below). A tab with a long name (Voorberei) is never narrower than
+   * its name, so on a narrow phone it takes a little more room from the short
+   * ones instead of being cut; the letters grow with the width of the phone,
+   * from 11px to 12.5px.
    */
   .tabs button {
     flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 64px;
@@ -1285,9 +1285,9 @@ body.showing { overflow: hidden; }
 [data-read="easy"] .th-sec h4, [data-read="easy"] .th-save h4, [data-read="easy"] .th-earlier > h4, [data-read="easy"] .th-facts dt { text-transform: none; letter-spacing: .02em; font-size: 14px; }
 [data-read="easy"] .th-quote { font-style: normal; line-height: 1.85; }
 @media (max-width: 759.98px) {
-  /* the phone's bar keeps five tabs: these eight sections are listed under More (more.js), and More stays lit while one of them is open;
-     the Catechism and the Liturgy are listed under Handbooks (handbooks.js), which stays lit while one of them is open */
-  .tabs button[data-tab="reflect"], .tabs button[data-tab="liturgy"], .tabs button[data-tab="catechism"], .tabs button[data-tab="theology"],
+  /* the phone's bar keeps five tabs (Sunday, Read, Notes, Prepare, More): these nine sections are listed under More (more.js), and More stays lit while one of them is open;
+     the Catechism and the Liturgy are listed under Handbooks (handbooks.js), so More is lit for them too */
+  .tabs button[data-tab="reflect"], .tabs button[data-tab="handbooks"], .tabs button[data-tab="liturgy"], .tabs button[data-tab="catechism"], .tabs button[data-tab="theology"],
   .tabs button[data-tab="seating"], .tabs button[data-tab="choir"], .tabs button[data-tab="reminders"], .tabs button[data-tab="plan"], .tabs button[data-tab="mis"], .tabs button[data-tab="settings"] { display: none; }
   .tabs button.also { color: var(--accent-text); }
   .tabs button.also .ico { background: var(--accent); color: var(--accent-ink); }
@@ -1334,6 +1334,25 @@ body.showing { overflow: hidden; }
 .more-row .ico svg { display: block; width: 24px; height: 24px; }
 .more-row b { display: block; font-size: 17px; }
 .more-row .muted { margin: 2px 0 0; display: block; line-height: 1.4; }
+
+/* ---------------------------------------------------------------- Sunday: the front door (sunday.js)
+   The next divine service as a card: when and where, the text word in large letters, the title, how far the
+   preparation is, and the buttons. Under it the things used at the altar as rows like those of More (a row is a
+   button where it opens a sheet), then the services after it. One column, not wider than reads well on a PC. */
+.sunday { max-width: 820px; }
+.sunday-card { border-radius: var(--radius); background: var(--card); padding: 16px 18px 14px; margin: 0 0 18px; }
+.sunday-when { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 15px; }
+.pill.day { color: var(--accent-text); background: var(--surface); border-color: transparent; font-size: 12.5px; }
+.pill.day.past { color: var(--c-amber); }
+.sunday-where { margin: 4px 0 0; }
+.sunday-ref { font: 700 27px/1.2 var(--display); color: var(--accent-text); margin: 10px 0 2px; overflow-wrap: anywhere; }
+.sunday-title { margin: 0; font-size: 17px; line-height: 1.4; }
+.sunday-state { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 10px 0 0; font-size: 14px; }
+.sunday-card .row { margin-top: 14px; }
+.sunday-empty p { margin: 0 0 6px; line-height: 1.55; }
+.sunday-held { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: -6px 0 18px; padding: 10px 14px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14px; line-height: 1.4; }
+.sunday-rows .more-row { width: 100%; border: 0; font: inherit; cursor: pointer; text-align: left; }
+.sunday-rows .more-row b { font-size: 16.5px; }
 .more-row .chev { color: var(--muted); font-size: 24px; line-height: 1; flex: 0 0 auto; }
 .more-row.ext .chev { font-size: 20px; }   /* the arrow of a link that opens outside the app */
 

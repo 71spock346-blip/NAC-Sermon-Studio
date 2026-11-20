@@ -155,13 +155,13 @@ all point to `--font`, so one line changes the letters. "White" is that look,
 Appearance, or the reader's "Aa" button) is mirrored in localStorage so the page paints
 in the right colours before the database is open. "Easy-read" swaps Montserrat for
 plain letters (Verdana where the device has it) in the whole app, with more room in the
-reading text. Under 760px the tabs are a bar under the thumb (five of them: Read,
-Notes, Prepare, Handbooks and More, which lists the other eight sections in groups, the
-Tools under a heading, `src/more.js`) and the text runs full width on white; from 760px
-they are a side menu with every section (Seating, Choir, Reminders, MIS and Reflection
-evening grouped under the heading Tools; the Catechism and the Liturgy are rows under
-Handbooks) and each screen is a white page on a pale ground, with the small blue emblem
-in its corner.
+reading text. Under 760px the tabs are a bar under the thumb (five of them: Sunday,
+Read, Notes, Prepare and More, which lists the other nine sections in groups, Handbooks
+first and the Tools under a heading, `src/more.js`) and the text runs full width on white;
+from 760px they are a side menu with every section (Sunday first; Seating, Choir,
+Reminders, MIS and Reflection evening grouped under the heading Tools; the Catechism and
+the Liturgy are rows under Handbooks) and each screen is a white page on a pale ground,
+with the small blue emblem in its corner.
 
 `icons/emblem-line.svg` is the official white line emblem, traced from
 `icons/emblem-white.png`; the app draws it through a CSS mask (`.emblem`), so it takes
@@ -437,6 +437,17 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   two built-in Bibles are kept in a cache of their own (`TEXTS` in `sw.js`), which
   a new version of the app does not throw away, so they are fetched once and the
   search works without a connection after an update too.
+- **Sunday.** `src/sunday.js` is the front door, where the app opens: the next divine
+  service, the first still to come that is not marked as held, or a service of a loaded
+  Guide with no preparation yet, which one tap starts. The card has the date ("Today",
+  "In 2 days"), the congregation and the occasion, the text word in large letters, the
+  title, the status and "5 of 7 steps filled" (`prepare.js FILLED`), and under it one
+  tap to the cue cards and the sermon on the screen (`read.js`), the altar card of the
+  Liturgy for that kind of service (`#liturgy/divine-service`, `funeral` or `wedding`)
+  and the text word alone in large letters (`read.js word`). "Mark as held" (with Undo)
+  puts the next service in its place; a past service not marked as held is named under
+  the card with the same button, and the two services after the next are listed. On a
+  phone Sunday has the first place in the bar, and Handbooks moved under More.
 - **Preparing a service.** `src/prepare.js` walks one divine service in the order of
   the Divine Service Guide's article, so the booklet and the form can be read side by
   side: 1 the text word (the Guide's Bible text), 2 title and message, 3 introduction
@@ -554,8 +565,9 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/handbook.js` – reads a handbook (the pages of a PDF, or a text file) into chapters and blocks, and searches them
 - `src/ask.js` – "Ask Claude" about a book: the box, the chapters `relevant()` picks, the answer with its citations as links; under Handbooks and on the Catechism tab
 - `src/reader.js`, `src/notes.js`, `src/prepare.js`, `src/settings.js` – the tabs
+- `src/sunday.js` – the Sunday tab, the front door where the app opens: the next divine service, how far its preparation is, one tap to the cue cards, the sermon, the altar card and the text word in large letters, Mark as held
 - `src/search.js` – the verses a search found, in the reader: reading the built-in Bibles whole, the pasted chapters, API.Bible's search; `src/search-lib.js` – the finding itself (word endings, spelling, order), without the page
-- `src/more.js` – the phone's More tab: the eight sections its bar has no room for, in groups, the Tools under their heading
+- `src/more.js` – the phone's More tab: the nine sections its bar has no room for, in groups, Handbooks first and the Tools under their heading
 - `src/mis.js` – the MIS section: opens the Church's site over the installed app, or in a tab of its own from a browser
 - `src/reminders.js` – the Reminders tab; `src/reminders-lib.js` (the listing PDFs, the roster, phone numbers, the dates coming up), `src/reminders-templates.js` (the greetings), `src/reminders-ics.js` (the calendar file), `src/reminders-sheet.js` (Excel out and back)
 - `src/plan.js` – the Month plan tab; `src/plan-lib.js` (the district's sheet as a plan: the days, the service days, the events, the calendar feed, the message), `src/plan-xlsx.js` (reading the .xlsx and writing the congregation's column into it, without a library), `src/plan-pdf.js` (the month as a one-page programme)

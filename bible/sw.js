@@ -60,6 +60,7 @@ var SHELL = [
   'src/creed.js',
   'src/update.js',
   'src/more.js',
+  'src/sunday.js',
   'src/mis.js',
   'src/seating.js',
   'src/seating-layouts.js',
