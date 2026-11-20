@@ -27,7 +27,7 @@
  * Printing goes through the finished PDF, so the paper matches the file.
  */
 import { formatRef } from './books.js';
-import { t, locale } from './i18n.js';
+import { t, tl } from './i18n.js';
 import { fmtDate } from './ui.js';
 import { state } from './store.js';
 import * as Cat from './catechism.js';
@@ -195,13 +195,22 @@ function lines(text) {
 
 const SEP = '  \u00b7  ';   // between the parts of the service line
 
+/*
+ * The prints and the readings speak the language of the sermon (ai.js langOf:
+ * the preparation's own choice, else the usual one), not the app's: an
+ * Afrikaans sermon prepared on an English app prints "Inleiding", and the
+ * date, the kind of service and the headings go with it. Only what is not on
+ * the paper, such as a message that nothing can be printed yet, speaks the
+ * app's language.
+ */
 export function serviceLine(s) {
+  const L = langOf(s);
   const parts = [];
-  if (s.date) parts.push(new Date(s.date + 'T12:00:00').toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+  if (s.date) parts.push(new Date(s.date + 'T12:00:00').toLocaleDateString(L === 'af' ? 'af-ZA' : 'en-ZA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
   if (s.congregation) parts.push(s.congregation);
-  if (s.occasion) parts.push(t(s.occasion));
+  if (s.occasion) parts.push(tl(L, s.occasion));
   const who = audienceOf(s);   // who is listening, when the preparation names an age group
-  if (who) parts.push(t(audienceLabel(who)));
+  if (who) parts.push(tl(L, audienceLabel(who)));
   return parts.join(SEP);
 }
 
@@ -219,10 +228,11 @@ export function sermonPdf(s) {
   const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
   const w = new Writer(doc, 20);
   const ref = refLabel(s);
+  const L = langOf(s);   // the headings in the sermon's language
 
   w.font(9, 'normal', MUTED);
   if (serviceLine(s)) { doc.text(serviceLine(s), w.m, w.y); w.y += 6; }
-  if ((s.people || '').trim()) w.para(t('Who is listening: ') + s.people.trim(), { size: 9, color: MUTED, after: 1 });
+  if ((s.people || '').trim()) w.para(tl(L, 'Who is listening: ') + s.people.trim(), { size: 9, color: MUTED, after: 1 });
   // as the Guide prints it: the Bible text, then the title (step 1, then step 2)
   if (ref) {
     w.font(12, 'bold', BLUE);
@@ -230,7 +240,7 @@ export function sermonPdf(s) {
     w.y += 7;
   }
   if (s.text) w.para(s.text, { serif: true, style: 'italic', size: 11.5, after: 3 });
-  const title = s.title || s.theme || ref || t('Sermon notes');
+  const title = s.title || s.theme || ref || tl(L, 'Sermon notes');
   if (s.title || s.theme || !ref) {
     w.font(18, 'bold', INK);
     for (const line of doc.splitTextToSize(title, w.width)) { w.ensure(8); doc.text(line, w.m, w.y + 5); w.y += 8; }
@@ -240,42 +250,42 @@ export function sermonPdf(s) {
 
   // 2. the message
   if (s.theme || s.core) {
-    w.heading(t('Message of the service'));
+    w.heading(tl(L, 'Message of the service'));
     if (s.theme) w.para(s.theme, { style: 'bold' });
     if (s.core) w.para(s.core);
   }
-  if (s.guide) { w.heading(t('From the Divine Service Guide')); w.para(s.guide); }
+  if (s.guide) { w.heading(tl(L, 'From the Divine Service Guide')); w.para(s.guide); }
   // 3. the introduction
-  if (s.intro) { w.heading(t('Introduction')); w.para(s.intro); }
+  if (s.intro) { w.heading(tl(L, 'Introduction')); w.para(s.intro); }
   // 4. the main points
   const points = (s.points || []).filter(p => p.heading || p.body);
   if (points.length) {
     // every point from the Guide: the heading says so, as the person's rule has it
-    w.heading(points.every(p => p.guide) ? t('Main points, from the Divine Service Guide') : t('Main points'));
+    w.heading(points.every(p => p.guide) ? tl(L, 'Main points, from the Divine Service Guide') : tl(L, 'Main points'));
     points.forEach((p, i) => {
       if (p.heading) w.para(`${i + 1}. ${p.heading}`, { style: 'bold', size: 11, after: 1 });
       if (p.body) w.para(p.body, { indent: 5 });
-      if ((p.thought || '').trim()) w.para(t('My thought: ') + p.thought.trim(), { indent: 5, style: 'italic', size: 10 });
+      if ((p.thought || '').trim()) w.para(tl(L, 'My thought: ') + p.thought.trim(), { indent: 5, style: 'italic', size: 10 });
     });
   }
   // 5. the context: the setting of the text, the key words, the Catechism, the cross references
   if (s.context || s.keywords) {
-    w.heading(t('Context'));
+    w.heading(tl(L, 'Context'));
     if (s.context) w.para(s.context);
-    if (s.keywords) { w.para(t('Key words'), { style: 'bold', size: 10, after: 0.5 }); w.para(s.keywords); }
+    if (s.keywords) { w.para(tl(L, 'Key words'), { style: 'bold', size: 10, after: 0.5 }); w.para(s.keywords); }
   }
   if ((s.catechism || []).length) {
-    w.heading(t('Catechism'));
+    w.heading(tl(L, 'Catechism'));
     catechismNotes(w, s);
   }
-  if (s.crossRefs) { w.heading(t('Cross references')); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); }
+  if (s.crossRefs) { w.heading(tl(L, 'Cross references')); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); }
   // 6. the summary and conclusion, in the order of the boxes: the application, then the summary that gathers up, then the close
-  if (s.application) { w.heading(t('Application for the congregation')); w.para(s.application); }
-  if (s.summary) { w.heading(t('Summary')); w.para(s.summary); }
-  if (s.conclusion) { w.heading(t('Conclusion')); w.para(s.conclusion); }
+  if (s.application) { w.heading(tl(L, 'Application for the congregation')); w.para(s.application); }
+  if (s.summary) { w.heading(tl(L, 'Summary')); w.para(s.summary); }
+  if (s.conclusion) { w.heading(tl(L, 'Conclusion')); w.para(s.conclusion); }
   // 7. and 8. the person's own
-  if (s.illustrations) { w.heading(t('Illustrations and experiences')); w.para(s.illustrations); }
-  if (s.reflection) { w.heading(t('After the service')); w.para(s.reflection); }
+  if (s.illustrations) { w.heading(tl(L, 'Illustrations and experiences')); w.para(s.illustrations); }
+  if (s.reflection) { w.heading(tl(L, 'After the service')); w.para(s.reflection); }
 
   const who = [state.settings.name, t('Study Bible')].filter(Boolean).join('  ·  ');
   w.footer(who);
@@ -327,7 +337,7 @@ function fromOutline(s, a) {
 export function sermonParts(s, { outline = null } = {}) {
   const c = outline ? fromOutline(s, outline) : fromBoxes(s);
   const ref = refLabel(s);
-  return { c, ref, title: s.title || s.theme || ref || t('The sermon'), empty: !c.intro && !c.points.length && !c.application && !c.conclusion };
+  return { c, ref, title: s.title || s.theme || ref || tl(langOf(s), 'The sermon'), empty: !c.intro && !c.points.length && !c.application && !c.conclusion };
 }
 
 /**
@@ -340,13 +350,14 @@ export function sermonParts(s, { outline = null } = {}) {
 export function sermonTextPdf(s, { outline = null } = {}) {
   const { c, ref, title, empty } = sermonParts(s, { outline });
   if (empty) throw new Error(t('There is nothing to print yet: write the introduction, the main points, the application or the conclusion first.'));
+  const L = langOf(s);   // the headings in the sermon's language
   const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
   const w = new Writer(doc, 22);
   const read = { size: 12, leading: 1.5, after: 3 };   // the running text: large, with room between the lines
   const extras = list => {
     for (const x of list) {
-      if (x.kind === 'illustration') { w.para(t('Illustration: ') + (x.title || ''), { style: 'bold', size: 10.5, color: MUTED, after: 0.5 }); w.para(x.body, { ...read, indent: 5 }); }
-      else if (x.kind === 'lighter') { w.para(t('A lighter moment'), { style: 'bold', size: 10.5, color: MUTED, after: 0.5 }); w.para(x.body, { ...read, indent: 5 }); }
+      if (x.kind === 'illustration') { w.para(tl(L, 'Illustration: ') + (x.title || ''), { style: 'bold', size: 10.5, color: MUTED, after: 0.5 }); w.para(x.body, { ...read, indent: 5 }); }
+      else if (x.kind === 'lighter') { w.para(tl(L, 'A lighter moment'), { style: 'bold', size: 10.5, color: MUTED, after: 0.5 }); w.para(x.body, { ...read, indent: 5 }); }
       else w.para(x.body, read);
     }
   };
@@ -366,24 +377,24 @@ export function sermonTextPdf(s, { outline = null } = {}) {
   }
   w.rule();
 
-  if (c.intro) { w.heading(t('Introduction')); w.para(c.intro, read); extras(c.after.intro); }
+  if (c.intro) { w.heading(tl(L, 'Introduction')); w.para(c.intro, read); extras(c.after.intro); }
   for (const p of c.points) {
     w.ensure(24);   // a point's heading and the start of its text stay on one page
     w.heading(`${p.n}. ${p.heading}`.trim());
     if (p.body) w.para(p.body, read);
     extras(p.extras);
   }
-  if (c.after.loose.length) { w.heading(t('Illustrations')); extras(c.after.loose); }
-  if (c.application) { w.heading(t('Application for the congregation')); w.para(c.application, read); extras(c.after.application); }
-  if (c.summary) { w.heading(t('Summary')); w.para(c.summary, read); }
-  if (c.conclusion) { w.heading(t('Conclusion')); w.para(c.conclusion, read); extras(c.after.conclusion); }
+  if (c.after.loose.length) { w.heading(tl(L, 'Illustrations')); extras(c.after.loose); }
+  if (c.application) { w.heading(tl(L, 'Application for the congregation')); w.para(c.application, read); extras(c.after.application); }
+  if (c.summary) { w.heading(tl(L, 'Summary')); w.para(c.summary, read); }
+  if (c.conclusion) { w.heading(tl(L, 'Conclusion')); w.para(c.conclusion, read); extras(c.after.conclusion); }
   if (c.outline) {
     w.space(2);
     if (c.thoughts.length) {
-      w.heading(t('Where your thoughts went'), 10.5);
-      for (const x of c.thoughts) w.para(`${t('Main point {n}', { n: x.n })}: ${x.how || x.where}${x.question ? ' ' + t('Claude asks: ') + x.question : ''}`, { size: 9.5, color: MUTED, after: 1 });
+      w.heading(tl(L, 'Where your thoughts went'), 10.5);
+      for (const x of c.thoughts) w.para(`${tl(L, 'Main point {n}', { n: x.n })}: ${x.how || x.where}${x.question ? ' ' + tl(L, 'Claude asks: ') + x.question : ''}`, { size: 9.5, color: MUTED, after: 1 });
     }
-    w.para(t('Built by {model}, {date}. A starting point: the sermon is yours.', { model: modelLabel(c.outline.model), date: fmtDate(c.outline.at) }), { size: 8, color: MUTED, after: 1 });
+    w.para(tl(L, 'Built by {model}, {date}. A starting point: the sermon is yours.', { model: modelLabel(c.outline.model), date: fmtDate(c.outline.at) }), { size: 8, color: MUTED, after: 1 });
   }
 
   const who = [state.settings.name, t('Study Bible')].filter(Boolean).join('  ·  ');
@@ -424,7 +435,7 @@ function catechismNotes(w, s) {
       else w.para(plainSup(line.text), { indent: line.kind === 'li' ? 6 : 3, size: 10, after: 1 });
       quoted = true;
     }
-    for (const p of summary) w.para(t('In short: ') + plainSup(p), { indent: 3, size: 10, style: 'italic', after: 1 });
+    for (const p of summary) w.para(tl(L, 'In short: ') + plainSup(p), { indent: 3, size: 10, style: 'italic', after: 1 });
     for (const nt of Cat.notesOf(sec.n)) w.para(`[${nt.n}] ${nt.t}`, { indent: 3, size: 8.5, color: MUTED, after: 0.5 });
     w.space(2);
   }
@@ -449,6 +460,7 @@ export function cueCardPdf(s, { service = null } = {}) {
   doc.viewerPreferences({ PickTrayByPDFSize: true });   // a print window that can, takes paper of the card's own size
   const w = new Writer(doc, 14);
   const ref = refLabel(s);
+  const L = langOf(s);   // the headings in the sermon's language
   // an upright card is narrow: the service line and the heading go on over a second line where they must,
   // the service line between its parts, so that a date or a congregation is not cut in two
   w.font(10, 'normal', MUTED);
@@ -463,7 +475,7 @@ export function cueCardPdf(s, { service = null } = {}) {
     w.y += 2.2;
   }
   w.font(20, 'bold', BLUE);
-  for (const line of doc.splitTextToSize(ref || s.title || t('Cue card'), w.width)) { doc.text(line, w.m, w.y + 5); w.y += 8.5; }
+  for (const line of doc.splitTextToSize(ref || s.title || tl(L, 'Cue card'), w.width)) { doc.text(line, w.m, w.y + 5); w.y += 8.5; }
   w.y += 2.5;
   if (s.text) w.para(s.text, { serif: true, style: 'italic', size: 12, after: 3 });
   if (s.theme) w.para(s.theme, { style: 'bold', size: 14, after: 2 });
@@ -471,17 +483,17 @@ export function cueCardPdf(s, { service = null } = {}) {
   for (const part of cueParts(s, { service, lang: langOf(s) })) {
     const cues = cuesOf(part);
     if (!cues.length && part.key !== 'point') continue;   // a main point stands with its heading alone; the other parts only with cues
-    cueBlock(w, cueHeading(part), cues);
+    cueBlock(w, cueHeading(part, L), cues);
   }
   w.footer(s.title || '');
   return { blob: doc.output('blob'), name: fileName(s, '-cue-card'), title: ref };
 }
 
-/** The heading of a part of the cue cards, as the cards and the lines under "Print or save" name it (cues.js cueParts). */
-export function cueHeading(part) {
-  if (part.key === 'intro') return part.guide ? t('Introduction, from the Guide') : t('Introduction');
-  if (part.key === 'point') return part.heading ? `${part.i + 1}. ${part.heading}` : t('Main point {n}', { n: part.i + 1 });
-  return part.key === 'application' ? t('Application') : t('Conclusion');
+/** The heading of a part of the cue cards, as the cards and the lines under "Print or save" name it (cues.js cueParts); `l` is the sermon's language for the cards themselves, left out for the form. */
+export function cueHeading(part, l) {
+  if (part.key === 'intro') return part.guide ? tl(l, 'Introduction, from the Guide') : tl(l, 'Introduction');
+  if (part.key === 'point') return part.heading ? `${part.i + 1}. ${part.heading}` : tl(l, 'Main point {n}', { n: part.i + 1 });
+  return part.key === 'application' ? tl(l, 'Application') : tl(l, 'Conclusion');
 }
 
 const CUE_SIZE = 14;   // pt, the headings and the cues: large enough to read at a glance from the altar
