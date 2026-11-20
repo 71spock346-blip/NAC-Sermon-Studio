@@ -139,6 +139,11 @@ export const AF = {
   "Go": "Soek",
   // the box that finds a verse (reader.js) and the verses it finds (search.js)
   "Find a verse…": "Soek 'n vers…",
+  // the phone's one-row bar: the chapter's name opens the chooser, the magnifier the box (reader.js)
+  "Find a verse": "Soek 'n vers",
+  "Close the search box": "Maak die soekboks toe",
+  "Choose a book and chapter": "Kies 'n boek en hoofstuk",
+  "Book and chapter": "Boek en hoofstuk",
   "Find a verse: “{place}” or “{words}”": "Soek 'n vers: “{place}” of “{words}”",
   "“{place}” or “{words}”": "“{place}” of “{words}”",
   "Find a verse: type a place such as “{place}”, or words of the verse": "Soek 'n vers: tik 'n plek soos “{place}”, of woorde van die vers",

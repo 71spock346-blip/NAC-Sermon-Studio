@@ -11,7 +11,11 @@
  * The bar above the text keeps to the essentials: book, chapter, the box
  * that finds a verse, the translation and "Aa", which opens the reading
  * choices (text size, theme, language, Compare, Beside) in a sheet so the
- * text starts high on a phone.
+ * text starts high on a phone. On a phone the bar is one row: the chapter's
+ * name, which opens the book and chapter chooser (chooseSheet), a magnifier
+ * that opens the box in place of the row, the translation and Aa; and it
+ * slides away as you read down and comes back when you scroll up
+ * (styles.css .readbar.away).
  *
  * The box takes a place or words. A place ("Joh 3:16", "Ps 23") opens there.
  * Words ("shepherd want") are searched in the open translation, and the
@@ -46,6 +50,24 @@ let scrollToVerse = null;  // the verse named in the address, scrolled to once
 let verses = [];           // the primary text of the open chapter
 let counts = {};           // chapters per book of the open translation, for ‹ › and the arrow keys
 let container = null;
+
+// On a phone the bar slides away once you have read 24px down and comes back once you have scrolled 24px up
+// (styles.css .readbar.away). A jump the app makes itself, to the verse named in the address, is not reading:
+// the bar keeps still for a moment after each draw. While the box that finds a verse is open the bar stays.
+let lastY = 0, turnY = 0, lastDir = 0, quietUntil = 0;
+window.addEventListener('scroll', () => {
+  const bar = container && location.hash.startsWith('#read') ? $('.readbar', container) : null;
+  if (!bar) return;
+  const y = Math.max(0, window.scrollY);
+  const dir = y > lastY ? 1 : y < lastY ? -1 : 0;
+  if (dir && dir !== lastDir) { lastDir = dir; turnY = lastY; }   // the finger turned: measure from here
+  lastY = y;
+  if (Date.now() < quietUntil) return;
+  if (y < 12) bar.classList.remove('away');
+  else if (dir > 0 && y - turnY > 24 && !bar.classList.contains('finding')) bar.classList.add('away');
+  else if (dir < 0 && turnY - y > 24) bar.classList.remove('away');
+}, { passive: true });
+const CHEVRON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 // On a PC the left and right arrow keys turn the chapter, as in a book.
 document.addEventListener('keydown', e => {
@@ -108,6 +130,8 @@ function fitHint(input, hints) {
 
 async function draw() {
   clear(container);
+  quietUntil = Date.now() + 700;
+  lastY = turnY = Math.max(0, window.scrollY);
   const lang = state.settings.bookLang;
   const srcId = Bible.source(state.settings.translation) ? state.settings.translation : 'kjv';
   const src = Bible.source(srcId);
@@ -135,6 +159,12 @@ async function draw() {
   const place = lang === 'af' ? 'Joh 3:16' : 'John 3:16';
   const words = /^af/i.test(String((src && src.lang) || '')) ? 'my herder' : 'my shepherd';
   const what = t('Find a verse: type a place such as “{place}”, or words of the verse', { place });
+  // on a phone ✕ closes the box again; on a page of found verses it brings the chapter back (the box is open there, with the words)
+  const closeFind = el('button', { id: 'r-find-close', class: 'icon', type: 'button', 'aria-label': t('Close the search box'), title: t('Close the search box'), text: '✕', onclick: () => {
+    if (found) { location.hash = `#read/${current.book}/${current.chapter}`; return; }
+    gotoInput.value = '';
+    finding(false);
+  } });
   const gotoInput = el('input', { type: 'search', placeholder: t('Find a verse…'), 'aria-label': what, title: what, enterkeyhint: 'search', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', value: found ? found.q : '' });
   const gotoForm = el('form', { class: 'goto', role: 'search', onsubmit: e => {
     e.preventDefault();
@@ -152,7 +182,7 @@ async function draw() {
     Search.forget();
     const to = Search.hrefOf(text);
     if (location.hash === to) draw(); else location.hash = to;
-  } }, [gotoInput, el('button', { class: 'btn small ghost', type: 'submit', text: t('Search') })]);
+  } }, [gotoInput, el('button', { class: 'btn small ghost', type: 'submit', text: t('Search') }), closeFind]);
 
   const srcSel = el('select', { id: 'r-src', 'aria-label': t('Translation') });
   const cmpSel = el('select', { id: 'r-cmp', 'aria-label': t('Compare with') }, el('option', { value: '', text: t('Compare: none') }));
@@ -163,18 +193,33 @@ async function draw() {
   srcSel.addEventListener('change', async () => { await saveSetting('translation', srcSel.value); if (state.settings.compare === srcSel.value) await saveSetting('compare', ''); draw(); });
   cmpSel.addEventListener('change', async () => { await saveSetting('compare', cmpSel.value); draw(); });
   const viewBtn = el('button', { id: 'r-view', class: 'btn small ghost', type: 'button', 'aria-label': t('Reading choices: text size, theme, compare and beside'), title: t('Text size, theme, Compare, Beside'), onclick: () => viewSheet(srcId) }, [
-    'Aa', el('span', { html: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' }),
+    'Aa', el('span', { html: CHEVRON }),
   ]);
 
-  container.append(
-    el('div', { class: 'readbar' }, [
-      el('div', { class: 'row nav' }, [
-        el('button', { class: 'btn small ghost', type: 'button', text: '‹', 'aria-label': t('Previous chapter'), onclick: () => step(-1) }),
-        bookSel, chapSel,
-        el('button', { class: 'btn small ghost', type: 'button', text: '›', 'aria-label': t('Next chapter'), onclick: () => step(1) }),
-      ]),
-      el('div', { class: 'row tools' }, [gotoForm, srcSel, cmpSel, viewBtn]),
-    ]));
+  // ---- on a phone the bar is one row (styles.css): the chapter's name, which opens the book and chapter chooser,
+  // the magnifier, which opens the box in place of the row, the translation and Aa; a PC shows the two rows above
+  const here = formatRef({ book: current.book, chapter: current.chapter }, lang);
+  const placeBtn = el('button', { id: 'r-place', class: 'btn small ghost', type: 'button', 'aria-label': t('Choose a book and chapter'), title: t('Choose a book and chapter'), onclick: () => chooseSheet(lang) }, [
+    el('span', { class: 'bk', text: here.replace(/\s*\d+$/, '') }), ' ', el('b', { text: String(current.chapter) }), el('span', { class: 'chev', html: CHEVRON }),
+  ]);
+  const findBtn = el('button', { id: 'r-find', class: 'icon', type: 'button', 'aria-label': t('Find a verse'), title: t('Find a verse'), onclick: () => finding(true),
+    html: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.8-3.8"/></svg>' });
+  const bar = el('div', { class: 'readbar' + (found ? ' finding' : '') }, [
+    el('div', { class: 'row nav' }, [
+      el('button', { class: 'btn small ghost', type: 'button', text: '‹', 'aria-label': t('Previous chapter'), onclick: () => step(-1) }),
+      bookSel, chapSel,
+      el('button', { class: 'btn small ghost', type: 'button', text: '›', 'aria-label': t('Next chapter'), onclick: () => step(1) }),
+    ]),
+    el('div', { class: 'row tools' }, [gotoForm, srcSel, cmpSel, viewBtn]),
+    placeBtn, findBtn,
+  ]);
+  container.append(bar);
+  /** Opens or closes the box on a phone. Open, it takes the row's place and the keyboard comes up. */
+  function finding(on) {
+    bar.classList.toggle('finding', on);
+    bar.classList.remove('away');
+    if (on) { fitHint(gotoInput, hints); gotoInput.focus(); } else findBtn.focus();
+  }
   // the examples show where the box has room for the whole of them (a PC); a phone's box keeps the three words.
   // Measured again once the app's own letters have arrived: they are wider than the letters a device shows meanwhile.
   const hints = [t('Find a verse: “{place}” or “{words}”', { place, words }), t('“{place}” or “{words}”', { place, words }), t('Find a verse…')];
@@ -320,6 +365,43 @@ async function draw() {
     scrollToVerse = null;
     if (target) setTimeout(() => target.scrollIntoView({ block: 'center' }), 30);
   }
+  quietUntil = Date.now() + 700;   // the jump to the verse is not reading: the bar stays
+}
+
+/**
+ * On a phone, what the chapter's name in the bar opens: the chapters before
+ * and after, the book, and a grid of the book's chapters. A tap on a chapter
+ * opens it; choosing a book only shows its chapters.
+ */
+function chooseSheet(lang) {
+  const s = sheet(t('Book and chapter'));
+  const prev = neighbour(-1), next = neighbour(1);
+  const turn = el('nav', { class: 'pick-turn', 'aria-label': t('Chapters') }, [
+    el('button', { class: 'btn ghost', type: 'button', text: prev ? '‹ ' + formatRef(prev, lang) : '', disabled: !prev, onclick: () => { s.close(); step(-1); } }),
+    el('button', { class: 'btn ghost', type: 'button', text: next ? formatRef(next, lang) + ' ›' : '', disabled: !next, onclick: () => { s.close(); step(1); } }),
+  ]);
+  const bookSel = el('select', { id: 'pick-book', 'aria-label': t('Book') });
+  for (const g of ['ot', 'ap', 'nt']) {
+    const grp = el('optgroup', { label: (lang === 'af' ? GROUPS_AF : GROUPS)[g] });
+    for (const b of BOOKS.filter(x => x.group === g)) grp.append(el('option', { value: b.id, text: bookName(b.id, lang), selected: b.id === current.book }));
+    bookSel.append(grp);
+  }
+  const grid = el('div', { class: 'chap-grid', role: 'group', 'aria-label': t('Chapters') });
+  function fill(book) {
+    clear(grid);
+    const n = counts[book] || 1;
+    for (let i = 1; i <= n; i++) {
+      const on = book === current.book && i === current.chapter;
+      grid.append(el('button', { class: 'chap-no' + (on ? ' on' : ''), type: 'button', text: String(i), 'aria-label': formatRef({ book, chapter: i }, lang), 'aria-current': on ? 'true' : null, onclick: () => { s.close(); go(book, i); } }));
+    }
+  }
+  bookSel.addEventListener('change', () => fill(bookSel.value));
+  fill(current.book);
+  s.body.append(turn, el('label', { class: 'f' }, [t('Book'), bookSel]), grid);
+  // Psalm 119 is a long way down the grid: the open chapter is brought into view, but only when it is out of it,
+  // so that the chapters before and after at the top stay in sight for the chapters that are near the top
+  const on = $('.chap-no.on', grid);
+  if (on) setTimeout(() => { if (on.getBoundingClientRect().bottom > s.body.getBoundingClientRect().bottom) on.scrollIntoView({ block: 'center' }); }, 50);
 }
 
 /** The reading choices behind "Aa": text size, theme, Compare and Beside. */
