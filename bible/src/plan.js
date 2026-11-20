@@ -22,7 +22,7 @@
  * month also keeps his own events (a service at another congregation). They travel with the sync and the
  * backup. #plan opens the latest month, #plan/2025-10 one month.
  */
-import { el, clear, toast, sheet, confirmBox, download, copyText, seg } from './ui.js';
+import { el, clear, toast, sheet, confirmBox, shareOrSave, copyText, seg } from './ui.js';
 import { state, savePlan, deletePlan } from './store.js';
 import { t, tn, lang, locale } from './i18n.js';
 import * as X from './plan-xlsx.js';
@@ -93,19 +93,6 @@ function newKey() {
 async function idOf(key) {
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
   return [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
-}
-
-/** Hands a file to the phone's share sheet (WhatsApp is there), or downloads it on a PC. */
-async function shareOrSave(blob, name, type) {
-  try {
-    const file = new File([blob], name, { type });
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: name }); return 'shared'; }
-      catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
-    }
-  } catch (e) { /* no File or no share here: saved instead */ }
-  download(blob, name);
-  return 'saved';
 }
 
 /* --------------------------------------------------------------- the file */

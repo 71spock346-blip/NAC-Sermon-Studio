@@ -29,8 +29,17 @@
  * one of the two, the one it was started from, and its sermon is preached in
  * that language; switchEdition() moves it to the other, putting the other
  * language's words wherever the Guide's own words still stand.
+ *
+ * Reading the PDF is Claude's work, with the minister's own key, so only he
+ * can do it (lock.js). Every other minister gets the Guide from him as a
+ * file: "Send this month's Guide" (guideFile, send) makes a small file of the
+ * month's Guide in every language loaded, which goes device to device, over
+ * WhatsApp on a phone, never through the site; "Load a Guide file" (readFile)
+ * keeps it on the other device as if the PDF had been read there, with no
+ * key. On an installed phone app the file also comes straight from WhatsApp's
+ * share sheet (sw.js, files.js takeShared).
  */
-import { el, clear, toast, sheet, confirmBox, fmtDate, busy, seg } from './ui.js';
+import { el, clear, toast, sheet, confirmBox, fmtDate, busy, seg, shareOrSave } from './ui.js';
 import { t, tn, tl, locale } from './i18n.js';
 import { parseRef, formatRef } from './books.js';
 import { state, saveGuide, deleteGuide, uid } from './store.js';
@@ -411,21 +420,28 @@ export function articlePart(text, lang) {
 
 /* ---------------------------------------------------------------- loading a Guide */
 
-/** The file picker and the wait while Claude reads the Guide. Resolves to the saved Guide, or null. */
-export function load() {
+/** The file picker; resolves to the file chosen, or null. Opened in the tap itself, as a browser asks. */
+function pickFile(accept) {
   return new Promise(resolve => {
-    if (!AI.ready()) { noKey(); resolve(null); return; }
-    const input = el('input', { type: 'file', accept: 'application/pdf,.pdf', hidden: true });
+    const input = el('input', { type: 'file', accept, hidden: true });
     document.body.append(input);
-    input.addEventListener('change', async () => {
-      const file = input.files[0];
-      input.remove();
-      if (!file) { resolve(null); return; }
-      resolve(await read(file));
-    });
+    input.addEventListener('change', () => { const file = input.files[0]; input.remove(); resolve(file || null); });
     input.addEventListener('cancel', () => { input.remove(); resolve(null); });
     input.click();
   });
+}
+
+/** The file picker for the PDF and the wait while Claude reads the Guide. Resolves to the saved Guide, or null. */
+export async function load() {
+  if (!AI.ready()) { noKey(); return null; }
+  const file = await pickFile('application/pdf,.pdf');
+  return file ? read(file) : null;
+}
+
+/** The file picker for the Guide file another minister sent (readFile). Resolves to the Guides kept, or null. */
+export async function loadFile() {
+  const file = await pickFile('application/json,.json');
+  return file ? readFile(file) : null;
 }
 
 async function read(file) {
@@ -446,6 +462,101 @@ async function read(file) {
   } catch (e) {
     if (e && e.name === 'AbortError') { b.done(); return null; }
     b.fail(e.message || t('The Guide could not be read.'));
+    return null;
+  }
+}
+
+/* ---------------------------------------------------------------- the Guide as a file, from one minister to another */
+
+/*
+ * The file holds what Claude read, as the booklet's own fields (ai.js
+ * GUIDE_SCHEMA): the month's Guide in every language loaded. Nothing of the
+ * sender's goes with it, not the cost of the reading, not the ids of his
+ * device. On the other device each Guide in it is kept as if the PDF had
+ * been read there, and a copy of the same booklet loaded earlier is replaced.
+ */
+const FILE_APP = 'nac-study-bible-guide';
+
+/** The month's Guides as the file carries them. */
+export function guideFile(editions) {
+  const m = editions[0];
+  return {
+    app: FILE_APP, version: 1, builtAt: new Date().toISOString(),
+    year: m.year, month: m.month,
+    copyright: 'Divine Service Guide © New Apostolic Church International. For the preparation of the Church\'s ministers; not for publication.',
+    guides: editions.map(g => ({ title: g.title, year: g.year, month: g.month, language: g.language, fileName: g.fileName || '', services: g.services })),
+  };
+}
+
+/** "Divine-Service-Guide-November-2026-EN-AF.json": the booklet's name in the app's language, the month, and the languages in the file. */
+export function fileNameFor(month) {
+  const langs = month.editions.map(g => ({ en: 'EN', af: 'AF' }[g.language] || '')).filter(Boolean).join('-');
+  return [t('Divine Service Guide'), monthName(month), langs].filter(Boolean).join(' ').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') + '.json';
+}
+
+/** "English and Afrikaans · 9 services": what a month holds, for the sheet that asks which month and for the word after a load. */
+function editionsText(m) {
+  const langs = m.editions.length > 1 && m.editions.every(g => EDITIONS[g.language]) ? t('English and Afrikaans') : m.editions.map(editionLabel).join(', ');
+  return langs + ' · ' + tn(m.editions[0].services.length, '{n} service', '{n} services');
+}
+
+/**
+ * Sends the month's Guide (every language loaded) to another minister: on a
+ * phone the share sheet opens with the file (WhatsApp is in it); on a PC the
+ * file is saved, to send by hand. Resolves to 'shared', 'saved' or 'cancelled'.
+ */
+export async function send(month) {
+  const name = fileNameFor(month);
+  const blob = new Blob([JSON.stringify(guideFile(month.editions))], { type: 'application/json' });
+  const r = await shareOrSave(blob, name, 'application/json', `${t('Divine Service Guide')} ${monthName(month)}`);
+  if (r === 'saved') toast(t('Saved as "{file}". Send it to the other minister, by WhatsApp or e-mail; it loads under Church files, with no key.', { file: name }));
+  return r;
+}
+
+/** "Send this month's Guide": the one month on the device goes at once; with more than one, a sheet asks which. */
+export function sendAny() {
+  const groups = months();
+  if (!groups.length) return;
+  if (groups.length === 1) { send(groups[0]); return; }
+  const sh = sheet(t('Which month\'s Guide?'));
+  sh.body.append(el('div', { class: 'list' }, groups.map(m => el('button', { class: 'item', type: 'button', onclick: () => { sh.close(); send(m); } }, [
+    el('div', { class: 'grow' }, [el('div', { class: 'ref', text: monthName(m) }), el('div', { class: 'muted small', text: editionsText(m) })]),
+  ]))));
+}
+
+/**
+ * Loads the Guide file another minister sent (guideFile): each Guide in it is
+ * kept here as if its PDF had been read on this device, an older copy of the
+ * same booklet replaced. No key is needed. Resolves to the Guides kept, or
+ * null when the file is not a Guide file (the sheet says so).
+ */
+export async function readFile(file) {
+  const b = busy(t('Loading the Guide'));
+  try {
+    if (file.size > 20 * 1024 * 1024) throw new Error(t('That file is too large to be a Guide file.'));
+    let data = null;
+    try { data = JSON.parse(await file.text()); } catch (e) { /* not JSON: said below */ }
+    const list = data && data.app === FILE_APP && Array.isArray(data.guides) ? data.guides : null;
+    if (!list) throw new Error(t('That is not a Guide file from this app. Ask the minister who sent it to use "Send this month\'s Guide" in the app.'));
+    const kept = [];
+    for (const raw of list) {
+      const g = AI.tidyGuide(raw && typeof raw === 'object' ? raw : {});
+      if (!g.services.length) continue;
+      const older = all().find(x => bookletOf(x) === bookletOf(g));   // the copy shown now, when this booklet is loaded already
+      const guide = { ...g, fileName: file.name, id: older ? older.id : uid(), loadedAt: new Date().toISOString() };
+      await saveGuide(guide);
+      kept.push(guide);
+    }
+    if (!kept.length) throw new Error(t('There is no divine service in that file.'));
+    const usual = AI.langOf(null);
+    const m = { year: kept[0].year, month: kept[0].month, editions: kept.slice().sort((a, b) => (RANK[a.language] ?? 2) - (RANK[b.language] ?? 2)) };
+    shown = { year: m.year, month: m.month, language: (kept.find(g => g.language === usual) || kept[0]).language, usual };   // the card opens on the Guide just loaded
+    b.done();
+    toast(t('Guide loaded: {month}, {what}.', { month: monthName(m), what: editionsText(m) }));
+    return kept;
+  } catch (e) {
+    console.warn(e);   // mostly a file that is not a Guide file, said in the sheet
+    b.fail(e.message || t('The file could not be read.'));
     return null;
   }
 }
@@ -533,14 +644,20 @@ export function monthName(m) {
 export function card({ onPrepare, onChange }) {
   const groups = months();
   const wrap = el('details', { class: 'guide-card', open: true });
-  // loading a Guide is Claude's work, so it is the minister's own (lock.js): a locked device only shows the Guides it has
+  // reading the PDF is Claude's work, so it is the minister's own (lock.js); the file another minister sends loads on any device
   const canLoad = AI.unlocked();
-  if (!groups.length && !canLoad) return null;
+  const loadOne = async () => { if (await load()) onChange(); };
+  const loadSent = async () => { if (await loadFile()) onChange(); };
   if (!groups.length) {
     wrap.append(
       el('summary', { text: t('Divine Service Guide') }),
-      el('p', { class: 'small muted', text: t('Load this month\'s Guide (the PDF), in English or in Afrikaans, and Claude reads every service out of it: date, text word, message, the article and its Catechism references. A preparation then starts with all of that filled in. You can load the Guide in both languages.') }),
-      el('div', { class: 'row' }, [el('button', { class: 'btn small', type: 'button', text: t('Load a Guide (PDF)'), onclick: async () => { if (await load()) onChange(); } })]),
+      el('p', { class: 'small muted', text: canLoad
+        ? t('Load this month\'s Guide (the PDF), in English or in Afrikaans, and Claude reads every service out of it: date, text word, message, the article and its Catechism references. A preparation then starts with all of that filled in. You can load the Guide in both languages.')
+        : t('The month\'s Guide, as a file another minister sends you from the app: its services are then listed here, each one tap from a preparation with the text word, title, message and main points filled in.') }),
+      el('div', { class: 'row' }, [
+        canLoad ? el('button', { class: 'btn small', type: 'button', text: t('Load a Guide (PDF)'), onclick: loadOne }) : null,
+        el('button', { class: 'btn small' + (canLoad ? ' ghost' : ''), type: 'button', text: t('Load a Guide file'), onclick: loadSent }),
+      ]),
     );
     return wrap;
   }
@@ -556,7 +673,6 @@ export function card({ onPrepare, onChange }) {
   const body = el('div');
   const choose = groups.length > 1 ? el('select', { class: 'small', 'aria-label': t('Which month') }, groups.map((m, k) => el('option', { value: String(k), text: monthName(m), selected: m === month }))) : null;
   if (choose) choose.addEventListener('change', () => { month = groups[Number(choose.value)] || groups[0]; current = editionOf(month); remember(); draw(); });
-  const loadOne = async () => { if (await load()) onChange(); };
   function draw() {
     heading.textContent = /guide|gids|handleiding/i.test(current.title) ? current.title : t('Divine Service Guide: {title}', { title: current.title });
     const both = month.editions.some(g => g.language === 'en') && month.editions.some(g => g.language === 'af');
@@ -585,6 +701,9 @@ export function card({ onPrepare, onChange }) {
       el('div', { class: 'row' }, [
         missing && canLoad ? el('button', { class: 'btn small', type: 'button', text: missing === 'af' ? t('Load the Afrikaans Guide (PDF)') : t('Load the English Guide (PDF)'), onclick: loadOne }) : null,
         canLoad ? el('button', { class: 'btn small ghost', type: 'button', text: t('Load another Guide'), onclick: loadOne }) : null,
+        // the month's Guide, in every language loaded, as a file for another minister (send); a device without Claude loads such a file here too
+        el('button', { class: 'btn small ghost', type: 'button', text: t('Send this Guide'), onclick: () => send(month) }),
+        canLoad ? null : el('button', { class: 'btn small ghost', type: 'button', text: t('Load a Guide file'), onclick: loadSent }),
         el('button', { class: 'btn small ghost danger', type: 'button', text: t('Remove this Guide'), onclick: async () => {
           if (await confirmBox(t('Remove "{title}" from this device? Preparations made from it keep their text; you can load the PDF again later.', { title: current.title }), t('Remove'), true)) {
             for (const g of copiesOf(current)) await deleteGuide(g.id);   // every copy of it, so no older copy takes its place

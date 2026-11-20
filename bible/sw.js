@@ -13,15 +13,21 @@
  * chapters in IndexedDB for 30 days. Nor is the app's own sync server
  * (/api/sync, and the month plan's feed /api/plan): its answers must always be fresh, so the browser goes to the
  * network for them, and offline the sync simply waits.
+ *
+ * One request is not a page or a file of the app: the POST that the phone's
+ * share sheet sends when a file is shared to the installed app (manifest.json
+ * share_target), the Guide file another minister sent over WhatsApp. The file
+ * is kept in a small cache of its own (SHARED) and the browser is sent on to
+ * Church files, which takes it from there (files.js takeShared).
  */
-var VERSION = 'bible-2026-11-20d';
+var VERSION = 'bible-2026-11-20e';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=88',
-  'src/app.js?v=88',
+  'styles.css?v=89',
+  'src/app.js?v=89',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -122,6 +128,8 @@ var CACHE_FIRST = /(vendor\/|icons\/|data\/)/;
 // Give TEXTS a new name whenever one of those files changes: that is what makes the devices fetch the texts again.
 var TEXTS = 'bible-texts-1';
 var IS_TEXT = /\/data\/(?:kjv|web)\/[A-Z0-9]+\.json$/;
+// A file shared to the app waits here for the page (one at a time; files.js takes it out).
+var SHARED = 'bible-shared';
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
@@ -135,7 +143,7 @@ self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys()
       .then(function (keys) {
-        var old = keys.filter(function (k) { return k !== VERSION && k !== TEXTS; });
+        var old = keys.filter(function (k) { return k !== VERSION && k !== TEXTS && k !== SHARED; });
         // the books an older version kept in its own cache move to TEXTS before that cache goes
         return Promise.all(old.map(keepTexts)).then(function () {
           return Promise.all(old.map(function (k) { return caches.delete(k); }));
@@ -173,10 +181,33 @@ function store(req, res) {
   return res;
 }
 
+/**
+ * A file shared to the installed app: the share sheet POSTs it to ./share.
+ * The file goes into SHARED and the browser on to Church files, where it is
+ * loaded; without a file, or if the file could not be kept, to Church files
+ * all the same, so the person is never left on an empty page.
+ */
+function keepShared(req) {
+  var home = new URL('index.html', self.registration.scope).href;
+  return req.formData()
+    .then(function (form) {
+      var file = form.get('file');
+      if (!file || typeof file === 'string') throw new Error('no file');
+      var headers = { 'Content-Type': file.type || 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name || '') };
+      return caches.open(SHARED).then(function (c) { return c.put('shared-file', new Response(file, { headers: headers })); });
+    })
+    .then(function () { return Response.redirect(home + '#files/shared', 303); },
+      function () { return Response.redirect(home + '#files', 303); });
+}
+
 self.addEventListener('fetch', function (e) {
   var req = e.request;
-  if (req.method !== 'GET') return;
   var url = new URL(req.url);
+  if (req.method === 'POST' && url.origin === self.location.origin && /\/share$/.test(url.pathname)) {
+    e.respondWith(keepShared(req));
+    return;
+  }
+  if (req.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
   if (/\/api\//.test(url.pathname)) return;
 

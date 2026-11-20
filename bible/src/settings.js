@@ -297,9 +297,7 @@ function myTextsSection(container) {
 /** The Church's own texts are loaded under Church files (files.js); this section points there, since the Catechism loaded here until November 2026. */
 function filesSection(container) {
   container.append(section(t('Church files'), [
-    el('p', { class: 'small', text: AI.unlocked()
-      ? t('The text of the Catechism, the altar booklet, the handbooks for ministers and the Divine Service Guides are the Church\'s own, so they are not part of the app. Each is loaded once from its own file under Church files, where a row shows what is on this device.')
-      : t('The text of the Catechism, the altar booklet and the handbooks for ministers are the Church\'s own, so they are not part of the app. Each is loaded once from its own file under Church files, where a row shows what is on this device.') }),
+    el('p', { class: 'small', text: t('The text of the Catechism, the altar booklet, the handbooks for ministers and the Divine Service Guides are the Church\'s own, so they are not part of the app. Each is loaded once from its own file under Church files, where a row shows what is on this device.') }),
     el('div', { class: 'row' }, [el('a', { class: 'btn small', href: '#files', text: t('Open Church files') })]),
   ]));
 }

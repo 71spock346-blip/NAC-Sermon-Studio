@@ -327,6 +327,23 @@ export function download(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
+/**
+ * Hands a file to the phone's share sheet (WhatsApp is in it), or saves it on
+ * a PC, where there is no sheet. Resolves to 'shared', 'saved', or 'cancelled'
+ * when the sheet was closed without a choice.
+ */
+export async function shareOrSave(blob, name, type, title = name) {
+  try {
+    const file = new File([blob], name, { type });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title }); return 'shared'; }
+      catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
+    }
+  } catch (e) { /* no File or no share here: saved instead */ }
+  download(blob, name);
+  return 'saved';
+}
+
 export async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);

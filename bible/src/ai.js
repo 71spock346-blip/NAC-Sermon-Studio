@@ -346,7 +346,8 @@ export async function readGuide(file, { signal, onProgress } = {}) {
 const KINDS = ['sunday', 'midweek', 'youth', 'children', 'other'];
 const str = v => (typeof v === 'string' ? v.trim() : '');
 
-function tidyGuide(d) {
+/** A Guide as the model (or a Guide file, guides.js) gives it, made sound: the fields known, strings trimmed, the services with something in them. */
+export function tidyGuide(d) {
   const month = Math.min(12, Math.max(1, parseInt(d.month, 10) || 0));
   const year = parseInt(d.year, 10) || new Date().getFullYear();
   const services = (Array.isArray(d.services) ? d.services : []).map(x => x || {}).map(x => ({

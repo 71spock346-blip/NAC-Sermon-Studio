@@ -29,7 +29,6 @@ import { VERSION } from './settings.js';
 import { versionText } from './update.js';
 import * as Mis from './mis.js';
 import { holds } from './handbooks.js';   // the sections listed under Handbooks: More is lit for them too
-import { unlocked } from './lock.js';   // the Guides are Claude's to read: the Church files row names them only where the helper is open
 
 /**
  * The sections that live under More on a phone, in groups and in the order
@@ -51,7 +50,7 @@ export const MORE = [
     ['reflect', () => t('Slides and questions for the evening')],
   ] },
   { rows: [
-    ['files', () => (unlocked() ? t('The Catechism, the altar booklet, the handbooks and the Guides, each loaded once from its file') : t('The Catechism, the altar booklet and the handbooks, each loaded once from its file'))],
+    ['files', () => t('The Catechism, the altar booklet, the handbooks and the Guides, each loaded once from its file')],
     ['settings', () => t('Language, letters, sync and keys')],
   ] },
 ];
