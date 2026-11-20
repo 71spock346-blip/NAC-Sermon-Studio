@@ -5,7 +5,8 @@
  * offers "Read aloud"; after it, the player, a line about the recording,
  * "Read again", "Save as MP3" and "Remove". The recording stays on this
  * device with a mark of the text it was made from, and the card says when
- * the text has changed since.
+ * the text has changed since. Without an ElevenLabs key on the device the
+ * card shows nothing at all: Settings → Read aloud says what a voice can do.
  */
 import { el, clear, toast, busy, confirmBox, fmtDate, download, debounce } from './ui.js';
 import { t, locale } from './i18n.js';
@@ -15,7 +16,6 @@ import * as Speech from './speech.js';
  * A card for one text. `o` holds:
  *   title       the heading ("Hear the sermon")
  *   id          the recording's key in the audio store
- *   noKey       what the card says while there is no ElevenLabs key; with `quiet` it is one line, no heading
  *   empty       what the estimate says while there is nothing to read
  *   script(rec) the text as it stands now, for the estimate and the "changed since" line (speech.js script, guideScript)
  *   read(opts, {signal, onProgress})  makes the recording (speech.js make, makeGuide)
@@ -46,11 +46,7 @@ export function listenCard(o) {
     clear(box);
     shown = null;
     if (url) { URL.revokeObjectURL(url); url = ''; }
-    if (!Speech.ready()) {
-      if (o.quiet) box.append(el('p', { class: 'muted small' }, [o.noKey, ' ', el('a', { href: '#settings', text: t('Open Settings') })]));
-      else box.append(el('h3', { text: o.title }), el('p', { class: 'small', text: o.noKey }), el('div', { class: 'row' }, [el('a', { class: 'btn small ghost', href: '#settings', text: t('Open Settings') })]));
-      return;
-    }
+    if (!Speech.ready()) return;   // no ElevenLabs key here: the card waits, unseen
     box.append(el('h3', { text: o.title }));
     const rec = await Speech.recording(o.id).catch(() => null);
     if (!rec) {

@@ -98,6 +98,31 @@ export const OCCASIONS = [
 ];
 let headCount = 0;   // ids for the titles of the boxes (aria-labelledby)
 
+/*
+ * One line on what a step or a Claude button is for, with a small "?" that
+ * opens the longer note under it. The notes stand open the first time a
+ * preparation is opened on a device (hintsFirst) and fold from then on: the
+ * minister soon knows them, so one line is enough and the rest is a tap away.
+ */
+const HINTS_KEY = 'sb-prep-hints';
+function hintsFirst() { try { return !localStorage.getItem(HINTS_KEY); } catch (e) { return false; } }
+function hintsSeen() { try { localStorage.setItem(HINTS_KEY, '1'); } catch (e) { /* private mode: the notes stand open again next time */ } }
+/**
+ * The line with its "?" (where there is more) and the note under it:
+ * {line, more}. `cls` names the line's class (the note gets `-more`);
+ * `open` shows the note from the start. Gives {line, note}, the note null
+ * when there is none.
+ */
+function hintPair({ line, more }, cls, open) {
+  const note = more ? el('p', { class: `${cls}-more muted small`, text: more }) : null;
+  const q = note ? el('button', { class: 'hint-q', type: 'button', 'aria-label': t('More about this'), 'aria-expanded': open ? 'true' : 'false', text: '?' }) : null;
+  if (note) {
+    note.hidden = !open;
+    q.addEventListener('click', () => { const on = note.hidden; note.hidden = !on; q.setAttribute('aria-expanded', on ? 'true' : 'false'); });
+  }
+  return { line: el('p', { class: `${cls} muted small` }, [line, q]), note };
+}
+
 /** A suggested cross reference as one line of the Cross references box. */
 const xrLine = x => `${x.reference}${x.why ? ' – ' + x.why : ''}`;
 /** A piece of the Guide's breakdown as it goes into "Notes from the Guide": the Guide's words, then the plain words and the insight. */
@@ -462,6 +487,7 @@ function renderEditor(root, s) {
    * at the foot of the editor jumps between them.
    */
   const sections = [];
+  const firstTime = hintsFirst();   // the notes under the lines stand open the first time a preparation is opened here
   const has = v => !!(v || '').trim();
   const none = () => t('Nothing yet');
   const names = list => list.filter(([ok]) => ok).map(([, name]) => name);
@@ -485,7 +511,7 @@ function renderEditor(root, s) {
     6: { short: t('Summary'), filled: () => FILLED[6](s),
       summary: () => names([[has(s.application), t('Application')], [has(s.summary), t('Summary')], [has(s.conclusion), t('Conclusion')]]).join(' · ') || none() },
     7: { short: t('Illustrations'), filled: () => FILLED[7](s), summary: () => short(s.illustrations) || none() },
-    print: { short: t('Print'), filled: () => true, summary: () => [t('Sermon notes'), t('The sermon'), t('Cue cards'), t('Hear the sermon')].join(' · ') },
+    print: { short: t('Print'), filled: () => true, summary: () => [t('Sermon notes'), t('The sermon'), t('Cue cards'), Speech.ready() ? t('Hear the sermon') : null].filter(Boolean).join(' · ') },
     8: { short: t('After'), filled: () => has(s.reflection), summary: () => short(s.reflection) || none() },
     9: { short: t('Evening'), filled: () => Reflect.hasSlides(s), summary: () => (Reflect.hasSlides(s) ? t('The slides are made.') : t('No slides yet.')) },
   };
@@ -501,6 +527,8 @@ function renderEditor(root, s) {
    * while it is closed, the hint while it is open, "Clear this step" with
    * `onClear`) and the body that holds what comes next. `n` is the step's
    * number, '✓' for "Print or save" or 'service' for the service details.
+   * The hint is {line, more}: one line on what to do, and the longer note
+   * behind a "?" (hintPair).
    */
   function step(n, title, hint, onClear) {
     const key = n === '✓' ? 'print' : String(n);
@@ -513,7 +541,8 @@ function renderEditor(root, s) {
       el('span', { class: 'step-chev', 'aria-hidden': 'true' }),
     ]);
     const clearBtn = onClear ? el('button', { class: 'btn small ghost step-clear', type: 'button', text: t('Clear this step'), onclick: onClear }) : null;
-    const head = el('div', { class: 'step-head fold open' }, [el('h3', { class: 'step-h' }, toggle), clearBtn, hint ? el('p', { class: 'step-hint muted small', text: hint }) : null]);
+    const pair = hint ? hintPair(hint, 'step-hint', firstTime) : null;
+    const head = el('div', { class: 'step-head fold open' }, [el('h3', { class: 'step-h' }, toggle), clearBtn, pair ? pair.line : null, pair ? pair.note : null]);
     const sec = el('section', { class: 'step', dataset: { step: key } }, [head, body]);
     const it = { key, n, title, short: info.short, sec, body, toggle, chip: null, open: true, filled: info.filled };
     /** Opens or closes the step. */
@@ -643,7 +672,7 @@ function renderEditor(root, s) {
   });
 
   // ---- 1. text word
-  step(1, t('The text word'), t('Read it slowly, more than once, and pray before writing anything. Fetch the text from a translation, or type it in yourself.'));
+  step(1, t('The text word'), { line: t('Read it slowly, more than once, and pray before writing anything.'), more: t('Fetch the text from a translation with the buttons below, or type it in yourself.') });
   const refInput = el('input', { type: 'text', value: s.ref ? formatRef(s.ref, lang) : (s.refText || ''), placeholder: t('e.g. Psalm 130:7 or Lukas 8:16-18') });
   const refHint = el('span', { class: 'hint muted small' });
   const transSel = el('select', {});
@@ -703,7 +732,7 @@ function renderEditor(root, s) {
     ]));
 
   // ---- 2. the title and message, as the Guide prints them under its Bible text; the Guide's article is at hand here
-  step(2, t('Title and message'), t('As the Guide gives them: first the title, then the message. Then write the core thought in your own words. The Guide gives the direction; the sermon is how it reaches this congregation.'),
+  step(2, t('Title and message'), { line: t('First the Guide\'s title and message, then the core thought in your own words.'), more: t('As the Guide gives them: first the title, then the message. Then write the core thought in your own words. The Guide gives the direction; the sermon is how it reaches this congregation.') },
     () => clearStep(2, t('the title and message'), ['title', 'theme', 'core', 'guide']));
   const guideBox = el('div', { class: 'guide-row' });
   container.append(guideBox);
@@ -752,8 +781,7 @@ function renderEditor(root, s) {
       const both = twin ? [link, twin].sort((a, b) => (a.guide.language === 'en' ? 0 : 1) - (b.guide.language === 'en' ? 0 : 1)) : [];
       // the article read by an ElevenLabs voice (speech.js, listen.js), in the Guide's language; the recording stays with this Guide on this device
       const hear = listenCard({
-        title: t('Hear the Guide'), id: Speech.guideKey(link.guide, link.i), quiet: true,
-        noKey: t('An ElevenLabs voice can read the Guide\'s article to you. Add your ElevenLabs key under Settings → Read aloud first.'),
+        title: t('Hear the Guide'), id: Speech.guideKey(link.guide, link.i),
         empty: t('There is nothing to read in this article.'),
         script: () => Speech.guideScript(link.service, link.guide),
         read: (opts, o) => Speech.makeGuide(link.service, link.guide, o),
@@ -871,9 +899,10 @@ function renderEditor(root, s) {
       s.breakdown = null; touch(); renderBreak();
       toast(t('Breakdown removed.'), false, () => { s.breakdown = a; touch(); renderBreak(); });
     } }) : null;
-    breakBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
-      ? t('Broken down {date} by {model}{cost}. The Guide\'s words stay as they are; the rest is a starting point.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
-      : t('Claude takes the Guide\'s article apart sentence by sentence: what each one says in plain words, what it gives the sermon, and the Bible passages and Catechism sections that bring depth to it. You choose what to keep.') })]));
+    const pair = a ? null : hintPair({ line: t('Claude takes the Guide\'s article apart, sentence by sentence, in plain words.'), more: t('Claude takes the Guide\'s article apart sentence by sentence: what each one says in plain words, what it gives the sermon, and the Bible passages and Catechism sections that bring depth to it. You choose what to keep.') }, 'ai-hint', firstTime);
+    breakBox.append(el('div', { class: 'row ai-head' }, [btn, drop, a
+      ? el('span', { class: 'muted small grow', text: t('Broken down {date} by {model}{cost}. The Guide\'s words stay as they are; the rest is a starting point.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' }) })
+      : pair.line]), pair ? pair.note : null);
     if (!a) return;
     const view = breakView();   // 'pieces' or 'plain': how the article is shown below
     const panel = el('details', { class: 'ai-panel', open: true });
@@ -922,7 +951,7 @@ function renderEditor(root, s) {
   );
 
   // ---- 3. the introduction: the sermon opens as the Guide's article does; the Guide's own introduction can be read beside it
-  step(3, t('Introduction'), t('As in the Guide, the sermon opens with an introduction. Make the people feel welcome and open the door to the text.'),
+  step(3, t('Introduction'), { line: t('As in the Guide: make the people feel welcome and open the door to the text.') },
     () => clearStep(3, t('the introduction'), ['intro']));
   const introLink = Guides.findService(s);
   const guideIntro = introLink ? (introLink.service.introduction || '').trim() : '';
@@ -940,9 +969,9 @@ function renderEditor(root, s) {
   container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }));
 
   // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
-  step(4, t('Main points'), AI.unlocked()
+  step(4, t('Main points'), { line: t('The parts of the Guide\'s article, in its order, are main point 1, 2, 3.'), more: AI.unlocked()
     ? t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear.')
-    : t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences.'),
+    : t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences.') },
     () => clearStep(4, t('the main points'), [], {
       clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
       restore: kept => { s.points = kept; renderPoints(); },
@@ -1074,9 +1103,10 @@ function renderEditor(root, s) {
     const pdf = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Save as PDF'), onclick: () => run(x => Pdf.sermonTextPdf(x, { outline: a }), 'download') }) : null;
     const printBtn = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(x => Pdf.sermonTextPdf(x, { outline: a }), 'print') }) : null;
     const hear = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Read aloud'), onclick: () => { if (sermonCard) sermonCard.read({ outline: a }); } }) : null;   // the voice reads the outline as one sermon (speech.js)
-    buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, pdf, printBtn, hear, el('span', { class: 'muted small grow', text: a
-      ? t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
-      : t('Claude proposes how to build this sermon from the text, the message, your notes and your thoughts on the main points, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') })]));
+    const pair = a ? null : hintPair({ line: t('Claude proposes how to build this sermon from the text, the Guide and your thoughts.'), more: t('Claude proposes how to build this sermon from the text, the message, your notes and your thoughts on the main points, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') }, 'ai-hint', firstTime);
+    buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, pdf, printBtn, hear, a
+      ? el('span', { class: 'muted small grow', text: t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' }) })
+      : pair.line]), pair ? pair.note : null);
     if (!a) return;
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The outline') }));
@@ -1255,7 +1285,7 @@ function renderEditor(root, s) {
   }
 
   // ---- 5. the context: the setting of the text, as the Guide's Context box gives it, with the key words, the Catechism and cross references
-  step(5, t('Context: understand the text'), t('Like the Guide\'s Context box: the setting of the text. Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.'),
+  step(5, t('Context: understand the text'), { line: t('The setting of the text: who speaks, to whom, and why; and the Catechism sections that quote it.'), more: t('Like the Guide\'s Context box: the setting of the text. Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.') },
     () => clearStep(5, t('the context'), ['context', 'keywords', 'crossRefs'], {
       clear: () => { const kept = s.catechism || []; s.catechism = []; renderCatechism(); renderTicks(); return kept; },
       restore: kept => { s.catechism = kept; renderCatechism(); renderTicks(); },
@@ -1504,9 +1534,10 @@ function renderEditor(root, s) {
       s.ai = null; touch(); renderAi();
       toast(t('Suggestions removed.'), false, () => { s.ai = a; touch(); renderAi(); });
     } }) : null;
-    aiBox.append(el('div', { class: 'row ai-head' }, [btn, drop, el('span', { class: 'muted small grow', text: a
-      ? t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' })
-      : t('Claude answers the questions above from the text, the Guide\'s article and the Catechism, suggests cross references, and shows what the text gives each main point of the Guide, in short plain sentences and with the people above in mind. You choose what to keep.') })]));
+    const pair = a ? null : hintPair({ line: t('Claude answers the questions above from the text, the Guide\'s article and the Catechism.'), more: t('Claude answers the questions above from the text, the Guide\'s article and the Catechism, suggests cross references, and shows what the text gives each main point of the Guide, in short plain sentences and with the people above in mind. You choose what to keep.') }, 'ai-hint', firstTime);
+    aiBox.append(el('div', { class: 'row ai-head' }, [btn, drop, a
+      ? el('span', { class: 'muted small grow', text: t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' }) })
+      : pair.line]), pair ? pair.note : null);
     if (!a) return;
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The suggestions') }));
@@ -1537,7 +1568,7 @@ function renderEditor(root, s) {
 
   // ---- 6. the summary and conclusion: first what the points ask of the congregation, then the summary (the Guide ends with its Summary), then the close
   // (the application stands before the summary since 2026-11-18: the summary gathers the sermon up at the end)
-  step(6, t('Summary and conclusion'), t('Say what the main points ask of us this week. Then gather them up in a few short lines, as the Guide\'s summary does, and lead to the altar.'),
+  step(6, t('Summary and conclusion'), { line: t('What the main points ask of us this week, then a few short lines that lead to the altar.'), more: t('Say what the main points ask of us this week. Then gather them up in a few short lines, as the Guide\'s summary does, and lead to the altar.') },
     () => clearStep(6, t('the summary and conclusion'), ['application', 'summary', 'conclusion']));
   container.append(
     field(t('Application for the congregation'), 'application', { rows: 4, placeholder: t('What does this ask of us this week? Name it for the people in front of you.') }),
@@ -1546,7 +1577,7 @@ function renderEditor(root, s) {
   );
 
   // ---- 7. illustrations: the person's own experiences, which the Guide leaves to the minister
-  step(7, t('Illustrations and experiences'), t('A true experience says more than an explanation. Bring one in from your notes, or write it here.'),
+  step(7, t('Illustrations and experiences'), { line: t('A true experience says more than an explanation. Bring one in from your notes, or write it here.') },
     () => clearStep(7, t('illustrations'), ['illustrations']));
   const illus = field(t('Illustrations'), 'illustrations', { rows: 5, placeholder: t('A story, an experience, a picture that makes the point visible') });
   const illusArea = illus.querySelector('textarea');
@@ -1563,7 +1594,7 @@ function renderEditor(root, s) {
   ]));
 
   // ---- output
-  step('✓', t('Print or save'), t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar: under each heading only short cues in strong colours, with # between them, as on your own cards. Read shows the sermon or the cards on the screen in large type.'));
+  step('✓', t('Print or save'), { line: t('The sermon notes, the sermon in large type, and the cue cards for the altar.'), more: t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar: under each heading only short cues in strong colours, with # between them, as on your own cards. Read shows the sermon or the cards on the screen in large type.') });
   async function run(make, how) {
     try {
       await Cat.loadText().catch(() => false);
@@ -1634,7 +1665,6 @@ function renderEditor(root, s) {
   // ---- hear the sermon (speech.js, listen.js): the same text as "The sermon", read by an ElevenLabs voice; the recording stays with this preparation on this device
   sermonCard = listenCard({
     title: t('Hear the sermon'), id: s.id,
-    noKey: t('An ElevenLabs voice can read the sermon to you: the text word, the introduction, the main points, the application, the summary and the conclusion, as "The sermon" prints them. Add your ElevenLabs key under Settings → Read aloud first.'),
     empty: t('Write the introduction, the main points, the application or the conclusion first.'),
     script: rec => (rec && rec.source === 'outline' && s.build ? Speech.script(s, { outline: s.build }) : Speech.script(s)),
     read: ({ outline = null } = {}, o) => Speech.make(s, { outline, ...o }),
@@ -1647,12 +1677,13 @@ function renderEditor(root, s) {
   container.append(sermonCard.box);
 
   // ---- 8. reflection
-  step(8, t('After the service'), t('A few honest lines while it is fresh. They make the next preparation better.'),
+  step(8, t('After the service'), { line: t('A few honest lines while it is fresh. They make the next preparation better.') },
     () => clearStep(8, t('after the service'), ['reflection']));
   container.append(field(t('Reflection'), 'reflection', { rows: 4, placeholder: t('What spoke? What would you do differently? What did the congregation give back?') }));
 
   // ---- 9. the reflection evening: the congregation looks back on this service, with slides (reflect.js)
-  step(9, t('Reflection evening'), t('An evening when the congregation looks back on this service and talks about it. The slides show the sermon, its text word, the main points from the Guide and the questions, one at a time.'));
+  step(9, t('Reflection evening'), { line: t('An evening when the congregation looks back on this service and talks about it.'), more: t('The slides show the sermon, its text word, the main points from the Guide and the questions, one at a time.') });
+  hintsSeen();   // from now on the notes fold behind their "?" on this device
   const made = Reflect.hasSlides(s);
   container.append(el('div', { class: 'row' }, [
     el('a', { class: 'btn small', href: `#reflect/${s.id}`, text: made ? t('Open the slides') : t('Make the slides') }),
