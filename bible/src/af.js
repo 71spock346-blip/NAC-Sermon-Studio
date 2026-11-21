@@ -46,7 +46,7 @@ export const AF = {
   "The ElevenLabs voice that reads the sermon, with its key": "Die ElevenLabs-stem wat die preek lees, met sy sleutel",
   "Claude, its key, the lock and how you preach": "Claude, sy sleutel, die slot en hoe jy preek",
   "Claude in Theology, with a key of your own": "Claude in Teologie, met 'n sleutel van jou eie",
-  // the phone's fifth tab and its page (more.js)
+  // the phone's last tab and its page (more.js)
   "More|tab": "Meer",
   "Tools": "Hulpmiddels",
   "What I use": "Wat ek gebruik",
@@ -2146,8 +2146,12 @@ export const AF = {
   "Earlier visits": "Vroeëre besoeke",
   "Visited longest ago first": "Langste gelede besoek eerste",
   "Your own notes of your visits to {name}. They stay on your devices, like the list.": "Jou eie notas van jou besoeke aan {name}. Hulle bly op jou toestelle, soos die lys.",
-  // the service record (record.js): NACSA's form, filled in after the service for the district's WhatsApp group
+  // the service record (record.js): NACSA's form, filled in after the service for the district's WhatsApp group; "Rekord" is its short name on the phone's bar
   "Service record": "Diensrekord",
+  "Record|tab": "Rekord",
+  "Which service": "Watter godsdiens",
+  "No service with a date yet.": "Nog geen godsdiens met 'n datum nie.",
+  "A service record is kept with the preparation of that service. Start one under Prepare, with the date of the service, and its record opens here.": "'n Diensrekord word saam met die voorbereiding van daardie godsdiens bewaar. Begin een onder Diens Voorbereiding, met die datum van die godsdiens, en sy rekord maak hier oop.",
   "No preparation has this address.": "Geen voorbereiding het hierdie adres nie.",
   "NACSA’s service record, filled in from the preparation where it can be; what you type is kept as you go. When the service is over, send it to the WhatsApp group: the office captures it on MIS within 24 hours.": "NACSA se diensrekord, ingevul uit die voorbereiding waar dit kan; wat jy tik, word soos jy gaan bewaar. Stuur dit ná die diens na die WhatsApp-groep: die kantoor lê dit binne 24 uur op MIS vas.",
   "Ref no": "Verw.nr.",

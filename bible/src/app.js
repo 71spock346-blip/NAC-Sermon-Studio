@@ -19,8 +19,8 @@
  * redraws the open screen in the other language.
  *
  * #seating opens the seating and communion plan, #seating/<id> a saved one,
- * and #choir the choir programme. #more is the phone's fifth tab (more.js):
- * the sections the bar has no room for, one under the other, the Tools
+ * and #choir the choir programme. #more is the last tab of the phone's bar
+ * (more.js): the sections the bar has no room for, one under the other, the Tools
  * (Seating, Choir, Reminders, MIS, Reflection evening) under their heading
  * as in the PC's side menu, and Handbooks, since Sunday has the bar's place
  * it had. The Catechism and the Liturgy are listed under Handbooks
@@ -35,8 +35,10 @@
  * card; the header, the menu and the bar are hidden while it is open
  * (body.altar). #record/<id> is the service record of one preparation
  * (record.js), the form for the district's WhatsApp group, opened from the
- * Sunday card once the day has come and from the preparation's Print step;
- * Sunday stays lit while it is open.
+ * Sunday card once the day has come and from the preparation's Print step.
+ * It has a tab of its own on the bar and in the menu, Service record:
+ * #record alone opens the service just held (today's, else the last one,
+ * else the next).
  *
  * #sync/<code> is the link a sync QR code or "Copy link" carries: it opens
  * Settings and offers to join with that code (sync.js keeps the devices the
@@ -116,7 +118,7 @@ function route() {
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
     // a section listed under another lights that one too: More while one of its sections is open (the phone's bar; a PC shows them in the menu, and no More), Handbooks while the Catechism or the Liturgy is open
-    b.classList.toggle('also', (b.dataset.tab === 'more' && More.isMore(tab)) || (b.dataset.tab === 'handbooks' && Handbooks.holds(tab)) || (b.dataset.tab === 'sunday' && tab === 'record'));
+    b.classList.toggle('also', (b.dataset.tab === 'more' && More.isMore(tab)) || (b.dataset.tab === 'handbooks' && Handbooks.holds(tab)));
   }
   for (const panel of $$('main .tab')) panel.hidden = panel.id !== 'tab-' + tab;
   const container = $('#tab-' + tab);
@@ -134,7 +136,7 @@ function route() {
 function tabKeys(e) {
   const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: 'first', End: 'last' };
   if (!(e.key in keys)) return;
-  const buttons = $$('.tabs button').filter(b => b.offsetParent !== null);   // the tabs shown: the phone's bar has five, the PC's menu has no More
+  const buttons = $$('.tabs button').filter(b => b.offsetParent !== null);   // the tabs shown: the phone's bar has six, the PC's menu has no More
   const i = buttons.findIndex(b => b === document.activeElement);
   if (i < 0) return;
   e.preventDefault();
@@ -192,7 +194,8 @@ function onSynced(e) {
   if (typing || $('.overlay')) return;
   if (tab === 'read') return;                               // the reader keeps its place; the notes show on the next chapter
   if (tab === 'altar') return;                              // nothing is pulled from under the person at the altar
-  if (tab === 'record') return;                             // the record being filled in keeps what is typed; the other device's lines show on the next open
+  if (tab === 'record' && hash.length > 1) return;          // the record being filled in keeps what is typed; the other device's lines show on the next open
+  if (tab === 'record' && !parts.includes('sermons')) return;   // "No service with a date yet": a preparation that comes from another device opens its record
   if ((tab === 'prepare' || tab === 'reflect') && hash.length > 1) return;   // an open preparation or evening is not pulled from under the person
   if (tab === 'notes' && !parts.includes('notes')) return;
   if (tab === 'catechism' && !parts.includes('catechism')) return;

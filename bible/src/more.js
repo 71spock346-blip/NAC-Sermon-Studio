@@ -1,11 +1,12 @@
 /*
- * "More": the fifth tab of the phone's bar.
+ * "More": the last tab of the phone's bar.
  *
  * The app has many sections. A PC lists them all in the side menu, but a bar
- * the width of a phone holds five names at a size that can be read; with
- * more, the last ones were cut off the edge of the screen. So the phone's
- * bar keeps the four used most (Sunday, Read, Notes, Prepare) and a fifth
- * tab, More, which is this page: the other sections one under the other, as
+ * the width of a phone holds only a few names at a size that can be read;
+ * with more, the last ones were cut off the edge of the screen. So the
+ * phone's bar keeps the five used most, in the order Jerome chose (November
+ * 2026: Read, Prepare, Sunday, Notes, Service record, the last as "Record")
+ * and a sixth tab, More, which is this page: the other sections one under the other, as
  * big rows with the icon, the name and one line on what each is for. The
  * rows come in groups, as the side menu has them: Handbooks (which had the
  * bar's fourth place until Sunday took it, November 2026), Theology and the

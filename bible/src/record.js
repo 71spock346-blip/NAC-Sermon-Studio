@@ -14,7 +14,11 @@
  * text word and the kind of service head the screen; the hymns, the
  * minister's name and the service's usual time (the month plan's settings)
  * start the form. #record/<id> opens it: the Sunday card offers it once the
- * day has come, and the preparation's Print step always.
+ * day has come, and the preparation's Print step always. Service record has
+ * a tab of its own on the phone's bar and in the PC's menu (Jerome's order,
+ * November 2026: Read, Prepare, Sunday, Notes, Service record, More): #record
+ * alone opens the service just held (serviceFor: today's, else the last one,
+ * else the next), and "Which service" above the record goes to another.
  *
  * "The form" shows the record on NACSA's paper form, as record-form.js draws
  * it (paper() gives what goes on its lines): "Send as a picture" hands a PNG
@@ -26,7 +30,7 @@
  * of Reminders do), "Copy" puts it on the clipboard; it is in the language of
  * the app.
  */
-import { el, clear, toast, copyText } from './ui.js';
+import { el, clear, toast, copyText, fmtDate, today } from './ui.js';
 import { state, saveSermon } from './store.js';
 import { t, locale } from './i18n.js';
 import { formatRef } from './books.js';
@@ -200,9 +204,60 @@ function section(title, children) {
   return el('section', { class: 'sec' }, [el('div', { class: 'docbar' }, [el('h2', { text: title })]), ...children]);
 }
 
+/** The preparations that have a date, the latest first: the services a record can be kept for. */
+function dated(list = state.sermons) {
+  return list.filter(s => s.date).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/**
+ * The service the bar's Service record opens when none is named (#record):
+ * today's, else the last one before today (the service just held, whose
+ * record is due), else the next one; null while no preparation has a date.
+ */
+export function serviceFor(list = state.sermons, now = today()) {
+  const all = dated(list);
+  return all.find(s => s.date === now) || all.find(s => s.date < now) || all.filter(s => s.date > now).pop() || null;
+}
+
+/** "Sun 22 Nov 2026 · John 1:1-3", and the congregation when it is not the usual one: a service in the list to choose from. */
+function serviceName(s) {
+  const usual = state.settings.congregation || '';
+  return [s.date ? fmtDate(s.date, true) : t('No date'), s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || ''), s.congregation && s.congregation !== usual ? s.congregation : ''].filter(Boolean).join(' · ');
+}
+
+/** "Which service": the services up to today, the latest first, and the one open (a later one, or one with no date, opened from its preparation). Nothing while there is no other to choose. */
+function picker(s) {
+  const now = today();
+  const list = dated().filter(x => x.date <= now).slice(0, 40);
+  if (!list.includes(s)) {
+    if (s.date && s.date <= now) list.push(s);
+    else list.unshift(s);
+  }
+  if (list.length < 2) return null;
+  const choose = el('select', {}, list.map(x => el('option', { value: x.id, text: serviceName(x), selected: x === s })));
+  choose.addEventListener('change', () => { location.hash = '#record/' + choose.value; });
+  return el('label', { class: 'f record-pick' }, [el('span', { text: t('Which service') }), choose]);
+}
+
 export function render(container, route) {
   clear(container);
   const id = route && route[1];
+  if (!id) {
+    // the bar's Service record: the service just held, with its address, so a reload or the back button keeps it
+    const s = serviceFor();
+    if (s) {
+      history.replaceState(null, '', '#record/' + s.id);
+      render(container, ['record', s.id]);
+      return;
+    }
+    container.append(el('div', { class: 'record' }, [
+      el('div', { class: 'docbar' }, [el('h2', { text: t('Service record') })]),
+      el('p', { text: t('No service with a date yet.') }),
+      el('p', { class: 'muted small', text: t('A service record is kept with the preparation of that service. Start one under Prepare, with the date of the service, and its record opens here.') }),
+      el('div', { class: 'row' }, [el('a', { class: 'btn', href: '#prepare', text: t('Go to Prepare') })]),
+    ]));
+    return;
+  }
   const s = state.sermons.find(x => x.id === id);
   if (!s) {
     container.append(el('div', { class: 'record' }, [
@@ -216,6 +271,8 @@ export function render(container, route) {
   const h = header(s);
   const page = el('div', { class: 'record' });
   page.append(el('div', { class: 'docbar' }, [el('h2', { text: t('Service record') }), el('span', { class: 'spacer' }), el('a', { class: 'btn small ghost', href: `#prepare/${s.id}`, text: t('Open the preparation') })]));
+  const pick = picker(s);
+  if (pick) page.append(pick);
   page.append(el('div', { class: 'record-head' }, [
     el('b', { text: [h.congregation, h.date].filter(Boolean).join(' · ') }),
     el('div', { class: 'muted small', text: [h.kind, h.ref].filter(Boolean).join(' · ') }),
