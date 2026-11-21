@@ -167,6 +167,152 @@ await test('the rector\'s choices win over the sheet, and a day can be added', a
   assert.equal(extra.time, '19:30');
 });
 
+/* ---- the feast days: a December programme */
+
+await test('Easter and the feast days of the Church year', async () => {
+  assert.equal(L.easter(2025), '2025-04-20');
+  assert.equal(L.easter(2026), '2026-04-05');
+  assert.equal(L.easter(2027), '2027-03-28');
+  const f = L.feasts(2026);
+  assert.equal(f['2026-04-03'].key, 'goodFriday');
+  assert.equal(f['2026-04-05'].key, 'easter');
+  assert.equal(f['2026-05-14'].key, 'ascension');
+  assert.equal(f['2026-05-24'].key, 'pentecost');
+  assert.equal(f['2026-12-25'].key, 'christmas');
+  assert.deepEqual(Object.keys(L.feastsBetween('2026-11-22', '2027-01-03')), ['2026-12-25']);
+  assert.deepEqual(Object.keys(L.feastsBetween('2027-03-22', '2027-04-30')), ['2027-03-26', '2027-03-28']);
+  assert.deepEqual(Object.keys(L.feastsBetween('2025-09-22', '2025-10-31')), []);
+});
+
+/**
+ * A made-up December programme as a grid: Sun 22 Nov 2026 to Sun 3 Jan
+ * 2027, the public holidays marked in the leaders' columns as the district
+ * marks them, Christmas Day on the Friday. `cells` = {date: {col: value}}
+ * changes a day's row.
+ */
+function decemberGrid(cells = {}) {
+  const grid = [];
+  const set = (r, c, v) => { (grid[r] = grid[r] || [])[c] = v; };
+  set(1, 1, 'SAMPLE DISTRICT PROGRAMME - DECEMBER 2026');
+  ['DAY', 'DATE', 'DA SMITH', 'AP JONES', 'DR BROWN', 'DISTRICT CROSS BOOKINGS', 'Comments', 'Ministries'].forEach((h, i) => set(4, i + 1, h));
+  [['DA', 'P', 'Smith', 'Mobile'], ['1', 'DR', 'K Brown', '3'], ['C', 'R', 'J Black', '8'], ['C1', 'PR', 'M Grey', '9']].forEach((m, i) => m.forEach((v, j) => set(5 + i, 8 + j, v)));
+  const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thurs', 'Fri', 'Sat'];
+  const holiday = ['2026-12-16', '2026-12-25', '2026-12-26', '2027-01-01'];
+  const comments = {
+    '2026-12-16': 'No Service. Service on Thursday', '2026-12-23': 'No Service', '2026-12-25': 'Christmas Day Service',
+    '2026-12-27': 'Close of Year Service', '2027-01-03': "New Year's Service: AVT to all congregations (09:00)",
+  };
+  let r = 5;
+  for (let d = '2026-11-22'; d <= '2027-01-03'; d = L.addDays(d, 1), r++) {
+    set(r, 1, DAY[L.dow(d)]);
+    set(r, 2, Number(d.slice(8)));
+    if (holiday.includes(d)) [3, 4, 5].forEach(c => set(r, c, 'Public Holiday'));
+    if (d === '2026-12-08') set(r, 5, 'Sunnyside');
+    if (comments[d]) set(r, 7, comments[d]);
+    for (const [c, v] of Object.entries(cells[d] || {})) set(r, Number(c), v);
+  }
+  return grid;
+}
+
+const dec = L.parseProgramme(decemberGrid(), { congregation: 'Sunnyside' });
+const decSettings = { ...settings, roster: L.mergeRoster([], dec, 'C') };
+
+await test('December: Christmas Day is a service on the Friday, in the morning; the closed Wednesday before it does not move', async () => {
+  assert.equal(dec.month, 12);
+  assert.equal(dec.year, 2026);
+  assert.equal(dec.first, '2026-11-22');
+  assert.equal(dec.last, '2027-01-03');
+  assert.deepEqual(dec.problems, []);
+  const list = L.serviceDays(dec, decSettings);
+  const xmas = list.find(s => s.date === '2026-12-25');
+  assert.equal(xmas.kind, 'feast');
+  assert.equal(xmas.feast, 'christmas');
+  assert.equal(xmas.off, false, 'the public holiday does not close a feast day');
+  assert.equal(xmas.holiday, true);
+  assert.equal(xmas.time, '09:00');
+  assert.equal(xmas.who, '');
+  assert.equal(L.serviceName(xmas), 'Christmas Day service');
+  assert.equal(L.dayName(xmas), 'Christmas Day');
+  assert.equal(L.serviceTitle(xmas), 'Christmas Day service');
+  const wed = list.find(s => s.date === '2026-12-23');
+  assert.equal(wed.off, true);
+  assert.ok(!list.some(s => s.date === '2026-12-24'), 'Christmas Eve gets no moved service: Christmas Day is that week\'s service');
+  const thu = list.find(s => s.date === '2026-12-17');
+  assert.equal(thu.kind, 'moved');
+  assert.equal(thu.movedFrom, '2026-12-16');
+  assert.ok(!list.some(s => s.date === '2026-12-26'), 'the Day of Goodwill is no service day');
+  assert.ok(!list.some(s => s.date === '2027-01-01'), 'nor is New Year\'s Day');
+  assert.equal(L.serviceTitle(list.find(s => s.date === '2026-12-20')), 'Divine service');
+  // the DR at the congregation on a Tuesday is a service there, held by him, in the evening
+  const tue = list.find(s => s.date === '2026-12-08');
+  assert.equal(tue.kind, 'extra');
+  assert.equal(tue.who, '1');
+  assert.equal(tue.time, '19:30');
+  assert.equal(tue.visiting[0].label, 'DR K Brown');
+  // a Sunday the sheet marks as a public holiday is held all the same
+  const sun = L.serviceDays(L.parseProgramme(decemberGrid({ '2026-12-20': { 3: 'Public Holiday', 4: 'Public Holiday', 5: 'Public Holiday' } }), { congregation: 'Sunnyside' }), decSettings).find(s => s.date === '2026-12-20');
+  assert.equal(sun.off, false);
+  assert.equal(sun.holiday, true);
+  // ticked off, Christmas Day stays on the list as closed, and the Wednesday's service moves to the Thursday after all
+  const off = L.serviceDays({ ...dec, services: { '2026-12-25': { off: true } } }, decSettings);
+  assert.equal(off.find(s => s.date === '2026-12-25').off, true);
+  assert.equal(off.find(s => s.date === '2026-12-24').kind, 'moved');
+  // a Wednesday the rector closes himself moves nothing either
+  const mine = L.serviceDays({ ...dec, services: { '2026-12-30': { off: true } } }, decSettings);
+  assert.equal(mine.find(s => s.date === '2026-12-30').off, true);
+  assert.ok(!mine.some(s => s.date === '2026-12-31'));
+});
+
+await test('Christmas Day in the calendar, in the message and on the programme', async () => {
+  const list = L.serviceDays(dec, decSettings);
+  const ev = L.events(dec, decSettings, list);
+  const x = ev.find(e => e.date === '2026-12-25' && e.kind === 'service');
+  assert.ok(x.title.startsWith('Christmas Day service – Sunnyside'), x.title);
+  assert.ok(x.detail.includes('Christmas Day Service'), 'the district\'s note belongs to the service');
+  assert.ok(!ev.some(e => e.date === '2026-12-25' && e.kind !== 'service'));
+  assert.ok(ev.find(e => e.date === '2026-12-20' && e.kind === 'service').title.startsWith('Divine service – Sunnyside'));
+  const ics = L.buildFeed([{ events: ev }], { name: 'Sunnyside', now: new Date('2026-11-21T12:00:00Z') });
+  assert.ok(ics.includes('DTSTART:20261225T070000Z'));
+  assert.ok(ics.includes('DTEND:20261225T083000Z'), 'a feast day\'s service lasts an hour and a half, like a Sunday\'s');
+  assert.ok(ics.includes('SUMMARY:Christmas Day service – Sunnyside'));
+  const text = L.messageText(dec, decSettings, list, ev, 'en-ZA', 'en');
+  assert.ok(text.includes('Fri 25 Dec 09:00 – still open – Christmas Day Service'), text);
+  assert.ok(!text.includes('Christmas Day; Christmas Day Service'), 'the district\'s note names the day already');
+  const bare = L.parseProgramme(decemberGrid({ '2026-12-25': { 7: '' } }), { congregation: 'Sunnyside' });
+  const bareList = L.serviceDays(bare, decSettings);
+  assert.ok(L.messageText(bare, decSettings, bareList, L.events(bare, decSettings, bareList), 'en-ZA', 'en').includes('Fri 25 Dec 09:00 – still open – Christmas Day\n'));
+  assert.deepEqual(L.withDayName(bareList.find(s => s.date === '2026-12-25'), ['', 'Carols 18:00']), ['Christmas Day', 'Carols 18:00']);
+  assert.ok(text.includes('Wed 23 Dec – No service'));
+  assert.ok(text.includes('Thu 17 Dec 19:30 – still open'));
+});
+
+await test('a day the rector adds, with a name and a time; a day the sheet has no row for; a code in his column on any day', async () => {
+  const added = { ...dec, extraDays: ['2026-12-12', '2027-01-05'], services: { '2026-12-12': { off: false, name: 'Youth service', time: '17:00' } } };
+  const list = L.serviceDays(added, decSettings);
+  const sat = list.find(s => s.date === '2026-12-12');
+  assert.equal(sat.kind, 'extra');
+  assert.equal(sat.added, true);
+  assert.equal(sat.name, 'Youth service');
+  assert.equal(sat.time, '17:00');
+  assert.equal(L.serviceName(sat), 'Youth service');
+  assert.equal(L.dayName(sat), 'Youth service');
+  assert.equal(L.serviceTitle(sat), 'Youth service');
+  const jan = list.find(s => s.date === '2027-01-05');
+  assert.equal(jan.kind, 'extra');
+  assert.deepEqual(jan.notes, []);
+  assert.equal(jan.time, '19:30');
+  assert.equal(list[list.length - 1].date, '2027-01-05');
+  assert.ok(L.events(added, decSettings, list).some(e => e.title.startsWith('Youth service – Sunnyside')));
+  // a code written in the column on a Saturday is a service there whoever wrote it
+  const marked = L.parseProgramme(decemberGrid({ '2026-12-05': { 7: 'C1' } }), { congregation: 'Sunnyside' });
+  const col = L.serviceDays({ ...marked, days: marked.days.map(d => (d.date === '2026-12-05' ? { ...d, mine: 'C1', comments: [] } : d)) }, decSettings).find(s => s.date === '2026-12-05');
+  assert.equal(col.kind, 'extra');
+  assert.equal(col.who, 'C1');
+  assert.equal(col.added, false);
+});
+
+/* ---- the events */
+
 const list = L.events(plan, settings, services);
 
 await test('the events: services, district events, meetings and deadlines, with notes on a service day attached to the service', async () => {

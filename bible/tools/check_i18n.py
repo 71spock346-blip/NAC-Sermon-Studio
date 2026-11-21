@@ -30,8 +30,9 @@ HTML_PATTERNS = [re.compile(r'data-t(?:-aria|-title)?="([^"]*)"')]
 # in ui.js (themes, sizes, letters), notes.js (kinds), prepare.js (status,
 # occasions, the humour and language choices of a preparation), ai.js (the
 # note on each model, who is listening, humour) and the language names on the
-# switches (i18n.js and ai.js LANGS, guides.js editionLabel), and the month
-# plan's calendar choices (plan.js). Keep this list in step with those.
+# switches (i18n.js and ai.js LANGS, guides.js editionLabel), the month
+# plan's calendar choices (plan.js) and the feast days of the Church year
+# (plan-lib.js). Keep this list in step with those.
 INDIRECT = [
     'System', 'Paper', 'White', 'Dark', 'Small', 'Normal', 'Large', 'Pulpit', 'Montserrat', 'Easy-read',
     'Thought', 'Experience', 'Doctrine', 'Illustration', 'Sermon idea', 'Question',
@@ -45,6 +46,8 @@ INDIRECT = [
     'Slower', 'Faster', 'Best', 'Cheaper', 'Steady', 'Natural', 'Lively', 'This device (free)', 'ElevenLabs (half price)',
     'Jerome (English)', 'Jerome (Afrikaans)',
     'Services only', 'Services and district events', 'Also meetings and deadlines', 'Nothing until I tick it',   # plan.js EVENT_CHOICES
+    'Good Friday', 'Good Friday service', 'Easter Sunday', 'Easter service', 'Ascension Day', 'Ascension Day service',   # plan-lib.js FEASTS
+    'Pentecost', 'Pentecost service', 'Christmas Day', 'Christmas Day service',
 ]
 
 

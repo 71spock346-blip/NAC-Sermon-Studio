@@ -11,9 +11,11 @@
  * Here that sheet becomes a plan: the title's month and year, each day's
  * date (the sheet gives day numbers only, which roll over where the month
  * changes), the ministers, the district's notes; from it the congregation's
- * service days (Sundays and Wednesdays, the day a holiday Wednesday's
- * service moves to, and any other day the column marks) with who holds
- * each; the rector's own events; the events for the calendar, sorted by kind; and the
+ * service days (Sundays and Wednesdays, the feast days of the Church year on
+ * which a divine service is held whatever the weekday, the day a holiday
+ * Wednesday's service moves to, a day the sheet puts a district leader in
+ * the congregation, and any other day the column marks or the rector adds)
+ * with who holds each; the rector's own events; the events for the calendar, sorted by kind; and the
  * calendar feed and the WhatsApp text that go out. Nothing here touches the
  * database or the page, so each piece can be tried in Node
  * (tools/test_plan.mjs).
@@ -237,9 +239,9 @@ export function whoLabel(who, plan, settings) {
   return m ? ministerLabel(m) : w;
 }
 
-/* ----------------------------------------------------------- the services */
+/* ----------------------------------------------------------- closed days */
 
-const OFF = /no (morning |evening )?service|geen (oggend|aand)?diens|public holiday|openbare vakansie/i;
+const OFF = /no (morning |evening |midweek |divine )?services?|geen (oggend|aand|week|gods)?diens|public holiday|openbare vakansie/i;
 
 /** The texts of a day that concern the congregation: its comments and the cross bookings that name it. */
 const textsOf = (day, cong) => [...day.comments, ...day.cross.filter(c => c.toLowerCase().includes(cong))];
@@ -274,47 +276,113 @@ export function movedTo(date, note) {
   return addDays(date, 1);
 }
 
+/* ------------------------------------------------------------- the feasts */
+
+/** Easter Sunday of a year, 'YYYY-MM-DD' (the Gregorian computus). */
+export function easter(year) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+  return iso(year, month, day);
+}
+
+/**
+ * The feast days of the Church year on which the congregation holds a
+ * divine service whatever the weekday. Good Friday and Christmas Day are
+ * public holidays, so their service is in the morning like a Sunday's;
+ * Ascension Day is a working Thursday, so its service is in the evening
+ * like a Wednesday's. The names are keys of the Afrikaans table
+ * (tools/check_i18n.py lists them as indirect).
+ */
+const FEASTS = {
+  goodFriday: { from: -2, name: 'Good Friday', service: 'Good Friday service', morning: true },
+  easter: { from: 0, name: 'Easter Sunday', service: 'Easter service', morning: true },
+  ascension: { from: 39, name: 'Ascension Day', service: 'Ascension Day service', morning: false },
+  pentecost: { from: 49, name: 'Pentecost', service: 'Pentecost service', morning: true },
+  christmas: { name: 'Christmas Day', service: 'Christmas Day service', morning: true },
+};
+
+/** The feasts of a year: {date -> {key, name, service, morning}}. */
+export function feasts(year) {
+  const out = {};
+  const e = easter(year);
+  for (const [key, f] of Object.entries(FEASTS)) out[key === 'christmas' ? iso(year, 12, 25) : addDays(e, f.from)] = { key, ...f };
+  return out;
+}
+
+/** The feasts between two dates, both included (a plan runs from the month before into the month after). */
+export function feastsBetween(first, last) {
+  const out = {};
+  for (let y = Number(first.slice(0, 4)); y <= Number(last.slice(0, 4)); y++) {
+    for (const [date, f] of Object.entries(feasts(y))) if (date >= first && date <= last) out[date] = f;
+  }
+  return out;
+}
+
+/* ----------------------------------------------------------- the services */
+
 /**
  * The congregation's service days: every Sunday and Wednesday of the plan,
- * the day a closed Wednesday's service moves to (kind 'moved'), and any
- * other day its column marks or the rector added. Each has what the sheet
- * says for that day, a suggestion for who holds it (the column's code, or
- * the district leader the sheet puts in the congregation that day), and
- * the rector's own choice over it (plan.services[date]).
+ * the feast days of the Church year (kind 'feast': a divine service whatever
+ * the weekday), the day a closed Wednesday's service moves to (kind
+ * 'moved'), and any other day its column marks, the sheet puts a district
+ * leader in the congregation, or the rector added (kind 'extra'). Each has
+ * what the sheet says for that day, a suggestion for who holds it (the
+ * column's code, or the district leader the sheet puts in the congregation
+ * that day), and the rector's own choice over it (plan.services[date]: who,
+ * off, time, note, and the name he gave a day he added).
  */
 export function serviceDays(plan, settings) {
   const cong = str(settings.congregation).toLowerCase();
   const choices = plan.services || {};
   const extra = new Set(plan.extraDays || []);
-  // a Wednesday closed by a holiday or a "No service" note sends its service to another day, unless the rector holds it after all
+  // the sheet's days, and a day the rector added that the sheet has no row for
+  const days = [...plan.days];
+  for (const date of extra) if (/^\d{4}-\d{2}-\d{2}$/.test(date) && !days.some(d => d.date === date)) days.push({ date, dow: dow(date), rows: [], leaders: {}, cross: [], comments: [], mine: '' });
+  days.sort((a, b) => a.date.localeCompare(b.date));
+  const feast = days.length ? feastsBetween(days[0].date, days[days.length - 1].date) : {};
+  const feastHeld = date => !!feast[date] && days.some(d => d.date === date) && (choices[date] || {}).off !== true;
+  // the district leaders the sheet puts in the congregation on a day
+  const visitingOn = day => {
+    const out = [];
+    for (const [key, values] of Object.entries(day.leaders || {})) {
+      if (!values.some(v => v.toLowerCase() === cong)) continue;
+      const m = plan.ministers.find(x => surnameOf(x.name) === key) || null;
+      const col = (plan.columns.leaders || []).find(l => l.key === key);
+      out.push({ key, code: m ? str(m.code) : '', label: m ? ministerLabel(m) : col ? col.header : key });
+    }
+    return out;
+  };
+  // a Wednesday closed by a holiday or a "No service" note sends its service to another day, unless the rector holds
+  // it after all, or a feast day's service falls later that week (in Christmas week, Christmas Day is the week's service)
   const moved = {};
-  for (const day of plan.days) {
-    if (day.dow !== 3) continue;
+  for (const day of days) {
+    if (day.dow !== 3 || feast[day.date]) continue;
     const { holiday, offNote } = closed(day, textsOf(day, cong));
     if (!holiday && !offNote) continue;
     if ((choices[day.date] || {}).off === false) continue;
+    if ([1, 2, 3].some(n => feastHeld(addDays(day.date, n)))) continue;
     const to = movedTo(day.date, offNote);
-    if (plan.days.some(d => d.date === to && d.dow !== 0 && d.dow !== 3)) moved[to] = day.date;
+    if (!feast[to] && days.some(d => d.date === to && d.dow !== 0 && d.dow !== 3)) moved[to] = day.date;
   }
   const out = [];
-  for (const day of plan.days) {
-    const kind = day.dow === 0 ? 'sunday' : day.dow === 3 ? 'midweek' : moved[day.date] ? 'moved' : (day.mine || extra.has(day.date)) ? 'extra' : '';
+  for (const day of days) {
+    const visiting = visitingOn(day);
+    const f = feast[day.date] || null;
+    const kind = f ? 'feast' : day.dow === 0 ? 'sunday' : day.dow === 3 ? 'midweek' : moved[day.date] ? 'moved' : (day.mine || extra.has(day.date) || visiting.length) ? 'extra' : '';
     if (!kind) continue;
-    const visiting = [];
-    for (const [key, values] of Object.entries(day.leaders)) {
-      if (values.some(v => v.toLowerCase() === cong)) {
-        const m = plan.ministers.find(x => surnameOf(x.name) === key) || null;
-        visiting.push({ key, code: m ? str(m.code) : '', label: m ? ministerLabel(m) : plan.columns.leaders.find(l => l.key === key).header });
-      }
-    }
     const texts = textsOf(day, cong);
     const { holiday, offNote } = closed(day, texts);
-    const auto = { who: day.mine || (visiting[0] && visiting[0].code) || '', off: holiday || (!!offNote && !day.mine) };
+    // a public holiday closes the Wednesday service; a Sunday's and a feast day's are held on one
+    const auto = { who: day.mine || (visiting[0] && visiting[0].code) || '', off: (holiday && kind === 'midweek') || (!!offNote && !day.mine) };
     const choice = choices[day.date] || {};
-    const time = choice.time || (kind === 'sunday' ? settings.sundayTime : settings.midweekTime) || '';
+    const morning = kind === 'sunday' || (f ? f.morning : false);
+    const time = choice.time || (morning ? settings.sundayTime : settings.midweekTime) || '';
     out.push({
       date: day.date, dow: day.dow, kind, time, visiting, holiday, movedFrom: moved[day.date] || '',
-      notes: texts, leaders: day.leaders,
+      feast: f ? f.key : '', name: str(choice.name), added: extra.has(day.date),
+      notes: texts, leaders: day.leaders || {},
       who: 'who' in choice ? str(choice.who) : auto.who,
       off: 'off' in choice ? !!choice.off : auto.off,
       note: str(choice.note),
@@ -378,7 +446,7 @@ export function events(plan, settings, services) {
     const who = whoLabel(s.who, plan, settings);
     const attached = s.notes.filter(n => partOf(s, n));
     add({ id: `${s.date}|service`, kind: 'service', date: s.date, start: s.time, end: '', lastDay: '',
-      title: `${t('Divine service')} – ${settings.congregation || t('Congregation')}${who ? ` (${who})` : ''}`,
+      title: `${serviceTitle(s)} – ${settings.congregation || t('Congregation')}${who ? ` (${who})` : ''}`,
       detail: [...attached, s.note].filter(Boolean).join('\n'), who, service: s });
   }
   for (const day of plan.days) {
@@ -425,7 +493,7 @@ export function buildFeed(months, { name, now = new Date() } = {}) {
       if (!e.on) continue;
       lines.push('BEGIN:VEVENT', `UID:${e.id.replace(/[^a-z0-9]+/gi, '-')}@nac-study-bible-plan`, `DTSTAMP:${ts}`);
       if (e.start) {
-        const minutes = e.end ? 0 : e.kind === 'service' ? (e.service && e.service.kind === 'sunday' ? 90 : 60) : e.kind === 'own' ? 90 : 120;
+        const minutes = e.end ? 0 : e.kind === 'service' ? (e.service && (e.service.kind === 'sunday' || e.service.kind === 'feast') ? 90 : 60) : e.kind === 'own' ? 90 : 120;
         const endTime = e.end || `${pad(Math.floor((Number(e.start.slice(0, 2)) * 60 + Number(e.start.slice(3)) + minutes) / 60) % 24)}:${pad((Number(e.start.slice(3)) + minutes) % 60)}`;
         lines.push(`DTSTART:${utc(e.date, e.start)}`, `DTEND:${utc(e.date, endTime)}`);
       } else {
@@ -452,10 +520,30 @@ export function shortDate(date, locale) {
   return `${d.toLocaleDateString(locale, { weekday: 'short' }).replace(/\.$/, '')} ${d.getDate()} ${d.toLocaleDateString(locale, { month: 'short' }).replace(/\.$/, '')}`;
 }
 
+/** What a day's service is called in the list: "Sunday service", "Christmas Day service", the name the rector gave a day he added, else "Divine service". */
 export function serviceName(s) {
+  if (s.feast && FEASTS[s.feast]) return t(FEASTS[s.feast].service);
+  if (s.name) return s.name;
   if (s.kind === 'sunday') return t('Sunday service');
   if (s.kind === 'midweek' || s.kind === 'moved') return t('Midweek service');
   return t('Divine service');
+}
+
+/** The name of a feast day ("Christmas Day"), or of a day the rector added and named, else ''. */
+export function dayName(s) {
+  if (s.feast && FEASTS[s.feast]) return t(FEASTS[s.feast].name);
+  return str(s.name);
+}
+
+/** A day's notes with its name ("Christmas Day") in front, unless a note names it already ("Christmas Day Service"). */
+export function withDayName(s, notes) {
+  const name = dayName(s), rest = notes.filter(Boolean);
+  return name && !rest.some(n => n.toLowerCase().includes(name.toLowerCase())) ? [name, ...rest] : rest;
+}
+
+/** The line on the programme and in the calendar: "Divine service" for a Sunday or a Wednesday, the feast's or the given name otherwise. */
+export function serviceTitle(s) {
+  return s.feast || s.name ? serviceName(s) : t('Divine service');
 }
 
 /** The plan as a message for the priests' WhatsApp group. */
@@ -465,7 +553,7 @@ export function messageText(plan, settings, services, list, locale, language) {
     const when = `${shortDate(s.date, locale)}${s.off ? '' : s.time ? ' ' + s.time : ''}`;
     if (s.off) { lines.push(`${when} – ${t('No service')}${s.notes.length ? ' (' + s.notes[0] + ')' : ''}`); continue; }
     const who = whoLabel(s.who, plan, settings) || t('still open');
-    const notes = [...s.notes.filter(n => { const tm = timesIn(n); return !MEETING.test(n) && !ADMIN.test(n) && (!tm || tm.start === s.time); }), s.note].filter(Boolean);
+    const notes = withDayName(s, [...s.notes.filter(n => { const tm = timesIn(n); return !MEETING.test(n) && !ADMIN.test(n) && (!tm || tm.start === s.time); }), s.note]);
     lines.push(`${when} – ${who}${notes.length ? ' – ' + notes.join('; ') : ''}`);
   }
   const rest = list.filter(e => e.kind !== 'service' && e.on);
