@@ -19,7 +19,7 @@ export const LINES = {
   plan: () => t('The month\'s services and who holds them'),
   seating: () => t('Who sits where, and who serves'),
   choir: () => t('The choir programme'),
-  reminders: () => t('Birthdays and anniversaries, with a greeting ready'),
+  reminders: () => t('Birthdays, anniversaries and visits, with a greeting ready'),
   reflect: () => t('Slides and questions for the evening'),
 };
 

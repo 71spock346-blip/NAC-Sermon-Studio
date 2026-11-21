@@ -11,10 +11,15 @@
  *
  * What is kept: every member is a row of their own in the `reminders` store
  * ('person:<memberNo>'), as is every greeting marked sent ('sent:<event>'),
+ * the minister's own notes of pastoral visits to a member ('visit:<memberNo>':
+ * the last visit and what was said, the next one planned, the earlier ones),
  * the tab's settings ('settings') and each of the minister's own wordings
  * ('template:<id>'), so they travel with the sync and the backup. One row per
  * member matters: two priests each adding a number keep both, where one row
  * for the roster would have let the last device to save wipe the other's work.
+ * The visits sit apart from the member's row, so a listing loaded afresh never
+ * touches them; they are the minister's own, on the devices and in the sync,
+ * never on the site.
  *
  * #reminders opens the dates coming up, #reminders/people the roster,
  * #reminders/import the listings, #reminders/settings the tab's settings, and
@@ -28,6 +33,8 @@ import { templatesFor, fillPlaceholders } from './reminders-templates.js';
 import { calendarBlob } from './reminders-ics.js';
 
 const GRACE_DAYS = 3;   // a date stays listed this long after passing, so a greeting missed over a weekend can still be caught up
+const VISIT_SOON = 7;   // a visit planned within this many days is due: it is listed under Coming up, and stays there once the day has passed
+const VISIT_LOG = 12;   // how many earlier visits a member keeps
 
 const DEFAULTS = { senderName: '', congregationName: '', language: '', includeScripture: true, lookaheadDays: 30, sectionFilter: '', reminderHour: 8, remindDayBefore: false };
 
@@ -35,6 +42,7 @@ let box = null;        // the tab's container, for a redraw from anywhere
 let view = 'upcoming';
 let search = '';
 let onlyMissing = false;
+let byVisit = false;   // the roster ordered by the last visit, longest ago first
 
 /* ----------------------------------------------------------------- rows */
 
@@ -77,10 +85,52 @@ function upcoming(days) {
   return Lib.buildUpcoming(visibleRoster(), { lookaheadDays: Math.max(days, 7), gracePeriodDays: GRACE_DAYS });
 }
 
+/* ----------------------------------------------------------------- visits */
+
+const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const daysFromToday = iso => Lib.daysBetween(new Date(), new Date(iso + 'T12:00:00'));
+
+/** Today plus so many days or months, as 'YYYY-MM-DD'; a month on from the 31st is the last day of the next month. */
+function dayAhead({ days = 0, months = 0 }) {
+  const d = new Date(); d.setHours(12, 0, 0, 0);
+  if (months) { const want = (d.getMonth() + months) % 12; d.setMonth(d.getMonth() + months); if (d.getMonth() !== want) d.setDate(0); }
+  d.setDate(d.getDate() + days);
+  return isoDay(d);
+}
+
+/** A member's visit notes, {memberNo, last, said, next, log: [{date, note}]} newest first, or null. */
+function visitOf(memberNo) {
+  const row = state.reminders.find(r => r.id === 'visit:' + memberNo);
+  return (row && row.visit) || null;
+}
+
+/** Writes a member's visit notes; emptied, the row goes. Says whether anything changed. */
+async function saveVisit(memberNo, visit) {
+  const id = 'visit:' + memberNo;
+  const mine = state.reminders.find(r => r.id === id);
+  if (!visit.last && !visit.said && !visit.next && !(visit.log || []).length) { if (mine) await deleteReminder(id); return !!mine; }
+  if (mine && JSON.stringify(mine.visit) === JSON.stringify(visit)) return false;
+  await saveReminder({ id, kind: 'visit', visit, updated: new Date().toISOString() });
+  return true;
+}
+
+/** The planned visits whose day has come, passed, or falls within the week, for the members shown; the longest waiting first. */
+function visitsDue(people) {
+  const due = [];
+  for (const r of rows('visit')) {
+    const v = r.visit, p = v && people[v.memberNo];
+    if (!p || !v.next) continue;
+    const daysAway = daysFromToday(v.next);
+    if (daysAway <= VISIT_SOON) due.push({ person: p, visit: v, daysAway });
+  }
+  return due.sort((a, b) => a.daysAway - b.daysAway || Lib.sortKey(a.person).localeCompare(Lib.sortKey(b.person)));
+}
+
 /* ------------------------------------------------------------- the tab */
 
 const ICON_CAKE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="3.7" r="1.05" fill="currentColor" stroke="none"/><path d="M12 5.4v2.1"/><path d="M5.7 12.3a6.3 6.3 0 0 1 12.6 0z"/><path d="M5.7 12.3 7.1 19.7a1 1 0 0 0 1 .8h7.8a1 1 0 0 0 1-.8l1.4-7.4z"/></svg>';
 const ICON_RINGS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9.2" cy="14.8" r="4.6"/><circle cx="14.8" cy="14.8" r="4.6"/><path d="m12 4.5 2 2.4-2 2.4-2-2.4z"/></svg>';
+const ICON_HOME = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.4 12 4.2l8.5 7.2"/><path d="M5.6 10v9.6h12.8V10"/><path d="M10 19.6v-5.2h4v5.2"/></svg>';
 
 function section(title, children) {
   return el('section', { class: 'sec' }, [el('div', { class: 'docbar' }, [el('h2', { text: title })]), ...children]);
@@ -143,6 +193,15 @@ function drawUpcoming(body) {
   if (missing) body.append(el('p', { class: 'hint rem-note', text: tn(missing, '{n} congregant has no contact number. Add it under Congregants, or send the list to their priest.', '{n} congregants have no contact number. Add them under Congregants, or send the list to their priest.') }));
   if (s.sectionFilter) body.append(el('p', { class: 'small muted', text: t('Showing {section} only. Change this under Settings.', { section: s.sectionFilter }) }));
 
+  // the pastoral visits whose day has come or falls this week, above the dates: a member waiting for a visit comes first
+  const due = visitsDue(people);
+  if (due.length) {
+    body.append(el('h3', { class: 'sub rem-day' }, [el('span', { text: t('Visits due') }), el('span', { class: 'rem-when', text: String(due.length) })]));
+    const list = el('div', { class: 'list' });
+    for (const d of due) list.append(visitRow(d));
+    body.append(list);
+  }
+
   if (!events.length) {
     body.append(el('p', { class: 'muted', text: t('Nothing in the next {n} days.', { n: s.lookaheadDays }) }));
     return;
@@ -181,6 +240,21 @@ function eventRow(e, isSent) {
     el('span', { class: 'rem-glyph ' + e.type, html: e.type === 'birthday' ? ICON_CAKE : ICON_RINGS }),
     el('span', { class: 'rem-who' }, [el('span', { class: 'rem-name', text: Lib.coupleName(people) }), meta]),
     el('span', { class: 'pill link', text: t('Message') }),
+  ]);
+}
+
+/** A planned visit under Coming up: who, the day planned and how far off it is, the last visit. Tapping it opens the member's sheet at the visits. */
+function visitRow({ person: p, visit: v, daysAway }) {
+  const meta = el('div', { class: 'rem-meta' }, [
+    el('span', { text: t('Planned for {date}', { date: fmtDate(v.next) }) }),
+    el('span', { class: 'pill' + (daysAway < 0 ? ' warn' : ''), text: Lib.relativeLabel(daysAway) }),
+    el('span', { class: 'muted small', text: v.last ? t('Last visit {date}', { date: fmtDate(v.last) }) : t('Not visited yet') }),
+    p.sectionName ? el('span', { class: 'muted small', text: p.sectionName }) : null,
+  ]);
+  return el('button', { class: 'item rem-item', type: 'button', onclick: () => editPerson(p, { visits: true }) }, [
+    el('span', { class: 'rem-glyph visit', html: ICON_HOME }),
+    el('span', { class: 'rem-who' }, [el('span', { class: 'rem-name', text: Lib.shortName(p) }), meta]),
+    el('span', { class: 'pill link', text: t('Open') }),
   ]);
 }
 
@@ -273,18 +347,22 @@ function drawPeople(body) {
     ]));
   }
 
-  const needle = search.trim().toLowerCase();
-  const shown = list.filter(p => (!onlyMissing || !Lib.isUsablePhone(p.phone)) && (!needle || `${p.firstNames} ${p.surname} ${p.memberNo} ${p.sectionName}`.toLowerCase().includes(needle)))
-    .sort((a, b) => Lib.sortKey(a).localeCompare(Lib.sortKey(b)));
+  // by name; or, ticked, the members visited with the oldest visit first, then those with no visit noted
+  const lastVisit = p => { const v = visitOf(p.memberNo); return (v && v.last) || '9999'; };
+  const order = (a, b) => (byVisit ? lastVisit(a).localeCompare(lastVisit(b)) : 0) || Lib.sortKey(a).localeCompare(Lib.sortKey(b));
 
   const input = el('input', { type: 'search', value: search, placeholder: t('Search by name, member number or section'), 'aria-label': t('Search congregants') });
   input.addEventListener('input', () => { search = input.value; drawList(); });
   const check = el('input', { type: 'checkbox', id: 'rem-only-missing' });
   check.checked = onlyMissing;
   check.addEventListener('change', () => { onlyMissing = check.checked; drawList(); });
+  const byLast = el('input', { type: 'checkbox', id: 'rem-by-visit' });
+  byLast.checked = byVisit;
+  byLast.addEventListener('change', () => { byVisit = byLast.checked; drawList(); });
   const sec = section(t('Congregants'), [
     el('div', { class: 'row line' }, [input]),
     el('label', { class: 'check', for: 'rem-only-missing' }, [check, ' ', t('Only those without a number')]),
+    el('label', { class: 'check', for: 'rem-by-visit' }, [byLast, ' ', t('Visited longest ago first')]),
   ]);
   const head = el('div', { class: 'row rem-listhead' });
   const listBox = el('div', { class: 'list' });
@@ -293,8 +371,7 @@ function drawPeople(body) {
 
   function drawList() {
     const needle2 = search.trim().toLowerCase();
-    const rows2 = list.filter(p => (!onlyMissing || !Lib.isUsablePhone(p.phone)) && (!needle2 || `${p.firstNames} ${p.surname} ${p.memberNo} ${p.sectionName}`.toLowerCase().includes(needle2)))
-      .sort((a, b) => Lib.sortKey(a).localeCompare(Lib.sortKey(b)));
+    const rows2 = list.filter(p => (!onlyMissing || !Lib.isUsablePhone(p.phone)) && (!needle2 || `${p.firstNames} ${p.surname} ${p.memberNo} ${p.sectionName}`.toLowerCase().includes(needle2))).sort(order);
     clear(head);
     head.append(
       el('span', { class: 'muted small', text: t('{shown} of {total} shown', { shown: rows2.length, total: list.length }) }),
@@ -305,7 +382,6 @@ function drawPeople(body) {
     for (const p of rows2) listBox.append(personRow(p, all));
   }
   drawList();
-  void shown;
 }
 
 function personRow(p, all) {
@@ -317,18 +393,31 @@ function personRow(p, all) {
     Lib.isUsablePhone(p.phone) ? el('span', { text: Lib.formatPhone(p.phone) }) : el('span', { class: 'pill rem-nonum', text: t('No number') }),
     p.sectionName ? el('span', { class: 'muted small', text: p.sectionName }) : null,
   ]);
-  return el('button', { class: 'item rem-item', type: 'button', onclick: () => editPerson(p, all) }, [
+  const v = visitOf(p.memberNo);
+  const visits = v && (v.last || v.next) ? el('div', { class: 'rem-meta rem-visits' }, [
+    el('span', { text: '🏠 ' + (v.last ? t('Visited {date}', { date: fmtDate(v.last) }) : t('Not visited yet')) }),
+    v.next ? el('span', { class: daysFromToday(v.next) <= VISIT_SOON ? 'rem-due' : '', text: t('Next visit {date}', { date: fmtDate(v.next) }) }) : null,
+  ]) : null;
+  return el('button', { class: 'item rem-item', type: 'button', onclick: () => editPerson(p) }, [
     el('span', { class: 'rem-who' }, [
       el('span', { class: 'rem-name' }, [Lib.displayName(p), ' ', p.title ? el('span', { class: 'pill kind', text: p.title }) : null]),
       el('div', { class: 'rem-meta' }, bits),
       line2,
+      visits,
     ]),
     el('span', { class: 'pill link', text: t('Edit') }),
   ]);
 }
 
-/** The editor says as the number is typed what will be saved, or why it cannot be, and refuses an undialable one: the list cannot tell that from no number at all. */
-function editPerson(p) {
+/**
+ * The editor says as the number is typed what will be saved, or why it cannot
+ * be, and refuses an undialable one: the list cannot tell that from no number
+ * at all. Below the contact details are the minister's visits to this member:
+ * "Visited today" dates the last visit, a line says what was said, and the next
+ * visit is planned by date or a tap ("In a month"). With {visits: true} the
+ * sheet opens at that part.
+ */
+function editPerson(p, { visits = false } = {}) {
   const sh = sheet(Lib.displayName(p));
   sh.body.append(el('p', { class: 'small muted rem-memberno', text: t('No. {n}', { n: p.memberNo }) }));
   const phone = el('input', { type: 'tel', value: p.phone ? Lib.formatPhone(p.phone) : '', placeholder: '082 123 4567', autocomplete: 'off' });
@@ -345,10 +434,27 @@ function editPerson(p) {
   };
   phone.addEventListener('input', check);
   check();
+  const v0 = visitOf(p.memberNo) || {};
+  const lastIn = el('input', { type: 'date', value: v0.last || '' });
+  const saidIn = el('input', { type: 'text', value: v0.said || '', placeholder: t('e.g. her son is in hospital; pray for him') });
+  const nextIn = el('input', { type: 'date', value: v0.next || '' });
+  const today = el('button', { class: 'btn small', type: 'button', text: t('Visited today'), onclick: () => {
+    const now = isoDay(new Date());
+    if (lastIn.value !== now) { lastIn.value = now; saidIn.value = ''; }
+    if (nextIn.value && nextIn.value <= now) nextIn.value = '';   // the visit that was planned has been made
+    saidIn.focus();
+  } });
+  lastIn.addEventListener('change', () => { if (v0.last && lastIn.value > v0.last && saidIn.value === (v0.said || '')) saidIn.value = ''; });   // a later date is a new visit: its line starts empty
+  const soon = el('div', { class: 'chips rem-soon' }, [[t('In 2 weeks'), { days: 14 }], [t('In a month'), { months: 1 }], [t('In 3 months'), { months: 3 }]]
+    .map(([label, when]) => el('button', { class: 'chip', type: 'button', text: label, onclick: () => { nextIn.value = dayAhead(when); } })));
   save.addEventListener('click', async () => {
     const c = check();
     const next = { ...p, phone: c.ok ? c.normalised : '', preferredName: pref.value.trim() || undefined, notes: notes.value.trim() || undefined };
     await savePerson(next);
+    const visit = { memberNo: p.memberNo, last: lastIn.value || '', said: saidIn.value.trim(), next: nextIn.value || '', log: v0.log || [] };
+    if (v0.last && visit.last && v0.last < visit.last) visit.log = [{ date: v0.last, note: v0.said || '' }, ...visit.log.filter(e => e.date !== v0.last)].slice(0, VISIT_LOG);   // the visit before this one joins the earlier ones
+    if (visit.next && visit.last && visit.next <= visit.last) visit.next = '';   // a day planned that has since been visited is done
+    await saveVisit(p.memberNo, visit);
     sh.close();
     toast(Lib.isUsablePhone(next.phone) ? t('Saved — {name} is now on {number}.', { name: Lib.displayName(next), number: Lib.formatPhone(next.phone) }) : t('Saved — {name} still has no contact number.', { name: Lib.displayName(next) }));
     redraw();
@@ -358,17 +464,31 @@ function editPerson(p) {
     el('label', {}, [el('span', { text: t('Preferred name (optional)') }), pref]),
     el('label', { class: 'full' }, [el('span', { text: t('Note, shown when you write to them') }), notes]),
   ]));
+  const visitsHead = el('h3', { class: 'sub rem-visits-head', text: t('Visits') });
+  sh.body.append(visitsHead,
+    el('p', { class: 'small muted', text: t('Your own notes of your visits to {name}. They stay on your devices, like the list.', { name: Lib.firstName(p) }) }),
+    el('div', { class: 'row' }, [today]),
+    el('div', { class: 'fields two' }, [
+      el('label', {}, [el('span', { text: t('Last visit') }), lastIn]),
+      el('label', {}, [el('span', { text: t('Next visit') }), nextIn, soon]),
+      el('label', { class: 'full' }, [el('span', { text: t('What was said, or to follow up (optional)') }), saidIn]),
+    ]));
+  if ((v0.log || []).length) {
+    sh.body.append(el('h3', { class: 'sub', text: t('Earlier visits') }),
+      el('div', { class: 'rem-log' }, v0.log.map(e => el('p', { class: 'small muted', text: fmtDate(e.date) + (e.note ? ' — ' + e.note : '') }))));
+  }
   sh.body.append(el('div', { class: 'row end' }, [
     el('button', { class: 'btn ghost danger', type: 'button', text: t('Remove'), onclick: async () => {
       if (!(await confirmBox(t('Remove {name} from the list? A later listing will bring them back.', { name: Lib.displayName(p) }), t('Remove'), true))) return;
       await deleteReminder('person:' + p.memberNo);
+      if (visitOf(p.memberNo)) await deleteReminder('visit:' + p.memberNo);   // the notes about someone no longer on the list go with them
       sh.close(); redraw();
     } }),
     el('span', { class: 'spacer' }),
     el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => sh.close() }),
     save,
   ]));
-  setTimeout(() => phone.focus(), 30);
+  setTimeout(() => { if (visits) { visitsHead.scrollIntoView({ block: 'start' }); today.focus(); } else phone.focus(); }, 30);
 }
 
 async function exportPeople(list, scope) {
