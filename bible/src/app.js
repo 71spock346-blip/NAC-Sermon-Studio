@@ -33,7 +33,10 @@
  * #altar/<id> is Altar mode (altar.js): the cue cards and the altar card of
  * one preparation on one full screen, a swipe apart, opened from the Sunday
  * card; the header, the menu and the bar are hidden while it is open
- * (body.altar).
+ * (body.altar). #record/<id> is the service record of one preparation
+ * (record.js), the form for the district's WhatsApp group, opened from the
+ * Sunday card once the day has come and from the preparation's Print step;
+ * Sunday stays lit while it is open.
  *
  * #sync/<code> is the link a sync QR code or "Copy link" carries: it opens
  * Settings and offers to join with that code (sync.js keeps the devices the
@@ -61,6 +64,7 @@ import * as More from './more.js';
 import * as Tools from './tools.js';   // "What I use": the tools unticked in Settings leave the menu and More
 import * as Sunday from './sunday.js';   // the front door: the next divine service, one tap to each thing used at the altar
 import * as Altar from './altar.js';   // Altar mode: the cue cards and the altar card on one full screen, from the Sunday card
+import * as Record from './record.js';   // the service record: NACSA's form, filled in after the service for the district's WhatsApp group
 import * as Mis from './mis.js';   // the Church's MIS: a section whose button opens the site itself
 import * as Sync from './sync.js';
 import * as Update from './update.js';   // a newer version of the app on the site: a bar offers to load it
@@ -69,6 +73,7 @@ import * as Welcome from './welcome.js';   // first-time setup: five steps on a 
 const TABS = {
   sunday: Sunday.render,
   altar: Altar.render,
+  record: Record.render,
   read: Reader.render,
   notes: Notes.render,
   prepare: Prepare.render,
@@ -111,7 +116,7 @@ function route() {
     b.setAttribute('aria-selected', on ? 'true' : 'false');
     b.tabIndex = on ? 0 : -1;
     // a section listed under another lights that one too: More while one of its sections is open (the phone's bar; a PC shows them in the menu, and no More), Handbooks while the Catechism or the Liturgy is open
-    b.classList.toggle('also', (b.dataset.tab === 'more' && More.isMore(tab)) || (b.dataset.tab === 'handbooks' && Handbooks.holds(tab)));
+    b.classList.toggle('also', (b.dataset.tab === 'more' && More.isMore(tab)) || (b.dataset.tab === 'handbooks' && Handbooks.holds(tab)) || (b.dataset.tab === 'sunday' && tab === 'record'));
   }
   for (const panel of $$('main .tab')) panel.hidden = panel.id !== 'tab-' + tab;
   const container = $('#tab-' + tab);
@@ -187,6 +192,7 @@ function onSynced(e) {
   if (typing || $('.overlay')) return;
   if (tab === 'read') return;                               // the reader keeps its place; the notes show on the next chapter
   if (tab === 'altar') return;                              // nothing is pulled from under the person at the altar
+  if (tab === 'record') return;                             // the record being filled in keeps what is typed; the other device's lines show on the next open
   if ((tab === 'prepare' || tab === 'reflect') && hash.length > 1) return;   // an open preparation or evening is not pulled from under the person
   if (tab === 'notes' && !parts.includes('notes')) return;
   if (tab === 'catechism' && !parts.includes('catechism')) return;
