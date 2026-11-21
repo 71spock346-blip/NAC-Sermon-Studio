@@ -16,10 +16,15 @@
  * start the form. #record/<id> opens it: the Sunday card offers it once the
  * day has come, and the preparation's Print step always.
  *
- * "Send to WhatsApp" opens WhatsApp with the message typed in, where the
- * group is chosen (wa.me, as the greetings of Reminders do); "Copy" puts it
- * on the clipboard; "Save as PDF" makes an A5 page of the form. The message
- * and the page are in the language of the app.
+ * "The form" shows the record on NACSA's paper form, as record-form.js draws
+ * it (paper() gives what goes on its lines): "Send as a picture" hands a PNG
+ * of it to the phone's share sheet, where WhatsApp and the group are chosen;
+ * "Send as PDF" does the same with an A5 PDF of it; "Two on one A4" makes the
+ * A4 sheet with two forms side by side, as the paper is printed. The form is
+ * in English, as the paper is. "The message" is the record as typed lines:
+ * "Send to WhatsApp" opens WhatsApp with it typed in (wa.me, as the greetings
+ * of Reminders do), "Copy" puts it on the clipboard; it is in the language of
+ * the app.
  */
 import { el, clear, toast, copyText } from './ui.js';
 import { state, saveSermon } from './store.js';
@@ -27,6 +32,7 @@ import { t, locale } from './i18n.js';
 import { formatRef } from './books.js';
 import * as Pdf from './pdf.js';
 import { serviceTimes } from './plan.js';   // the usual time of a Sunday and a midweek service
+import { formPdf, formPicture, preview as drawPaper } from './record-form.js';
 
 const DENOMS = [10, 20, 50, 100, 200];
 const HYMNS = ['opening', 'callUp', 'afterText', 'repentance', 'communion', 'closing'];
@@ -112,93 +118,78 @@ export function lines(s) {
 }
 export const recordText = s => lines(s).join('\n');
 
-/* ----------------------------------------------------------------- the PDF */
+/* ---------------------------------------------------------- the paper form */
 
-/** The record as one A5 page (more when the remarks run long), the form's lines in order; {blob, name, title}. */
-export function recordPdf(s) {
-  const r = recordOf(s), h = header(s);
-  const doc = new (Pdf.jsPDF())({ unit: 'mm', format: 'a5', orientation: 'portrait' });
-  const w = new Pdf.Writer(doc, 12);
-  const X = v => Pdf.winAnsi(String(v));
-  const half = w.width / 2 - 2;   // two columns, 4 mm apart: the record stays on one A5 page
-  w.font(15, 'bold');
-  doc.text(X(t('Service record')), w.m, w.y + 5);
-  w.font(8.5, 'normal', Pdf.MUTED);
-  doc.text('NACSA · Pastoral', w.w - w.m, w.y + 5, { align: 'right' });
-  w.y += 10;
-  /** A section's heading, set closer than the handbooks' headings. */
-  const head = text => {
-    w.font(10.5, 'bold', Pdf.BLUE);
-    w.ensure(w.lead * 2 + 3);
-    w.y += 2;
-    doc.text(X(text), w.m, w.y + w.lead * 0.75);
-    w.y += w.lead + 1;
+/** "R 1 257,50" as the English form writes it. */
+const randEn = n => 'R ' + n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * What goes on the paper form's lines (record-form.js), keyed by its blanks,
+ * in English as the paper is: the service from the preparation, the hymns
+ * (the call-up hymns one to a blank: "12, 33"), the counts, the offerings in
+ * rand by note with the total, the Apostle's acts with their totals. A part
+ * with nothing typed stays blank; in a part that has something, an empty
+ * count is 0 (attendance, sealing), and an empty note or ministry is blank.
+ */
+export function paper(s) {
+  const r = recordOf(s);
+  const v = {
+    refNo: r.refNo,
+    congregation: s.congregation || state.settings.congregation || '',
+    date: s.date ? new Date(s.date + 'T12:00:00').toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' }) : '',
+    ref: s.ref ? formatRef(s.ref, 'en') : (s.refText || ''),
+    start: r.start, end: r.end,
+    kind: s.occasion || 'Sunday divine service',
+    opening: r.hymns.opening, afterText: r.hymns.afterText, repentance: r.hymns.repentance, communion: r.hymns.communion, closing: r.hymns.closing,
+    conductedBy: r.conductedBy, assistedBy: r.assistedBy, remarks: r.remarks, completedBy: r.completedBy, capturedBy: r.capturedBy,
   };
-  /** "Label: value" from x, the value wrapped under itself within the width; drawn when the row knows its height. */
-  const cell = (label, value, x, width) => {
-    w.font(10, 'bold');
-    const lw = doc.getTextWidth(X(label + ': '));
-    w.font(10, 'normal');
-    const lines = doc.splitTextToSize(X(value), width - lw);
-    return {
-      n: lines.length,
-      draw() {
-        w.font(10, 'bold');
-        doc.text(X(label + ':'), x, w.y + w.lead * 0.75);
-        w.font(10, 'normal');
-        lines.forEach((line, i) => doc.text(line, x + lw, w.y + w.lead * (i + 0.75)));
-      },
-    };
-  };
-  /** A row of one or two fields. An empty field is left out, and a field on its own spans the row. */
-  const row = (...fields) => {
-    const F = fields.filter(([, v]) => v !== '' && v != null);
-    if (!F.length) return;
-    const cells = F.length === 1 ? [cell(F[0][0], F[0][1], w.m, w.width)] : [cell(F[0][0], F[0][1], w.m, half), cell(F[1][0], F[1][1], w.m + half + 4, half)];
-    const n = Math.max(...cells.map(c => c.n));
-    w.font(10, 'normal');
-    w.ensure(n * w.lead);
-    cells.forEach(c => c.draw());
-    w.y += n * w.lead + 0.8;
-  };
-  head(t('The service'));
-  row([t('Congregation'), h.congregation], [t('Date'), h.date]);
-  row([t('Time'), timeSpan(r)], [t('Service type'), h.kind]);
-  row([t('Bible word'), h.ref], [t('Ref no'), r.refNo]);
-  row([t('Conducted by'), r.conductedBy], [t('Assisted by'), r.assistedBy]);
-  const hy = HYMNS.filter(k => r.hymns[k]);
-  if (hy.length) {
-    head(t('Hymns'));
-    for (let i = 0; i < hy.length; i += 2) row(...hy.slice(i, i + 2).map(k => [hymnLabel[k](), r.hymns[k]]));
-  }
-  if (any(r.attendance)) {
-    head(t('Attendance'));
-    row([t('Adults'), count(num(r.attendance.adults))], [t('Children'), count(num(r.attendance.children))]);
-    row([t('Visitors'), count(num(r.attendance.visitors))], [t('Total'), count(attendanceTotal(r))]);
-  }
+  const calls = String(r.hymns.callUp || '').split(/\s*[,;/&]\s*|\s+(?:and|en)\s+/i).map(x => x.trim()).filter(Boolean);
+  v.callUp1 = calls[0] || ''; v.callUp2 = calls[1] || ''; v.callUp3 = calls.slice(2).join(', ');
+  const a = r.attendance;
+  if (any(a)) Object.assign(v, { 'att.adults': count(num(a.adults)), 'att.children': count(num(a.children)), 'att.visitors': count(num(a.visitors)), 'att.total': count(attendanceTotal(r)) });
   if (any(r.offerings)) {
-    head(t('Offerings'));
-    const O = offeringLines(r);
-    for (let i = 0; i < O.length; i += 2) {
-      w.font(10, 'normal');
-      w.ensure(w.lead);
-      doc.text(X(O[i]), w.m, w.y + w.lead * 0.75);
-      if (O[i + 1]) doc.text(X(O[i + 1]), w.m + half + 4, w.y + w.lead * 0.75);
-      w.y += w.lead + 0.8;
+    for (const d of DENOMS) if (String(r.offerings['n' + d]).trim()) v['off.' + d] = randEn(num(r.offerings['n' + d]) * d);
+    if (String(r.offerings.coins).trim()) v['off.coins'] = randEn(num(r.offerings.coins));
+    v['off.total'] = randEn(offeringsTotal(r));
+  }
+  const sl = r.sealing;
+  if (any(sl)) Object.assign(v, { 'seal.adults': count(num(sl.adults)), 'seal.children': count(num(sl.children)), 'seal.babies': count(num(sl.babies)), 'seal.total': count(sealingTotal(r)) });
+  if (any(r.ordination)) {
+    for (const [c] of MINISTRIES) if (String(r.ordination[c]).trim()) v['ord.' + c] = count(num(r.ordination[c]));
+    v['ord.total'] = count(ordinationTotal(r));
+  }
+  return v;
+}
+
+const named = (s, suffix, ext) => Pdf.fileName(s, suffix).replace(/\.pdf$/, ext);
+
+/** The paper form as a PDF: one A5 page, or with two: true the A4 sheet with two forms side by side; {blob, name, title}. */
+export function recordPdf(s, { two = false } = {}) {
+  return {
+    blob: formPdf(paper(s), { two }),
+    name: named(s, two ? '-service-record-A4' : '-service-record', '.pdf'),
+    title: `${t('Service record')}: ${header(s).ref || header(s).date}`,
+  };
+}
+
+/** The paper form as a picture (PNG) for the WhatsApp group; a Promise of {blob, name, title}. */
+export async function recordPicture(s) {
+  return { blob: await formPicture(paper(s)), name: named(s, '-service-record', '.png'), title: `${t('Service record')}: ${header(s).ref || header(s).date}` };
+}
+
+/** Hands a file to the share sheet (WhatsApp and the group are chosen there), or saves it where there is none. */
+async function send(r, type) {
+  const file = new File([r.blob], r.name, { type });
+  try {
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: r.title });
+      return 'shared';
     }
-    row([t('Total'), rand(offeringsTotal(r))]);
+  } catch (e) {
+    if (e && e.name === 'AbortError') return 'cancelled';
   }
-  if (any(r.sealing) || any(r.ordination)) {
-    head(t('Apostle service'));
-    if (any(r.sealing)) row([t('Sealing'), `${t('adults')} ${count(num(r.sealing.adults))}, ${t('children')} ${count(num(r.sealing.children))}, ${t('NAC babies')} ${count(num(r.sealing.babies))} — ${t('total')} ${count(sealingTotal(r))}`]);
-    if (any(r.ordination)) row([t('Ordination'), MINISTRIES.filter(([c]) => r.ordination[c]).map(([c, name]) => `${t(name)} (${c}) ${count(num(r.ordination[c]))}`).join(', ') + ` — ${t('total')} ${count(ordinationTotal(r))}`]);
-  }
-  if (r.remarks) { head(t('Remarks')); w.para(X(r.remarks), { size: 10 }); }
-  w.space(1.5);
-  row([t('Completed by'), r.completedBy], [t('Captured on MIS by'), r.capturedBy]);
-  w.space(2);
-  w.para(X(t('Please ensure these details are captured on MIS under Activity Record Capture within 24 hours of the service.')), { size: 8.5, color: Pdf.MUTED });
-  return { blob: doc.output('blob'), name: Pdf.fileName(s, '-service-record'), title: `${t('Service record')}: ${h.ref || h.date}` };
+  Pdf.download(r);
+  return 'saved';
 }
 
 /* -------------------------------------------------------------- the screen */
@@ -281,17 +272,36 @@ export function render(container, route) {
     el('p', { class: 'small muted', text: t('Please ensure these details are captured on MIS under Activity Record Capture within 24 hours of the service.') }),
   ]));
 
-  // the message as the group reads it, and the ways out
-  const preview = el('pre', { class: 'record-text' });
-  const waLink = el('a', { class: 'btn rem-wa', target: '_blank', rel: 'noreferrer', text: t('Send to WhatsApp') });
+  // the record on the paper form, then as typed lines, and the ways out
   const withRecord = () => ({ ...s, record: current() });
+  const saved = r => toast(t('Saved as "{file}". Send it to the group from your downloads.', { file: r.name }));
+  /** A button that is off while its job runs (the picture takes a moment on a phone). */
+  const action = (text, cls, job) => {
+    const b = el('button', { class: cls, type: 'button', text });
+    b.addEventListener('click', async () => {
+      b.disabled = true;
+      try { await job(); } catch (e) { toast(t('Could not make the form: {error}', { error: e && e.message ? e.message : String(e) })); } finally { b.disabled = false; }
+    });
+    return b;
+  };
+  const paperView = el('canvas', { class: 'record-paper', role: 'img', 'aria-label': t('The service record on the paper form') });
+  page.append(section(t('The form'), [
+    el('p', { class: 'small muted', text: t('Your record on NACSA’s paper form, in English as the office knows it. With Send as a picture it goes like a photo of the form: choose WhatsApp, then the group.') }),
+    paperView,
+    el('div', { class: 'row' }, [
+      action(t('Send as a picture'), 'btn rem-wa', async () => { const r = await recordPicture(withRecord()); if ((await send(r, 'image/png')) === 'saved') saved(r); }),
+      action(t('Send as PDF'), 'btn ghost', async () => { const r = recordPdf(withRecord()); if ((await send(r, 'application/pdf')) === 'saved') saved(r); }),
+      action(t('Two on one A4 (PDF)'), 'btn ghost', async () => { Pdf.download(recordPdf(withRecord(), { two: true })); }),
+    ]),
+  ]));
+  const textView = el('pre', { class: 'record-text' });
+  const waLink = el('a', { class: 'btn ghost', target: '_blank', rel: 'noreferrer', text: t('Send to WhatsApp') });
   page.append(section(t('The message'), [
-    preview,
+    el('p', { class: 'small muted', text: t('The same record as a typed message.') }),
+    textView,
     el('div', { class: 'row' }, [
       waLink,
       el('button', { class: 'btn ghost', type: 'button', text: t('Copy'), onclick: async () => { toast((await copyText(recordText(withRecord()))) ? t('Copied.') : t('Could not copy.')); } }),
-      el('button', { class: 'btn ghost', type: 'button', text: t('Save as PDF'), onclick: () => Pdf.download(recordPdf(withRecord())) }),
-      Pdf.canShare() ? el('button', { class: 'btn ghost', type: 'button', text: t('Share'), onclick: () => Pdf.share(recordPdf(withRecord())) }) : null,
     ]),
   ]));
   container.append(page);
@@ -308,8 +318,9 @@ export function render(container, route) {
     totals.sealing.textContent = `${t('Total')}: ${count(sealingTotal(cur))}`;
     totals.ordination.textContent = `${t('Total')}: ${count(ordinationTotal(cur))}`;
     const text = recordText({ ...s, record: cur });
-    preview.textContent = text;
+    textView.textContent = text;
     waLink.href = 'https://wa.me/?text=' + encodeURIComponent(text);
+    drawPaper(paperView, paper({ ...s, record: cur }));
   }
   function changed() {
     refresh();
