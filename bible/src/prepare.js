@@ -87,6 +87,7 @@ import * as Read from './read.js';   // the sermon and the cue cards on the scre
 import * as Guides from './guides.js';
 import * as AI from './ai.js';
 import * as Hymn from './hymns.js';   // the hymns of the service: four numbers under "The service", their titles from the Choir planner's index
+import * as PrepFile from './prepfile.js';   // one preparation as a file to another minister: "Send to a minister" under Print or save, "Open the file" under the list
 import * as Reflect from './reflect.js';
 import * as Liturgy from './liturgy.js';
 import * as Speech from './speech.js';
@@ -303,7 +304,12 @@ function renderList(container, q = '') {
       el('button', { class: 'btn small', type: 'button', text: t('New preparation'), onclick: () => newBlank() }),
     ]),
     ...[Guides.card({ onPrepare: newFromService, onChange: redraw })].filter(Boolean),   // null on a locked device without a Guide (lock.js)
-    search, list);
+    search, list,
+    // the file another minister sent, picked here on a PC or an iPhone (an installed Android app takes it from WhatsApp's share sheet: files.js takeShared)
+    el('div', { class: 'from-file' }, [
+      el('span', { class: 'grow muted', text: t('A preparation another minister sent you as a file?') }),
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Open the file'), onclick: () => PrepFile.pick() }),
+    ]));
   show();
 }
 
@@ -533,7 +539,7 @@ function renderEditor(root, s) {
     6: { short: t('Summary'), filled: () => FILLED[6](s),
       summary: () => names([[has(s.application), t('Application')], [has(s.summary), t('Summary')], [has(s.conclusion), t('Conclusion')]]).join(' · ') || none() },
     7: { short: t('Illustrations'), filled: () => FILLED[7](s), summary: () => short(s.illustrations) || none() },
-    print: { short: t('Print'), filled: () => true, summary: () => [t('Sermon notes'), t('The sermon'), t('Cue cards'), Speech.ready() ? t('Hear the sermon') : null].filter(Boolean).join(' · ') },
+    print: { short: t('Print'), filled: () => true, summary: () => [t('Sermon notes'), t('The sermon'), t('Cue cards'), Speech.ready() ? t('Hear the sermon') : null, t('Send to a minister')].filter(Boolean).join(' · ') },
     8: { short: t('After'), filled: () => has(s.reflection), summary: () => short(s.reflection) || none() },
     9: { short: t('Evening'), filled: () => Reflect.hasSlides(s), summary: () => (Reflect.hasSlides(s) ? t('The slides are made.') : t('No slides yet.')) },
   };
@@ -640,6 +646,8 @@ function renderEditor(root, s) {
   const page = el('div', { class: 'page' });
   root.append(page);
   let container = page;
+  const fromLine = PrepFile.fromLine(s);   // a copy another minister sent: who, and when
+  if (fromLine) page.append(fromLine);
 
   // ---- service details: the first section, with the people who listen
   step('service', t('The service'), null);
@@ -1664,6 +1672,12 @@ function renderEditor(root, s) {
     outRow(t('The sermon'), Pdf.sermonTextPdf, true, () => Read.sermon(s)),
     // while the person's own introduction is empty, the cards carry the Guide's (cues.js introText)
     outRow(t('Cue cards'), x => Pdf.cueCardPdf(x, { service: cueService() }), false, () => Read.cues(s, { service: cueService() })),
+    // the whole preparation as a small file to another minister (prepfile.js): the share sheet on a phone, a saved file on a PC
+    el('div', { class: 'row out-row' }, [
+      el('span', { class: 'out-label', text: t('The whole preparation') }),
+      el('button', { class: 'btn small', type: 'button', text: t('Send to a minister'), onclick: () => PrepFile.send(s) }),
+    ]),
+    el('p', { class: 'muted small send-note', text: t('A small file for WhatsApp or e-mail. Opened in the app on the other device, it becomes that minister\'s own copy.') }),
   ]));
 
   // ---- the words on the cue cards (cues.js): one line per heading. His own cues, with # between them; while a line

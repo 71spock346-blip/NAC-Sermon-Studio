@@ -38,6 +38,7 @@ import * as Cat from './catechism.js';
 import * as Liturgy from './liturgy.js';
 import * as Handbooks from './handbooks.js';
 import * as Guides from './guides.js';
+import * as PrepFile from './prepfile.js';   // a preparation another minister sent: the same share sheet brings it here, and it goes on to Prepare
 import * as AI from './ai.js';
 import * as Sync from './sync.js';
 import { KNOWN } from './handbook.js';
@@ -176,7 +177,7 @@ function guidesRow() {
       : t('The month\'s Guide for the divine services: its services with their text words, messages and articles, so a preparation starts with the main points filled in. Another minister sends it to you as a file from the app (WhatsApp on a phone); load that file here.'),
     buttons: [
       reads ? el('button', { class: 'btn small' + (months.length ? ' ghost' : ''), type: 'button', text: t('Load a Guide (PDF)'), onclick: async () => { if (await Guides.load()) redraw(); } }) : null,
-      el('button', { class: 'btn small' + (reads || months.length ? ' ghost' : ''), type: 'button', text: t('Load a Guide file'), onclick: async () => { if (await Guides.loadFile()) redraw(); } }),
+      el('button', { class: 'btn small' + (reads || months.length ? ' ghost' : ''), type: 'button', text: t('Load a Guide file'), onclick: () => pick('application/json,.json', async file => { if (await PrepFile.readFile(file) !== null) return; if (await Guides.readFile(file)) redraw(); }) }),   // a preparation picked here by mistake opens under Prepare
       months.length ? el('button', { class: 'btn small', type: 'button', text: t('Send this month\'s Guide'), onclick: () => Guides.sendAny() }) : null,
     ],
   });
@@ -206,8 +207,12 @@ async function takeShared() {
   } catch (e) { console.warn(e); }
   history.replaceState(null, '', '#files');   // the address is the screen's own again, so a reload does not look for the file twice
   if (!file) return;
-  if (/\.json$/i.test(file.name) || /json/i.test(file.type)) { if (await Guides.readFile(file)) redraw(); return; }
-  toast(t('The app cannot load that file. It takes the Guide file another minister sent from the app.'), true);
+  if (/\.json$/i.test(file.name) || /json/i.test(file.type)) {
+    if (await PrepFile.readFile(file) !== null) return;   // a preparation another minister sent: it opens under Prepare (prepfile.js)
+    if (await Guides.readFile(file)) redraw();
+    return;
+  }
+  toast(t('The app cannot load that file. It takes a Guide file or a preparation another minister sent from the app.'), true);
 }
 
 /* ---------------------------------------------------------------- loading */
