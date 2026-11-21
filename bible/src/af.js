@@ -2096,7 +2096,7 @@ export const AF = {
   "closing": "slot",
   "Hymns: {list}": "Gesange: {list}",
   "Hymns {list}": "Gesange {list}",
-  "e.g. 104": "bv. 104",
+  "e.g. E 104": "bv. E 104",
   "Not in the index: the number stands as typed.": "Nie in die indeks nie: die nommer staan soos getik.",
   "No hymn with these words in the index.": "Geen gesang met hierdie woorde in die indeks nie.",
   // one preparation as a file to another minister (prepfile.js): "Send to a minister" under Print or save, "Open the file" under the list

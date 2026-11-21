@@ -747,7 +747,7 @@ function renderEditor(root, s) {
   // ---- the hymns of the service: four numbers, the titles from the Choir planner's index (hymns.js); they head the sermon notes and the cue cards
   if (!s.hymns) s.hymns = Hymn.blank();   // a preparation from before November 2026
   container.append(el('div', { class: 'fields hymns' }, Hymn.SLOTS.map(key => {
-    const input = el('input', { type: 'text', class: 'hymn-no', value: s.hymns[key] || '', placeholder: t('e.g. 104'), autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false' });
+    const input = el('input', { type: 'text', class: 'hymn-no', value: s.hymns[key] || '', placeholder: t('e.g. E 104'), autocomplete: 'off', autocapitalize: 'characters', autocorrect: 'off', spellcheck: 'false' });
     const hint = el('span', { class: 'hint muted small' });
     const picks = el('span', { class: 'hymn-picks' });
     /** The title under the number; words instead of a number bring up to three hymns to tap. */

@@ -37,9 +37,14 @@ import { formatRef } from './books.js';
 import * as Pdf from './pdf.js';
 import { serviceTimes } from './plan.js';   // the usual time of a Sunday and a midweek service
 import { formPdf, formPicture, preview as drawPaper } from './record-form.js';
+import { norm as hymnNorm } from './hymns.js';   // "hc12" → "HC 12", "e 104" → "E 104", as the Prepare boxes write them
 
 const DENOMS = [10, 20, 50, 100, 200];
 const HYMNS = ['opening', 'callUp', 'afterText', 'repentance', 'communion', 'closing'];
+/** Between two hymns in one box (the call-up hymns): "A 12, E 7", "12 and 7", "12 en 7". */
+const HYMN_SEP = /(\s*[,;/&]\s*|\s+(?:and|en)\s+)/i;
+/** Each number in a hymn box written the usual way, what is between them kept: "hc12, e 104" → "HC 12, E 104". */
+export const tidyHymns = text => String(text == null ? '' : text).split(HYMN_SEP).map((part, i) => (i % 2 ? part : hymnNorm(part))).join('').trim();
 const MINISTRIES = [['DC', 'Deacon'], ['PR', 'Priest'], ['CEV', 'Community Evangelist'], ['SH', 'Shepherd'], ['CEL', 'Community Elder'], ['DEV', 'District Evangelist'], ['DEL', 'District Elder']];
 const SAVE_AFTER = 400;   // ms after the last keystroke
 /* ------------------------------------------------------------- the record */
@@ -147,7 +152,7 @@ export function paper(s) {
     opening: r.hymns.opening, afterText: r.hymns.afterText, repentance: r.hymns.repentance, communion: r.hymns.communion, closing: r.hymns.closing,
     conductedBy: r.conductedBy, assistedBy: r.assistedBy, remarks: r.remarks, completedBy: r.completedBy, capturedBy: r.capturedBy,
   };
-  const calls = String(r.hymns.callUp || '').split(/\s*[,;/&]\s*|\s+(?:and|en)\s+/i).map(x => x.trim()).filter(Boolean);
+  const calls = String(r.hymns.callUp || '').split(HYMN_SEP).filter((x, i) => i % 2 === 0).map(x => x.trim()).filter(Boolean);
   v.callUp1 = calls[0] || ''; v.callUp2 = calls[1] || ''; v.callUp3 = calls.slice(2).join(', ');
   const a = r.attendance;
   if (any(a)) Object.assign(v, { 'att.adults': count(num(a.adults)), 'att.children': count(num(a.children)), 'att.visitors': count(num(a.visitors)), 'att.total': count(attendanceTotal(r)) });
@@ -282,13 +287,28 @@ export function render(container, route) {
   const inputs = {};   // 'attendance.adults' -> its input
   const valueAt = path => { const [a, b] = path.split('.'); return b ? r[a][b] : r[a]; };
   const field = (path, label, attrs = {}, extra = null) => {
-    const input = el(attrs.tag || 'input', { type: attrs.tag ? null : attrs.type || 'text', value: attrs.tag ? null : valueAt(path), inputmode: attrs.inputmode || null, min: attrs.min, step: attrs.step, placeholder: attrs.placeholder || null, rows: attrs.rows, 'aria-label': label });
+    const input = el(attrs.tag || 'input', { type: attrs.tag ? null : attrs.type || 'text', value: attrs.tag ? null : valueAt(path), inputmode: attrs.inputmode || null, min: attrs.min, step: attrs.step, placeholder: attrs.placeholder || null, rows: attrs.rows, 'aria-label': label, ...(attrs.input || {}) });
     if (attrs.tag) input.value = valueAt(path);
     inputs[path] = input;
     input.addEventListener('input', changed);
     return el('label', { class: [attrs.plain ? '' : 'f', attrs.full ? 'full' : ''].join(' ').trim() || null }, [el('span', { text: label }), input, extra]);
   };
   const n = (path, label) => field(path, label, { type: 'number', inputmode: 'numeric', min: '0', step: '1' });
+  /**
+   * A hymn box: the whole keyboard, starting in capitals, since the book's
+   * letters go before the number: A 104 (Afrikaans), E 104 (English), HC 12
+   * (the Hymn Collection). On leaving the box each number is written the
+   * usual way ("hc12, e 104" becomes "HC 12, E 104").
+   */
+  const hymnBox = k => {
+    const box = field('hymns.' + k, hymnLabel[k](), { placeholder: t('e.g. E 104'), input: { autocapitalize: 'characters', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false' } });
+    const input = inputs['hymns.' + k];
+    input.addEventListener('change', () => {
+      const v = tidyHymns(input.value);
+      if (v !== input.value) { input.value = v; changed(); }
+    });
+    return box;
+  };
   const total = () => el('p', { class: 'record-total' });
   const totals = { attendance: total(), offerings: total(), sealing: total(), ordination: total() };
 
@@ -301,7 +321,7 @@ export function render(container, route) {
     ]),
   ]));
   page.append(section(t('Hymns'), [
-    el('div', { class: 'fields cols', style: '--cols: 3; --phone-cols: 2' }, HYMNS.map(k => field('hymns.' + k, hymnLabel[k](), { inputmode: 'numeric' }))),
+    el('div', { class: 'fields cols', style: '--cols: 3; --phone-cols: 2' }, HYMNS.map(hymnBox)),
   ]));
   page.append(section(t('Attendance'), [
     el('div', { class: 'fields cols' }, [n('attendance.adults', t('Adults')), n('attendance.children', t('Children')), n('attendance.visitors', t('Visitors'))]),

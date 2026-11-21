@@ -4,8 +4,10 @@
  * under "The service" in Prepare. Until November 2026 he wrote them somewhere
  * else. The Choir planner's index (choir-library.js Hymns, 1,317 hymns)
  * gives the titles: "104" is the hymn book, "E 104" the English book and
- * "A 7" the Afrikaans one, as the conductor's workbook writes them. A number
- * the index does not know stands as typed.
+ * "A 7" the Afrikaans one, as the conductor's workbook writes them. "HC 12"
+ * is the Hymn Collection, which the index does not hold (Jerome, November
+ * 2026: "A for Afrikaans, E for English, or HC for Hymn Collection"). A
+ * number the index does not know stands as typed.
  *
  * They go at the top of the sermon notes, with their titles (pdf.js
  * sermonPdf), on the first cue card and on the screen's readings without
@@ -32,9 +34,9 @@ const WORDS = {
 export const label = key => LABELS[key]();
 export const blank = () => ({ opening: '', sermon: '', communion: '', closing: '' });
 
-/** Does the typed text name a hymn by number: "104", "e104", "A 7"? */
-export const isNumber = text => /^([EAea]\s*)?\d+$/.test(String(text || '').trim());
-/** "e104" → "E 104", " 007 " → "7"; anything else as typed. */
+/** Does the typed text name a hymn by number: "104", "e104", "A 7", "HC 12"? */
+export const isNumber = text => /^((?:HC|[EA])\s*)?\d+$/i.test(String(text || '').trim());
+/** "e104" → "E 104", "hc12" → "HC 12", " 007 " → "7"; anything else as typed. */
 export const norm = text => Hymns.normRef(text);
 /** The index's title for a number, or ''. */
 export const title = text => Hymns.title(text);
