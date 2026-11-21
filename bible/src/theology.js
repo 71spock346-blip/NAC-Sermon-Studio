@@ -44,7 +44,7 @@
  * #theology/ROM opens a book, #theology/ROM/8 a chapter and
  * #theology/ROM/8/28-30 a passage. In the reader, "Theology" in the verse bar
  * opens a sheet on the chosen verses, and the button beside the chapter's
- * title opens the chapter here. On a phone the tab bar keeps five tabs, so
+ * title opens the chapter here. On a phone the tab bar keeps six tabs, so
  * there Theology is listed under More (more.js) and reached from the reader;
  * on a PC it has its own place in the side menu, after Handbooks.
  */

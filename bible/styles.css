@@ -856,10 +856,11 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
     box-shadow: 0 -2px 10px rgba(16, 56, 96, .06); padding-bottom: env(safe-area-inset-bottom);
   }
   /*
-   * Five tabs share the bar equally: Sunday (the front door, sunday.js), Read,
-   * Notes, Prepare and More, which lists the other sections, Handbooks first
-   * (more.js; the rule that hides them from the bar is with the Theology
-   * styles below). A tab with a long name (Voorberei) is never narrower than
+   * Six tabs share the bar equally, in the order Jerome chose (November 2026):
+   * Read, Prepare, Sunday (the front door, sunday.js), Notes, Service record
+   * (record.js, "Record" on the bar) and More, which lists the other sections,
+   * Handbooks first (more.js; the rule that hides them from the bar is with
+   * the Theology styles below). A tab with a long name (Voorberei) is never narrower than
    * its name, so on a narrow phone it takes a little more room from the short
    * ones instead of being cut; the letters grow with the width of the phone,
    * from 11px to 12.5px.
@@ -1142,7 +1143,7 @@ label.check.sync-keys input { margin-top: 3px; }
 .reflect-hub { margin-top: 4px; }
 .reflect-hub .row { margin-bottom: 4px; }
 /* a tab with a long name (Reflection evening, Diens Voorbereiding): the full name in the side menu, on two lines where
-   the menu is narrow, and a short one in the phone's bar, where five tabs share the width */
+   the menu is narrow, and a short one in the phone's bar, where six tabs share the width */
 .tabs .lbl-long { display: none; }
 @media (min-width: 760px) {
   .tabs .lbl-long { display: inline; }
@@ -1322,7 +1323,7 @@ body.showing { overflow: hidden; }
 [data-read="easy"] .th-sec h4, [data-read="easy"] .th-save h4, [data-read="easy"] .th-earlier > h4, [data-read="easy"] .th-facts dt { text-transform: none; letter-spacing: .02em; font-size: 14px; }
 [data-read="easy"] .th-quote { font-style: normal; line-height: 1.85; }
 @media (max-width: 759.98px) {
-  /* the phone's bar keeps five tabs (Sunday, Read, Notes, Prepare, More): these ten sections are listed under More (more.js), and More stays lit while one of them is open;
+  /* the phone's bar keeps six tabs (Read, Prepare, Sunday, Notes, Service record, More): these ten sections are listed under More (more.js), and More stays lit while one of them is open;
      the Catechism and the Liturgy are listed under Handbooks (handbooks.js), so More is lit for them too */
   .tabs button[data-tab="reflect"], .tabs button[data-tab="handbooks"], .tabs button[data-tab="liturgy"], .tabs button[data-tab="catechism"], .tabs button[data-tab="theology"],
   .tabs button[data-tab="seating"], .tabs button[data-tab="choir"], .tabs button[data-tab="reminders"], .tabs button[data-tab="plan"], .tabs button[data-tab="mis"], .tabs button[data-tab="files"], .tabs button[data-tab="settings"] { display: none; }
@@ -1358,7 +1359,7 @@ body.showing { overflow: hidden; }
 .lit-shortcut .muted { margin: 0; display: block; }
 @media (min-width: 760px) { .lit-shortcut { display: none; } }
 
-/* ---------------------------------------------------------------- More: the phone's fifth tab (more.js)
+/* ---------------------------------------------------------------- More: the last tab of the phone's bar (more.js)
    The sections the bar has no room for, one under the other: the icon, the name and one line on what it is for,
    drawn like the Liturgy link above, each row a card tall enough to hit with a thumb. The rows come in groups;
    the Tools have a heading, like the group in the PC's side menu. */
@@ -1890,6 +1891,7 @@ body.altar .shell { min-height: 0; display: block; }   /* no column for the hidd
 /* ---- the service record (record.js): NACSA's form, filled in after the service ---- */
 .record .record-head { margin: 2px 0 8px; }
 .record .record-head b { color: var(--head-ink); }
+.record .record-pick { max-width: 460px; margin: 2px 0 10px; }   /* "Which service": as wide as the form's picture on a PC, the whole width on a phone */
 .record .sec h3.sub { margin-top: 14px; }
 .record-times { grid-template-columns: 1fr 1fr; margin: 0; }
 .record-total { margin: 8px 0 0; font-weight: 700; color: var(--head-ink); }
