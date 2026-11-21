@@ -94,6 +94,8 @@ import * as Liturgy from './liturgy.js';
 import * as Speech from './speech.js';
 import { listenCard } from './listen.js';
 import { plainParts } from './plain.js';
+import { textOf as handbookText } from './handbooks.js';   // a question of the Catechism in questions and answers, read in place under step 5
+import { qaOf, questionsFor, questionOf } from './catq.js';   // the Catechism in questions and answers, when it is loaded: the questions that quote the text word
 
 export const OCCASIONS = [
   'Sunday divine service', 'Midweek divine service', 'Divine service for the departed',
@@ -818,6 +820,8 @@ function renderEditor(root, s) {
   textArea.addEventListener('input', () => { s.text = textArea.value; touch(); });
   inputs.text = textArea;
   const catBox = el('div', { class: 'catbox' });
+  const qaBox = el('div', { class: 'catbox' });       // the questions of the Catechism in questions and answers that quote the text word (step 5)
+  const qaField = el('label', { class: 'f', hidden: true });
 
   function applyRef() {
     const r = parseRef(refInput.value);
@@ -827,6 +831,7 @@ function renderEditor(root, s) {
     if (r) { s.ref = r; } else if (!refInput.value.trim()) { s.ref = null; }
     touch();
     renderCatechism();
+    renderQa();
     return r;
   }
   refInput.addEventListener('input', applyRef);
@@ -1428,8 +1433,8 @@ function renderEditor(root, s) {
   // ---- 5. the context: the setting of the text, as the Guide's Context box gives it, with the key words, the Catechism and cross references
   step(5, t('Context: understand the text'), { line: t('The setting of the text: who speaks, to whom, and why; and the Catechism sections that quote it.'), more: t('Like the Guide\'s Context box: the setting of the text. Who is speaking, to whom, and why? What came before and after? Which words carry the weight? The Catechism sections below quote this very text: tick the ones to keep, and open one to read it here.') },
     () => clearStep(5, t('the context'), ['context', 'keywords', 'crossRefs'], {
-      clear: () => { const kept = s.catechism || []; s.catechism = []; renderCatechism(); renderTicks(); return kept; },
-      restore: kept => { s.catechism = kept; renderCatechism(); renderTicks(); },
+      clear: () => { const kept = [s.catechism || [], s.catq || []]; s.catechism = []; s.catq = []; renderCatechism(); renderQa(); renderTicks(); return kept; },
+      restore: ([cat, qa]) => { s.catechism = cat; s.catq = qa; renderCatechism(); renderQa(); renderTicks(); },
     }));
   const aiBox = el('div', { class: 'ai-box' });
   container.append(aiBox);
@@ -1447,6 +1452,7 @@ function renderEditor(root, s) {
     field(t('Key words and their meaning'), 'keywords', { rows: 3, placeholder: t('One word per line, with what it means here') }),
     versesUnder(() => s.keywords),
     el('label', { class: 'f' }, [title(t('Catechism references')), catBox]),
+    qaField,
     el('div', { class: 'row line cat-row' }, [el('span', { class: 'small', text: t('In the sermon notes:') }), catChoice]),
     catNote,
     field(t('Cross references'), 'crossRefs', { rows: 3, placeholder: t('Other passages that shed light, one per line: "Romans 8:28 – all things work together"') }),
@@ -1498,6 +1504,57 @@ function renderEditor(root, s) {
       : t('The text of the Catechism is not loaded on this device, so the notes list the ticked sections by number and title. Load it under Church files to read the sections here and print them.');
   }
   renderCatechism();
+
+  /**
+   * The Catechism in questions and answers (catq.js), where it is loaded
+   * under Church files: the questions that quote the text word, in the
+   * sermon's language where both are loaded. Each ticks into the sermon
+   * notes like a section of the Catechism (s.catq, printed as "In the
+   * sermon notes" says) and reads in place; one ticked earlier stays when
+   * the reference changes.
+   */
+  function renderQa() {
+    clear(qaField);
+    clear(qaBox);
+    const hb = qaOf(state.handbooks, AI.langOf(s));
+    qaField.hidden = !hb;
+    if (!hb) return;
+    qaField.append(title(hb.title), qaBox);
+    qaField.lang = hb.language;
+    const qs = s.ref ? questionsFor(hb, s.ref.book, s.ref.chapter, s.ref.verse, s.ref.verseEnd) : [];
+    if (!s.ref) qaBox.append(el('span', { class: 'muted small', text: t('Give a reference above to see the questions that quote it.') }));
+    else if (!qs.length) qaBox.append(el('span', { class: 'muted small', text: t('No question quotes these verses. Search the questions by a word under Handbooks.') }));
+    const chosen = new Set((s.catq || []).map(c => c.qn));
+    const tick = (q, on) => {
+      s.catq = (s.catq || []).filter(c => c.qn !== q.qn);
+      if (on) s.catq.push({ qn: q.qn, title: q.title });
+      touch();
+    };
+    for (const q of qs.slice(0, 12)) qaBox.append(qaRow(hb, q, chosen.has(q.qn), on => tick(q, on)));
+    for (const c of (s.catq || [])) if (!qs.some(q => q.qn === c.qn)) {
+      qaBox.append(qaRow(hb, questionOf(hb, c.qn) || { qn: c.qn, title: c.title, blocks: [] }, true, () => { tick(c, false); renderQa(); }));
+    }
+  }
+  /** One question: its tick, number and question, and Read, which opens its answer here, with the way to it under Handbooks. */
+  function qaRow(hb, q, checked, onChange) {
+    const cb = el('input', { type: 'checkbox', checked });
+    cb.addEventListener('change', () => onChange(cb.checked));
+    const row = el('label', { class: 'check' }, [cb, el('span', { class: 'num', text: String(q.qn) }), el('span', { class: 'grow', text: q.title })]);
+    const wrap = el('div', { class: 'cat-item' }, row);
+    if (!q.blocks.length) return wrap;
+    const body = el('div', { class: 'cat-read', hidden: true });
+    const btn = el('button', { class: 'btn small ghost', type: 'button', text: t('Read'), 'aria-expanded': 'false', onclick: e => {
+      e.preventDefault();
+      if (body.hidden) {
+        if (!body.firstChild) body.append(handbookText(q, hb.language), el('p', { class: 'small' }, [el('a', { href: `#handbooks/${encodeURIComponent(hb.key)}/q${q.qn}`, text: t('Open it under Handbooks') + ' ›' })]));
+        body.hidden = false; btn.textContent = t('Hide'); btn.setAttribute('aria-expanded', 'true');
+      } else { body.hidden = true; btn.textContent = t('Read'); btn.setAttribute('aria-expanded', 'false'); }
+    } });
+    row.append(btn);
+    wrap.append(body);
+    return wrap;
+  }
+  renderQa();
 
   // ---- the suggestions from Claude
   async function askAi() {

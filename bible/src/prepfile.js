@@ -35,9 +35,9 @@ export const FILE_APP = 'nac-study-bible-preparation';
 /** The parts of a preparation that travel: the boxes of the form, nothing of the device or of Claude. */
 const KEYS = ['date', 'congregation', 'occasion', 'title', 'hymns', 'audience', 'people', 'lang',
   'ref', 'refText', 'translation', 'translationId', 'text',
-  'theme', 'core', 'guide', 'context', 'keywords', 'catechism', 'catechismText', 'crossRefs',
+  'theme', 'core', 'guide', 'context', 'keywords', 'catechism', 'catq', 'catechismText', 'crossRefs',
   'intro', 'summary', 'application', 'illustrations', 'conclusion', 'cues'];
-const TEXT = new Set(KEYS.filter(k => !['hymns', 'ref', 'catechism', 'cues'].includes(k)));   // the keys that hold one string
+const TEXT = new Set(KEYS.filter(k => !['hymns', 'ref', 'catechism', 'catq', 'cues'].includes(k)));   // the keys that hold one string
 const str = v => (typeof v === 'string' ? v : (v === undefined || v === null ? '' : String(v)));
 const has = v => !!str(v).trim();
 
@@ -59,6 +59,7 @@ export function pack(p) {
       if (v.verse) s.ref.verse = Number(v.verse) || 0;
       if (v.verseEnd) s.ref.verseEnd = Number(v.verseEnd) || 0;
     } else if (k === 'catechism' && Array.isArray(v)) s.catechism = v.filter(c => c && typeof c === 'object').map(c => ({ n: typeof c.n === 'number' ? c.n : str(c.n), title: str(c.title) }));
+    else if (k === 'catq' && Array.isArray(v)) s.catq = v.filter(c => c && typeof c === 'object' && Number(c.qn) > 0).map(c => ({ qn: Number(c.qn), title: str(c.title) }));   // the questions of the Catechism in questions and answers
     else if (k === 'cues' && typeof v === 'object') { s.cues = {}; for (const [key, val] of Object.entries(v)) if (typeof val === 'string') s.cues[key] = val; }
   }
   s.points = (Array.isArray(p.points) ? p.points : []).filter(x => x && typeof x === 'object').map(x => {

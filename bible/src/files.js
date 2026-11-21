@@ -47,7 +47,7 @@ import { KNOWN } from './handbook.js';
 
 /** One line on each handbook the app knows by name, for its row while it is not loaded yet. */
 const ABOUT = {
-  'catechism-qa': () => t('The Catechism in 750 questions and answers, in Afrikaans ("Kategismus in vrae en antwoorde") or English, read here from the Church\'s own PDF. With it you read each question and its answer under Handbooks, search them by word, and Prepare lists the questions that quote your text word.'),
+  'catechism-qa': () => t('The Catechism in 750 questions and answers (in Afrikaans "Kategismus in vrae en antwoorde"), read here from the Church\'s own PDF. With it you read each question and its answer under Handbooks, search them by word, and Prepare lists the questions that quote your text word.'),
   'guide-for-ministers': () => t('The rule book for ministers: ministry, the divine service, the sacraments and acts of blessing, pastoral care, administration, and the competency profiles.'),
   'serving-and-leading': () => t('The guiding principle for everyone who leads in the Church: serving, authority, delegation, communication, conflict resolution.'),
   'liturgy': () => t('The full liturgy book of 2024: the divine service in its short and long form, the special services, the sacraments and every act of blessing.'),

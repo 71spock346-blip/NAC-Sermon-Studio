@@ -323,7 +323,7 @@ function chapterPage(container, hb, addr) {
           printRows(hb, c).length ? printButton(() => printSheet(printRows(hb, c))) : null,
         ]),
       ]),
-      c.blocks.length ? body : null,
+      c.blocks.length ? body : c.cat ? el('div', { class: 'hb-text' }, [catLink(c)]) : null,   // a chapter of the Catechism in questions and answers: the way to the Catechism's own chapter
       hb.qa ? questionLinks(hb, c) : null,
       kids.length ? el('div', {}, [
         el('h3', { class: 'sub', text: hb.qa ? t('The questions of this chapter') : t('In this chapter') }),
@@ -382,8 +382,8 @@ function wholePage(container, hb) {
 function printRows(hb, c) {
   const under = hb.builtIn ? [] : chaptersUnder(hb.chapters, c);
   const rows = [];
-  if (c.blocks.length) rows.push([hb.builtIn ? t('This article') : t('This chapter'), () => chapterPdf(hb, [c], { credit: creditText(hb) })]);
-  if (under.length) rows.push([t('This chapter and the chapters under it'), () => chapterPdf(hb, [c, ...under], { credit: creditText(hb) })]);
+  if (c.blocks.length) rows.push([hb.builtIn ? t('This article') : c.qn != null ? t('This question') : t('This chapter'), () => chapterPdf(hb, [c], { credit: creditText(hb) })]);
+  if (under.length) rows.push([hb.qa ? t('This chapter with its questions') : t('This chapter and the chapters under it'), () => chapterPdf(hb, [c, ...under], { credit: creditText(hb) })]);
   return rows;
 }
 

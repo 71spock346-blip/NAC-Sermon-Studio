@@ -38,6 +38,7 @@ import { plainParts } from './plain.js';
 import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';   // the words on the cue cards
 import { line as hymnLine } from './hymns.js';   // the hymns of the service at the top of the notes and of the cue card
 import { quotesFor } from './verses.js';   // the verses the sermon names, written out under the part that names them
+import { qaOf, questionOf, answerOf } from './catq.js';   // the ticked questions of the Catechism in questions and answers
 
 export const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
 const INK = [29, 43, 56];
@@ -303,9 +304,11 @@ export function sermonPdf(s) {
     if (s.context) { w.para(s.context); verses(s.context); }
     if (s.keywords) { w.para(tl(L, 'Key words'), { style: 'bold', size: 10, after: 0.5 }); w.para(s.keywords); verses(s.keywords); }
   }
-  if ((s.catechism || []).length) {
+  const qa = (s.catq || []).length ? qaOf(state.handbooks, L) : null;   // the Catechism in questions and answers, where it is on this device
+  if ((s.catechism || []).length || qa) {
     w.heading(tl(L, 'Catechism'));
-    catechismNotes(w, s);
+    if ((s.catechism || []).length) catechismNotes(w, s, L);
+    if (qa) qaNotes(w, s, qa);
   }
   if (s.crossRefs) { w.heading(tl(L, 'Cross references')); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); verses(s.crossRefs); }
   // 6. the summary and conclusion, in the order of the boxes: the application, then the summary that gathers up, then the close
@@ -443,7 +446,7 @@ function plainSup(text) {
  * preparation asks, the section's text, its summary, or nothing more. The
  * text is there only when the person has loaded it on this device.
  */
-function catechismNotes(w, s) {
+function catechismNotes(w, s, L) {
   const how = s.catechismText || 'full';
   let quoted = false;
   for (const c of s.catechism) {
@@ -471,6 +474,36 @@ function catechismNotes(w, s) {
     w.space(2);
   }
   if (quoted) w.para(Cat.credit(), { size: 8, color: MUTED, after: 1 });
+  w.space(1);
+}
+
+/**
+ * The ticked questions of the Catechism in questions and answers (catq.js):
+ * the book's name once, then each question by its number, and under it, as
+ * the preparation asks for the Catechism, the whole answer (its verses with
+ * their references, its boxes in small type), the first paragraph alone,
+ * or nothing more. In the book's own words and language.
+ */
+function qaNotes(w, s, hb) {
+  const how = s.catechismText || 'full';
+  w.para(hb.title, { size: 9, style: 'italic', color: MUTED, after: 1 });
+  let quoted = false;
+  for (const c of s.catq) {
+    const q = questionOf(hb, c.qn) || { qn: c.qn, title: c.title, blocks: [] };
+    w.para(`${q.qn}  ${q.title}`, { style: 'bold', size: 10.5, after: 0.5 });
+    if (how === 'ref') { w.space(1); continue; }
+    for (const b of answerOf(q, how)) {
+      if (b.k === 'quote') {
+        b.text.split('\n').forEach(v => w.para(v, { indent: 6, size: 10, style: 'italic', after: 0 }));
+        if (b.ref) w.para(b.ref, { indent: 6, size: 9.5, style: 'bold', after: 1 }); else w.space(1);
+      }
+      else if (b.k === 'note') w.para(b.text.replace(/\n/g, ' '), { indent: 6, size: 8.5, color: MUTED, after: 0.8 });
+      else w.para((b.k === 'li' ? '– ' : '') + b.text.replace(/\n/g, ' '), { indent: b.k === 'li' ? 6 : 3, size: 10, after: 1 });
+      quoted = true;
+    }
+    w.space(how === 'summary' ? 1.5 : 2);
+  }
+  if (quoted) w.para(`${hb.ownTitle || hb.title}${hb.edition ? ', ' + hb.edition : ''} © ${hb.org || 'New Apostolic Church International'}.`, { size: 8, color: MUTED, after: 1 });
   w.space(1);
 }
 

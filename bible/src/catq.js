@@ -271,10 +271,10 @@ function mode(values) {
 
 /**
  * The book as a handbook: {key, language, title, ownTitle, org, edition,
- * pages, words, chapters, qa: true, questions}. Throws when fewer than 20
- * questions are found.
+ * pages, words, chapters, qa: true, questions}. Throws when fewer than
+ * `min` questions are found (tools/test_catq.mjs reads a few made-up ones).
  */
-export function parseQA(pages) {
+export function parseQA(pages, { min = 20 } = {}) {
   const all = pages.map(p => ({ page: p, lines: linesOfPage(p) }));
 
   // the left edge of each column, on the left-hand and right-hand pages: where most lines of the questions and answers start
@@ -352,7 +352,7 @@ export function parseQA(pages) {
         // a line in the type of a reference that is no reference is a box's term in bold: "Regverdigheid voor God / regverdigmaking: …"
         if (l.role === 'ref' && !/\d/.test(l.text) && !refsOf(l.text).length) { l.role = 'small'; l.runs = l.runs.map(([s]) => [s, 'b']); }
         const role = l.role;
-        if (role === 'opener') { if (!pending || !openerPage || page.n - openerPage > 2) openerPage = page.n; pending = true; continue; }   // a chapter's opener (one or two pages; before the first chapter, the title page's large type too): the next question opens the chapter
+        if (role === 'opener') { openerPage = page.n; pending = true; continue; }   // a chapter's opener, a page of its own (before the first chapter the title page's large type too, which the opener after it overrules): the next question opens the chapter
         if (role === 'art' || role === 'title') continue;
         if (role === 'num') {
           const n = +l.text;
@@ -422,7 +422,7 @@ export function parseQA(pages) {
     }
   }
   if (q) flushQuestion();
-  if (questions.length < 20) throw new Error('not the Catechism in questions and answers');
+  if (questions.length < min) throw new Error('not the Catechism in questions and answers');
 
   // the verses of the book's Bible index, onto their questions
   const byNumber = new Map(questions.map(x => [x.qn, x]));
@@ -476,13 +476,17 @@ export function rangeOf(hb, chapter) {
 }
 
 /**
- * A question's answer for the sermon notes (pdf.js): [{k, text}] with k 'p'
- * a paragraph, 'li' a list item, 'quote' a verse with its reference after a
- * line break, 'note' a box; 'summary' gives the first paragraph alone.
+ * A question's answer for the sermon notes (pdf.js): [{k, text, ref}] with k
+ * 'p' a paragraph, 'li' a list item, 'quote' a verse (ref, its reference),
+ * 'note' a box; text keeps the book's line breaks within a verse ("\n").
+ * 'summary' gives the first paragraph alone.
  */
 export function answerOf(q, how = 'full') {
-  const text = b => b.t.filter(([, st]) => st !== 'sup').map(([s, st]) => (st === 'r' ? '\n' + s.trim() : s)).join('').trim();
-  const out = q.blocks.filter(b => b.k !== 'h').map(b => ({ k: b.k, text: text(b) })).filter(x => x.text);
+  const out = q.blocks.filter(b => b.k !== 'h').map(b => ({
+    k: b.k,
+    text: b.t.filter(([, st]) => st !== 'sup' && st !== 'r').map(([s]) => s).join('').trim(),
+    ref: b.t.filter(([, st]) => st === 'r').map(([s]) => s.trim()).join(' '),
+  })).filter(x => x.text);
   return how === 'summary' ? out.filter(x => x.k === 'p').slice(0, 1) : out;
 }
 
