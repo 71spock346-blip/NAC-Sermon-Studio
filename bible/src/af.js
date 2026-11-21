@@ -720,7 +720,8 @@ export const AF = {
   "Open {ref} on ": "Maak {ref} oop op ",
   "Open on {site} ↗": "Maak oop op {site} ↗",
   ", select the whole chapter with its verse numbers, copy it, and paste it below. Headings and footnote letters are dropped; check the verse count before saving.": ", kies die hele hoofstuk met sy versnommers, kopieer dit, en plak dit hieronder. Opskrifte en voetnootletters word weggelaat; kyk na die verstelling voordat jy stoor.",
-  "Open the chapter on {site}, select it with its verse numbers, copy it, then paste it here. It stays in this browser only.": "Maak die hoofstuk op {site} oop, kies dit met sy versnommers, kopieer dit, en plak dit dan hier. Dit bly net in hierdie blaaier.",
+  "Open the chapter on {site}, select it with its verse numbers and copy it. Back here, \"Paste the chapter\" takes it from the clipboard and keeps it, in this browser only.": "Maak die hoofstuk op {site} oop, kies dit met sy versnommers en kopieer dit. Terug hier neem \"Plak die hoofstuk\" dit van die knipbord en hou dit, net in hierdie blaaier.",
+  "Paste it in yourself": "Plak dit self in",
   "What you paste stays in this browser on this device. It is not in the normal backup: Settings → Translations → My pasted text has its own save file.": "Wat jy plak, bly in hierdie blaaier op hierdie toestel. Dit is nie in die gewone rugsteun nie: Verstellings → Vertalings → My geplakte teks het sy eie stoorlêer.",
   "No verse numbers were found: copy from a page that shows them.": "Geen versnommers is gevind nie: kopieer van 'n bladsy wat hulle wys.",
   "Verse {n} is very long, so some verse numbers after it may not have been recognised.": "Vers {n} is baie lank, dus is sommige versnommers daarna dalk nie herken nie.",
@@ -860,7 +861,7 @@ export const AF = {
 
   // my pasted text
   "My pasted text": "My geplakte teks",
-  "For a text you may use yourself: tick its version here, choose it in the reader (listed by its short name, such as AFR83), and paste each chapter in when you open it, copied from the page where you read it. The text stays in this browser on this device. It is not part of the normal backup; save it with its own file here to carry it to another device.": "Vir 'n teks wat jy self mag gebruik: merk sy weergawe hier, kies dit in die leser (gelys onder sy kort naam, soos AFR83), en plak elke hoofstuk in wanneer jy dit oopmaak, gekopieer van die bladsy waar jy dit lees. Die teks bly in hierdie blaaier op hierdie toestel. Dit is nie deel van die gewone rugsteun nie; stoor dit hier met sy eie lêer om dit na 'n ander toestel oor te dra.",
+  "For a text you may use yourself: choose it in the reader's translation list (its short name, such as AFR83, under \"Paste it in yourself\") and paste each chapter in when you open it, copied from the page where you read it; it is then ticked here. The text stays in this browser on this device. It is not part of the normal backup; save it with its own file here to carry it to another device.": "Vir 'n teks wat jy self mag gebruik: kies dit in die leser se vertalingslys (sy kort naam, soos AFR83, onder \"Plak dit self in\") en plak elke hoofstuk in wanneer jy dit oopmaak, gekopieer van die bladsy waar jy dit lees; dit word dan hier gemerk. Die teks bly in hierdie blaaier op hierdie toestel. Dit is nie deel van die gewone rugsteun nie; stoor dit hier met sy eie lêer om dit na 'n ander toestel te dra.",
   "{label} is now in the reader's translation list.": "{label} is nou in die leser se vertalingslys.",
   "{label} removed from the list{kept}.": "{label} uit die lys verwyder{kept}.",
   "; its chapters are kept": "; sy hoofstukke word gehou",
