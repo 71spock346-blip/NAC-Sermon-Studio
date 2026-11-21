@@ -152,6 +152,13 @@ await test('every Sunday and Wednesday is a service day; the holiday Wednesday i
   assert.equal(plain.who, '');
   assert.equal(plain.time, '19:30');
   assert.equal(services.find(s => s.date === '2025-10-05').time, '09:00');
+  // the Apostle's service transmitted to all congregations: nobody holds it here, so AVT stands as who
+  const avt = services.find(s => s.date === '2025-10-26');
+  assert.equal(avt.avt, true);
+  assert.equal(avt.who, 'AVT');
+  assert.equal(L.whoLabel('AVT', plan, settings), 'AVT');
+  assert.deepEqual(services.filter(s => s.avt).map(s => s.date), ['2025-10-26']);
+  assert.equal(L.serviceDays({ ...plan, services: { '2025-10-26': { who: 'C' } } }, settings).find(s => s.date === '2025-10-26').who, 'C', 'the rector may still hold it himself');
 });
 
 await test('the rector\'s choices win over the sheet, and a day can be added', async () => {
@@ -284,6 +291,13 @@ await test('Christmas Day in the calendar, in the message and on the programme',
   assert.deepEqual(L.withDayName(bareList.find(s => s.date === '2026-12-25'), ['', 'Carols 18:00']), ['Christmas Day', 'Carols 18:00']);
   assert.ok(text.includes('Wed 23 Dec – No service'));
   assert.ok(text.includes('Thu 17 Dec 19:30 – still open'));
+  // New Year's Sunday is an AVT: nobody holds it, in the list, the message and the calendar
+  const ny = list.find(s => s.date === '2027-01-03');
+  assert.equal(ny.avt, true);
+  assert.equal(ny.who, 'AVT');
+  assert.ok(text.includes('Sun 3 Jan 09:00 – AVT – New Year\'s Service'), text);
+  assert.ok(ev.find(e => e.date === '2027-01-03' && e.kind === 'service').title.endsWith('(AVT)'));
+  assert.ok(!list.filter(s => !s.off && !s.who).some(s => s.date === '2027-01-03'), 'an AVT Sunday is not "still open"');
 });
 
 await test('a day the rector adds, with a name and a time; a day the sheet has no row for; a code in his column on any day', async () => {
@@ -395,6 +409,7 @@ await test('a column of our own goes in before Comments, with a merged heading, 
   assert.equal(plan2.days.find(d => d.date === '2025-09-28').mine, '1');
   assert.equal(plan2.days.find(d => d.date === '2025-10-05').mine, 'C');
   assert.equal(plan2.days.find(d => d.date === '2025-09-24').mine, '');
+  assert.equal(plan2.days.find(d => d.date === '2025-10-26').mine, 'AVT');
   assert.equal(plan2.ministers.length, 12);
   assert.deepEqual(plan2.notes, plan.notes);
   const xml = new TextDecoder().decode(await X.entryData(X.unzip(out).get('xl/worksheets/sheet1.xml')));

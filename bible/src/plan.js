@@ -309,11 +309,12 @@ function rowSheet(row, date) {
   if (!s) return;
   const sh = sheet(`${L.shortDate(date, locale())} · ${L.serviceName(s)}`);
   const choice = () => (row.services || {})[date] || {};
-  // who: the rector's own people, the leader the sheet puts here today, or a name typed in
+  // who: the rector's own people, the leader the sheet puts here today, the Apostle's transmission (AVT), or a name typed in
   const chips = el('div', { class: 'row chips plan-chips' });
   const other = el('input', { type: 'text', placeholder: t('Name, as the priests should see it'), value: '', autocomplete: 'off', hidden: true });
   const options = [...c.settings.roster.map(r => [r.code, r.label || L.ministerLabel(r)])];
   for (const v of s.visiting) if (v.code && !options.some(o => o[0].toUpperCase() === v.code.toUpperCase())) options.push([v.code, `${v.label} (${t('visiting')})`]);
+  options.push(['AVT', t('AVT (transmission)')]);   // the Apostle's service transmitted to all congregations: nobody holds it here
   const known = options.some(o => o[0].toUpperCase() === (s.who || '').toUpperCase());
   const draw = () => {
     clear(chips);
