@@ -104,7 +104,7 @@ export async function programmePdf(plan, settings, services, events) {
       if (s) {
         if (s.off) lines.push([t('No service'), 7.5, 'italic', MUTED]);
         else {
-          lines.push([`${t('Divine service')} ${s.time}`.trim(), 8, 'bold', BLUE]);
+          lines.push([`${L.serviceTitle(s)} ${s.time}`.trim(), 8, 'bold', BLUE]);
           const who = L.whoLabel(s.who, plan, settings);
           lines.push(who ? [who, 8, 'bold', INK] : [t('still open'), 7.5, 'italic', AMBER]);
         }
@@ -167,7 +167,7 @@ export async function programmePdf(plan, settings, services, events) {
       const when = `${L.shortDate(s.date, locale())}${s.off ? '' : ' ' + s.time}`;
       const who = s.off ? t('No service') : (L.whoLabel(s.who, plan, settings) || t('still open'));
       line(`${when} – ${who}`, 10, 'bold', INK, 0, 0.3);
-      for (const n of [...s.notes, s.note].filter(Boolean)) line(n, 9, 'normal', MUTED, 6, 0.3);
+      for (const n of L.withDayName(s, [...s.notes, s.note])) line(n, 9, 'normal', MUTED, 6, 0.3);
       py += 1.2;
     }
     if (rest.length) {

@@ -4,8 +4,9 @@
  * Every month the district sends its programme as an Excel sheet. The rector
  * opens it here; the app reads the month, the days and the ministers
  * (plan-lib.js, through the sheet's own XML: plan-xlsx.js) and lists the
- * congregation's service days, every Sunday and Wednesday and any other day
- * the sheet marks. For each he picks who holds it: himself, one of his
+ * congregation's service days: every Sunday and Wednesday, the feast days of
+ * the Church year (Christmas Day on whatever weekday it falls), any other
+ * day the sheet marks, and any he adds. For each he picks who holds it: himself, one of his
  * priests, the District Rector or the Apostle when the sheet puts them in
  * the congregation that day, or a name typed in. Then "Send to the priests"
  * gives the district's own file with his column filled in, the month as a
@@ -293,7 +294,7 @@ function servicesCard(row, c) {
     ]));
   }
   const open = c.services.filter(s => !s.off && !s.who).length;
-  const add = el('button', { class: 'btn small ghost', type: 'button', text: t('Add a day'), onclick: () => addDaySheet(row, c) });
+  const add = el('button', { class: 'btn small ghost', type: 'button', text: t('Add a service'), onclick: () => addDaySheet(row, c) });
   return section(t('Services'), [
     el('p', { class: 'small', text: open
       ? tn(open, 'Tap a service to say who holds it. {n} still has nobody.', 'Tap a service to say who holds it. {n} still have nobody.')
@@ -332,31 +333,60 @@ function rowSheet(row, date) {
   const note = el('textarea', { rows: '2', placeholder: t('A line for the priests about this day (optional)') });
   note.value = s.note;
   note.addEventListener('change', async () => { await saveChoice(row, date, { note: note.value.trim() }); redraw(); });
+  // a day the rector added himself: what it is, and a way to take it off again
+  const added = s.kind === 'extra' && s.added;
+  const name = added ? el('input', { type: 'text', value: s.name, placeholder: t('Divine service'), autocomplete: 'off' }) : null;
+  if (name) name.addEventListener('change', async () => { await saveChoice(row, date, { name: name.value.trim() }); redraw(); });
+  const remove = added ? el('button', { class: 'btn ghost danger', type: 'button', text: t('Take this day off'), onclick: async () => {
+    row.extraDays = (row.extraDays || []).filter(x => x !== date);
+    const rest = { ...(row.services || {}) };
+    delete rest[date];
+    row.services = rest;
+    await savePlan(row);
+    queueFeed();
+    sh.close();
+    redraw();
+  } }) : null;
   sh.body.append(...[
     s.notes.length ? el('div', { class: 'plan-sheet-notes' }, [el('p', { class: 'eyebrow', text: t('The district says') }), ...s.notes.map(n => el('p', { class: 'small', text: n }))]) : null,
     s.visiting.length ? el('p', { class: 'small', text: t('{who} at {congregation}', { who: s.visiting.map(v => v.label).join(', '), congregation: c.settings.congregation }) }) : null,
+    s.feast ? el('p', { class: 'small', text: t('{day}: a divine service is held on this day, whatever the weekday. If there is none this year, tick No service below.', { day: L.dayName(s) }) }) : null,
     el('h3', { class: 'sub', text: t('Who holds it') }),
     chips,
     other,
+    name ? field(t('What (optional)'), name) : null,
     el('div', { class: 'fields two' }, [field(t('Time'), time)]),
     el('label', { class: 'check', for: 'plan-off' }, [off, ' ', t('No service on this day')]),
     field(t('Note'), note),
-    el('div', { class: 'row end' }, [el('button', { class: 'btn', type: 'button', text: t('Done'), onclick: () => sh.close() })]),
+    el('div', { class: 'row end' }, [remove, el('button', { class: 'btn', type: 'button', text: t('Done'), onclick: () => sh.close() })]),
   ].filter(Boolean));
 }
 
+/** A divine service on a day the list does not have: its date, its time and, if the rector likes, a name. Then its row's sheet opens to say who holds it. */
 function addDaySheet(row, c) {
-  const sh = sheet(t('Add a day'));
+  const sh = sheet(t('Add a service'));
   const date = el('input', { type: 'date', min: c.plan.first, max: c.plan.last, value: '' });
+  const name = el('input', { type: 'text', placeholder: t('Divine service'), autocomplete: 'off' });
+  const time = el('input', { type: 'time', value: c.settings.midweekTime });
+  // the time follows the day: a weekend or a public holiday in the morning like a Sunday, a working day in the evening like a Wednesday
+  date.addEventListener('change', () => {
+    const d = date.value;
+    if (!d) return;
+    const day = c.plan.days.find(x => x.date === d);
+    const holiday = !!day && Object.values(day.leaders || {}).some(vs => vs.some(v => /public holiday|openbare vakansie/i.test(v)));
+    time.value = (L.dow(d) === 0 || L.dow(d) === 6 || holiday ? c.settings.sundayTime : c.settings.midweekTime) || time.value;
+  });
   sh.body.append(
-    el('p', { class: 'small', text: t('A service on another day than a Sunday or a Wednesday, for instance when a holiday moves it.') }),
-    field(t('Date'), date),
+    el('p', { class: 'small', text: t('A divine service on a day the list does not have, such as a special service the district announces. Christmas Day, Good Friday and Ascension Day are on the list by themselves.') }),
+    el('div', { class: 'fields two' }, [field(t('Date'), date), field(t('Time'), time)]),
+    field(t('What (optional)'), name, t('Leave it empty for an ordinary divine service.')),
     el('div', { class: 'row end' }, [el('button', { class: 'btn', type: 'button', text: t('Add'), onclick: async () => {
       const d = date.value;
-      if (!d) return;
-      if (!c.plan.days.some(x => x.date === d)) { toast(t('That day is not in this month\'s sheet.'), true); return; }
+      if (!d) { toast(t('Choose the day first.'), true); date.focus(); return; }
+      if (d < c.plan.first || d > c.plan.last) { toast(t('That day is not in this month\'s sheet.'), true); return; }
+      if (c.services.some(s => s.date === d)) { toast(t('That day is on the list already.')); sh.close(); rowSheet(row, d); return; }
       if (!(row.extraDays || []).includes(d)) row.extraDays = [...(row.extraDays || []), d];
-      row.services = { ...(row.services || {}), [d]: { ...((row.services || {})[d] || {}), off: false } };
+      row.services = { ...(row.services || {}), [d]: { ...((row.services || {})[d] || {}), off: false, name: name.value.trim(), time: time.value } };
       await savePlan(row);
       queueFeed();
       sh.close();
