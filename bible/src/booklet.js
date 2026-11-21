@@ -104,7 +104,7 @@ export async function readPages(pdfjs, data, onPage) {
         if (!('str' in it) || !it.str.trim()) continue;
         const m = it.transform;
         const font = nameOf(it.fontName);
-        items.push({ str: it.str, x: m[4], y: vp.height - m[5], w: it.width, size: Math.hypot(m[0], m[1]), italic: /italic|oblique|it(mt)?$|-it\b/i.test(font), bold: /bold|black|heavy|semibd|demi/i.test(font) });
+        items.push({ str: it.str, x: m[4], y: vp.height - m[5], w: it.width, size: Math.hypot(m[0], m[1]), italic: /italic|oblique|it(mt)?$|-it\b/i.test(font), bold: /bold|black|heavy|semibd|demi/i.test(font), font });   // the font's name too: the Catechism in questions and answers (catq.js) tells its parts apart by it
       }
       const drawn = drawnOn(pdfjs.OPS, ops, vp.width, vp.height);
       pages.push({ n, width: vp.width, height: vp.height, items, rules: drawn.rules, marks: drawn.marks });

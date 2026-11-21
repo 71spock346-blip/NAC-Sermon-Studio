@@ -6,7 +6,9 @@
  * device, with one Load button, and Remove once it is loaded; what is loaded
  * reaches the other devices through the sync and is not in the backup file.
  *
- * The files: the text of the Catechism (catechism.js shows it), the altar
+ * The files: the text of the Catechism (catechism.js shows it) and, after
+ * it, the Catechism in questions and answers (the Afrikaans "Kategismus in
+ * vrae en antwoorde"; catq.js reads it, handbooks.js shows it), the altar
  * booklet in English and in Afrikaans (liturgy.js), the handbooks for
  * ministers (handbooks.js) and the Divine Service Guides (guides.js). Claude
  * reads a Guide's PDF, so only an unlocked device offers that; any device
@@ -45,6 +47,7 @@ import { KNOWN } from './handbook.js';
 
 /** One line on each handbook the app knows by name, for its row while it is not loaded yet. */
 const ABOUT = {
+  'catechism-qa': () => t('The Catechism in 750 questions and answers, in Afrikaans ("Kategismus in vrae en antwoorde") or English, read here from the Church\'s own PDF. With it you read each question and its answer under Handbooks, search them by word, and Prepare lists the questions that quote your text word.'),
   'guide-for-ministers': () => t('The rule book for ministers: ministry, the divine service, the sacraments and acts of blessing, pastoral care, administration, and the competency profiles.'),
   'serving-and-leading': () => t('The guiding principle for everyone who leads in the Church: serving, authority, delegation, communication, conflict resolution.'),
   'liturgy': () => t('The full liturgy book of 2024: the divine service in its short and long form, the special services, the sacraments and every act of blessing.'),
@@ -58,6 +61,7 @@ export function render(container, parts = []) {
   if (parts[1] === 'shared') takeShared();   // a file shared to the app (sw.js): loaded once the screen stands
   const list = el('div', { class: 'files-list' }, [
     catechismRow(),
+    ...handbookRows(['catechism-qa']),   // the Catechism in questions and answers, after the Catechism itself
     ...Liturgy.LANGS.map(bookletRow),
     ...handbookRows(),
     el('div', { class: 'row files-more' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Load another handbook'), onclick: loadHandbook })]),
@@ -137,21 +141,22 @@ function bookletRow(l) {
   });
 }
 
-/** The handbooks (handbooks.js): the ones the app knows by name, loaded or not, then any other loaded from its file. */
-function handbookRows() {
-  const keys = [...KNOWN.map(([key]) => key), ...state.handbooks.map(h => h.key).filter(k => !KNOWN.some(([key]) => key === k))];
+/** The handbooks (handbooks.js): the ones the app knows by name, loaded or not, then any other loaded from its file; `only`, just these (the Catechism in questions and answers has its row after the Catechism's). */
+function handbookRows(only = null) {
+  const keys = only || [...KNOWN.map(([key]) => key), ...state.handbooks.map(h => h.key).filter(k => !KNOWN.some(([key]) => key === k))].filter(k => k !== 'catechism-qa');
   return [...new Set(keys)].map(key => {
     const all = Handbooks.copies(key);
     const known = KNOWN.find(([k]) => k === key);
+    const qa = key === 'catechism-qa';
     return fileRow({
-      icon: 'handbooks',
-      title: all[0] ? all[0].title : known[2],
+      icon: qa ? 'catechism' : 'handbooks',
+      title: all[0] ? all[0].title : qa ? t('Catechism in questions and answers') : known[2],
       lang: all[0] ? all[0].language : null,
       loaded: all.length > 0,
       lines: all.map(hb => t('{language}, {about}, loaded {date} from {file}.', { language: languageName(hb.language), about: Handbooks.aboutLine(hb), date: fmtDate(hb.loadedAt), file: hb.fileName || t('a file') })),
       about: !all.length && ABOUT[key] ? ABOUT[key]() : '',
       buttons: [
-        el('button', { class: 'btn small' + (all.length ? ' ghost' : ''), type: 'button', text: all.length ? t('Load a newer file') : t('Load it (PDF or text file)'), onclick: loadHandbook }),
+        el('button', { class: 'btn small' + (all.length ? ' ghost' : ''), type: 'button', text: all.length ? t('Load a newer file') : qa ? t('Load it (PDF)') : t('Load it (PDF or text file)'), onclick: loadHandbook }),
         ...all.map(hb => el('button', { class: 'btn small ghost danger', type: 'button', text: all.length > 1 ? t('Remove ({language})', { language: hb.language.toUpperCase() }) : t('Remove'), onclick: () => Handbooks.remove(hb, redraw) })),
       ],
     });

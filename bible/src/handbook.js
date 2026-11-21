@@ -33,6 +33,7 @@
 
 /** The handbooks the app knows by name, so an English and an Afrikaans edition share an address, and the title reads well. */
 export const KNOWN = [
+  ['catechism-qa', /in vrae en antwoorde|in questions and answers|in fragen und antworten/i, 'Catechism in Questions and Answers'],   // read by catq.js, not by parse(): its questions in place of chapters
   ['guide-for-ministers', /guide for ministers|handleiding vir ampsdraers|gids vir ampsdraers|leitfaden f.r amtstr.ger/i, 'Guide for Ministers'],
   ['serving-and-leading', /serving and leading|dien en lei\b|dienen und f.hren/i, 'Serving and Leading'],
   ['liturgy', /liturgy of the new apostolic church|liturgie van die nuwe apostoliese kerk|liturgie der neuapostolischen kirche|^liturgy$|^liturgie$/i, 'Liturgy of the New Apostolic Church'],
@@ -744,13 +745,18 @@ export function numberOf(c) {
  * with all that belongs to it (handbook-pdf.js).
  */
 export function chaptersUnder(chapters, c) {
+  const kids = c.n ? chapters.filter(x => x.parent === c.n && x !== c) : [];   // the questions of a chapter of the Catechism in questions and answers (catq.js)
+  if (kids.length) return kids;
   const n = numberOf(c);
   return n ? chapters.filter(x => x !== c && numberOf(x).startsWith(n + '.')) : [];
 }
 
+/** A chapter's number as the book prints it: a question of the Catechism in questions and answers by its own number (108, not q108). */
+const shownNumber = c => (c.qn != null ? String(c.qn) : c.n || '');
+
 /** Every word of a chapter, for a search and for Claude: the title, then each block as one line. */
 export function plainText(chapter) {
-  const out = [(chapter.n ? chapter.n + ' ' : '') + chapter.title];
+  const out = [(shownNumber(chapter) ? shownNumber(chapter) + ' ' : '') + chapter.title];
   for (const b of chapter.blocks) out.push((b.k === 'li' ? '- ' : b.k === 'note' ? '[' : '') + spoken(b.t) + (b.k === 'note' ? ']' : ''));
   return out.join('\n');
 }
@@ -762,7 +768,8 @@ export function search(handbooks, q) {
   const hits = [];
   for (const hb of handbooks) {
     for (const c of hb.chapters) {
-      const title = ((c.n ? c.n + ' ' : '') + c.title).toLowerCase();
+      const title = ((shownNumber(c) ? shownNumber(c) + ' ' : '') + c.title).toLowerCase();
+      if (words.length === 1 && c.qn != null && words[0] === String(c.qn)) { hits.push({ handbook: hb, chapter: c, inTitle: true, exact: true }); continue; }   // "108": question 108
       if (words.every(w => title.includes(w))) { hits.push({ handbook: hb, chapter: c, inTitle: true }); continue; }
       const body = c.blocks.map(b => spoken(b.t)).join(' ');
       const low = body.toLowerCase();
@@ -773,7 +780,7 @@ export function search(handbooks, q) {
       hits.push({ handbook: hb, chapter: c, snippet: (from > 0 ? '…' : '') + body.slice(from, to).trim() + (to < body.length ? '…' : '') });
     }
   }
-  return hits.sort((a, b) => (b.inTitle ? 1 : 0) - (a.inTitle ? 1 : 0));
+  return hits.sort((a, b) => (b.exact ? 1 : 0) - (a.exact ? 1 : 0) || (b.inTitle ? 1 : 0) - (a.inTitle ? 1 : 0));
 }
 
 /** The chapters that answer a question best, by how many of its words each carries: [{handbook, chapter, score}], at most `max`. */
@@ -803,7 +810,7 @@ export function relevant(handbooks, question, max = 12) {
       let score = 0;
       for (const w of stems) {
         const n = text.split(w).length - 1;
-        if (n) score += 1 + Math.min(4, n) * 0.25 + (((c.n ? c.n + ' ' : '') + c.title).toLowerCase().includes(w) ? 2 : 0);
+        if (n) score += 1 + Math.min(4, n) * 0.25 + (((shownNumber(c) ? shownNumber(c) + ' ' : '') + c.title).toLowerCase().includes(w) ? 2 : 0);
       }
       if (score) scored.push({ handbook: hb, chapter: c, score });
     }

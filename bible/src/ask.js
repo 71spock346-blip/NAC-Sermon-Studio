@@ -35,8 +35,8 @@ export function indexAt(hb, addr) {
   return hb.chapters.findIndex(c => c.n === addr);
 }
 
-/** "4.5.4  Requirements of the sermon"; an appendix, the Catechism's introduction or an unnumbered chapter by its title alone. */
-export const label = c => (c.n && !/^A/.test(c.n) && c.n !== 'Intro' ? c.n + '  ' : '') + c.title;
+/** "4.5.4  Requirements of the sermon", "108  Wat is …?" (a question of the Catechism in questions and answers, catq.js, by its own number); an appendix, the Catechism's introduction or an unnumbered chapter by its title alone. */
+export const label = c => (c.qn != null ? c.qn + '  ' : c.n && !/^A/.test(c.n) && c.n !== 'Intro' ? c.n + '  ' : '') + c.title;
 
 /** The sparkle on an Ask Claude button (theology.js draws the same). */
 export function sparkle() {
