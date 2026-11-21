@@ -11,6 +11,13 @@
 <!-- The theme, the letters and the language of the app are applied before the page paints, like in index.html. -->
 <script>try{var t=localStorage.getItem('sb-theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;if(localStorage.getItem('sb-read')==='easy')document.documentElement.dataset.read='easy';var l=localStorage.getItem('sb-lang');if(l)document.documentElement.lang=l;}catch(e){}</script>
 <link rel="stylesheet" href="styles.css?v=75">
+<style>
+/* the "Start here" box at the top of each page: the five first steps, as the first-time setup asks them */
+.help .start-here { margin: 14px 0 6px; padding: 14px 16px 6px; border-radius: 12px; background: var(--card); }
+.help .start-here h2 { margin: 0 0 6px; padding: 0; border: 0; }
+.help .start-here ol { margin: 6px 0 10px; padding-left: 22px; }
+.help .start-here li { margin-bottom: 8px; }
+</style>
 </head>
 <body class="help">
 <header class="top">
@@ -30,6 +37,26 @@
 <p>The Study Bible is a personal tool for reading Scripture, keeping your own thoughts on it, seeing where the
 Catechism of the New Apostolic Church refers to a verse, and preparing a divine service from a text word.
 Everything you write stays on your own device. There is no account and no server.</p>
+
+<div class="start-here">
+<h2>Start here</h2>
+<p>A new device asks these five things itself the first time the app opens; this is the same list. Settings → About
+has the five steps again, under <b>Set up this device again</b>.</p>
+<ol>
+<li><b>The language.</b> EN or AF at the top of the app: the screens, the buttons, this help page and the book names.</li>
+<li><b>Your name and congregation.</b> The name goes in the footer of the sermon notes, and the congregation is filled
+in for each new preparation (Settings → You).</li>
+<li><b>A sync code, or a fresh start.</b> If you use the Study Bible on another device already, type its code
+(Settings → Sync → Show the code, on that device) and your notes and preparations come over to this one. Otherwise
+start fresh; a code can be typed in later.</li>
+<li><b>Church files.</b> The Catechism, the altar booklet, the handbooks and the month's Guide are the Church's own and
+not part of the app: load each once from its file under Church files. A minister who has them can send you the files
+from his app.</li>
+<li><b>Add to Home Screen.</b> The app offers it in the last step and under Settings → Offline; where the browser makes
+no offer, its own menu has it. From the home screen the app opens like any other, works without the network, and what
+you save is kept safe.</li>
+</ol>
+</div>
 
 <h2>Finding your way</h2>
 <p>The app opens on <b>Sunday</b>: the next divine service, with the date, the text word, the title and how far your
@@ -643,8 +670,9 @@ site data erases the app's storage, so save a backup first.</p>
 <h2>Offline and home screen</h2>
 <p>The app keeps every chapter you open. To have the whole Bible ready without a connection, use
 <b>Download all texts for offline</b> in Settings once. The Bible then stays on the device, also when the app updates,
-and the search for a verse works without a connection. On a phone, use the browser's "Add to Home Screen" to open it
-like an app.</p>
+and the search for a verse works without a connection. Put the app on the home screen to open it like an app: the
+first-time setup and Settings → Offline offer <b>Add to Home Screen</b> where the browser allows it, and the browser's
+own menu has it otherwise.</p>
 <p>When a newer version of the app is on the site, a bar at the bottom says so: tap <b>Update now</b>. To look straight
 away, use <b>Check for a newer version</b> under Settings → About.</p>
 
@@ -673,6 +701,26 @@ away, use <b>Check for a newer version</b> under Settings → About.</p>
 <p>Die Studiebybel is 'n persoonlike hulpmiddel om die Skrif te lees, jou eie gedagtes daaroor te bewaar, te sien waar
 die Kategismus van die Nuwe Apostoliese Kerk na 'n vers verwys, en 'n godsdiens uit 'n tekswoord voor te berei.
 Alles wat jy skryf, bly op jou eie toestel. Daar is geen rekening en geen bediener nie.</p>
+
+<div class="start-here">
+<h2>Begin hier</h2>
+<p>'n Nuwe toestel vra hierdie vyf dinge self die eerste keer dat die app oopmaak; dit is dieselfde lys. Verstellings →
+Oor die app het die vyf stappe weer, onder <b>Stel hierdie toestel weer op</b>.</p>
+<ol>
+<li><b>Die taal.</b> EN of AF boaan die app: die skerms, die knoppies, hierdie hulpblad en die boeknames.</li>
+<li><b>Jou naam en gemeente.</b> Die naam kom in die voetstuk van die preeknotas, en die gemeente word by elke nuwe
+voorbereiding ingevul (Verstellings → Jy).</li>
+<li><b>'n Sinkronisasiekode, of 'n nuwe begin.</b> As jy die Studiebybel reeds op 'n ander toestel gebruik, tik sy kode
+in (Verstellings → Sinkroniseer → Wys die kode, op daardie toestel) en jou notas en voorbereidings kom na hierdie een
+oor. Anders begin jy nuut; 'n kode kan later ingetik word.</li>
+<li><b>Kerklêers.</b> Die Kategismus, die altaarboekie, die handboeke en die maand se Handleiding is die Kerk se eie en
+nie deel van die app nie: laai elkeen een keer uit sy lêer onder Kerklêers. 'n Ampsdraer wat hulle het, kan die lêers
+uit sy app vir jou stuur.</li>
+<li><b>Voeg by tuisskerm.</b> Die app bied dit in die laaste stap en onder Verstellings → Vanlyn aan; waar die blaaier
+niks aanbied nie, het sy eie kieslys dit. Van die tuisskerm af maak die app soos enige ander oop, werk sonder die
+netwerk, en wat jy bewaar, word veilig gehou.</li>
+</ol>
+</div>
 
 <h2>Vind jou pad</h2>
 <p>Die app maak op <b>Sondag</b> oop: die volgende godsdiens, met die datum, die tekswoord, die titel en hoe ver jou
@@ -1285,8 +1333,9 @@ geskrap nie. As jy die blaaier se webwerfdata uitvee, word die app se berging ui
 <h2>Vanlyn en tuisskerm</h2>
 <p>Die app hou elke hoofstuk wat jy oopmaak. Om die hele Bybel sonder 'n verbinding gereed te hê, gebruik
 <b>Laai alle tekste af vir vanlyn gebruik</b> in Verstellings een keer. Die Bybel bly dan op die toestel, ook wanneer
-die app opdateer, en die soektog na 'n vers werk sonder 'n verbinding. Gebruik op 'n foon die blaaier se "Voeg by
-tuisskerm" om dit soos 'n app oop te maak.</p>
+die app opdateer, en die soektog na 'n vers werk sonder 'n verbinding. Sit die app op die tuisskerm om dit soos 'n app
+oop te maak: die eerste opstelling en Verstellings → Vanlyn bied <b>Voeg by tuisskerm</b> aan waar die blaaier dit
+toelaat, en andersins het die blaaier se eie kieslys dit.</p>
 <p>Wanneer 'n nuwer weergawe van die app op die webwerf is, sê 'n balk onderaan so: tik <b>Dateer nou op</b>. Om dadelik
 te kyk, gebruik <b>Kyk vir 'n nuwer weergawe</b> onder Verstellings → Oor die app.</p>
 

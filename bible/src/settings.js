@@ -23,6 +23,8 @@ import * as Speech from './speech.js';
 import * as Say from './say.js';
 import { BOOKS } from './books.js';
 import * as Tools from './tools.js';   // "What I use": the tick list of the five tools
+import { joinForm } from './join.js';   // the sync code's form, shared with the first-time setup
+import * as Welcome from './welcome.js';   // the first-time setup (About opens it again) and the "Add to Home Screen" row (Offline)
 
 export const VERSION = '0.2.0';
 
@@ -280,6 +282,7 @@ function offlineSection(container) {
   container.append(section(t('Offline'), [
     el('p', { class: 'small', text: t('The app keeps every chapter you open. To have the whole KJV, WEB and Catechism index ready without a connection (about 10 MB), download them once here. The Catechism text, once loaded, is already on the device. Add the app to your home screen to open it like any other app.') }),
     el('div', { class: 'row' }, [dlBtn, progress]),
+    Welcome.homeRow(),
   ]));
 }
 
@@ -298,6 +301,8 @@ function aboutSection(container) {
       else if (answer === 'offline') toast(t('The site could not be reached just now. Try again when you are online.'), true);
     } })]),
     el('p', { class: 'muted small', text: t('A newer version never needs the app to be removed and installed again: the app says when one is ready, and "Update now" keeps everything on the device.') }),
+    el('div', { class: 'row' }, [el('button', { class: 'btn small ghost', type: 'button', text: t('Set up this device again'), onclick: () => Welcome.open() })]),
+    el('p', { class: 'muted small', text: t('The first five steps, as on a new device: the language, your name and congregation, the sync code, Church files and the home screen.') }),
     el('ul', { class: 'small muted' }, [
       el('li', { text: t('King James Version (1769 text) with the Apocrypha: public domain. Text from the SWORD KJVA module via scrollmapper/bible_databases.') }),
       el('li', { text: t('World English Bible with the Deuterocanon: public domain, ebible.org. "World English Bible" is a trademark of eBible.org.') }),
@@ -1039,51 +1044,12 @@ async function codeSheet(code, fresh) {
 export function joinSheet(prefill) {
   if (Sync.isOn()) { toast(t('Sync is already on here. Stop it first to join with another code.'), true); return; }
   const s = sheet(t('Join with a code'));
-  const input = el('input', { type: 'text', class: 'sync-input', placeholder: 'ABCDE-FGHJK-LMNPQ-RSTUV', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', inputmode: 'text', 'aria-label': t('Sync code') });
-  if (prefill) input.value = Sync.formatCode(prefill);
-  const hint = el('p', { class: 'hint small muted', text: t('The 20 letters and numbers shown under "Show the code" on the device that is already syncing.') });
-  const joinBtn = el('button', { class: 'btn', type: 'button', text: t('Join') });
-  input.addEventListener('input', () => {
-    const raw = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    input.value = raw.replace(/(.{5})(?=.)/g, '$1-');
-  });
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); joinBtn.click(); } });
-  joinBtn.addEventListener('click', async () => {
-    const code = Sync.parseCode(input.value);
-    if (!code) { hint.textContent = t('That is not a whole code: it has 20 letters and numbers, in four groups of five, and never 0, O, 1 or I.'); hint.classList.add('error'); input.focus(); return; }
-    joinBtn.disabled = true;
-    hint.classList.remove('error');
-    hint.textContent = t('Looking for the copy on the server…');
-    try {
-      const found = await Sync.probe(code);
-      if (!found) {
-        joinBtn.disabled = false;
-        hint.textContent = '';
-        if (!(await confirmBox(t('Nothing is on the server under this code yet. Check the letters, or turn sync on on your other device first. Start a new sync with this code anyway?'), t('Start anyway')))) return;
-      }
-      s.close();
-      const b = busy(t('Joining'));
-      b.say(t('Fetching your notes and preparations and merging them with this device…'));
-      try {
-        await Sync.enable(code);
-        b.done();
-        const n = Sync.summary();
-        toast(t('Joined. On this device now: {notes} and {sermons}.', { notes: tn(n.notes, '{n} note', '{n} notes'), sermons: tn(n.sermons, '{n} preparation', '{n} preparations') }));
-        if (root) render(root);
-      } catch (e) {
-        b.fail(e.message || t('Could not join.'));
-      }
-    } catch (e) {
-      joinBtn.disabled = false;
-      hint.textContent = e.message || t('Could not reach the server.');
-      hint.classList.add('error');
-    }
-  });
+  const form = joinForm({ prefill, beforeJoin: () => s.close(), onJoined: () => { if (root) render(root); } });   // the form itself is join.js, shared with the first-time setup
   s.body.append(
     el('p', { class: 'small', text: t('Everything already on this device is kept and merged with what is on the server; newer copies win.') }),
-    el('label', { class: 'f sync-join' }, [t('Sync code'), input]),
-    hint,
-    el('div', { class: 'row end' }, [el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => s.close() }), joinBtn]),
+    form.field,
+    form.hint,
+    el('div', { class: 'row end' }, [el('button', { class: 'btn ghost', type: 'button', text: t('Cancel'), onclick: () => s.close() }), form.button]),
   );
-  setTimeout(() => input.focus(), 30);
+  setTimeout(() => form.input.focus(), 30);
 }
