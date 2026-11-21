@@ -2064,4 +2064,17 @@ export const AF = {
   "In the browser's address bar, click the install icon at the right, or \"Install Study Bible\" in the browser's menu.": "Klik in die blaaier se adresbalk op die installeer-ikoon regs, of op \"Installeer Studiebybel\" in die blaaier se kieslys.",
   "Set up this device again": "Stel hierdie toestel weer op",
   "The first five steps, as on a new device: the language, your name and congregation, the sync code, Church files and the home screen.": "Die eerste vyf stappe, soos op 'n nuwe toestel: die taal, jou naam en gemeente, die sinkronisasiekode, Kerklêers en die tuisskerm.",
+  // the hymns of the service (hymns.js): the four boxes under "The service", the line on the prints and the Sunday card
+  "Opening hymn": "Openingsgesang",
+  "Before the sermon": "Voor die preek",
+  "Holy Communion": "Heilige Nagmaal",
+  "Closing hymn": "Slotgesang",
+  "opening": "begin",
+  "before the sermon": "voor die preek",
+  "closing": "slot",
+  "Hymns: {list}": "Gesange: {list}",
+  "Hymns {list}": "Gesange {list}",
+  "e.g. 104": "bv. 104",
+  "Not in the index: the number stands as typed.": "Nie in die indeks nie: die nommer staan soos getik.",
+  "No hymn with these words in the index.": "Geen gesang met hierdie woorde in die indeks nie.",
 };

@@ -86,6 +86,7 @@ import * as Cues from './cues.js';   // the words on the cue cards, and the line
 import * as Read from './read.js';   // the sermon and the cue cards on the screen
 import * as Guides from './guides.js';
 import * as AI from './ai.js';
+import * as Hymn from './hymns.js';   // the hymns of the service: four numbers under "The service", their titles from the Choir planner's index
 import * as Reflect from './reflect.js';
 import * as Liturgy from './liturgy.js';
 import * as Speech from './speech.js';
@@ -185,6 +186,7 @@ function blank() {
   const prev = lastPeople(congregation);   // the same people as last time in this congregation
   return {
     date: nextSunday(), congregation, occasion: OCCASIONS[0], title: '',
+    hymns: Hymn.blank(),   // the four hymns of the service by number: opening, before the sermon, Holy Communion, closing (hymns.js)
     // who is listening: the age group ('' = all ages), a line about the people, and this preparation's own humour level and language ('' = as in Settings)
     audience: prev ? prev.audience || '' : '', people: prev ? prev.people || '' : '', humour: '', lang: '',
     ref: null, refText: '', translation: Bible.source(state.settings.translation)?.short || 'KJV', translationId: state.settings.translation, text: '',
@@ -514,7 +516,7 @@ function renderEditor(root, s) {
   const withAi = (text, a) => (a && AI.unlocked() ? `${text} · ${t('Claude\'s suggestions')}` : text);   // a suggestion panel waits inside
   const STEPS = {
     service: { short: t('Service'), filled: () => true,
-      summary: () => [fmtDate(s.date, true), (s.congregation || '').trim(), s.occasion ? t(s.occasion) : '', s.audience ? t(AI.audienceLabel(s.audience)) : ''].filter(Boolean).join(' · ') || t('The date, the congregation and the occasion') },
+      summary: () => [fmtDate(s.date, true), (s.congregation || '').trim(), s.occasion ? t(s.occasion) : '', s.audience ? t(AI.audienceLabel(s.audience)) : '', Hymn.numbers(s) ? t('Hymns {list}', { list: Hymn.numbers(s) }) : ''].filter(Boolean).join(' · ') || t('The date, the congregation and the occasion') },
     1: { short: t('Text'), filled: () => FILLED[1](s),
       summary: () => (s.ref || has(s.refText) ? [s.ref ? formatRef(s.ref, lang) : s.refText.trim(), (s.translation || '').trim()].filter(Boolean).join(' · ') : none()) },
     2: { short: t('Title'), filled: () => FILLED[2](s),
@@ -648,6 +650,28 @@ function renderEditor(root, s) {
     field(t('Congregation'), 'congregation', { placeholder: t('e.g. Phumolong') }),
     el('label', { class: 'f wide' }, [title(t('Occasion')), occSel]),
   ]));
+
+  // ---- the hymns of the service: four numbers, the titles from the Choir planner's index (hymns.js); they head the sermon notes and the cue cards
+  if (!s.hymns) s.hymns = Hymn.blank();   // a preparation from before November 2026
+  container.append(el('div', { class: 'fields hymns' }, Hymn.SLOTS.map(key => {
+    const input = el('input', { type: 'text', class: 'hymn-no', value: s.hymns[key] || '', placeholder: t('e.g. 104'), autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false' });
+    const hint = el('span', { class: 'hint muted small' });
+    const picks = el('span', { class: 'hymn-picks' });
+    /** The title under the number; words instead of a number bring up to three hymns to tap. */
+    const show = () => {
+      const v = input.value.trim();
+      clear(picks);
+      if (!v) { hint.textContent = ''; return; }
+      if (Hymn.isNumber(v)) { hint.textContent = Hymn.title(v) || t('Not in the index: the number stands as typed.'); return; }
+      const found = Hymn.suggest(v);
+      hint.textContent = found.length ? '' : t('No hymn with these words in the index.');
+      for (const h of found) picks.append(el('button', { class: 'chip', type: 'button', text: `${h.ref} – ${h.title}`, onclick: () => { input.value = h.ref; s.hymns[key] = h.ref; touch(); show(); } }));
+    };
+    input.addEventListener('input', () => { s.hymns[key] = input.value.trim(); touch(); show(); });
+    input.addEventListener('change', () => { if (Hymn.isNumber(input.value)) { input.value = Hymn.norm(input.value); s.hymns[key] = input.value; touch(); show(); } });   // words typed keep their picks: leaving the box for a pick must not redraw it under the finger
+    show();
+    return el('label', { class: 'f hymn' }, [title(Hymn.label(key)), input, hint, picks]);
+  })));
 
   // ---- who is listening: Claude shapes its suggestions for these people (see ai.js); the line about them also heads the sermon notes
   function pick(label, key, options) {

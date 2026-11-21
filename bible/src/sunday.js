@@ -34,6 +34,7 @@ import { newFromService, FILLED, markHeld } from './prepare.js';   // markHeld: 
 import { sermonParts } from './pdf.js';
 import { cueParts, cuesOf } from './cues.js';
 import * as AI from './ai.js';
+import { numbers as hymnNumbers } from './hymns.js';   // the hymns of the service, by number, on the card
 
 const DAY = 86400000;
 const noon = date => new Date(date + 'T12:00:00');
@@ -130,6 +131,7 @@ function card(x, past, redraw) {
     where.length ? el('div', { class: 'muted small sunday-where', text: where.join(' · ') }) : null,
     el('div', { class: 'sunday-ref', text: refText(x.as) || t('No text word yet') }),
     title ? el('p', { class: 'sunday-title', text: title }) : null,
+    s && hymnNumbers(s) ? el('div', { class: 'muted small sunday-hymns', text: t('Hymns {list}', { list: hymnNumbers(s) }) }) : null,
     s ? stateLine(s) : el('div', { class: 'sunday-state' }, [el('span', { class: 'pill status', text: t('Not started yet') })]),
     el('div', { class: 'row' }, s ? [
       // the service itself: the cue cards and the altar card on one full screen (altar.js)

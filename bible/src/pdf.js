@@ -36,6 +36,7 @@ import * as S from './slides.js';
 import { findService, headingIn } from './guides.js';   // the Guide's headings over the breakdown, in the Guide's language
 import { plainParts } from './plain.js';
 import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';   // the words on the cue cards
+import { line as hymnLine } from './hymns.js';   // the hymns of the service at the top of the notes and of the cue card
 
 const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
 const INK = [29, 43, 56];
@@ -232,6 +233,8 @@ export function sermonPdf(s) {
 
   w.font(9, 'normal', MUTED);
   if (serviceLine(s)) { doc.text(serviceLine(s), w.m, w.y); w.y += 6; }
+  const hymns = hymnLine(s, L);   // "Hymns: opening 104 (title) · …", to announce them from the notes
+  if (hymns) w.para(hymns, { size: 9, color: MUTED, after: 1 });
   if ((s.people || '').trim()) w.para(tl(L, 'Who is listening: ') + s.people.trim(), { size: 9, color: MUTED, after: 1 });
   // as the Guide prints it: the Bible text, then the title (step 1, then step 2)
   if (ref) {
@@ -474,6 +477,8 @@ export function cueCardPdf(s, { service = null } = {}) {
     for (const line of rows) { doc.text(line, w.m, w.y); w.y += 4.8; }
     w.y += 2.2;
   }
+  const hymns = hymnLine(s, L, { titles: false });   // the numbers to announce, on the first card
+  if (hymns) w.para(hymns, { size: 11, style: 'bold', color: INK, after: 2.5 });
   w.font(20, 'bold', BLUE);
   for (const line of doc.splitTextToSize(ref || s.title || tl(L, 'Cue card'), w.width)) { doc.text(line, w.m, w.y + 5); w.y += 8.5; }
   w.y += 2.5;

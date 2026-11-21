@@ -1985,3 +1985,12 @@ body.altar .shell { min-height: 0; display: block; }   /* no column for the hidd
 .home-row { margin-top: 6px; }
 .home-row .row { margin-top: 4px; }
 .home-row .btn { white-space: normal; }
+
+/* ---- the hymns of the service (hymns.js): four boxes under "The service", the picks under a box, the line on the readings and the Sunday card */
+.fields.hymns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 759.98px) { .fields.hymns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hymn-picks { display: flex; flex-wrap: wrap; gap: 4px; }
+.hymn-picks:empty { display: none; }
+.hymn-picks .chip { font-size: 12.5px; min-height: 30px; padding: 4px 10px; text-align: left; font-weight: 600; }
+.read-view .read-hymns { font-weight: 700; margin: -.4em 0 .8em; }
+.sunday-hymns { margin: 6px 0 0; }
