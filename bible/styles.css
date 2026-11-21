@@ -1970,6 +1970,22 @@ body.altar .shell { min-height: 0; display: block; }   /* no column for the hidd
 .read-view .read-extra { color: var(--muted); font-size: .85em; margin-bottom: .2em; }
 .read-view .read-in { margin-left: 1em; }
 [data-read="easy"] .read-view { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
+/* the verses the sermon names, written out under the box, the suggestion or the part that names them (verses.js; read.js versesBlock, prepare.js versesUnder):
+   the reference in bold, the words set like the text word, and the translation's name where it is not the sermon's own */
+.verses { margin: 6px 0 2px; padding: 1px 0 1px 10px; border-left: 3px solid var(--accent); white-space: normal; }
+.verse-q { margin: 0 0 7px; font-family: var(--serif); font-style: italic; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+.verse-q:last-child { margin-bottom: 0; }
+.verse-q .verse-ref { font-family: var(--sans); font-style: normal; font-weight: 700; color: var(--accent-text); }
+.verse-q .verse-src { font-family: var(--sans); font-style: normal; font-size: 12.5px; color: var(--muted); }
+.verse-miss { margin: 2px 0 0; }
+.verses .verse-label { margin: 0 0 1px; font-family: var(--sans); font-style: normal; font-weight: 700; }
+#tab-prepare .word-verses { margin: 2px 0 12px; }   /* the text word at the head of the main points */
+.points .point > .verses, label.f + .verses { margin: 4px 0 10px; }
+.ai-text .verses { margin: 6px 0 2px; }
+.read-view .verses { margin: -.2em 0 .9em; padding-left: .8em; }
+.read-view .verse-q { font-size: 1em; line-height: inherit; margin-bottom: .5em; }
+.read-view .verse-q .verse-src { font-size: .75em; }
+[data-read="easy"] .verse-q { font-family: inherit; font-style: normal; letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
 /* the cue cards on the screen: the headings underlined, each cue in its own colour and the marks in ink, as on the printed card (cues.js CUE_COLORS) */
 .cue-view .cue-head { color: var(--ink); text-decoration: underline; text-underline-offset: .15em; margin: .9em 0 .3em; font-size: 1.05em; }
 .cue-view .cue-line { font-weight: 700; line-height: 1.55; }

@@ -84,6 +84,7 @@ import * as Notes from './notes.js';
 import * as Pdf from './pdf.js';
 import * as Cues from './cues.js';   // the words on the cue cards, and the lines to type them in under Print or save
 import * as Read from './read.js';   // the sermon and the cue cards on the screen
+import * as Verses from './verses.js';   // the verses the sermon names, written out under the box, the suggestion and the part that names them
 import * as Guides from './guides.js';
 import * as AI from './ai.js';
 import * as Hymn from './hymns.js';   // the hymns of the service: four numbers under "The service", their titles from the Choir planner's index
@@ -459,7 +460,8 @@ function renderEditor(root, s) {
   }, 500);
   let sermonCard = null;   // the player under Print or save (listen.js): it says when the sermon has changed since it was read
   let refreshCues = null;   // the lines of cue words under Print or save follow the text (see there)
-  const touch = () => { save(); if (sermonCard) sermonCard.check(); refreshSteps(); if (refreshCues) refreshCues(); };
+  let scheduleQuotes = null;   // the verses the text names are looked up a moment after typing stops (see fetchQuotes)
+  const touch = () => { save(); if (sermonCard) sermonCard.check(); refreshSteps(); if (refreshCues) refreshCues(); if (scheduleQuotes) scheduleQuotes(); };
   const inputs = {};   // key -> its box, so a suggestion can be put into it
 
   // the title of a section of the sermon, above its box: styled as a heading (see #tab-prepare .f-title in styles.css)
@@ -506,6 +508,87 @@ function renderEditor(root, s) {
     input.addEventListener('input', () => { s[key] = input.value; touch(); });
     inputs[key] = input;
     return el('label', { class: 'f' + (opts.cls ? ' ' + opts.cls : '') }, [opts.noClear ? title(label) : head(label, key, input), input, opts.hint ? el('span', { class: 'hint muted small', text: opts.hint }) : null]);
+  }
+  /* ---- the verses the sermon names, written out (verses.js)
+   * Every reference in the boxes and in Claude's suggestions, "(John 1:14)",
+   * gets its words from the translation of the text word, else from another
+   * Bible in the sermon's language, else from the bundled English
+   * (verses.js sourceOrder, bible.js versesFrom), kept in s.quotes, so that
+   * the prints, the readings, the voice and the other device have them
+   * without asking again. Where a part names the text word itself, its words
+   * come from step 1. The blocks under the boxes and the suggestions draw
+   * from there (Read.verseLines) and are drawn again when the text changes
+   * and when the words arrive.
+   */
+  const verseBlocks = new Set();   // the live blocks on the page: {node, draw}
+  const notFound = new Set();      // keys looked for on this visit that no Bible here has (no such verse): not asked for again until the preparation is opened again
+  let fetching = null, again = false, lastIds = '';
+  const quoteIds = () => Verses.sourceOrder(Bible.sources(), { translationId: s.translationId, translation: s.translation, reader: state.settings.translation, lang: AI.langOf(s) });
+  const drawVerses = () => { for (const b of verseBlocks) { if (b.node.isConnected) b.draw(); else verseBlocks.delete(b); } };
+  /**
+   * Brings the words in line with the text (verses.js gather) and draws the
+   * blocks again. One run at a time; one asked for meanwhile follows it. The
+   * first run of a visit, and a run after the Bibles to read from changed
+   * (another translation for the text word, another language, a key or a
+   * chapter added), asks the better Bibles again for the verses that had to
+   * come from one further down.
+   */
+  async function fetchQuotes() {
+    if (fetching) { again = true; return fetching; }
+    fetching = (async () => {
+      do {
+        again = false;
+        const ids = quoteIds(), sig = ids.join('|');
+        const changed = await Verses.gather(s, { ids, fetch: Bible.versesFrom, lang: AI.langOf(s), upgrade: sig !== lastIds, notFound });
+        lastIds = sig;
+        if (changed) { save(); if (sermonCard) sermonCard.check(); }   // the voice reads the verses too: a recording made before is out of date
+        drawVerses();
+      } while (again);
+    })();
+    try { await fetching; } catch (e) { /* the references stay as they are */ } finally { fetching = null; }
+  }
+  scheduleQuotes = debounce(fetchQuotes, 800);
+  /** Before a print or a reading: the verses just typed are fetched first, waiting a few seconds at most for a slow connection. */
+  const quotesReady = () => Promise.race([fetchQuotes(), new Promise(r => setTimeout(r, 4000))]);
+  /**
+   * A block with the verses a text names, written out, under the box or the
+   * suggestion whose text `get` gives; drawn again as the text changes and
+   * when the words arrive, and hidden while there is nothing to show. A
+   * verse that no Bible here has (there is no such verse) is named under it.
+   * `quiet`: a tap on it stays there (in a suggestion, a tap on the text
+   * opens it for editing).
+   */
+  function versesUnder(get, { quiet = false } = {}) {
+    const node = el('div', { class: 'verses', hidden: true, onclick: quiet ? e => e.stopPropagation() : null });
+    const b = { node, draw: () => {
+      clear(node);
+      const text = get();
+      node.append(...Read.verseLines(Verses.quotesFor(text, s), { own: s.translation }));
+      const missing = Verses.refsToQuote(text).filter(r => !Verses.isWord(r, s) && !(s.quotes || {})[r.key] && notFound.has(r.key));
+      if (missing.length) node.append(el('p', { class: 'verse-miss muted small', text: t('Not found: {refs}', { refs: missing.map(r => formatRef(r, lang)).join(', ') }) }));
+      node.hidden = !node.childElementCount;
+    } };
+    verseBlocks.add(b);
+    b.draw();
+    return node;
+  }
+  /** The text word as step 1 holds it, at hand where the main points are written on it; drawn again when it changes. A long passage is left in step 1. */
+  function wordUnder() {
+    const node = el('div', { class: 'verses word-verses', hidden: true });
+    const b = { node, draw: () => {
+      clear(node);
+      const text = Verses.wordText(s);
+      node.hidden = !text || text.length > 1200;
+      if (node.hidden) return;
+      node.append(
+        el('p', { class: 'verse-label muted small', text: t('The text word') }),
+        el('p', { class: 'verse-q' }, [el('b', { class: 'verse-ref', text: s.ref ? formatRef(s.ref, lang) : (s.refText || '').trim() }), ' ', text,
+          (s.translation || '').trim() ? el('span', { class: 'verse-src', text: ` (${s.translation.trim()})` }) : null]),
+      );
+    } };
+    verseBlocks.add(b);
+    b.draw();
+    return node;
   }
   /* ---- the steps fold
    * Each step is a section with a heading row that opens and closes it.
@@ -954,7 +1037,7 @@ function renderEditor(root, s) {
     const pair = a ? null : hintPair({ line: t('Claude takes the Guide\'s article apart, sentence by sentence, in plain words.'), more: t('Claude takes the Guide\'s article apart sentence by sentence: what each one says in plain words, what it gives the sermon, and the Bible passages and Catechism sections that bring depth to it. You choose what to keep.') }, 'ai-hint', firstTime);
     breakBox.append(el('div', { class: 'row ai-head' }, [btn, drop, a
       ? el('span', { class: 'muted small grow', text: t('Broken down {date} by {model}{cost}. The Guide\'s words stay as they are; the rest is a starting point.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' }) })
-      : pair.line]), pair ? pair.note : null);
+      : pair.line]), ...(pair && pair.note ? [pair.note] : []));   // append() would write a null out as the word "null"
     if (!a) return;
     const view = breakView();   // 'pieces' or 'plain': how the article is shown below
     const panel = el('details', { class: 'ai-panel', open: true });
@@ -999,7 +1082,9 @@ function renderEditor(root, s) {
     field(t('Sermon title (optional)'), 'title', { line: true, placeholder: t('A heading for your notes') }),
     field(t('Message of the service'), 'theme', { line: true, placeholder: t('The theme in one sentence') }),
     field(t('Core thought'), 'core', { rows: 2, placeholder: t('The one thing the congregation should take home') }),
+    versesUnder(() => s.core),
     field(t('Notes from the Guide'), 'guide', { rows: 5, placeholder: t('Key thoughts from the Guide, in your own words. Which sentences struck you? What should be kept?') }),
+    versesUnder(() => s.guide),
   );
 
   // ---- 3. the introduction: the sermon opens as the Guide's article does; the Guide's own introduction can be read beside it
@@ -1018,16 +1103,17 @@ function renderEditor(root, s) {
       art,
     ]));
   }
-  container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }));
+  container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }), versesUnder(() => s.intro));
 
   // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
   step(4, t('Main points'), { line: t('The parts of the Guide\'s article, in its order, are main point 1, 2, 3.'), more: AI.unlocked()
-    ? t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear.')
-    : t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences.') },
+    ? t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear. A verse a point names, such as (John 3:16), is written out under the point, from the translation of the text word, so you can read it there.')
+    : t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. A verse a point names, such as (John 3:16), is written out under the point, from the translation of the text word, so you can read it there.') },
     () => clearStep(4, t('the main points'), [], {
       clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
       restore: kept => { s.points = kept; renderPoints(); },
     }));
+  container.append(wordUnder());   // the text word, to write the points on (Jerome, 2026-11-21)
   const buildBox = el('div', { class: 'ai-box build-box' });
   container.append(buildBox);
   async function askBuild() {
@@ -1055,6 +1141,7 @@ function renderEditor(root, s) {
       b.done();
       renderBuild();
       renderPoints();
+      fetchQuotes();   // the verses the outline names, under its parts
       toast(thoughts ? t('The outline is ready, with your thoughts woven in. Tap "Use" on the parts to keep.') : t('The outline is ready. Tap "Use" on the parts to keep.'));
     } catch (e) {
       if (e && e.name === 'AbortError') { b.done(); return; }
@@ -1158,7 +1245,7 @@ function renderEditor(root, s) {
     const pair = a ? null : hintPair({ line: t('Claude proposes how to build this sermon from the text, the Guide and your thoughts.'), more: t('Claude proposes how to build this sermon from the text, the message, your notes and your thoughts on the main points, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') }, 'ai-hint', firstTime);
     buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, pdf, printBtn, hear, a
       ? el('span', { class: 'muted small grow', text: t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' }) })
-      : pair.line]), pair ? pair.note : null);
+      : pair.line]), ...(pair && pair.note ? [pair.note] : []));   // append() would write a null out as the word "null"
     if (!a) return;
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The outline') }));
@@ -1223,6 +1310,7 @@ function renderEditor(root, s) {
         el('div', { class: 'row line' }, [el('span', { class: 'step-n small', text: i + 1 }), head, mark,
           el('button', { class: 'icon del', type: 'button', 'aria-label': t('Remove this point'), text: '✕', onclick: () => { s.points.splice(i, 1); touch(); renderPoints(); } })]),
         body,
+        versesUnder(() => p.body),
         open ? el('label', { class: 'f thought' }, [title(t('My thought on this point')), thought]) : null,
         open ? talk : null,
         open ? el('div', { class: 'row weave-row' }, [weaveBtn]) : null,
@@ -1287,6 +1375,7 @@ function renderEditor(root, s) {
     p.read = thoughtKey(p);   // Claude has seen this thought, so "Suggest the sermon" does not read it again
     await saveSermon(s);
     renderPoints();
+    fetchQuotes();
     toast(t('Your thought is woven into main point {n}. Read it under the point, and tap "Use" to put it in.', { n: i + 1 }));
   }
   /**
@@ -1354,11 +1443,14 @@ function renderEditor(root, s) {
   const catNote = el('p', { class: 'muted small cat-note' });
   container.append(
     field(t('Context'), 'context', { rows: 4, placeholder: t('The setting of the text: the people, the situation, the surrounding chapters') }),
+    versesUnder(() => s.context),
     field(t('Key words and their meaning'), 'keywords', { rows: 3, placeholder: t('One word per line, with what it means here') }),
+    versesUnder(() => s.keywords),
     el('label', { class: 'f' }, [title(t('Catechism references')), catBox]),
     el('div', { class: 'row line cat-row' }, [el('span', { class: 'small', text: t('In the sermon notes:') }), catChoice]),
     catNote,
     field(t('Cross references'), 'crossRefs', { rows: 3, placeholder: t('Other passages that shed light, one per line: "Romans 8:28 – all things work together"') }),
+    versesUnder(() => s.crossRefs),
   );
 
   function catRow(sec, checked, onChange, extraRef) {
@@ -1424,6 +1516,7 @@ function renderEditor(root, s) {
       await saveSermon(s);
       b.done();
       renderAi();
+      fetchQuotes();   // the verses the suggestions name, under them
       toast(t('Suggestions ready. Tap "Use" on the ones to keep.'));
     } catch (e) {
       if (e && e.name === 'AbortError') { b.done(); return; }
@@ -1487,7 +1580,9 @@ function renderEditor(root, s) {
       clear(node);
       node.classList.remove('editing');
       const ti = val(title), bo = val(body);
-      const text = el('div', { class: 'ai-text' }, [ti ? el('b', { text: ti }) : null, ti && bo ? ' ' : null, bo || null, ...whys()]);
+      const text = el('div', { class: 'ai-text' }, [ti ? el('b', { text: ti }) : null, ti && bo ? ' ' : null, bo || null,
+        versesUnder(() => [val(title), val(body)].filter(v => typeof v === 'string').join('\n'), { quiet: true }),   // the verses the suggestion names, written out (a cross reference's own among them)
+        ...whys()]);
       // a tap on the text opens the boxes, unless text is being selected; on a phone the keyboard waits for a tap in a box
       if (edit) text.addEventListener('click', () => { if (String(getSelection()).length) return; open(!isTouch()); });
       node.append(text, el('div', { class: 'ai-actions' }, [edit ? pencil(() => open(true)) : null, val(extra) || null, use()]));
@@ -1589,7 +1684,7 @@ function renderEditor(root, s) {
     const pair = a ? null : hintPair({ line: t('Claude answers the questions above from the text, the Guide\'s article and the Catechism.'), more: t('Claude answers the questions above from the text, the Guide\'s article and the Catechism, suggests cross references, and shows what the text gives each main point of the Guide, in short plain sentences and with the people above in mind. You choose what to keep.') }, 'ai-hint', firstTime);
     aiBox.append(el('div', { class: 'row ai-head' }, [btn, drop, a
       ? el('span', { class: 'muted small grow', text: t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' }) })
-      : pair.line]), pair ? pair.note : null);
+      : pair.line]), ...(pair && pair.note ? [pair.note] : []));   // append() would write a null out as the word "null"
     if (!a) return;
     const panel = el('details', { class: 'ai-panel', open: true });
     panel.append(el('summary', { text: t('The suggestions') }));
@@ -1624,8 +1719,11 @@ function renderEditor(root, s) {
     () => clearStep(6, t('the summary and conclusion'), ['application', 'summary', 'conclusion']));
   container.append(
     field(t('Application for the congregation'), 'application', { rows: 4, placeholder: t('What does this ask of us this week? Name it for the people in front of you.') }),
+    versesUnder(() => s.application),
     field(t('Summary'), 'summary', { rows: 3, placeholder: t('The main points in a few short lines, to gather them up at the end') }),
+    versesUnder(() => s.summary),
     field(t('Conclusion'), 'conclusion', { rows: 3, placeholder: t('Sum up the main points in a line or two, then lead to the altar: forgiveness, Holy Communion, the hope we share') }),
+    versesUnder(() => s.conclusion),
   );
 
   // ---- 7. illustrations: the person's own experiences, which the Guide leaves to the minister
@@ -1633,7 +1731,7 @@ function renderEditor(root, s) {
     () => clearStep(7, t('illustrations'), ['illustrations']));
   const illus = field(t('Illustrations'), 'illustrations', { rows: 5, placeholder: t('A story, an experience, a picture that makes the point visible') });
   const illusArea = illus.querySelector('textarea');
-  container.append(illus, el('div', { class: 'row' }, [
+  container.append(illus, versesUnder(() => s.illustrations), el('div', { class: 'row' }, [
     el('button', { class: 'btn small ghost', type: 'button', text: t('Insert from my notes'), onclick: () => pickNote(note => {
       // in the language of this preparation, when the note has it (notes.js: a note can carry its translation)
       const x = Notes.textIn(note, AI.langOf(s));
@@ -1646,10 +1744,11 @@ function renderEditor(root, s) {
   ]));
 
   // ---- output
-  step('✓', t('Print or save'), { line: t('The sermon notes, the sermon in large type, and the cue cards for the altar.'), more: t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar: under each heading only short cues in strong colours, with # between them, as on your own cards. Read shows the sermon or the cards on the screen in large type.') });
+  step('✓', t('Print or save'), { line: t('The sermon notes, the sermon in large type, and the cue cards for the altar.'), more: t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar: under each heading only short cues in strong colours, with # between them, as on your own cards. Read shows the sermon or the cards on the screen in large type. Every verse the sermon names is written out under the part that names it, on the notes, in the sermon and on the screen.') });
   async function run(make, how) {
     try {
       await Cat.loadText().catch(() => false);
+      await quotesReady();   // the verses just typed are on the paper too
       const r = make(s);
       if (how === 'print') { Pdf.print(r); toast(t('Sending to the printer…')); }
       else if (how === 'share') Pdf.share(r).then(res => { if (res === 'downloaded') toast(t('Sharing is not available here, so the PDF was downloaded.')); });
@@ -1669,7 +1768,7 @@ function renderEditor(root, s) {
   const cueService = () => (Guides.findService(s) || {}).service;   // the Guide's article this preparation is linked to
   container.append(el('div', { class: 'outputs' }, [
     outRow(t('Sermon notes'), Pdf.sermonPdf, true),
-    outRow(t('The sermon'), Pdf.sermonTextPdf, true, () => Read.sermon(s)),
+    outRow(t('The sermon'), Pdf.sermonTextPdf, true, async () => { await quotesReady(); Read.sermon(s); }),
     // while the person's own introduction is empty, the cards carry the Guide's (cues.js introText)
     outRow(t('Cue cards'), x => Pdf.cueCardPdf(x, { service: cueService() }), false, () => Read.cues(s, { service: cueService() })),
     // the whole preparation as a small file to another minister (prepfile.js): the share sheet on a phone, a saved file on a PC
@@ -1817,6 +1916,7 @@ function renderEditor(root, s) {
   for (const it of sections) it.set(opens.includes(it.key));
   allWord();
   spy();
+  fetchQuotes();   // the verses the preparation names: the words that are not here yet, and a better Bible for those that had to come from another
 }
 
 /** The pencil on the button that opens a suggestion for changing its words (the Notes tab's pen). */
