@@ -12,7 +12,8 @@
  * gives the district's own file with his column filled in, the month as a
  * one-page programme (plan-pdf.js), or a WhatsApp message; and the plan can
  * go to Google Calendar as a feed the calendar follows (api/plan.js), so a
- * change here shows there on its own.
+ * change here shows there on its own, also one an update of the app brings
+ * (the feed goes again when it no longer says what was sent last).
  *
  * What is kept: one row per month ('plan:2025-10') in the `plans` store, with
  * the sheet as read, the rector's choices and the file itself (so the file
@@ -31,13 +32,14 @@ import * as L from './plan-lib.js';
 import * as Pdf from './pdf.js';
 import { programmePdf } from './plan-pdf.js';
 
-const DEFAULTS = { congregation: '', myCode: '', roster: [], hidden: [], sundayTime: '09:00', midweekTime: '19:30', eventDefaults: 'all', calKey: '', calId: '', calOn: false, calAt: '' };
+const DEFAULTS = { congregation: '', myCode: '', roster: [], hidden: [], sundayTime: '09:00', midweekTime: '19:30', eventDefaults: 'all', calKey: '', calId: '', calOn: false, calAt: '', calSent: '' };
 const EVENT_CHOICES = [['services', 'Services only'], ['district', 'Services and district events'], ['all', 'Also meetings and deadlines'], ['none', 'Nothing until I tick it']];
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 let box = null;       // the tab's container, for a redraw from anywhere
 let current = '';     // the id of the month on the screen
 let feedTimer = 0;    // the feed is sent a moment after the last change
+let feedChecked = false;  // whether this page load has compared the feed with what was sent last
 
 /* ------------------------------------------------------------------ rows */
 
@@ -165,17 +167,22 @@ export function feedUrl() {
   return s.calId ? new URL('api/plan?id=' + s.calId, location.href.split('#')[0]).href : '';
 }
 
-/** Builds the feed from every month and sends it; says so only when it fails. */
+/** The feed as it stands: every ticked event of every month. */
+function feedBody() {
+  const s = settings();
+  return L.buildFeed(months().map(row => ({ events: compute(row).list })), { name: s.congregation || t('Month plan') });
+}
+
+/** Builds the feed from every month and sends it; says so only when it fails. The mark of what was sent is kept, for checkFeed. */
 export async function sendFeed({ loud = false } = {}) {
   const s = settings();
   if (!s.calOn || !s.calKey || !s.calId) return false;
-  const all = months().map(row => ({ events: compute(row).list }));
-  const body = L.buildFeed(all, { name: s.congregation || t('Month plan') });
+  const body = feedBody();
   try {
     const r = await fetch('api/plan?id=' + s.calId, { method: 'PUT', headers: { 'X-Plan-Key': s.calKey, 'Content-Type': 'text/calendar; charset=utf-8' }, body });
     if (r.status === 503) throw new Error(t('The calendar feed is not switched on on the server yet.'));
     if (!r.ok) throw new Error(t('The feed could not be sent ({status}).', { status: r.status }));
-    await saveSettings({ calAt: new Date().toISOString() });
+    await saveSettings({ calAt: new Date().toISOString(), calSent: L.feedMark(body) });
     if (loud) toast(t('Sent. Google Calendar picks it up within about a day.'));
     return true;
   } catch (e) {
@@ -188,6 +195,21 @@ function queueFeed() {
   if (!settings().calOn) return;
   clearTimeout(feedTimer);
   feedTimer = setTimeout(() => sendFeed(), 2500);
+}
+
+/**
+ * An update of the app can change what is on the plan without anyone touching
+ * it: Christmas Day on a Friday, an AVT Sunday. So the first time the Month
+ * plan is on the screen after the page loaded, the feed goes again when what
+ * it would say now differs from what was sent last, and Google Calendar shows
+ * the new days by itself. Offline, the check waits for a later look.
+ */
+function checkFeed() {
+  if (feedChecked || !navigator.onLine) return;
+  const s = settings();
+  if (!s.calOn || !s.calId) return;
+  feedChecked = true;
+  if (L.feedMark(feedBody()) !== s.calSent) queueFeed();
 }
 
 async function startFeed() {
@@ -205,7 +227,7 @@ async function stopFeed() {
   if (s.calId && s.calKey) {
     try { await fetch('api/plan?id=' + s.calId, { method: 'DELETE', headers: { 'X-Plan-Key': s.calKey } }); } catch (e) { /* offline: the feed stays on the server until the next try */ }
   }
-  await saveSettings({ calOn: false, calAt: '' });
+  await saveSettings({ calOn: false, calAt: '', calSent: '' });
 }
 
 /* ------------------------------------------------------------- the screen */
@@ -233,6 +255,7 @@ export function render(container, route) {
   if (all.length) container.append(bar);
   if (!row) { container.append(openCard(true)); return; }
   const c = compute(row);
+  checkFeed();
   if (c.plan.problems.length) container.append(el('p', { class: 'hint error', text: c.plan.problems.join(' ') }));
   container.append(servicesCard(row, c), eventsCard(row, c), sendCard(row, c), calendarCard(row, c), notesCard(row, c), openCard(false));
 }

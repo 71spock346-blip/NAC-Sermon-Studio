@@ -515,6 +515,23 @@ export function buildFeed(months, { name, now = new Date() } = {}) {
   return lines.map(fold).join('\r\n') + '\r\n';
 }
 
+/** A short mark of a text (FNV-1a, 32 bits, as hex). */
+export function fingerprint(text) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+}
+
+/**
+ * What a feed says, as a mark: the same whenever its events are the same,
+ * whenever it was built (the stamps are left out). The app keeps the mark of
+ * the feed it sent last, so as to send again only when the plan says
+ * something new (plan.js checkFeed).
+ */
+export function feedMark(ics) {
+  return fingerprint(ics.replace(/^DTSTAMP:[^\r\n]*\r\n/gm, ''));
+}
+
 /* ------------------------------------------------------------- the words */
 
 export function monthLabel(month, year, language) {

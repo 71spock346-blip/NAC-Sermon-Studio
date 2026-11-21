@@ -380,6 +380,21 @@ await test('the feed is an iCalendar file with the local times as UTC, whole day
   assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, list.filter(e => e.on).length);
 });
 
+await test('the feed\'s mark says what it holds, not when it was built', async () => {
+  const at = (when, events = list, name = 'Sunnyside') => L.buildFeed([{ events }], { name, now: new Date(when) });
+  const a = at('2026-11-15T12:00:00Z');
+  assert.notEqual(a, at('2026-11-21T09:00:00Z'));                       // the stamps differ
+  assert.equal(L.feedMark(a), L.feedMark(at('2026-11-21T09:00:00Z')));  // the mark does not
+  assert.match(L.feedMark(a), /^[0-9a-f]{8}$/);
+  // one event unticked, or another name on the calendar: a new mark, so the feed goes again
+  const first = list.findIndex(e => e.on);
+  const fewer = list.map((e, i) => (i === first ? { ...e, on: false } : e));
+  assert.notEqual(L.feedMark(at('2026-11-15T12:00:00Z', fewer)), L.feedMark(a));
+  assert.notEqual(L.feedMark(at('2026-11-15T12:00:00Z', list, 'Gezina')), L.feedMark(a));
+  assert.equal(L.fingerprint(''), '811c9dc5');
+  assert.equal(L.fingerprint('a'), 'e40c292c');
+});
+
 await test('the message for the priests', async () => {
   const text = L.messageText(plan, settings, services, list, 'en-ZA', 'en');
   assert.ok(text.startsWith('*Sunnyside – October 2025*'));
