@@ -76,6 +76,7 @@ var SHELL = [
   'src/pack.js',
   'src/sunday.js',
   'src/altar.js',
+  'src/record.js',
   'src/mis.js',
   'src/seating.js',
   'src/seating-layouts.js',

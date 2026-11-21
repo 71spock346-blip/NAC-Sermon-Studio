@@ -7,8 +7,9 @@
  * the text word alone in large letters; and Altar mode (altar.js), which
  * puts the cue cards and the altar card on one full screen, a swipe apart,
  * for the service itself. After the service, "Mark as held"
- * puts the next service in its place (the toast has Undo). The two services
- * after it are listed under the card.
+ * puts the next service in its place (the toast has Undo), and "Service
+ * record" opens the form for the district's WhatsApp group (record.js). The
+ * two services after it are listed under the card.
  *
  * The next service is the first still to come: a preparation with a date
  * that is not marked as held, or a service of a loaded Divine Service Guide
@@ -140,6 +141,7 @@ function card(x, past, redraw) {
       el('a', { class: 'btn altar-btn', href: `#altar/${s.id}` }, [el('span', { class: 'ico', 'aria-hidden': 'true', html: CHALICE }), t('Altar mode')]),
       el('a', { class: 'btn ghost', href: `#prepare/${s.id}`, text: t('Open the preparation') }),
       over ? el('button', { class: 'btn ghost', type: 'button', text: t('Mark as held'), onclick: () => markHeld(s, redraw) }) : null,
+      over ? el('a', { class: 'btn ghost', href: `#record/${s.id}`, text: t('Service record') }) : null,   // the form for the district's WhatsApp group, filled in after the service (record.js)
     ] : [
       el('button', { class: 'btn', type: 'button', text: t('Prepare this service'), onclick: () => newFromService(x.guide, x.i) }),
     ]),

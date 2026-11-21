@@ -1882,6 +1882,23 @@ body.altar .shell { min-height: 0; display: block; }   /* no column for the hidd
 .rem-visits-head { margin-top: 18px; }
 .rem-soon { margin-top: 6px; }
 .rem-log p { margin: 4px 0; }
+
+/* ---- the service record (record.js): NACSA's form, filled in after the service ---- */
+.record .record-head { margin: 2px 0 8px; }
+.record .record-head b { color: var(--head-ink); }
+.record .sec h3.sub { margin-top: 14px; }
+.record-times { grid-template-columns: 1fr 1fr; margin: 0; }
+.record-total { margin: 8px 0 0; font-weight: 700; color: var(--head-ink); }
+/* the short number boxes in rows of three (the hymns in twos on a phone), so the form is not one long column */
+.record .fields.cols { grid-template-columns: repeat(var(--cols, 3), minmax(0, 200px)); }
+@media (max-width: 759.98px) { .record .fields.cols { grid-template-columns: repeat(var(--phone-cols, var(--cols, 3)), minmax(0, 1fr)); gap: 8px 10px; } }
+.record .fields.cols > label { justify-content: flex-end; }   /* a label that wraps keeps its box level with the others in the row */
+.record-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px 10px; margin: 8px 0; }
+.record-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.record-grid label span { font-weight: 700; }
+.record-grid label small { font-size: 11.5px; line-height: 1.25; color: var(--muted); }
+.record-grid input { width: 100%; }
+.record-text { white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.5 var(--sans); color: var(--ink); background: var(--card); border-radius: var(--radius); padding: 12px 14px; margin: 4px 0 6px; }
 @media (max-width: 759.98px) { .rem-stat .n { font-size: 21px; } .rem-stat { padding: 9px 10px; } }
 
 /* ---- the month plan (plan.js): the services with who holds them, the events for the calendar, the feed ---- */
