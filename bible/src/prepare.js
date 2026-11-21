@@ -1678,6 +1678,12 @@ function renderEditor(root, s) {
       el('button', { class: 'btn small', type: 'button', text: t('Send to a minister'), onclick: () => PrepFile.send(s) }),
     ]),
     el('p', { class: 'muted small send-note', text: t('A small file for WhatsApp or e-mail. Opened in the app on the other device, it becomes that minister\'s own copy.') }),
+    // NACSA's service record, filled in after the service and sent to the district's WhatsApp group (record.js)
+    el('div', { class: 'row out-row' }, [
+      el('span', { class: 'out-label', text: t('After the service') }),
+      el('a', { class: 'btn small', href: `#record/${s.id}`, text: t('Service record') }),
+    ]),
+    el('p', { class: 'muted small send-note', text: t('The form for the district\'s WhatsApp group: attendance, offerings, hymns, acts and blessings.') }),
   ]));
 
   // ---- the words on the cue cards (cues.js): one line per heading. His own cues, with # between them; while a line

@@ -37,6 +37,7 @@ INDIRECT = [
     'System', 'Paper', 'White', 'Dark', 'Small', 'Normal', 'Large', 'Pulpit', 'Montserrat', 'Easy-read',
     'Thought', 'Experience', 'Doctrine', 'Illustration', 'Sermon idea', 'Question',
     'Draft', 'Ready', 'Held',
+    'Deacon', 'Priest', 'Community Evangelist', 'Shepherd', 'Community Elder', 'District Evangelist', 'District Elder',   # record.js MINISTRIES, the service record's ordinations
     'Sunday divine service', 'Midweek divine service', 'Divine service for the departed',
     'Youth service', "Children's service", 'Funeral service', 'Wedding', 'Other',
     'the most capable; the default', 'quicker and about half the price',

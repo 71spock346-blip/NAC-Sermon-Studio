@@ -56,6 +56,11 @@ async function saveSettings(patch) {
   const row = state.plans.find(r => r.id === 'settings');
   await savePlan({ id: 'settings', kind: 'settings', settings: { ...((row && row.settings) || {}), ...patch } });
 }
+/** The usual time of a Sunday and of a midweek service, for the service record (record.js). */
+export function serviceTimes() {
+  const s = settings();
+  return { sunday: s.sundayTime, midweek: s.midweekTime };
+}
 
 /** The plan of a month as plan-lib wants it: the sheet as read plus the rector's choices. */
 const planOf = row => ({ ...row.parsed, month: row.month, year: row.year, services: row.services || {}, events: row.events || {}, extraDays: row.extraDays || [], own: row.own || [] });

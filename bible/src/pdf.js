@@ -38,9 +38,9 @@ import { plainParts } from './plain.js';
 import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';   // the words on the cue cards
 import { line as hymnLine } from './hymns.js';   // the hymns of the service at the top of the notes and of the cue card
 
-const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
+export const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
 const INK = [29, 43, 56];
-const MUTED = [91, 107, 123];
+export const MUTED = [91, 107, 123];
 const HANG = 4.5;                // mm between a bullet and its text
 
 /** The PDF library (vendor/jspdf), once the page has loaded it; also for the modules that draw on a PDF of this one's (pack.js). */
