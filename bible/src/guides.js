@@ -475,7 +475,7 @@ async function read(file) {
  * device. On the other device each Guide in it is kept as if the PDF had
  * been read there, and a copy of the same booklet loaded earlier is replaced.
  */
-const FILE_APP = 'nac-study-bible-guide';
+export const FILE_APP = 'nac-study-bible-guide';
 
 /** The month's Guides as the file carries them. */
 export function guideFile(editions) {
@@ -537,6 +537,7 @@ export async function readFile(file) {
     let data = null;
     try { data = JSON.parse(await file.text()); } catch (e) { /* not JSON: said below */ }
     const list = data && data.app === FILE_APP && Array.isArray(data.guides) ? data.guides : null;
+    if (!list && data && data.app === 'nac-study-bible-preparation') throw new Error(t('That is a preparation another minister sent, not a Guide. Open it under Prepare, with "Open the file".'));   // prepfile.js FILE_APP
     if (!list) throw new Error(t('That is not a Guide file from this app. Ask the minister who sent it to use "Send this month\'s Guide" in the app.'));
     const kept = [];
     for (const raw of list) {
