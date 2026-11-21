@@ -49,6 +49,12 @@ export const AF = {
   // the phone's fifth tab and its page (more.js)
   "More|tab": "Meer",
   "Tools": "Hulpmiddels",
+  "What I use": "Wat ek gebruik",
+  "All five tools show: untick what you do not use": "Al vyf hulpmiddels wys: ontmerk wat jy nie gebruik nie",
+  "None: the five tools are out of the menu": "Geen: die vyf hulpmiddels is uit die kieslys",
+  "Tick the tools you use. What is unticked leaves the menu on a PC and the More page on a phone, on all your devices; nothing is deleted, and a tick brings it back.": "Merk die hulpmiddels wat jy gebruik. Wat nie gemerk is nie, verdwyn uit die kieslys op 'n rekenaar en die Meer-bladsy op 'n foon, op al jou toestelle; niks word uitgevee nie, en 'n merkie bring dit terug.",
+  "{tool} is back in the menu.": "{tool} is terug in die kieslys.",
+  "{tool} is out of the menu. Nothing is deleted; a tick brings it back.": "{tool} is uit die kieslys. Niks is uitgevee nie; 'n merkie bring dit terug.",
   "The other parts of the app.": "Die ander dele van die app.",
   "Slides and questions for the evening": "Skyfies en vrae vir die aand",
   "The background to a book, a chapter or verses": "Die agtergrond van 'n boek, 'n hoofstuk of verse",

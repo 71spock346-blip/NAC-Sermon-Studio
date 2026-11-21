@@ -106,6 +106,7 @@ export const DEFAULT_SETTINGS = {
   readMode: 'book',       // 'book' (Montserrat, normal spacing) or 'easy' (plain letters in the whole app, wider spacing: easier with dyslexia)
   name: '',
   congregation: '',
+  hiddenTools: [],        // the tools unticked under Settings → What I use ('plan', 'seating', 'choir', 'reminders', 'reflect'): out of the menu and More on all devices (tools.js)
   lastRef: 'PSA.23',
 };
 
