@@ -314,6 +314,14 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   comes back with the thought in it (or a question first, kept in `talk`), waits under the point as `weave` and goes
   in with "Use" (undoable); the rest of the sermon is left alone. `pdf.js sermonTextPdf` prints the sermon itself in reading order, from the preparation's boxes or from
   the outline (each illustration under the point it serves), beside the sermon notes and the cue card.
+  Every verse the sermon names, "(John 1:14)", is written out under the part that names it (`src/verses.js`
+  finds the references and picks the words; `prepare.js fetchQuotes` fetches them once, from the text word's
+  translation, else another Bible in the sermon's language, else the bundled English, via `bible.js versesFrom`,
+  and keeps them in the preparation as `quotes`, so the prints, the readings, the voice and the other device have
+  them offline). Each part writes out every verse it names; a citation of the text word takes its words from step 1
+  (`s.text`), and step 4 shows the text word above the main points. A passage over six verses stays a reference, and
+  a reference that is in no Bible is named under its box in Prepare ("Not found"). Opening the preparation asks the
+  better Bibles again (a chapter pasted in since), and drops the words of verses no longer named.
   The main points always come from the Guide: the parts of
   its article, in its order, are main point 1, 2, 3 and so on (`guides.js mainPoints`); a preparation taken from the
   Guide starts with them, `ai.js` gives the model that list as fixed and `alignPoints` holds the answer to it (a point
@@ -602,7 +610,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `vendor/qrcode.mjs` – QR Code Generator by Kazuhiko Arase (MIT), for the sync code
 - `vendor/pdfjs/` – pdf.js 5.4.624 (Apache 2.0; `vendor/pdfjs.LICENSE`), fetched only when an altar booklet or a listing is loaded
 - `vendor/write-excel-file.min.js`, `vendor/read-excel-file.min.js` – write-excel-file and read-excel-file (MIT; `vendor/excel.LICENSE`), fetched only when a spreadsheet is made or read
-- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_search.mjs` for the Bible search and the typed references, `test_booklet.mjs` for the altar booklet, `test_handbook.mjs` for the handbooks (with `fixtures/handbook-sample.txt`, a made-up handbook), `test_plan.mjs` for the month plan, `fixtures/` the fictional listing PDFs for the Reminders tab, in both layouts the office has printed (with a Month column, and November’s without one), and `plan-sample.xlsx`, a made-up district programme for the month plan
+- `tools/` – the scripts that generate `data/` (see below), `check_i18n.py`, which lists the texts still without Afrikaans, `check_theology.py`, which checks the book introductions, `test_merge.mjs` and `dev_server.mjs` for sync, `test_search.mjs` for the Bible search and the typed references, `test_verses.mjs` for the verses the sermon names, `test_booklet.mjs` for the altar booklet, `test_handbook.mjs` for the handbooks (with `fixtures/handbook-sample.txt`, a made-up handbook), `test_plan.mjs` for the month plan, `fixtures/` the fictional listing PDFs for the Reminders tab, in both layouts the office has printed (with a Month column, and November’s without one), and `plan-sample.xlsx`, a made-up district programme for the month plan
 
 ## Rebuilding the data
 

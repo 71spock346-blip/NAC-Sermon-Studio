@@ -63,6 +63,7 @@ export function render(container, route) {
   if (!sp.empty) {
     const art = Read.article(s);
     Read.fillSermon(art, s, sp);
+    Read.fetchMissing(s, () => Read.fillSermon(clear(art), s, sermonParts(s)));   // the verses the sermon names, where they are not with it yet
     panes.push({ key: 'sermon', name: 'The sermon', node: art });
   }
 

@@ -20,14 +20,14 @@
  * is kept in a small cache of its own (SHARED) and the browser is sent on to
  * Church files, which takes it from there (files.js takeShared).
  */
-var VERSION = 'bible-2026-11-21d';
+var VERSION = 'bible-2026-11-21e';
 var SHELL = [
   './',
   'index.html',
   'help.html',
   'manifest.json',
-  'styles.css?v=107',
-  'src/app.js?v=107',
+  'styles.css?v=108',
+  'src/app.js?v=108',
   'src/i18n.js',
   'src/af.js',
   'src/ui.js',
@@ -46,6 +46,7 @@ var SHELL = [
   'src/pdf.js',
   'src/cues.js',
   'src/read.js',
+  'src/verses.js',
   'src/plain.js',
   'src/settings.js',
   'src/ai.js',

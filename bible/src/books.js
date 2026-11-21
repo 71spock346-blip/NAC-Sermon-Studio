@@ -130,7 +130,7 @@ export function findBook(text) {
  * letter or two off. Null when two books are as near, or when the name has
  * fewer than four letters (too many books are one letter from "Jo").
  */
-function nearBook(text) {
+export function nearBook(text) {
   const key = fold(text);
   if (key.length < 4) return null;
   const max = key.length >= 7 ? 2 : 1;

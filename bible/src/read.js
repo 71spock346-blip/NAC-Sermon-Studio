@@ -10,14 +10,16 @@
  * own panes with article() and the fill… functions, so the sermon and the
  * cards look the same wherever they are read.
  */
-import { el, sheet, seg, toast, SIZES } from './ui.js';
+import { el, clear, sheet, seg, toast, SIZES } from './ui.js';
 import { t, tl } from './i18n.js';
-import { state, saveSetting } from './store.js';
+import { state, saveSetting, saveSermon } from './store.js';
 import { sermonParts, serviceLine, cueHeading } from './pdf.js';
 import { formatRef } from './books.js';
 import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';
 import { langOf } from './ai.js';
 import { line as hymnLine } from './hymns.js';   // the hymns of the service under the service line, as the cue card has them
+import { quotesFor, langCode, sourceOrder, gather } from './verses.js';   // the verses the sermon names, written out under the part that names them
+import { sources, versesFrom } from './bible.js';
 
 /**
  * The sermon in reading order, from the boxes of the preparation or, with
@@ -28,7 +30,9 @@ import { line as hymnLine } from './hymns.js';   // the hymns of the service und
 export function sermon(s, { outline = null } = {}) {
   const parts = sermonParts(s, { outline });
   if (parts.empty) { toast(t('There is nothing to read yet: write the introduction, the main points, the application or the conclusion first.'), true); return false; }
-  fillSermon(open(t('The sermon'), s), s, parts);
+  const art = open(t('The sermon'), s);
+  fillSermon(art, s, parts);
+  fetchMissing(s, () => fillSermon(clear(art), s, sermonParts(s, { outline })));
   return true;
 }
 
@@ -37,13 +41,15 @@ export function fillSermon(art, s, parts = sermonParts(s)) {
   const { c, ref, title } = parts;
   const L = langOf(s);   // the headings in the sermon's language, as the prints have them
   head(art, s, { ref, title: s.title || s.theme || !ref ? title : '' });
+  const verses = text => versesBlock(quotesFor(text, s), { own: s.translation });   // the verses a part names, written out under it (verses.js)
+  const put = (...nodes) => art.append(...nodes.filter(Boolean));
   const section = (heading, body, extras = []) => {
     if (heading) art.append(el('h2', { text: heading }));
-    art.append(...paras(body));
+    put(...paras(body), verses(body));
     for (const x of extras) {
       if (x.kind === 'illustration') art.append(el('p', { class: 'read-extra' }, [el('b', { text: tl(L, 'Illustration: ') + (x.title || '') })]));
       else if (x.kind === 'lighter') art.append(el('p', { class: 'read-extra' }, [el('b', { text: tl(L, 'A lighter moment') })]));
-      art.append(...paras(x.body, x.kind === 'text' ? '' : 'read-in'));
+      put(...paras(x.body, x.kind === 'text' ? '' : 'read-in'), verses(x.body));
     }
   };
   if (c.intro) section(tl(L, 'Introduction'), c.intro, c.after.intro);
@@ -101,6 +107,43 @@ export function word(s) {
 /** The text word into an article: the service line, the reference and the verses. */
 export function fillWord(art, s) {
   head(art, s, { ref: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || '') });
+}
+
+/**
+ * The verses a text names, written out under it (verses.js quotesFor): each
+ * with its reference, its words, and the translation's name where it is not
+ * the sermon's own (`own`), so the minister sees when a verse had to come
+ * from another Bible. Null when there is nothing to write. The Prepare form
+ * draws the same lines under its boxes and suggestions (verseLines).
+ */
+export function versesBlock(quotes, { own = '' } = {}) {
+  if (!quotes.length) return null;
+  return el('div', { class: 'verses' }, verseLines(quotes, { own }));
+}
+
+/**
+ * The words of the verses the sermon names that are not with the
+ * preparation yet (one written before they were written out, or changed on a
+ * device that could not reach a Bible): fetched in the background from the
+ * Bibles of this device (verses.js gather), kept with the preparation, and
+ * `redraw` runs when they have come. The Prepare form does more (prepare.js
+ * fetchQuotes); this is for a sermon read without opening it there.
+ */
+export function fetchMissing(s, redraw) {
+  const lang = langOf(s);
+  const ids = sourceOrder(sources(), { translationId: s.translationId, translation: s.translation, reader: state.settings.translation, lang });
+  gather(s, { ids, fetch: versesFrom, lang })
+    .then(changed => { if (!changed) return; saveSermon(s).catch(() => {}); redraw(); })
+    .catch(() => { /* the verses stay as they are: the references are still there */ });
+}
+
+/** One line per verse: the reference in bold, then the words. */
+export function verseLines(quotes, { own = '' } = {}) {
+  return quotes.map(q => el('p', { class: 'verse-q', lang: langCode(q.lang) || null }, [
+    el('b', { class: 'verse-ref', text: formatRef(q, state.settings.bookLang) }), ' ',
+    q.text,
+    q.short && q.short !== own ? el('span', { class: 'verse-src', text: ` (${q.short})` }) : null,
+  ]));
 }
 
 /* ------------------------------------------------------------- the sheet */

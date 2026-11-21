@@ -376,3 +376,27 @@ export function joinVerses(verses, from, to) {
     .map(v => `${v.n} ${v.text}`)
     .join(' ');
 }
+
+/**
+ * The words of a verse, or of a few (ref.verse to ref.verseEnd), from the
+ * first of `sourceIds` that has them, for the verses a sermon names
+ * (verses.js, prepare.js fetchQuotes): {text, short, lang, source}, or null
+ * when none has them. A source that cannot answer (no key, no connection, a
+ * chapter not pasted in yet, a book that Bible lacks) is passed over for the
+ * next. A passage carries its verse numbers, as the text word does
+ * (joinVerses); one verse comes bare.
+ */
+export async function versesFrom(sourceIds, ref) {
+  for (const id of sourceIds) {
+    const s = source(id);
+    if (!s || !ref || !ref.verse) continue;
+    let ch;
+    try { ch = await getChapter(id, ref.book, ref.chapter); } catch (e) { continue; }
+    if (!ch || ch.missing || ch.unpasted) continue;
+    const to = ref.verseEnd || ref.verse;
+    const vs = (ch.verses || []).filter(v => v.n >= ref.verse && v.n <= to && String(v.text || '').trim());
+    if (!vs.length) continue;
+    return { text: vs.length > 1 ? joinVerses(vs, ref.verse, to) : String(vs[0].text).trim(), short: s.short, lang: s.lang || '', source: id };
+  }
+  return null;
+}
