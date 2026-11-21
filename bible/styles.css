@@ -1877,6 +1877,11 @@ body.altar .shell { min-height: 0; display: block; }   /* no column for the hidd
 .btn.rem-wa.disabled { opacity: .45; pointer-events: none; }
 .rem-listhead { margin-top: 10px; }
 .rem-ph { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }
+.rem-glyph.visit { background: color-mix(in srgb, var(--c-green) 14%, transparent); color: var(--c-green); }   /* a pastoral visit, apart from the dates */
+.rem-due { color: var(--c-amber); font-weight: 600; }   /* a planned visit whose day is this week or has passed */
+.rem-visits-head { margin-top: 18px; }
+.rem-soon { margin-top: 6px; }
+.rem-log p { margin: 4px 0; }
 @media (max-width: 759.98px) { .rem-stat .n { font-size: 21px; } .rem-stat { padding: 9px 10px; } }
 
 /* ---- the month plan (plan.js): the services with who holds them, the events for the calendar, the feed ---- */
