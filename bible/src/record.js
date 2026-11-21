@@ -37,7 +37,7 @@ import { formatRef } from './books.js';
 import * as Pdf from './pdf.js';
 import { serviceTimes } from './plan.js';   // the usual time of a Sunday and a midweek service
 import { formPdf, formPicture, preview as drawPaper } from './record-form.js';
-import { norm as hymnNorm } from './hymns.js';   // "hc12" → "HC 12", "e 104" → "E 104", as the Prepare boxes write them
+import { norm as hymnNorm, withBook } from './hymns.js';   // "hc12" → "HC 12", "e 104" → "E 104", as the Prepare boxes write them; "104" from Prepare → "HC 104"
 
 const DENOMS = [10, 20, 50, 100, 200];
 const HYMNS = ['opening', 'callUp', 'afterText', 'repentance', 'communion', 'closing'];
@@ -64,11 +64,11 @@ export function recordOf(s) {
   };
 }
 
-/** The record as it starts, before anything is typed: the hymns of the preparation, the minister's name, the service's usual time. */
+/** The record as it starts, before anything is typed: the hymns of the preparation (each with its book: Prepare's "104" is "HC 104" here), the minister's name, the service's usual time. */
 export function started(s) {
   const r = recordOf(s);
   const h = s.hymns || {};
-  r.hymns.opening = h.opening || ''; r.hymns.afterText = h.sermon || ''; r.hymns.communion = h.communion || ''; r.hymns.closing = h.closing || '';
+  r.hymns.opening = withBook(h.opening); r.hymns.afterText = withBook(h.sermon); r.hymns.communion = withBook(h.communion); r.hymns.closing = withBook(h.closing);
   r.conductedBy = state.settings.name || '';
   r.completedBy = state.settings.name || '';
   const day = s.date ? new Date(s.date + 'T12:00:00').getDay() : -1;
