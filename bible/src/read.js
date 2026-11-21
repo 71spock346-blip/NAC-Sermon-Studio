@@ -17,6 +17,7 @@ import { sermonParts, serviceLine, cueHeading } from './pdf.js';
 import { formatRef } from './books.js';
 import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';
 import { langOf } from './ai.js';
+import { line as hymnLine } from './hymns.js';   // the hymns of the service under the service line, as the cue card has them
 
 /**
  * The sermon in reading order, from the boxes of the preparation or, with
@@ -136,6 +137,8 @@ function open(name, s, cls = '') {
 /** The head of a reading, as the PDFs have it: the service line, the Bible reference, the text word, then the title or the message. */
 function head(art, s, { ref = '', title = '', theme = '', core = '' }) {
   if (serviceLine(s)) art.append(el('p', { class: 'read-svc', text: serviceLine(s) }));
+  const hymns = hymnLine(s, langOf(s), { titles: false });
+  if (hymns) art.append(el('p', { class: 'read-hymns', text: hymns }));
   if (ref) art.append(el('p', { class: 'read-ref', text: ref + (s.translation ? `  (${s.translation})` : '') }));
   if (String(s.text || '').trim()) art.append(el('blockquote', { class: 'read-word' }, paras(s.text)));
   if (title) art.append(el('h1', { text: title }));
