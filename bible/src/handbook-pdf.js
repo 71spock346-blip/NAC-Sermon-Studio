@@ -70,23 +70,24 @@ function paperSize() {
  * save" in Prepare. With `paper`, A4 | A5 | A5, one side stands above the
  * rows (the altar cards); the choice is kept on the device. `note(paper)`
  * gives a line for under that choice, which says how the cards go on the
- * paper (cardNote).
+ * paper (cardNote); without the choice it stands under the lead, told the
+ * paper kept on the device (the Sunday pack, pack.js).
  */
 export function printSheet(rows, { paper = false, note = null } = {}) {
   const s = sheet(t('Print or save'));
   let size = paperSize();
   s.body.append(el('p', { class: 'small muted print-lead', text: t('As a PDF in large clear type, to keep, to print or to send on.') }));
+  const says = note ? el('p', { class: 'small print-note', role: 'status' }) : null;
+  // worked out once the sheet shows, since fitting every card of a booklet takes a moment on a phone
+  const tell = () => { if (says) setTimeout(() => { try { says.textContent = note(size); } catch (e) { says.textContent = ''; } }, 50); };
   if (paper) {
-    const says = note ? el('p', { class: 'small print-note', role: 'status' }) : null;
-    // worked out once the sheet shows, since fitting every card of a booklet takes a moment on a phone
-    const tell = () => { if (says) setTimeout(() => { try { says.textContent = note(size); } catch (e) { says.textContent = ''; } }, 50); };
     s.body.append(el('div', { class: 'row print-paper' }, [
       el('span', { class: 'small', text: t('Paper') }),
       seg([['a4', 'A4'], ['a5', 'A5'], ['a5s', t('A5, one side')]], size, v => { size = v; try { localStorage.setItem('sb-print-paper', v); } catch (e) { /* private mode: this time only */ } tell(); }, { label: t('Paper') }),
     ]));
-    if (says) s.body.append(says);
-    tell();
   }
+  if (says) s.body.append(says);
+  tell();
   let busy = false;   // one PDF at a time: a second tap while a book is being built does nothing
   async function run(make, how) {
     if (busy) return;
@@ -482,7 +483,7 @@ const paperKey = paper => (Object.prototype.hasOwnProperty.call(PAPER, paper) ? 
 const paperOf = paper => PAPER[paperKey(paper)];
 
 /** A size of letters as it is written: 7.25, and 7,25 in Afrikaans. */
-const points = pt => String(pt).replace('.', lang() === 'af' ? ',' : '.');
+export const points = pt => String(pt).replace('.', lang() === 'af' ? ',' : '.');
 
 /** How the cards would go on a paper, without building the PDF: for each, {pt, lines, pages} (fitCard). */
 export function cardFit(bk, cards, { paper = 'a4', credit = '' } = {}) {
@@ -519,6 +520,20 @@ export function cardNote(bk, cards, { credit = '' } = {}) {
     if (a4.length >= here.length) return text;
     return text + ' ' + (a4.length ? t('On A4: {n} of the {m}.', { n: a4.length, m }) : t('On A4 each card fits on one page.'));
   };
+}
+
+/**
+ * One card of the altar booklet drawn on `doc` from the top of its last
+ * page, fitted on its paper as cardPdf fits it (fitCard, drawCard): the
+ * Sunday pack (pack.js) draws the card this way after the cue cards. The
+ * pages of `doc` are of the paper's size. Returns how the card was fitted
+ * ({pt, lines, pages}).
+ */
+export function drawFitted(doc, bk, card, { paper = 'a5', credit = '' } = {}) {
+  const P = paperOf(paper);
+  const f = fitCard(jsPDF(), P, bk, card, credit);
+  drawCard(doc, P, f, bk, card, credit);
+  return f;
 }
 
 /**

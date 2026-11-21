@@ -43,7 +43,8 @@ const INK = [29, 43, 56];
 const MUTED = [91, 107, 123];
 const HANG = 4.5;                // mm between a bullet and its text
 
-function jsPDF() {
+/** The PDF library (vendor/jspdf), once the page has loaded it; also for the modules that draw on a PDF of this one's (pack.js). */
+export function jsPDF() {
   const lib = window.jspdf && window.jspdf.jsPDF;
   if (!lib) throw new Error(t('The PDF library did not load. Reload the page while online.'));
   return lib;
@@ -219,7 +220,8 @@ function refLabel(s) {
   return s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || '');
 }
 
-function fileName(s, suffix) {
+/** The name of a PDF of a preparation: its date and its text word, and what the PDF is (`-notes`, `-cue-card`, `-sunday-pack`). */
+export function fileName(s, suffix) {
   const d = s.date || 'undated';
   const r = refLabel(s).replace(/[^\w]+/g, '-');
   return `${d}-${r || 'sermon'}${suffix}.pdf`.replace(/-+/g, '-');
@@ -446,6 +448,8 @@ function catechismNotes(w, s) {
   w.space(1);
 }
 
+const CUE_MARGIN = 14;   // mm around the cue cards: the margin of their pages, and of the footer of a PDF they are in
+
 /**
  * The cue cards for the altar: A5 portrait, the size of the cards the
  * minister takes to the altar (Jerome: "I use A5 sized cards on the altar").
@@ -461,7 +465,19 @@ function catechismNotes(w, s) {
 export function cueCardPdf(s, { service = null } = {}) {
   const doc = new (jsPDF())({ unit: 'mm', format: 'a5', orientation: 'portrait' });
   doc.viewerPreferences({ PickTrayByPDFSize: true });   // a print window that can, takes paper of the card's own size
-  const w = new Writer(doc, 14);
+  const ref = drawCueCards(doc, s, { service });
+  new Writer(doc, CUE_MARGIN).footer(s.title || '');
+  return { blob: doc.output('blob'), name: fileName(s, '-cue-card'), title: ref };
+}
+
+/**
+ * The cue cards themselves, drawn on `doc` (upright A5 pages) from the top of
+ * its last page, as cueCardPdf has them; the Sunday pack (pack.js) draws
+ * them this way before the altar card. Returns the text word as it heads the
+ * cards, for the PDF's title.
+ */
+export function drawCueCards(doc, s, { service = null } = {}) {
+  const w = new Writer(doc, CUE_MARGIN);
   const ref = refLabel(s);
   const L = langOf(s);   // the headings in the sermon's language
   // an upright card is narrow: the service line and the heading go on over a second line where they must,
@@ -490,8 +506,7 @@ export function cueCardPdf(s, { service = null } = {}) {
     if (!cues.length && part.key !== 'point') continue;   // a main point stands with its heading alone; the other parts only with cues
     cueBlock(w, cueHeading(part, L), cues);
   }
-  w.footer(s.title || '');
-  return { blob: doc.output('blob'), name: fileName(s, '-cue-card'), title: ref };
+  return ref;
 }
 
 /** The heading of a part of the cue cards, as the cards and the lines under "Print or save" name it (cues.js cueParts); `l` is the sermon's language for the cards themselves, left out for the form. */
