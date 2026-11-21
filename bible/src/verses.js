@@ -3,7 +3,7 @@
  *
  * A sermon leans on other verses besides the text word: "He came to us
  * Himself in Jesus Christ (John 1:14)". For the minister who reads from the
- * phone or the paper, the reference alone is not enough; he wants the words
+ * phone or the paper, the reference alone is not enough: the words should be
  * there to read (Jerome, 2026-11-21: "When the text word is in the sermon
  * put the whole verse in for me to read as reference, not just the book,
  * chapter and verse number"). So every verse a part of the preparation names
