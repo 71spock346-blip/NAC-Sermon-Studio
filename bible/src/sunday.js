@@ -35,6 +35,7 @@ import { sermonParts } from './pdf.js';
 import { cueParts, cuesOf } from './cues.js';
 import * as AI from './ai.js';
 import { numbers as hymnNumbers } from './hymns.js';   // the hymns of the service, by number, on the card
+import { packSheet, packLine } from './pack.js';   // the Sunday pack: the cue cards and the altar card as one PDF, printed in one go
 
 const DAY = 86400000;
 const noon = date => new Date(date + 'T12:00:00');
@@ -53,6 +54,7 @@ const SERMON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const CHALICE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3h11l-.9 6.2A4.6 4.6 0 0 1 12 13a4.6 4.6 0 0 1-4.6-3.8z"/><path d="M12 13v5.5"/><path d="M8 21h8"/><path d="M8.5 18.5h7"/></svg>';
 const WORD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5c3-1 6-1 9 .5v14c-3-1.5-6-1.5-9-.5z"/><path d="M21 5.5c-3-1-6-1-9 .5v14c3-1.5 6-1.5 9-.5z"/></svg>';
 const CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+const PRINT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>';
 
 /** "Today", "Tomorrow", "In 3 days", "Yesterday" or "4 days ago". */
 function daysWord(date) {
@@ -174,10 +176,10 @@ function cuesLine(s, service) {
   ].filter(Boolean).join(' · ');
 }
 
-/** The rows under "At the altar": the cue cards and the sermon (a preparation only), the altar card and the text word in large letters. */
+/** The rows under "At the altar": the cue cards and the sermon (a preparation only), the altar card and the text word in large letters, and, for a preparation, the Sunday pack to print. */
 function altarRows(x, service) {
   const s = x.s;
-  const { key, card, l } = cardFor(s ? s.occasion : Guides.occasionFor(x.svc));   // liturgy.js: the card for this kind of service
+  const { key, card, l, bk } = cardFor(s ? s.occasion : Guides.occasionFor(x.svc));   // liturgy.js: the card for this kind of service
   const rows = [];
   if (s) {
     rows.push(row(CARDS, t('Cue cards'), cuesLine(s, service), { onclick: () => Read.cues(s, { service }) }));
@@ -187,6 +189,8 @@ function altarRows(x, service) {
     ? row(CHALICE, t('Altar card: {card}', { card: card.title }), t('The words at the altar, in large letters'), { href: `#liturgy/${key}`, lang: l })
     : row(CHALICE, t('Altar card'), t('Load the altar booklet under Handbooks first'), { href: '#liturgy' }));
   rows.push(row(WORD, t('The text word, large'), [refText(x.as), x.as.translation].filter(Boolean).join(' · ') || t('No text word yet'), { onclick: () => Read.word(x.as) }));
+  // on paper: the cue cards and the altar card as one PDF, printed in one go (pack.js)
+  if (s) rows.push(row(PRINT, t('Sunday pack'), packLine(card), { onclick: () => packSheet(s, { service, card, bk }) }));
   return rows;
 }
 

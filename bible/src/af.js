@@ -2095,4 +2095,14 @@ export const AF = {
   "A preparation another minister sent you as a file?": "Het 'n ander ampsdraer 'n voorbereiding as 'n lêer vir jou gestuur?",
   "Open the file": "Maak die lêer oop",
   "That is a preparation another minister sent, not a Guide. Open it under Prepare, with \"Open the file\".": "Dit is 'n voorbereiding wat 'n ander ampsdraer gestuur het, nie 'n Handleiding nie. Maak dit onder Diens Voorbereiding oop, met \"Maak die lêer oop\".",
+  // the Sunday pack (pack.js): the cue cards and the altar card as one PDF, printed in one go from the Sunday card
+  "Sunday pack": "Sondagpakket",
+  "The cue cards and the altar card as one PDF, to print in one go": "Die preekkaarte en die altaarkaart as een PDF, om in een slag te druk",
+  "The cue cards as one PDF; the altar card once the booklet is loaded": "Die preekkaarte as een PDF; die altaarkaart sodra die boekie gelaai is",
+  "On A4 paper, choose 2 pages per sheet in the print window.": "Op A4-papier, kies 2 bladsye per vel in die drukvenster.",
+  "Upright A5 pages: the cue cards. The altar card comes once the altar booklet is loaded under Church files.": "Regop A5-bladsye: die preekkaarte. Die altaarkaart kom sodra die altaarboekie onder Kerklêers gelaai is.",
+  "Upright A5 pages: the cue cards, then the altar card on {n} sides, in {pt} point letters.": "Regop A5-bladsye: die preekkaarte, dan die altaarkaart op {n} kante, in letters van {pt} punt.",
+  "Upright A5 pages: the cue cards, then the altar card on one side, in {pt} point letters.": "Regop A5-bladsye: die preekkaarte, dan die altaarkaart op een kant, in letters van {pt} punt.",
+  "Upright A5 pages: the cue cards, then the altar card on {n} pages.": "Regop A5-bladsye: die preekkaarte, dan die altaarkaart op {n} bladsye.",
+  "Upright A5 pages: the cue cards, then the altar card on one page.": "Regop A5-bladsye: die preekkaarte, dan die altaarkaart op een bladsy.",
 };
