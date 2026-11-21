@@ -85,11 +85,12 @@ const scope = { HYMN_DATA };
     return 'H';
   }
   // "e104", "E  104", " 104 " all name the same hymn as they are written in
-  // the sheet: "E 104" and "104".
+  // the sheet: "E 104" and "104". "hc12" is "HC 12", the Hymn Collection,
+  // which the sheet does not hold: it is written the same way all the same.
   function normRef(raw) {
     var s = String(raw == null ? '' : raw).replace(/\s+/g, ' ').trim();
     if (!s) return '';
-    var m = /^([EAea])\s*(\d+)$/.exec(s);
+    var m = /^(HC|[EA])\s*(\d+)$/i.exec(s);
     if (m) return m[1].toUpperCase() + ' ' + m[2].replace(/^0+(?=\d)/, '');
     m = /^(\d+)$/.exec(s);
     if (m) return m[1].replace(/^0+(?=\d)/, '');
