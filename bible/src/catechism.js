@@ -20,6 +20,10 @@
  * searches and asks the Catechism together with the handbooks, asHandbook()
  * gives the Catechism the shape of a loaded handbook (handbook.js).
  *
+ * Where the Catechism in questions and answers is loaded (a handbook,
+ * catq.js; the Afrikaans "Kategismus in vrae en antwoorde"), the index and
+ * each section point to it: its chapters are this Catechism's chapters.
+ *
  * With the text here, Print on a section opens "Print or save"
  * (handbook-pdf.js): the section, or the section with those under it, as a
  * PDF in large clear type, with Save as PDF, Print and Share as in Prepare.
@@ -30,6 +34,7 @@ import { keyToRef, formatRef } from './books.js';
 import { state, getCatechismText } from './store.js';
 import { askBox } from './ask.js';
 import { printButton, printSheet, catechismPdf } from './handbook-pdf.js';   // Print or save: a section, or a section with those under it, as a PDF
+import { qaOf, questionsIn } from './catq.js';   // the Catechism in questions and answers, when it is loaded as a handbook
 
 let data = null;
 let loading = null;
@@ -371,6 +376,7 @@ function renderIndex(container, q) {
     text
       ? el('p', { class: 'muted small', text: t('Open a chapter to read its sections, see which Bible verses each one quotes, and search the whole text by word. The reader marks every verse the Catechism refers to with a "C".') })
       : el('p', { class: 'muted small' }, [t('The chapters below are an index. Open a section to see which Bible verses it quotes and to read the section itself at nak.org. To read the sections here and print them in your sermon notes, load the Catechism text under '), el('a', { href: '#files', text: t('Church files') }), '.']),
+    qaLink(),
     text ? askBox([asHandbook()], askWords()) : null,   // "Ask the Catechism": with the text here and the helper unlocked
     input, results].filter(Boolean));
   show();
@@ -394,6 +400,7 @@ function renderSection(container, s) {
       el('a', { class: 'btn small ghost', href: url(s), target: '_blank', rel: 'noopener', text: 'nak.org ↗' }),
       rows.length ? printButton(() => printSheet(rows)) : null,
     ]),
+    qaLink(parts(s.n)[0]),
   );
   if (tx && (tx.blocks.length || (tx.summary || []).length)) {
     container.append(el('div', { class: 'page' }, [
@@ -428,6 +435,22 @@ function renderSection(container, s) {
     }
     container.append(list);
   }
+}
+
+/**
+ * The way to the Catechism in questions and answers, where it is loaded:
+ * on the index to the book, on a section to the questions of its chapter
+ * ("Questions and answers on chapter 3 ›"). Null where it is not loaded.
+ */
+function qaLink(chapter = null) {
+  const qa = qaOf(state.handbooks, lang(), lang());
+  if (!qa) return null;
+  const n = Number(chapter);
+  if (chapter && !questionsIn(qa, n).length) return null;
+  const a = chapter
+    ? el('a', { href: `#handbooks/${encodeURIComponent(qa.key)}/${n}`, lang: qa.language, text: t('Questions and answers on chapter {n}', { n }) + ' ›' })
+    : el('a', { href: `#handbooks/${encodeURIComponent(qa.key)}`, lang: qa.language, text: qa.title + ' ›' });
+  return el('p', { class: 'small cat-qa' }, chapter ? [a] : [t('Also on this device: '), a]);
 }
 
 /**

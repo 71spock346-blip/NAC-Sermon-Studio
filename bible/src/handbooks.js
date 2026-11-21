@@ -37,6 +37,14 @@
  * has "Ask the handbooks" (ask.js): Claude answers a question from the
  * chapters that fit it, naming them; a locked device shows nothing of that.
  *
+ * The Catechism in questions and answers (2015; the Afrikaans "Kategismus in
+ * vrae en antwoorde") is loaded the same way and kept as a handbook
+ * ('catechism-qa', catq.js reads it): its 13 chapters are the Catechism's,
+ * each with its questions under it (#handbooks/catechism-qa/q108 is
+ * question 108). It is listed right after the Catechism; a question shows
+ * its answer, the verses it quotes (to the reader) and the questions it
+ * points to, and Prepare lists the questions that quote the text word.
+ *
  * Print on a chapter, on a handbook's contents page and on the Creed opens
  * "Print or save" (handbook-pdf.js): the chapter, the chapter with those
  * under it, the whole handbook, the whole Creed or one article as a PDF in
@@ -46,6 +54,8 @@ import { el, clear, toast, confirmBox, busy, seg, sheet, fmtDate, SIZES } from '
 import { state, saveHandbook, deleteHandbook, saveSetting } from './store.js';
 import { t, lang } from './i18n.js';
 import { KNOWN, fromPages, fromText, parse, search, chaptersUnder } from './handbook.js';
+import { isQA, parseQA, rangeOf } from './catq.js';   // the Catechism in questions and answers: read from its PDF, its chapters' questions
+import { formatRef } from './books.js';
 import { CREED } from './creed.js';   // the Creed, part of the app
 import { askBox, hrefOf, indexAt, label } from './ask.js';   // "Ask the handbooks", and the link and label of a chapter
 import * as Cat from './catechism.js';   // the Catechism: searched and asked here too, once its text is on the device
@@ -77,15 +87,17 @@ function loaded() {
 
 const partsOf = n => String(n).split('.');
 
-/** The chapter a numbered chapter sits under: 4.5 for 4.5.4. */
+/** The chapter a numbered chapter sits under: 4.5 for 4.5.4; a question's chapter in the Catechism in questions and answers. */
 function parentOf(hb, c) {
+  if (c.parent) return hb.chapters.find(x => x.n === c.parent && x !== c) || null;
   if (!c.n || !/\./.test(c.n)) return null;
   const n = partsOf(c.n).slice(0, -1).join('.');
   return hb.chapters.find(x => x.n === n) || null;
 }
 
-/** The chapters one level under this one: 4.5.1 … 4.5.4 under 4.5. */
+/** The chapters one level under this one: 4.5.1 … 4.5.4 under 4.5; a chapter's questions in the Catechism in questions and answers. */
 function childrenOf(hb, c) {
+  if (hb.qa) return c.n ? hb.chapters.filter(x => x.parent === c.n) : [];
   if (!c.n || /^A/.test(c.n)) return [];
   const depth = partsOf(c.n).length + 1;
   return hb.chapters.filter(x => x.n.startsWith(c.n + '.') && partsOf(x.n).length === depth);
@@ -152,11 +164,15 @@ function credit(hb) {
   return el('p', { class: 'muted small hb-credit', text: creditText(hb) });
 }
 
-/** "Current as of 15.01.2025 (Version 4) · 104 pages · 271 chapters"; for the Creed, what it is. */
+/** "Current as of 15.01.2025 (Version 4) · 104 pages · 271 chapters"; "… · 750 questions" for the Catechism in questions and answers; for the Creed, what it is. */
 export function aboutLine(hb) {
   if (hb.builtIn) return t('The ten Articles of Faith. Part of the app, nothing to load.');
-  return [hb.edition, hb.pages ? t('{n} pages', { n: hb.pages }) : '', t('{n} chapters', { n: hb.chapters.length })].filter(Boolean).join(' · ');
+  const count = hb.qa ? t('{n} questions', { n: hb.questions || hb.chapters.filter(c => c.qn != null).length }) : t('{n} chapters', { n: hb.chapters.length });
+  return [hb.edition, hb.pages ? t('{n} pages', { n: hb.pages }) : '', count].filter(Boolean).join(' · ');
 }
+
+/** The number a chapter's row shows: a question's own number (108), a chapter's (4.5), none for an appendix. */
+const numOf = c => (c.qn != null ? String(c.qn) : c.n && !/^A/.test(c.n) ? c.n : '');
 
 function listPage(container, q) {
   const books = loaded();                          // the Creed first, then the handbooks loaded from their files
@@ -169,15 +185,14 @@ function listPage(container, q) {
     searchBox(asked, q),
   );
   const list = el('div', { class: 'list lit-list hb-list' });
-  const rows = books.map(hb => el('a', { class: 'item', href: `#handbooks/${encodeURIComponent(hb.key)}`, lang: hb.language }, [
-    icon(),
+  const row = hb => el('a', { class: 'item', href: `#handbooks/${encodeURIComponent(hb.key)}`, lang: hb.language }, [
+    hb.qa ? catIcon() : icon(),
     el('span', { class: 'grow' }, [el('b', { text: hb.title }), el('span', { class: 'muted small snippet', text: aboutLine(hb) })]),
     el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
-  ]));
-  // the Catechism first, the Church's teaching, and after the Creed the altar cards; then the handbooks loaded from their files
-  rows.splice(0, 0, catRow(cat));
-  rows.splice(books[0] && books[0].key === 'creed' ? 2 : 1, 0, liturgyRow());
-  list.append(...rows);
+  ]);
+  // the Catechism first, the Church's teaching, with its questions and answers once loaded; the Creed and after it the altar cards; then the handbooks loaded from their files
+  const qa = books.filter(hb => hb.qa), creed = books.filter(hb => hb.key === 'creed'), rest = books.filter(hb => !hb.qa && hb.key !== 'creed');
+  list.append(catRow(cat), ...qa.map(row), ...creed.map(row), liturgyRow(), ...rest.map(row));
   container.append(el('h3', { class: 'sub', text: t('Read') }), list);
   const ask = askBox(asked, cat ? { lead: t('Claude reads the chapters of the handbooks, and the sections of the Catechism, that fit your question and answers from them in plain words, naming them, so you can check what the books say. The answer is not kept.') } : {});
   if (ask) container.append(ask);
@@ -220,7 +235,7 @@ function liturgyRow() {
 /** A word search across the loaded handbooks (or within one): the chapters whose title or text carry every word. */
 function searchBox(books, q, one = null) {
   const input = el('input', { type: 'search', 'aria-label': one ? t('Search this handbook') : t('Search the handbooks'), autocomplete: 'off', value: q,
-    placeholder: one ? t('Search this handbook by a word or a number: "sermon", 4.5…') : t('Search the handbooks by word: "sermon", "funeral", "confession"…') });
+    placeholder: one && one.qa ? t('Search by a word or a question\'s number: "doop", 108…') : one ? t('Search this handbook by a word or a number: "sermon", 4.5…') : t('Search the handbooks by word: "sermon", "funeral", "confession"…') });
   const results = el('div', { class: 'list hb-hits', hidden: true });
   const show = () => {
     clear(results);
@@ -249,13 +264,14 @@ function searchBox(books, q, one = null) {
 
 function contentsPage(container, hb) {
   const others = copies(hb.key).filter(x => x !== hb);
-  const top = hb.chapters.filter(c => c.level <= 2 || !c.n);
+  const top = hb.qa ? hb.chapters.filter(c => c.level === 1) : hb.chapters.filter(c => c.level <= 2 || !c.n);
   const list = el('div', { class: 'list hb-contents' });
   for (const c of top) {
-    const depth = c.n && !/^A/.test(c.n) ? partsOf(c.n).length : 1;
+    const depth = c.n && !/^A/.test(c.n) && !hb.qa ? partsOf(c.n).length : 1;
+    const range = hb.qa ? rangeOf(hb, c) : null;
     list.append(el('a', { class: 'item cat depth' + Math.min(depth, 4), href: hrefOf(hb, c), lang: hb.language }, [
       el('span', { class: 'num', text: c.n && !/^A/.test(c.n) ? c.n : '' }),
-      el('span', { class: 'grow', text: c.title }),
+      range ? el('span', { class: 'grow' }, [c.title, el('span', { class: 'snippet muted small', text: t('Questions {from}–{to}', { from: range[0], to: range[1] }) })]) : el('span', { class: 'grow', text: c.title }),
       el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
     ]));
   }
@@ -307,11 +323,12 @@ function chapterPage(container, hb, addr) {
           printRows(hb, c).length ? printButton(() => printSheet(printRows(hb, c))) : null,
         ]),
       ]),
-      c.blocks.length ? body : null,
+      c.blocks.length ? body : c.cat ? el('div', { class: 'hb-text' }, [catLink(c)]) : null,   // a chapter of the Catechism in questions and answers: the way to the Catechism's own chapter
+      hb.qa ? questionLinks(hb, c) : null,
       kids.length ? el('div', {}, [
-        el('h3', { class: 'sub', text: t('In this chapter') }),
+        el('h3', { class: 'sub', text: hb.qa ? t('The questions of this chapter') : t('In this chapter') }),
         el('div', { class: 'list hb-kids' }, kids.map(k => el('a', { class: 'item cat', href: hrefOf(hb, k), lang: hb.language }, [
-          el('span', { class: 'num', text: k.n }),
+          el('span', { class: 'num', text: numOf(k) }),
           el('span', { class: 'grow', text: k.title }),
           el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
         ]))),
@@ -365,9 +382,26 @@ function wholePage(container, hb) {
 function printRows(hb, c) {
   const under = hb.builtIn ? [] : chaptersUnder(hb.chapters, c);
   const rows = [];
-  if (c.blocks.length) rows.push([hb.builtIn ? t('This article') : t('This chapter'), () => chapterPdf(hb, [c], { credit: creditText(hb) })]);
-  if (under.length) rows.push([t('This chapter and the chapters under it'), () => chapterPdf(hb, [c, ...under], { credit: creditText(hb) })]);
+  if (c.blocks.length) rows.push([hb.builtIn ? t('This article') : c.qn != null ? t('This question') : t('This chapter'), () => chapterPdf(hb, [c], { credit: creditText(hb) })]);
+  if (under.length) rows.push([hb.qa ? t('This chapter with its questions') : t('This chapter and the chapters under it'), () => chapterPdf(hb, [c, ...under], { credit: creditText(hb) })]);
   return rows;
+}
+
+/**
+ * Under a question of the Catechism in questions and answers: the Bible
+ * verses it quotes or the book's index gives it, each opening the reader,
+ * and the questions its boxes point to ("sien Vrae 66, 108-109").
+ */
+function questionLinks(hb, c) {
+  const verses = (c.refs || []).map(r => ({ book: r.b, chapter: r.c, verse: r.v || null, verseEnd: r.e && r.e !== r.v ? r.e : null }));
+  const see = (c.see || []).filter(n => hb.chapters.some(x => x.qn === n));
+  if (!verses.length && !see.length) return null;
+  return el('div', { class: 'hb-qlinks' }, [
+    verses.length ? el('h3', { class: 'sub', text: t('Bible references ({n})', { n: verses.length }) }) : null,
+    verses.length ? el('div', { class: 'pills' }, verses.map(v => el('a', { class: 'pill link', href: `#read/${v.book}/${v.chapter}/${v.verse || ''}`, text: formatRef(v, hb.language) }))) : null,
+    see.length ? el('h3', { class: 'sub', text: t('See also') }) : null,
+    see.length ? el('div', { class: 'pills' }, see.map(n => el('a', { class: 'pill link', href: `#handbooks/${encodeURIComponent(hb.key)}/q${n}`, text: t('Question {n}', { n }) }))) : null,
+  ]);
 }
 
 /** "In the Catechism: 2.4.4 ›": the section of the Catechism that explains an article of the Creed. */
@@ -376,9 +410,11 @@ function catLink(c) {
   return el('p', { class: 'hb-cat' }, [el('a', { href: `#catechism/${encodeURIComponent(c.cat)}`, text: t('In the Catechism: {n}', { n: c.cat }) + ' ›' })]);
 }
 
-/** The runs of one block as text, italics, bold, small letters and raised figures. */
+/** The runs of one block as text, italics, bold, small letters and raised figures; a verse's reference (style 'r', catq.js) on a line of its own, and a line break where the book starts a new line within a verse. */
 function inline(runs) {
-  return runs.map(([text, style]) => {
+  return runs.flatMap(([text, style]) => {
+    if (style === 'r') return [el('cite', { text: text.trim() })];
+    if (text.includes('\n')) return text.split('\n').flatMap((part, i) => (i ? [el('br'), ...inline([[part, style]])] : inline([[part, style]])));
     let node = document.createTextNode(text);
     if (style.includes('sup')) node = el('sup', {}, node);
     if (style.includes('i')) node = el('i', {}, node);
@@ -389,6 +425,11 @@ function inline(runs) {
 }
 
 const BULLET = { 1: '•', 2: '◦', 3: '–' };
+
+/** A chapter's or a question's text as the reader shows it, for a place outside Handbooks (Prepare reads a question of the Catechism in questions and answers in place). */
+export function textOf(c, language) {
+  return el('div', { class: 'hb-text size-' + (state.settings.fontSize || 'm'), lang: language }, c.blocks.map(block));
+}
 
 function block(b) {
   const d = Math.min(3, Math.max(0, b.d || 0));
@@ -415,28 +456,38 @@ export async function read(file) {
   const b = busy(t('Reading the handbook'));
   try {
     b.say(t('Opening {file}…', { file: file.name }));
-    let input;
+    let input, pages = null;
     if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') {
       const data = new Uint8Array(await file.arrayBuffer());
       const pdfjs = await import('../vendor/pdfjs/pdf.min.mjs');
       pdfjs.GlobalWorkerOptions.workerSrc = new URL('../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
       const { readPages } = await import('./booklet.js');
-      input = fromPages(await readPages(pdfjs, data, (n, total) => b.say(t('Page {n} of {total}', { n, total }))));
+      pages = await readPages(pdfjs, data, (n, total) => b.say(t('Page {n} of {total}', { n, total })));
     } else {
       input = fromText(await file.text());
     }
-    b.say(t('Finding the chapters…'));
     let hb;
-    try {
-      hb = parse(input);
-    } catch (e) {
-      throw new Error(t('That file does not look like a handbook: no chapters were found in it. It needs the Church\'s own file, with numbered chapters, as a PDF or as the text saved from the PDF.'));
+    if (pages && isQA(pages)) {   // the Catechism in questions and answers: its own reader (catq.js)
+      b.say(t('Finding the questions…'));
+      try {
+        hb = parseQA(pages);
+      } catch (e) {
+        throw new Error(t('That file looks like the Catechism in questions and answers, but its questions could not be read. It needs the Church\'s own PDF of the book.'));
+      }
+    } else {
+      b.say(t('Finding the chapters…'));
+      try {
+        hb = parse(input || fromPages(pages));
+      } catch (e) {
+        throw new Error(t('That file does not look like a handbook: no chapters were found in it. It needs the Church\'s own file, with numbered chapters, as a PDF or as the text saved from the PDF.'));
+      }
     }
     const row = { id: `${hb.key}:${hb.language}`, key: hb.key, language: hb.language, title: hb.title, ownTitle: hb.ownTitle, org: hb.org, edition: hb.edition, pages: hb.pages, words: hb.words, fileName: file.name, loadedAt: new Date().toISOString(), chapters: hb.chapters };
+    if (hb.qa) Object.assign(row, { qa: true, questions: hb.questions });
     await saveHandbook(row);
     picked.delete(row.key);
     b.done();
-    toast(t('{title} loaded: {n} chapters.', { title: row.title, n: row.chapters.length }));
+    toast(hb.qa ? t('{title} loaded: {n} questions.', { title: row.title, n: row.questions }) : t('{title} loaded: {n} chapters.', { title: row.title, n: row.chapters.length }));
     return row;
   } catch (e) {
     console.error(e);

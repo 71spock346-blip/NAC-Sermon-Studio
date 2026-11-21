@@ -1522,6 +1522,10 @@ body.altar .shell { min-height: 0; display: block; }   /* no column for the hidd
 .hb-quote { font-style: italic; color: var(--ink); border-left: 3px solid var(--accent); padding: 2px 0 2px 12px; }   /* the Liturgy's binding texts, blue italics in the book */
 .hb-quote i { font-style: normal; }
 .hb-note { font-family: var(--sans); font-size: .82em; color: var(--ink-2); }
+.hb-quote cite { display: block; margin-top: .2em; font: 700 .82em/1.4 var(--sans); font-style: normal; color: var(--label-ink); }   /* the verse's reference under it (the Catechism in questions and answers, catq.js) */
+.hb-qlinks .pills { gap: 8px; margin: 6px 0 4px; }   /* under a question: its verses, and the questions it points to */
+.cat-qa { margin: 2px 0 12px; font-family: var(--sans); }   /* on the Catechism's tab: the way to the Catechism in questions and answers */
+.cat-qa a { font-weight: 700; text-decoration: none; }
 .hb-text sup { font-size: .6em; line-height: 0; }
 .hb-text small { font-size: .82em; }
 .hb-text .hb-cat { margin: -.25em 0 1.15em; font-family: var(--sans); font-size: .86em; }   /* under an article of the Creed: the Catechism's section on it */

@@ -1663,7 +1663,7 @@ export async function askHandbooks(question, picks, { signal, onProgress } = {})
   const parts = [];
   let size = 0;
   for (const p of picks) {
-    const head = `=== ${p.handbook.title}${p.handbook.edition ? ` (${p.handbook.edition})` : ''} — ${p.handbook.key === 'catechism' ? 'section' : 'chapter'} ${p.addr}: ${p.chapter.title}   [key ${p.handbook.key}, chapter ${p.addr}]`;
+    const head = `=== ${p.handbook.title}${p.handbook.edition ? ` (${p.handbook.edition})` : ''} — ${p.handbook.key === 'catechism' ? 'section' : p.handbook.qa ? 'question' : 'chapter'} ${p.chapter.qn != null ? p.chapter.qn : p.addr}: ${p.chapter.title}   [key ${p.handbook.key}, chapter ${p.addr}]`;   // the Catechism in questions and answers (catq.js): "question 108", cited as chapter q108
     const text = plainText(p.chapter).slice(0, 4000);
     if (size + head.length + text.length > CAP && parts.length) break;
     parts.push(head + '\n' + text);

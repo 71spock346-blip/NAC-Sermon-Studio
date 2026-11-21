@@ -136,8 +136,8 @@ export function printNow(make) {
 
 /* ---------------------------------------------------------------- the words */
 
-/** The words of a block's runs as one line; a raised figure (a footnote mark) in brackets, since the PDF's letters cannot raise it. */
-const runText = runs => runs.map(([text, style]) => (style.includes('sup') ? `[${text}]` : text)).join('');
+/** The words of a block's runs as one line; a raised figure (a footnote mark) in brackets, since the PDF's letters cannot raise it; a verse's reference (catq.js) on a line of its own. */
+const runText = runs => runs.map(([text, style]) => (style === 'r' ? '\n' + text.trim() : style.includes('sup') ? `[${text}]` : text)).join('');
 
 /** True when every run of a block that has letters in it carries the style: the whole paragraph is italic, bold or small. */
 const every = (runs, st) => runs.some(([text]) => text.trim()) && runs.every(([text, style]) => style.includes(st) || !text.trim());
@@ -170,7 +170,7 @@ function head(w, over, title, under) {
 /** A chapter's or a section's heading inside the text, blue, larger the nearer it is to the top of the book (by its number); it goes over to the next page with what follows it. */
 function heading(text, c) {
   const n = numberOf(c);
-  const depth = n ? n.split('.').length : 1;
+  const depth = c.qn != null ? 2 : n ? n.split('.').length : 1;   // a question of the Catechism in questions and answers under its chapter
   return [s(text), { style: 'bold', size: depth <= 1 ? 14 : depth === 2 ? 12.5 : 11.5, color: BLUE, after: 2, withNext: true }];
 }
 
