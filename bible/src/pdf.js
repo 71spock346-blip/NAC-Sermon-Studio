@@ -37,6 +37,7 @@ import { findService, headingIn } from './guides.js';   // the Guide's headings 
 import { plainParts } from './plain.js';
 import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';   // the words on the cue cards
 import { line as hymnLine } from './hymns.js';   // the hymns of the service at the top of the notes and of the cue card
+import { quotesFor } from './verses.js';   // the verses the sermon names, written out under the part that names them
 
 const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
 const INK = [29, 43, 56];
@@ -195,6 +196,28 @@ function lines(text) {
   return String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
 }
 
+/**
+ * The verses a part of the sermon names, written out under it (verses.js
+ * quotesFor): the reference in bold blue, then the words set as the text
+ * word is, serif and italic, a little in from the margin; the translation's
+ * name stands by the reference where it is not the sermon's own. A
+ * reference never stands alone at the foot of a page: it goes over with the
+ * first lines of its words. `size` is the words' type size, `indent` how far
+ * in from the margin.
+ * Every part shows the verses it names, so a verse named twice is there
+ * both times, where it is read.
+ */
+function versesUnder(w, quotes, s, { size = 10.5, leading = 0, indent = 5 } = {}) {
+  for (const q of quotes) {
+    const name = q.short && q.short !== s.translation ? `  (${q.short})` : '';
+    // the reference goes over to a new page with the first lines of its words; the words run on, leaving no gap (Writer.flow)
+    w.flow([
+      [formatRef(q, state.settings.bookLang) + name, { style: 'bold', size: Math.max(9, size - 1.5), color: BLUE, indent, after: 0.5, withNext: true }],
+      [q.text, { serif: true, style: 'italic', size, indent, after: 2.5, ...(leading ? { leading } : {}) }],
+    ]);
+  }
+}
+
 const SEP = '  \u00b7  ';   // between the parts of the service line
 
 /*
@@ -252,16 +275,17 @@ export function sermonPdf(s) {
     w.y += 2;
   }
   w.rule();
+  const verses = (text, indent = 5) => versesUnder(w, quotesFor(text, s), s, { indent });   // the verses a part names, written out under it (verses.js)
 
   // 2. the message
   if (s.theme || s.core) {
     w.heading(tl(L, 'Message of the service'));
     if (s.theme) w.para(s.theme, { style: 'bold' });
-    if (s.core) w.para(s.core);
+    if (s.core) { w.para(s.core); verses(s.core); }
   }
-  if (s.guide) { w.heading(tl(L, 'From the Divine Service Guide')); w.para(s.guide); }
+  if (s.guide) { w.heading(tl(L, 'From the Divine Service Guide')); w.para(s.guide); verses(s.guide); }
   // 3. the introduction
-  if (s.intro) { w.heading(tl(L, 'Introduction')); w.para(s.intro); }
+  if (s.intro) { w.heading(tl(L, 'Introduction')); w.para(s.intro); verses(s.intro); }
   // 4. the main points
   const points = (s.points || []).filter(p => p.heading || p.body);
   if (points.length) {
@@ -269,27 +293,27 @@ export function sermonPdf(s) {
     w.heading(points.every(p => p.guide) ? tl(L, 'Main points, from the Divine Service Guide') : tl(L, 'Main points'));
     points.forEach((p, i) => {
       if (p.heading) w.para(`${i + 1}. ${p.heading}`, { style: 'bold', size: 11, after: 1 });
-      if (p.body) w.para(p.body, { indent: 5 });
+      if (p.body) { w.para(p.body, { indent: 5 }); verses(p.body, 10); }   // a point's text stands in by 5, its verses by 10
       if ((p.thought || '').trim()) w.para(tl(L, 'My thought: ') + p.thought.trim(), { indent: 5, style: 'italic', size: 10 });
     });
   }
   // 5. the context: the setting of the text, the key words, the Catechism, the cross references
   if (s.context || s.keywords) {
     w.heading(tl(L, 'Context'));
-    if (s.context) w.para(s.context);
-    if (s.keywords) { w.para(tl(L, 'Key words'), { style: 'bold', size: 10, after: 0.5 }); w.para(s.keywords); }
+    if (s.context) { w.para(s.context); verses(s.context); }
+    if (s.keywords) { w.para(tl(L, 'Key words'), { style: 'bold', size: 10, after: 0.5 }); w.para(s.keywords); verses(s.keywords); }
   }
   if ((s.catechism || []).length) {
     w.heading(tl(L, 'Catechism'));
     catechismNotes(w, s);
   }
-  if (s.crossRefs) { w.heading(tl(L, 'Cross references')); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); }
+  if (s.crossRefs) { w.heading(tl(L, 'Cross references')); for (const l of lines(s.crossRefs)) w.para('• ' + l, { indent: 2, after: 0.5 }); w.space(2); verses(s.crossRefs); }
   // 6. the summary and conclusion, in the order of the boxes: the application, then the summary that gathers up, then the close
-  if (s.application) { w.heading(tl(L, 'Application for the congregation')); w.para(s.application); }
-  if (s.summary) { w.heading(tl(L, 'Summary')); w.para(s.summary); }
-  if (s.conclusion) { w.heading(tl(L, 'Conclusion')); w.para(s.conclusion); }
+  if (s.application) { w.heading(tl(L, 'Application for the congregation')); w.para(s.application); verses(s.application); }
+  if (s.summary) { w.heading(tl(L, 'Summary')); w.para(s.summary); verses(s.summary); }
+  if (s.conclusion) { w.heading(tl(L, 'Conclusion')); w.para(s.conclusion); verses(s.conclusion); }
   // 7. and 8. the person's own
-  if (s.illustrations) { w.heading(tl(L, 'Illustrations and experiences')); w.para(s.illustrations); }
+  if (s.illustrations) { w.heading(tl(L, 'Illustrations and experiences')); w.para(s.illustrations); verses(s.illustrations); }
   if (s.reflection) { w.heading(tl(L, 'After the service')); w.para(s.reflection); }
 
   const who = [state.settings.name, t('Study Bible')].filter(Boolean).join('  ·  ');
@@ -359,11 +383,13 @@ export function sermonTextPdf(s, { outline = null } = {}) {
   const doc = new (jsPDF())({ unit: 'mm', format: 'a4' });
   const w = new Writer(doc, 22);
   const read = { size: 12, leading: 1.5, after: 3 };   // the running text: large, with room between the lines
+  const verses = text => versesUnder(w, quotesFor(text, s), s, { size: 11.5, leading: 1.4 });   // the verses a part names, written out under it (verses.js)
   const extras = list => {
     for (const x of list) {
       if (x.kind === 'illustration') { w.para(tl(L, 'Illustration: ') + (x.title || ''), { style: 'bold', size: 10.5, color: MUTED, after: 0.5 }); w.para(x.body, { ...read, indent: 5 }); }
       else if (x.kind === 'lighter') { w.para(tl(L, 'A lighter moment'), { style: 'bold', size: 10.5, color: MUTED, after: 0.5 }); w.para(x.body, { ...read, indent: 5 }); }
       else w.para(x.body, read);
+      verses(x.body);
     }
   };
 
@@ -382,17 +408,17 @@ export function sermonTextPdf(s, { outline = null } = {}) {
   }
   w.rule();
 
-  if (c.intro) { w.heading(tl(L, 'Introduction')); w.para(c.intro, read); extras(c.after.intro); }
+  if (c.intro) { w.heading(tl(L, 'Introduction')); w.para(c.intro, read); verses(c.intro); extras(c.after.intro); }
   for (const p of c.points) {
     w.ensure(24);   // a point's heading and the start of its text stay on one page
     w.heading(`${p.n}. ${p.heading}`.trim());
-    if (p.body) w.para(p.body, read);
+    if (p.body) { w.para(p.body, read); verses(p.body); }
     extras(p.extras);
   }
   if (c.after.loose.length) { w.heading(tl(L, 'Illustrations')); extras(c.after.loose); }
-  if (c.application) { w.heading(tl(L, 'Application for the congregation')); w.para(c.application, read); extras(c.after.application); }
-  if (c.summary) { w.heading(tl(L, 'Summary')); w.para(c.summary, read); }
-  if (c.conclusion) { w.heading(tl(L, 'Conclusion')); w.para(c.conclusion, read); extras(c.after.conclusion); }
+  if (c.application) { w.heading(tl(L, 'Application for the congregation')); w.para(c.application, read); verses(c.application); extras(c.after.application); }
+  if (c.summary) { w.heading(tl(L, 'Summary')); w.para(c.summary, read); verses(c.summary); }
+  if (c.conclusion) { w.heading(tl(L, 'Conclusion')); w.para(c.conclusion, read); verses(c.conclusion); extras(c.after.conclusion); }
   if (c.outline) {
     w.space(2);
     if (c.thoughts.length) {
