@@ -4,10 +4,12 @@
  * under "The service" in Prepare. Until November 2026 he wrote them somewhere
  * else. The Choir planner's index (choir-library.js Hymns, 1,317 hymns)
  * gives the titles: "104" is the hymn book, "E 104" the English book and
- * "A 7" the Afrikaans one, as the conductor's workbook writes them. "HC 12"
- * is the Hymn Collection, which the index does not hold (Jerome, November
- * 2026: "A for Afrikaans, E for English, or HC for Hymn Collection"). A
- * number the index does not know stands as typed.
+ * "A 7" the Afrikaans one, as the conductor's workbook writes them. The hymn
+ * book is the Hymn Collection, which a minister writes "HC 104" (Jerome,
+ * November 2026: "A for Afrikaans, E for English, or HC for Hymn
+ * Collection"; asked, he said the index's unlettered numbers are that book),
+ * so "HC 104" has the title of "104". A number the index does not know
+ * stands as typed.
  *
  * They go at the top of the sermon notes, with their titles (pdf.js
  * sermonPdf), on the first cue card and on the screen's readings without
@@ -38,8 +40,10 @@ export const blank = () => ({ opening: '', sermon: '', communion: '', closing: '
 export const isNumber = text => /^((?:HC|[EA])\s*)?\d+$/i.test(String(text || '').trim());
 /** "e104" → "E 104", "hc12" → "HC 12", " 007 " → "7"; anything else as typed. */
 export const norm = text => Hymns.normRef(text);
-/** The index's title for a number, or ''. */
+/** The index's title for a number ("HC 104" is the index's "104"), or ''. */
 export const title = text => Hymns.title(text);
+/** A number with its book, as the service record writes it: "104" is the Hymn Collection's, "HC 104"; "E 1", "HC 12" and words as they are. */
+export const withBook = text => { const n = norm(text); return /^\d+$/.test(n) ? 'HC ' + n : n; };
 /** Up to `n` hymns whose number begins with, or whose title has, what was typed: for the picks under a box. */
 export const suggest = (text, n = 3) => Hymns.search(text).slice(0, n);
 

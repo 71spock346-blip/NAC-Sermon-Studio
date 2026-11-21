@@ -85,8 +85,9 @@ const scope = { HYMN_DATA };
     return 'H';
   }
   // "e104", "E  104", " 104 " all name the same hymn as they are written in
-  // the sheet: "E 104" and "104". "hc12" is "HC 12", the Hymn Collection,
-  // which the sheet does not hold: it is written the same way all the same.
+  // the sheet: "E 104" and "104". "hc12" is "HC 12", the Hymn Collection, as a
+  // minister writes it on the service record (Jerome, November 2026: "A for
+  // Afrikaans, E for English, or HC for Hymn Collection").
   function normRef(raw) {
     var s = String(raw == null ? '' : raw).replace(/\s+/g, ' ').trim();
     if (!s) return '';
@@ -97,6 +98,9 @@ const scope = { HYMN_DATA };
     return s;
   }
   function refNumber(ref) { var m = /(\d+)$/.exec(ref); return m ? parseInt(m[1], 10) : 0; }
+  // The sheet's unlettered hymn book is the Hymn Collection (Jerome, asked in
+  // November 2026), so "HC 104" is the sheet's "104": its title, its ratings.
+  function indexRef(ref) { var r = normRef(ref); return /^HC \d+$/.test(r) ? r.slice(3) : r; }
 
   function parseRounds(s) {
     var out = {};
@@ -155,7 +159,7 @@ const scope = { HYMN_DATA };
   }
 
   function get(ref) {
-    var h = index[normRef(ref)];
+    var h = index[indexRef(ref)];
     return h ? merge(h) : null;
   }
   function title(ref) { var h = get(ref); return h ? h.title : ''; }
@@ -164,14 +168,16 @@ const scope = { HYMN_DATA };
   function bookRank(code) { return code === 'H' ? 0 : (code === 'E' ? 1 : 2); }
 
   /*
-   * Search. A query that looks like a reference ("104", "e 104") puts exact and
-   * prefix matches on the number first; anything else matches words in the
-   * title. Filters narrow by book, ability, service slot, season and organ.
+   * Search. A query that looks like a reference ("104", "e 104", "hc 104") puts
+   * exact and prefix matches on the number first, in the book it names (HC is
+   * the unlettered book); anything else matches words in the title. Filters
+   * narrow by book, ability, service slot, season and organ.
    */
   function search(query, filters) {
     filters = filters || {};
     var q = String(query || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    var refQ = normRef(q), numQ = /^([EAea]\s*)?\d+$/.test(q) ? refNumber(q) : null;
+    var refQ = indexRef(q), m = /^(hc|[ea])? ?(\d+)$/.exec(q);
+    var numQ = m ? parseInt(m[2], 10) : null, bookQ = m && m[1] ? (m[1] === 'hc' ? 'H' : m[1].toUpperCase()) : '';
     var words = q && numQ === null ? q.split(' ') : [];
     var out = [];
     base.forEach(function (raw) {
@@ -183,7 +189,7 @@ const scope = { HYMN_DATA };
       if (filters.organ && h.organ !== filters.organ) return;
       var score = 0;
       if (numQ !== null) {
-        var sameBook = /^[EAea]/.test(q) ? h.book === q.charAt(0).toUpperCase() : true;
+        var sameBook = bookQ ? h.book === bookQ : true;
         if (h.ref === refQ) score = 1000;
         else if (sameBook && h.num === numQ) score = 900;
         else if (sameBook && String(h.num).indexOf(String(numQ)) === 0) score = 500 - String(h.num).length;
@@ -230,7 +236,7 @@ const scope = { HYMN_DATA };
     ability: ability, abilityColor: abilityColor, freeAbilityCode: freeAbilityCode,
     abilityCounts: abilityCounts,
     all: all, get: get, title: title, search: search, label: label,
-    normRef: normRef, bookOf: bookOf, refNumber: refNumber,
+    normRef: normRef, indexRef: indexRef, bookOf: bookOf, refNumber: refNumber,
     abilityName: abilityName, abilityMinutes: abilityMinutes,
     slotName: slotName, slotShort: slotShort, bookName: bookName,
     setEdits: setEdits,

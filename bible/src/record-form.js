@@ -110,6 +110,8 @@ const BLANKS = [
   ['completedBy', 27.4, 76.4, 182.5],
   ['capturedBy', 36.9, 76.9, 188.3],
 ];
+/** The hymns' blanks: "HC 104" is wider than one, and the call-up blanks sit side by side (hymn() writes them). */
+const HYMN_BLANKS = new Set(['opening', 'callUp1', 'callUp2', 'callUp3', 'afterText', 'repentance', 'communion', 'closing']);
 /** The offerings' two heavy rules: under the coins, and under the total. */
 const RULES = [[103.3, 132.3, 116.5], [103.5, 132.5, 124.2]];
 
@@ -189,6 +191,29 @@ function fitted(pen, s, pt, style, width, min = 6) {
   return [cut.trimEnd() + '…', size];
 }
 
+/**
+ * A hymn, as large as it fits (9.5 pt down to 6) in the room it has on its line: a word space (0.9 mm) clear of the
+ * printed words, and 0.6 mm short of the middle of the gap to the next blank (the call-up blanks sit 1 mm apart).
+ * Centred on its blank, and moved along where it is wider and one side has more room, so that "Opening: HC 104
+ * Call up: A 104 HC 5 E 7" stay apart.
+ */
+function hymn(pen, s, key, x1, x2, y) {
+  const mid = (x1 + x2) / 2;
+  let left = 0, right = FORM_W - 1;
+  for (const [w, x, base, pt, style] of WORDS) {
+    if (Math.abs(base - y) > 2) continue;   // the words on the blank's own line
+    const end = x + pen.width(w, pt, style);
+    if (end <= mid) left = Math.max(left, end + 0.9); else if (x >= mid) right = Math.min(right, x - 0.9);
+  }
+  for (const [k, bx1, bx2, by] of BLANKS) {
+    if (k === key || Math.abs(by - y) > 2) continue;
+    if (bx2 <= x1) left = Math.max(left, (bx2 + x1) / 2 + 0.6); else if (bx1 >= x2) right = Math.min(right, (x2 + bx1) / 2 - 0.6);
+  }
+  const [text, pt] = fitted(pen, s, 9.5, 'n', right - left);
+  const half = pen.width(text, pt, 'n') / 2;
+  pen.text(text, Math.min(Math.max(mid, left + half), right - half), y - 0.9, pt, 'n', INK, 'center');
+}
+
 /** Lines of the text within the width, its own line breaks kept. */
 function wrapped(pen, text, pt, style, width) {
   const out = [];
@@ -242,6 +267,7 @@ export function drawForm(pen, v = {}) {
   for (const [key, x1, x2, y] of BLANKS) {
     const s = String(v[key] == null ? '' : v[key]).trim();
     if (!s) continue;
+    if (HYMN_BLANKS.has(key)) { hymn(pen, s, key, x1, x2, y); continue; }
     const w = x2 - x1;
     const align = key.startsWith('off.') ? 'right' : w <= 10.5 ? 'center' : 'left';
     const [text, pt] = fitted(pen, s, 9.5, 'n', align === 'center' ? w + 2 : w - 1);
