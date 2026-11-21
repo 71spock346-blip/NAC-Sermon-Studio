@@ -107,6 +107,7 @@ export const DEFAULT_SETTINGS = {
   name: '',
   congregation: '',
   hiddenTools: [],        // the tools unticked under Settings → What I use ('plan', 'seating', 'choir', 'reminders', 'reflect'): out of the menu and More on all devices (tools.js)
+  welcomed: false,        // the first-time setup (welcome.js) was seen, skipped or not needed on this device. Device only: a second device gets the five steps too
   lastRef: 'PSA.23',
 };
 
@@ -114,7 +115,7 @@ export const DEFAULT_SETTINGS = {
 export const SECRET = new Set(['apiKey', 'yvKey', 'aiKey', 'guestAiKey', 'helperOpen', 'voiceKey']);
 
 /** Settings that belong to this screen rather than to the person: a phone and a PC may well differ. Sync leaves them alone. */
-export const DEVICE_ONLY = new Set(['theme', 'fontSize', 'helperOpen', 'guestAiKey']);   // helperOpen and guestAiKey: a device is unlocked by hand, and a visitor's key stays with the visitor (lock.js)
+export const DEVICE_ONLY = new Set(['theme', 'fontSize', 'helperOpen', 'guestAiKey', 'welcomed']);   // helperOpen and guestAiKey: a device is unlocked by hand, and a visitor's key stays with the visitor (lock.js)
 
 /** Settings that may change often and matter little: sent on with the next sync rather than at once. */
 const LAZY = new Set(['lastRef']);

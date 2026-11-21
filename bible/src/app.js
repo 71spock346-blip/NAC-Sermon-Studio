@@ -64,6 +64,7 @@ import * as Altar from './altar.js';   // Altar mode: the cue cards and the alta
 import * as Mis from './mis.js';   // the Church's MIS: a section whose button opens the site itself
 import * as Sync from './sync.js';
 import * as Update from './update.js';   // a newer version of the app on the site: a bar offers to load it
+import * as Welcome from './welcome.js';   // first-time setup: five steps on a new device, once, after the splash
 
 const TABS = {
   sunday: Sunday.render,
@@ -245,6 +246,7 @@ async function start() {
   window.addEventListener('hashchange', route);
   route();
   hideSplash();
+  Welcome.maybe();
   document.addEventListener('sb-sync', onSynced);
   document.addEventListener('sb-lock', route);   // the helper was unlocked or locked here (lock.js): the screen shows or hides Claude's part
   Sync.start();

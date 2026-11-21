@@ -1971,3 +1971,17 @@ body.altar .shell { min-height: 0; display: block; }   /* no column for the hidd
 .file-row .btn { white-space: normal; }   /* a long label wraps inside the card rather than running out of it */
 .files-more { margin: 0 0 4px; }
 .files-note { margin: 14px 0 0; max-width: 70ch; line-height: 1.5; }
+
+/* ---- first-time setup (welcome.js): five steps in a sheet, and the "Add to Home Screen" row it shares with Settings → Offline */
+.welcome-step .step-of { margin: 0 0 2px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 11.5px; }
+.welcome-step h3 { font: 700 20px/1.3 var(--display); color: var(--head-ink); margin: 0 0 10px; }
+.welcome-step .seg.block { margin: 4px 0 8px; }
+.welcome-step .fields { margin-top: 4px; }
+.welcome-choice { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 4px; }
+.welcome-choice .btn { width: 100%; white-space: normal; }
+.welcome-join { padding: 10px 12px 12px; border-radius: var(--radius-s); background: var(--card); }
+.welcome-join label.f { margin-top: 0; }
+.welcome-foot { margin-top: 18px; }
+.home-row { margin-top: 6px; }
+.home-row .row { margin-top: 4px; }
+.home-row .btn { white-space: normal; }
