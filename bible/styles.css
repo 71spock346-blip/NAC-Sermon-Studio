@@ -894,7 +894,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
   .readbar #r-place b { flex: 0 0 auto; }
   .readbar #r-place .chev, .readbar .tools #r-view span { display: none; }   /* the two are plainly buttons: the room goes to the book's name */
   .readbar #r-find { display: inline-flex; order: 2; color: var(--accent-text); }
-  .readbar .tools #r-src { order: 3; flex: 0 1 auto; width: auto; padding-right: 28px; background-position: right 7px center; }   /* as wide as its names: KJV, NKJV, AFR83 */
+  .readbar .tools #r-src { order: 3; flex: 0 1 auto; width: auto; field-sizing: content; max-width: 6.5em; padding-right: 28px; background-position: right 7px center; }   /* as wide as the name chosen (KJV, AFR83), not as its widest entry or the label of a group ("Paste it in yourself"), which would take the room from the chapter's name; a browser without field-sizing is held at 6.5em */
   .readbar .tools #r-view { order: 4; padding-left: 10px; padding-right: 10px; }
   /* the magnifier opens the box in place of the row; ✕ closes it again (reader.js finding) */
   .readbar.finding #r-place, .readbar.finding #r-find, .readbar.finding #r-src, .readbar.finding #r-view { display: none; }

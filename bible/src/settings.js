@@ -359,7 +359,7 @@ function myTextsSection(container) {
   });
   container.append(
     el('h3', { class: 'sub', text: t('My pasted text') }),
-    el('p', { class: 'small', text: t('For a text you may use yourself: tick its version here, choose it in the reader (listed by its short name, such as AFR83), and paste each chapter in when you open it, copied from the page where you read it. The text stays in this browser on this device. It is not part of the normal backup; save it with its own file here to carry it to another device.') }),
+    el('p', { class: 'small', text: t('For a text you may use yourself: choose it in the reader\'s translation list (its short name, such as AFR83, under "Paste it in yourself") and paste each chapter in when you open it, copied from the page where you read it; it is then ticked here. The text stays in this browser on this device. It is not part of the normal backup; save it with its own file here to carry it to another device.') }),
     el('div', { class: 'list' }, rows),
     el('div', { class: 'row' }, [
       el('button', { class: 'btn small ghost', type: 'button', text: t('Save pasted text to a file'), onclick: async () => {

@@ -190,7 +190,17 @@ async function draw() {
     srcSel.append(el('option', { value: s.id, text: s.short, selected: s.id === srcId }));
     if (s.id !== srcId) cmpSel.append(el('option', { value: s.id, text: '+ ' + s.short, selected: s.id === cmpId }));
   }
-  srcSel.addEventListener('change', async () => { await saveSetting('translation', srcSel.value); if (state.settings.compare === srcSel.value) await saveSetting('compare', ''); draw(); });
+  // the Afrikaans Bibles not on the list yet (paste.js): chosen here, one goes on the list, as ticked under Settings →
+  // Translations → My pasted text, and its chapters are pasted in as they are opened; no trip to Settings first
+  const mine = Bible.EXTERNAL.filter(x => x.sa && !Bible.source('mine:' + x.id));
+  if (mine.length) srcSel.append(el('optgroup', { label: t('Paste it in yourself') }, mine.map(x => el('option', { value: 'mine:' + x.id, text: x.label }))));
+  srcSel.addEventListener('change', async () => {
+    const v = srcSel.value;
+    if (v.startsWith('mine:') && !Bible.source(v)) await saveSetting('myTexts', [...(state.settings.myTexts || []), v.slice(5)]);
+    await saveSetting('translation', v);
+    if (state.settings.compare === v) await saveSetting('compare', '');
+    draw();
+  });
   cmpSel.addEventListener('change', async () => { await saveSetting('compare', cmpSel.value); draw(); });
   const viewBtn = el('button', { id: 'r-view', class: 'btn small ghost', type: 'button', 'aria-label': t('Reading choices: text size, theme, compare and beside'), title: t('Text size, theme, Compare, Beside'), onclick: () => viewSheet(srcId) }, [
     'Aa', el('span', { html: CHEVRON }),

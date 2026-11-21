@@ -69,29 +69,54 @@ function readAt(ext, book, chapter) {
   return ext.sa ? { name: 'BibleSA', url: Bible.bibleSaUrl(ext, book, chapter) } : { name: 'YouVersion', url: Bible.youVersionUrl(ext, book, chapter) };
 }
 
-/** The card shown in the reader when a chapter of a pasted version is not there yet. */
+/** The card shown in the reader when a chapter of a pasted version is not there yet: Open on the site, and Paste, which takes the chapter from the clipboard (pasteFromClipboard). */
 export function unpastedCard(src, book, chapter, onChange, extra) {
   const ext = src.ext;
   const at = readAt(ext, book, chapter);
   return el('div', { class: 'paste-card' }, [
     el('p', {}, [el('b', { text: `${src.short}: ` }), t('you have not pasted {ref} in yet.', { ref: formatRef({ book, chapter }, state.settings.bookLang) })]),
-    el('p', { class: 'muted small', text: t('Open the chapter on {site}, select it with its verse numbers, copy it, then paste it here. It stays in this browser only.', { site: at.name }) }),
+    el('p', { class: 'muted small', text: t('Open the chapter on {site}, select it with its verse numbers and copy it. Back here, "Paste the chapter" takes it from the clipboard and keeps it, in this browser only.', { site: at.name }) }),
     el('div', { class: 'row' }, [
       el('a', { class: 'btn small ghost', href: at.url, target: '_blank', rel: 'noopener', text: t('Open on {site} ↗', { site: at.name }) }),
-      el('button', { class: 'btn small', type: 'button', text: t('Paste the chapter'), onclick: () => pasteSheet(src, book, chapter, onChange) }),
+      el('button', { class: 'btn small', type: 'button', text: t('Paste the chapter'), onclick: () => pasteFromClipboard(src, book, chapter, onChange) }),
       ...(extra || []),
     ]),
   ]);
 }
 
-/** The sheet where a chapter is pasted, checked and saved (or an existing one edited or removed). */
-export async function pasteSheet(src, book, chapter, onChange) {
+/**
+ * "Paste the chapter" on the card: the chapter is read from the clipboard
+ * and, when it parses cleanly into verses, kept at once, with Undo in the
+ * message, so that a chapter is two taps, Open and Paste. A text with a
+ * doubt in it (a warning), or a long text without verse numbers, goes to
+ * the sheet to be looked at, already in its box; a clipboard the browser
+ * will not read, or that holds something else, gives the empty sheet, as
+ * before.
+ */
+export async function pasteFromClipboard(src, book, chapter, onChange) {
+  let raw = null;
+  try { if (navigator.clipboard && navigator.clipboard.readText) raw = await navigator.clipboard.readText(); } catch (e) { raw = null; }   // not allowed here, or no such thing
+  if (raw == null) return pasteSheet(src, book, chapter, onChange);
+  const parsed = parsePasted(raw, chapter);
+  if (parsed.verses.length && !parsed.warnings.length) {
+    const ext = src.ext, ref = formatRef({ book, chapter }, state.settings.bookLang);
+    await saveText(ext.id, book, chapter, parsed.verses, parsed.title);
+    onChange();
+    toast(t('{ref} ({label}) saved: {n} verses.', { ref, label: ext.label, n: parsed.verses.length }), false, async () => { await deleteText(ext.id, book, chapter); onChange(); });
+    return null;
+  }
+  return pasteSheet(src, book, chapter, onChange, { text: parsed.verses.length || raw.trim().length >= 200 ? raw : '' });
+}
+
+/** The sheet where a chapter is pasted, checked and saved (or an existing one edited or removed); `text` is put in the box to start with (the clipboard's, when it needs a look). */
+export async function pasteSheet(src, book, chapter, onChange, { text = '' } = {}) {
   const ext = src.ext;
   const ref = formatRef({ book, chapter }, state.settings.bookLang);
   const existing = await getText(ext.id, book, chapter);
   const s = sheet(`${existing ? t('Edit') : t('Paste')} ${ref} (${ext.label})`, { wide: true, sticky: true });
   const ta = el('textarea', { rows: 12, placeholder: '1 In die begin het God die hemel en die aarde geskep.\n2 Die aarde was …', spellcheck: 'false', 'aria-label': t('Pasted chapter') });
   if (existing) ta.value = (existing.title ? existing.title + '\n' : '') + existing.verses.map(v => `${v.n} ${v.text}`).join('\n');
+  else if (text) ta.value = text;
   const preview = el('p', { class: 'small muted' });
   const saveBtn = el('button', { class: 'btn small', type: 'button', text: t('Save chapter'), disabled: true });
   let parsed = { verses: [], warnings: [] };
