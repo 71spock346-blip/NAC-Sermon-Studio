@@ -229,10 +229,11 @@ export function mergeRoster(roster, plan, myCode, hidden = []) {
   return out.sort((a, b) => str(a.code).localeCompare(str(b.code), undefined, { numeric: true }));
 }
 
-/** Who a code or a typed name is, as it is shown: the roster's label, a minister of the district by code, or the text itself. */
+/** Who a code or a typed name is, as it is shown: the roster's label, 'AVT' for the Apostle's transmission, a minister of the district by code, or the text itself. */
 export function whoLabel(who, plan, settings) {
   const w = str(who);
   if (!w) return '';
+  if (w.toUpperCase() === 'AVT') return t('AVT');
   const r = (settings.roster || []).find(x => str(x.code).toUpperCase() === w.toUpperCase());
   if (r) return r.label || ministerLabel(r);
   const m = (plan.ministers || []).find(x => str(x.code).toUpperCase() === w.toUpperCase());
@@ -242,6 +243,9 @@ export function whoLabel(who, plan, settings) {
 /* ----------------------------------------------------------- closed days */
 
 const OFF = /no (morning |evening |midweek |divine )?services?|geen (oggend|aand|week|gods)?diens|public holiday|openbare vakansie/i;
+/** The Apostle's service transmitted to every congregation ("AVT all congregations (09:00)"): the congregation gathers, but nobody of its own holds it. */
+const AVT = /\bAVT\b|audio[\s-]*(?:visual|video)|transmission|uitsending/i;
+export const isAvt = texts => texts.some(x => AVT.test(x));
 
 /** The texts of a day that concern the congregation: its comments and the cross bookings that name it. */
 const textsOf = (day, cong) => [...day.comments, ...day.cross.filter(c => c.toLowerCase().includes(cong))];
@@ -329,9 +333,11 @@ export function feastsBetween(first, last) {
  * 'moved'), and any other day its column marks, the sheet puts a district
  * leader in the congregation, or the rector added (kind 'extra'). Each has
  * what the sheet says for that day, a suggestion for who holds it (the
- * column's code, or the district leader the sheet puts in the congregation
- * that day), and the rector's own choice over it (plan.services[date]: who,
- * off, time, note, and the name he gave a day he added).
+ * column's code; 'AVT' when the sheet says the Apostle's service is
+ * transmitted to all congregations, so nobody holds it here; or the district
+ * leader the sheet puts in the congregation that day), and the rector's own
+ * choice over it (plan.services[date]: who, off, time, note, and the name he
+ * gave a day he added).
  */
 export function serviceDays(plan, settings) {
   const cong = str(settings.congregation).toLowerCase();
@@ -375,12 +381,13 @@ export function serviceDays(plan, settings) {
     const texts = textsOf(day, cong);
     const { holiday, offNote } = closed(day, texts);
     // a public holiday closes the Wednesday service; a Sunday's and a feast day's are held on one
-    const auto = { who: day.mine || (visiting[0] && visiting[0].code) || '', off: (holiday && kind === 'midweek') || (!!offNote && !day.mine) };
+    const avt = isAvt(texts);
+    const auto = { who: day.mine || (avt ? 'AVT' : '') || (visiting[0] && visiting[0].code) || '', off: (holiday && kind === 'midweek') || (!!offNote && !day.mine) };
     const choice = choices[day.date] || {};
     const morning = kind === 'sunday' || (f ? f.morning : false);
     const time = choice.time || (morning ? settings.sundayTime : settings.midweekTime) || '';
     out.push({
-      date: day.date, dow: day.dow, kind, time, visiting, holiday, movedFrom: moved[day.date] || '',
+      date: day.date, dow: day.dow, kind, time, visiting, holiday, avt, movedFrom: moved[day.date] || '',
       feast: f ? f.key : '', name: str(choice.name), added: extra.has(day.date),
       notes: texts, leaders: day.leaders || {},
       who: 'who' in choice ? str(choice.who) : auto.who,

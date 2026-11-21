@@ -1831,6 +1831,8 @@ export const AF = {
   "The district says": "Die distrik sê",
   "{who} at {congregation}": "{who} by {congregation}",
   "Who holds it": "Wie hou dit",
+  "AVT": "AVT",
+  "AVT (transmission)": "AVT (uitsending)",
   "visiting": "op besoek",
   "Someone else": "Iemand anders",
   "Nobody yet": "Nog niemand",
