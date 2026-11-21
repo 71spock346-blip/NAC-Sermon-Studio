@@ -29,6 +29,7 @@ import { VERSION } from './settings.js';
 import { versionText } from './update.js';
 import * as Mis from './mis.js';
 import { holds } from './handbooks.js';   // the sections listed under Handbooks: More is lit for them too
+import { LINES, used } from './tools.js';   // the five tools a minister may untick under Settings → What I use
 
 /**
  * The sections that live under More on a phone, in groups and in the order
@@ -40,14 +41,14 @@ export const MORE = [
   { rows: [
     ['handbooks', () => t('The Catechism, the Creed, the Liturgy and the handbooks for ministers')],
     ['theology', () => t('The background to a book, a chapter or verses')],
-    ['plan', () => t('The month\'s services and who holds them')],
+    ['plan', LINES.plan],
   ] },
   { title: () => t('Tools'), rows: [
-    ['seating', () => t('Who sits where, and who serves')],
-    ['choir', () => t('The choir programme')],
-    ['reminders', () => t('Birthdays and anniversaries, with a greeting ready')],
+    ['seating', LINES.seating],
+    ['choir', LINES.choir],
+    ['reminders', LINES.reminders],
     ['mis', () => t('The Church\'s MIS')],
-    ['reflect', () => t('Slides and questions for the evening')],
+    ['reflect', LINES.reflect],
   ] },
   { rows: [
     ['files', () => t('The Catechism, the altar booklet, the handbooks and the Guides, each loaded once from its file')],
@@ -76,6 +77,7 @@ export function render(container) {
   for (const group of MORE) {
     const box = el('div', { class: 'more-group' }, group.title ? [el('h3', { class: 'sub', text: group.title() })] : []);
     for (const [key, line] of group.rows) {
+      if (!used(key)) continue;   // unticked under Settings → What I use (tools.js)
       // the MIS row opens the section, as the others do, and the site itself at once (mis.js)
       const mis = key === 'mis';
       box.append(row($('#tab-btn-' + key), line, mis ? { class: 'more-row ext', href: '#mis', onclick: Mis.open } : { class: 'more-row', href: '#' + key }, mis ? '↗' : '›'));

@@ -22,6 +22,7 @@ import * as Update from './update.js';
 import * as Speech from './speech.js';
 import * as Say from './say.js';
 import { BOOKS } from './books.js';
+import * as Tools from './tools.js';   // "What I use": the tick list of the five tools
 
 export const VERSION = '0.2.0';
 
@@ -43,6 +44,7 @@ const GROUPS = [['start', () => t('Start here')], ['device', () => t('This devic
 const SECTIONS = [
   { id: 'language', group: 'start', title: () => t('Language'), line: () => t('English or Afrikaans: the screens, the help page and the printed headings'), draw: languageSection },
   { id: 'you', group: 'start', title: () => t('You'), line: () => state.settings.name ? [state.settings.name, state.settings.congregation].filter(Boolean).join(' · ') : t('Your name and congregation'), draw: youSection },
+  { id: 'tools', group: 'start', title: () => t('What I use'), line: () => toolsLine(), draw: toolsSection },
   { id: 'sync', group: 'start', title: () => t('Sync between your devices'), line: () => Sync.isOn() ? t('On: this device keeps up with your others') : t('Off: keep your phone and PC the same with one code'), draw: syncSection },
   { id: 'files', group: 'start', title: () => t('Church files'), line: () => t('The Catechism, the altar booklet, the handbooks and the Guides'), draw: filesSection },
   { id: 'translations', group: 'start', title: () => t('Translations'), line: () => t('The Bibles in the reader, and the keys that fetch the copyrighted ones'), draw: translationsSection },
@@ -80,6 +82,29 @@ function list(container) {
     nav.append(box);
   }
   container.append(el('div', { class: 'docbar' }, [el('h2', { text: t('Settings') })]), nav);
+}
+
+/** The row's line: the tools ticked, or that all five show. */
+function toolsLine() {
+  const on = Tools.TOOLS.filter(Tools.used);
+  if (on.length === Tools.TOOLS.length) return t('All five tools show: untick what you do not use');
+  return on.length ? on.map(Tools.name).join(', ') : t('None: the five tools are out of the menu');
+}
+
+/** "What I use": a tick per tool; what is unticked leaves the menu and More (tools.js). */
+function toolsSection(container) {
+  const rows = Tools.TOOLS.map(key => {
+    const cb = el('input', { type: 'checkbox', checked: Tools.used(key) });
+    cb.addEventListener('change', async () => {
+      await Tools.setUsed(key, cb.checked);
+      toast(cb.checked ? t('{tool} is back in the menu.', { tool: Tools.name(key) }) : t('{tool} is out of the menu. Nothing is deleted; a tick brings it back.', { tool: Tools.name(key) }));
+    });
+    return el('label', { class: 'check' }, [cb, el('span', { class: 'grow' }, [el('b', { text: Tools.name(key) }), el('span', { class: 'muted small', text: Tools.LINES[key]() })])]);
+  });
+  container.append(section(t('What I use'), [
+    el('p', { class: 'small', text: t('Tick the tools you use. What is unticked leaves the menu on a PC and the More page on a phone, on all your devices; nothing is deleted, and a tick brings it back.') }),
+    el('div', { class: 'checks' }, rows),
+  ]));
 }
 
 function languageSection(container) {

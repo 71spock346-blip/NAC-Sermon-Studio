@@ -58,6 +58,7 @@ import * as Reminders from './reminders.js';
 import * as Plan from './plan.js';   // the month plan: the district's programme with who holds each service
 import * as Settings from './settings.js';
 import * as More from './more.js';
+import * as Tools from './tools.js';   // "What I use": the tools unticked in Settings leave the menu and More
 import * as Sunday from './sunday.js';   // the front door: the next divine service, one tap to each thing used at the altar
 import * as Altar from './altar.js';   // Altar mode: the cue cards and the altar card on one full screen, from the Sunday card
 import * as Mis from './mis.js';   // the Church's MIS: a section whose button opens the site itself
@@ -176,6 +177,7 @@ function onSynced(e) {
   const parts = e.detail.parts || [];
   if (parts.includes('settings')) {
     applyRead(state.settings.readMode || 'book');
+    Tools.apply();   // a tool ticked or unticked on another device
     if ((state.settings.uiLang || 'en') !== lang()) applyLang(state.settings.uiLang || 'en');
   }
   const hash = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
@@ -239,6 +241,7 @@ async function start() {
   for (const b of $$('.lang-switch button')) b.addEventListener('click', () => switchLang(b.dataset.lang));
   document.addEventListener('sb-lang', e => switchLang(e.detail));   // the reader's Aa sheet and Settings (i18n.js requestLang)
   applyLang(state.settings.uiLang || 'en');
+  Tools.apply();
   window.addEventListener('hashchange', route);
   route();
   hideSplash();

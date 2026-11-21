@@ -823,6 +823,7 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .biblelist label.check { padding: 8px 10px; }
 .sec .list { margin: 10px 0 0; box-shadow: none; border: 1px solid var(--line); }
 .sec label.check { padding-left: 8px; padding-right: 8px; }
+.checks label.check .grow { display: flex; flex-direction: column; gap: 2px; min-width: 0; line-height: 1.35; }   /* "What I use": the tool's name, its line under it */
 .theme-row { display: flex; flex-wrap: wrap; gap: 12px 24px; }
 .theme-row > label.f { flex: 1 1 240px; }
 
