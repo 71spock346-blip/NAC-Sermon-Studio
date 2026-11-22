@@ -106,16 +106,17 @@ export const DEFAULT_SETTINGS = {
   readMode: 'book',       // 'book' (Montserrat, normal spacing) or 'easy' (plain letters in the whole app, wider spacing: easier with dyslexia)
   name: '',
   congregation: '',
+  fillLink: null,         // the deacons' link to the service record (fill.js): {code, at}, or null; travels with sync so each of the minister's devices takes their lines in
   hiddenTools: [],        // the tools unticked under Settings → What I use ('plan', 'seating', 'choir', 'reminders', 'reflect'): out of the menu and More on all devices (tools.js)
   welcomed: false,        // the first-time setup (welcome.js) was seen, skipped or not needed on this device. Device only: a second device gets the five steps too
   lastRef: 'PSA.23',
 };
 
 /** The keys never leave the device in a backup file. Sync carries them only when the person ticks "Carry my keys" (locked with the code). */
-export const SECRET = new Set(['apiKey', 'yvKey', 'aiKey', 'guestAiKey', 'helperOpen', 'voiceKey']);
+export const SECRET = new Set(['apiKey', 'yvKey', 'aiKey', 'guestAiKey', 'helperOpen', 'voiceKey', 'fillSeen']);
 
 /** Settings that belong to this screen rather than to the person: a phone and a PC may well differ. Sync leaves them alone. */
-export const DEVICE_ONLY = new Set(['theme', 'fontSize', 'helperOpen', 'guestAiKey', 'welcomed']);   // helperOpen and guestAiKey: a device is unlocked by hand, and a visitor's key stays with the visitor (lock.js)
+export const DEVICE_ONLY = new Set(['theme', 'fontSize', 'helperOpen', 'guestAiKey', 'welcomed', 'fillSeen']);   // helperOpen and guestAiKey: a device is unlocked by hand, and a visitor's key stays with the visitor (lock.js)
 
 /** Settings that may change often and matter little: sent on with the next sync rather than at once. */
 const LAZY = new Set(['lastRef']);
