@@ -19,6 +19,10 @@
  * past service not marked as held is named under the card while a next one
  * shows, with the same button, so the list of preparations clears itself.
  *
+ * A Sunday an Apostle or District Apostle holds with his own word
+ * (apostle.js) shows as his service: who serves, where the Guide's word went,
+ * and the service record; "Apostle's own word" on a Sunday's card marks it.
+ *
  * The app opens here (app.js), and Sunday is the first tab of the phone's
  * bar and of the PC's menu (index.html). Nothing on this screen is Claude's
  * work: a locked device (lock.js) shows the same, only without the line that
@@ -37,6 +41,7 @@ import { cueParts, cuesOf } from './cues.js';
 import * as AI from './ai.js';
 import { numbers as hymnNumbers } from './hymns.js';   // the hymns of the service, by number, on the card
 import { packSheet, packLine } from './pack.js';   // the Sunday pack: the cue cards and the altar card as one PDF, printed in one go
+import * as Apostle from './apostle.js';   // a Sunday an Apostle holds with his own word
 
 const DAY = 86400000;
 const noon = date => new Date(date + 'T12:00:00');
@@ -72,10 +77,11 @@ function daysWord(date) {
  * yet. `as` has the shape of a preparation for either, for the reference and
  * the text word in large letters (read.js word).
  */
-function ofGuide(guide, i) {
+function ofGuide(guide, i, place = Guides.placeOf(guide.services[i])) {
   const svc = guide.services[i];
-  const as = { date: svc.date, occasion: Guides.occasionFor(svc), ref: Guides.refOf(svc), refText: svc.reference || '', text: svc.bibleText || '', translation: '', title: svc.title || '' };
-  return { date: svc.date, guide, i, svc, as };
+  const occasion = place.from ? 'Midweek divine service' : Guides.occasionFor(svc);   // a Sunday's word held on the Wednesday after an Apostle's Sunday
+  const as = { date: place.date, occasion, ref: Guides.refOf(svc), refText: svc.reference || '', text: svc.bibleText || '', translation: '', title: svc.title || '' };
+  return { date: place.date, guide, i, svc, as, from: place.from || null };
 }
 
 /**
@@ -92,13 +98,14 @@ function services() {
   const seen = new Set();
   for (const guide of Guides.all().sort((a, b) => (a.language === usual ? 0 : 1) - (b.language === usual ? 0 : 1))) {
     guide.services.forEach((svc, i) => {
-      if (!svc.date || svc.date < now) return;
+      const place = Guides.placeOf(svc);   // where it is held: a Sunday's word rolls to the Wednesday when an Apostle brings his own, and the Wednesday's falls away
+      if (!place.date || place.date < now || place.away) return;
       const ref = Guides.refOf(svc);
-      const key = svc.date + '|' + (ref ? `${ref.book}.${ref.chapter}` : (svc.reference || '').toLowerCase());
+      const key = place.date + '|' + (ref ? `${ref.book}.${ref.chapter}` : (svc.reference || '').toLowerCase());
       if (seen.has(key)) return;   // the same service in the Guide of the other language
       seen.add(key);
       if (Guides.preparationsFor(guide, i).length) return;
-      items.push(ofGuide(guide, i));
+      items.push(ofGuide(guide, i, place));
     });
   }
   items.sort((a, b) => a.date.localeCompare(b.date));
@@ -126,9 +133,13 @@ function stateLine(s) {
 /** The card of the next service: when and where, the text word, the title, how far the preparation is, and the buttons. */
 function card(x, past, redraw) {
   const s = x.s;
+  if (s && s.apostle) return apostleCard(x, past, redraw);
   const where = (s ? [s.congregation, s.occasion ? t(s.occasion) : ''] : [x.svc.label || t(Guides.occasionFor(x.svc))]).filter(Boolean);
   const title = s ? (s.title || s.theme || '') : (x.svc.title || '');
   const over = daysTo(x.date) <= 0;   // the day has come: the service can be marked as held
+  // a Sunday an Apostle or District Apostle holds with his own word: the Guide's word then rolls to the Wednesday (apostle.js)
+  const own = Guides.isSunday(x.date) && (s ? Apostle.canMark(s) : !Guides.apostleSunday(x.date))
+    ? el('button', { class: 'btn ghost', type: 'button', text: t('Apostle\'s own word'), onclick: () => Apostle.markSheet(x.date, redraw) }) : null;
   return el('div', { class: 'sunday-card' }, [
     el('div', { class: 'sunday-when' }, [el('b', { text: longDate(x.date) }), el('span', { class: 'pill day' + (past ? ' past' : ''), text: daysWord(x.date) })]),
     where.length ? el('div', { class: 'muted small sunday-where', text: where.join(' · ') }) : null,
@@ -142,8 +153,27 @@ function card(x, past, redraw) {
       el('a', { class: 'btn ghost', href: `#prepare/${s.id}`, text: t('Open the preparation') }),
       over ? el('button', { class: 'btn ghost', type: 'button', text: t('Mark as held'), onclick: () => markHeld(s, redraw) }) : null,
       over ? el('a', { class: 'btn ghost', href: `#record/${s.id}`, text: t('Service record') }) : null,   // the form for the district's WhatsApp group, filled in after the service (record.js)
+      own,
     ] : [
       el('button', { class: 'btn', type: 'button', text: t('Prepare this service'), onclick: () => newFromService(x.guide, x.i) }),
+      own,
+    ]),
+  ]);
+}
+
+/** The card of a Sunday an Apostle holds with his own word: who serves, his word once typed, where the Guide's word went, and his service record. */
+function apostleCard(x, past, redraw) {
+  const s = x.s;
+  const over = daysTo(x.date) <= 0;
+  return el('div', { class: 'sunday-card apostle' }, [
+    el('div', { class: 'sunday-when' }, [el('b', { text: longDate(x.date) }), el('span', { class: 'pill day' + (past ? ' past' : ''), text: daysWord(x.date) })]),
+    el('div', { class: 'muted small sunday-where', text: [s.congregation, t(s.occasion || 'Sunday divine service')].filter(Boolean).join(' · ') }),
+    el('div', { class: 'sunday-ref', text: refText(s) || Apostle.whoServes(s) }),
+    el('p', { class: 'sunday-title', text: Apostle.apostleLine(s) }),
+    el('div', { class: 'row' }, [
+      el('a', { class: 'btn', href: `#record/${s.id}`, text: t('Service record') }),   // his word is typed there, with the rest of the record
+      over ? el('button', { class: 'btn ghost', type: 'button', text: t('Mark as held'), onclick: () => markHeld(s, redraw) }) : null,
+      Apostle.backButton(s, redraw),
     ]),
   ]);
 }
@@ -151,7 +181,7 @@ function card(x, past, redraw) {
 /** A service gone by that is not marked as held yet, named under the card with the button to mark it. */
 function heldLine(x, redraw) {
   return el('div', { class: 'sunday-held' }, [
-    el('span', { class: 'grow', text: t('{service} is not marked as held yet.', { service: [fmtDate(x.date, true), refText(x.s)].filter(Boolean).join(' · ') }) }),
+    el('span', { class: 'grow', text: t('{service} is not marked as held yet.', { service: [fmtDate(x.date, true), refText(x.s) || (x.s.apostle ? Apostle.whoServes(x.s) : '')].filter(Boolean).join(' · ') }) }),
     el('button', { class: 'btn small ghost', type: 'button', text: t('Mark as held'), onclick: () => markHeld(x.s, redraw) }),
   ]);
 }
@@ -183,21 +213,22 @@ function altarRows(x, service) {
   const s = x.s;
   const { key, card, l, bk } = cardFor(s ? s.occasion : Guides.occasionFor(x.svc));   // liturgy.js: the card for this kind of service
   const rows = [];
-  if (s) {
+  if (s && !s.apostle) {
     rows.push(row(CARDS, t('Cue cards'), cuesLine(s, service), { onclick: () => Read.cues(s, { service }) }));
     rows.push(row(SERMON, t('The sermon'), sermonParts(s).empty ? t('Nothing written yet') : t('Read it on the screen in large letters'), { onclick: () => Read.sermon(s) }));
   }
   rows.push(card
     ? row(CHALICE, t('Altar card: {card}', { card: card.title }), t('The words at the altar, in large letters'), { href: `#liturgy/${key}`, lang: l })
     : row(CHALICE, t('Altar card'), t('Load the altar booklet under Handbooks first'), { href: '#liturgy' }));
-  rows.push(row(WORD, t('The text word, large'), [refText(x.as), x.as.translation].filter(Boolean).join(' · ') || t('No text word yet'), { onclick: () => Read.word(x.as) }));
+  if (!s || !s.apostle || refText(s)) rows.push(row(WORD, t('The text word, large'), [refText(x.as), x.as.translation].filter(Boolean).join(' · ') || t('No text word yet'), { onclick: () => Read.word(x.as) }));
   // on paper: the cue cards and the altar card as one PDF, printed in one go (pack.js)
-  if (s) rows.push(row(PRINT, t('Sunday pack'), packLine(card), { onclick: () => packSheet(s, { service, card, bk }) }));
+  if (s && !s.apostle) rows.push(row(PRINT, t('Sunday pack'), packLine(card), { onclick: () => packSheet(s, { service, card, bk }) }));
   return rows;
 }
 
 /** A service after the next one: a row to its preparation, or one that starts the preparation of a Guide's service. */
 function laterRow(x) {
+  if (x.s && x.s.apostle) return row(CAL, `${fmtDate(x.date, true)} · ${Apostle.whoServes(x.s)}`, refText(x.s) || t('His own word'), { href: `#record/${x.s.id}` });
   const name = `${fmtDate(x.date, true)} · ${refText(x.as) || t('No text word yet')}`;
   if (x.s) return row(CAL, name, [x.s.title || x.s.theme || '', t(STATUS[x.s.status] || 'Draft')].filter(Boolean).join(' · '), { href: `#prepare/${x.s.id}` });
   return row(CAL, name, [x.svc.title || '', t('Not started yet')].filter(Boolean).join(' · '), { onclick: () => newFromService(x.guide, x.i) });

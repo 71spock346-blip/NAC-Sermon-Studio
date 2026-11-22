@@ -157,6 +157,44 @@ export function occasionFor(service) {
   return 'Sunday divine service';
 }
 
+/* ------------------------------------------------- a Sunday an Apostle holds with his own word */
+
+/** yyyy-mm-dd, `n` days after `date` (before it when `n` is below 0). */
+export function addDays(date, n) {
+  const d = new Date(date + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+export const isSunday = date => !!date && new Date(date + 'T12:00:00').getDay() === 0;
+/** The entry of a Sunday an Apostle or District Apostle holds with his own word (apostle.js), or null. */
+export const apostleSunday = date => (date && state.sermons.find(s => s.apostle && s.date === date)) || null;
+/** The Guide's own service of a Sunday: the divine service, not the youth's or the children's. */
+const sundayService = svc => isSunday(svc.date) && svc.kind !== 'youth' && svc.kind !== 'children' && svc.kind !== 'midweek';
+/** The Wednesday evening service a Sunday's word rolls to: the Guide's midweek service in the six days after it, else the Wednesday. */
+export function midweekAfter(date) {
+  const last = addDays(date, 6);
+  for (const g of all()) for (const svc of g.services) if (svc.kind === 'midweek' && svc.date > date && svc.date <= last) return svc.date;
+  return addDays(date, 3);
+}
+/**
+ * Where a service of the Guide is held. As the Guide has it, {date}; but when
+ * an Apostle or District Apostle holds a Sunday with a word of his own, the
+ * Guide's word for that Sunday rolls to the Wednesday evening service after
+ * it, {date: that Wednesday, from: the Sunday}, and the Guide's word for that
+ * Wednesday falls away, {date, away: the Sunday} (Jerome, November 2026).
+ */
+export function placeOf(svc) {
+  if (!svc || !svc.date) return { date: (svc && svc.date) || '' };
+  if (sundayService(svc) && apostleSunday(svc.date)) return { date: midweekAfter(svc.date), from: svc.date };
+  if (svc.kind === 'midweek') {
+    for (let n = 1; n <= 6; n++) {
+      const sunday = addDays(svc.date, -n);
+      if (isSunday(sunday) && apostleSunday(sunday) && midweekAfter(sunday) === svc.date) return { date: svc.date, away: sunday };
+    }
+  }
+  return { date: svc.date };
+}
+
 /** The Guide and article a preparation is linked to: {guide, service, i} or null. */
 export function findService(s) {
   const link = s.guideLink;
@@ -285,8 +323,12 @@ export function prefill(s, guide, i, { force = false, fresh = false, lang = fals
     s.translationId = '';
     s.translation = guide.language === 'af' ? 'AFR53' : 'NKJV';
   }
-  if (svc.date && (force || fresh || !s.date)) s.date = svc.date;
-  if (force || fresh || !s.occasion || s.occasion === 'Sunday divine service') s.occasion = occasionFor(svc);
+  const place = placeOf(svc);   // a Sunday the Apostle held with his own word: its word is held on the Wednesday after
+  if (svc.date && (force || fresh || !s.date)) {
+    if (!place.away) s.date = place.date;
+    else if (fresh) s.date = '';   // the Wednesday's word fell away: a preparation of it waits without a date
+  }
+  if (force || fresh || !s.occasion || s.occasion === 'Sunday divine service') s.occasion = place.from ? 'Midweek divine service' : occasionFor(svc);
   set('title', svc.title);
   set('theme', svc.message);
   box('context', svc.context, before && before.service.context);
@@ -587,16 +629,21 @@ export function noKey() {
 function serviceRow(guide, i, onPrepare, done = preparationsFor(guide, i)) {
   const svc = guide.services[i];
   const ref = refOf(svc);
-  const row = el('button', { class: 'item svc', type: 'button', onclick: () => {
+  const place = placeOf(svc);   // moved to the Wednesday, or fallen away, for a Sunday an Apostle held with his own word
+  const row = el('button', { class: 'item svc' + (place.away ? ' away' : ''), type: 'button', onclick: () => {
     if (done.length) { location.hash = `#prepare/${done[0].id}`; return; }
     onPrepare(guide, i);
   } }, [
-    el('div', { class: 'when' }, [el('b', { text: svc.date ? fmtDate(svc.date, true) : (svc.dateText || '') }), el('span', { class: 'muted small', text: svc.label || t(occasionFor(svc)) })]),
+    el('div', { class: 'when' }, [
+      el('b', { text: place.date ? fmtDate(place.date, true) : (svc.dateText || '') }),
+      el('span', { class: 'muted small', text: place.from ? t('Moved from {date}', { date: fmtDate(place.from, true) }) : svc.label || t(occasionFor(svc)) }),
+    ]),
     el('div', { class: 'grow' }, [
       el('div', { class: 'ref', text: ref ? formatRef(ref, state.settings.bookLang) : svc.reference }),
       el('div', { class: 'muted small', text: svc.title }),
     ]),
-    done.length ? el('span', { class: 'pill status ' + (done[0].status || 'draft'), text: t(done[0].status === 'ready' ? 'Ready' : done[0].status === 'held' ? 'Held' : 'Draft') }) : el('span', { class: 'pill link', text: t('Prepare') }),
+    place.away ? el('span', { class: 'pill status away', text: t('Falls away') })
+      : done.length ? el('span', { class: 'pill status ' + (done[0].status || 'draft'), text: t(done[0].status === 'ready' ? 'Ready' : done[0].status === 'held' ? 'Held' : 'Draft') }) : el('span', { class: 'pill link', text: t('Prepare') }),
   ]);
   return row;
 }

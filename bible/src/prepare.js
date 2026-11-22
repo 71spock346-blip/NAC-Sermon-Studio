@@ -248,6 +248,7 @@ export function render(container, route) {
   container.classList.remove('editing');   // the editor's step bar takes room beside the page on a wide PC (styles.css)
   if (route[1]) {
     const s = state.sermons.find(x => x.id === route[1]);
+    if (s && s.apostle) { location.replace('#record/' + s.id); return; }   // a Sunday an Apostle held with his own word: nothing of the minister's to prepare, only its record (apostle.js)
     if (s) {
       if (Guides.upgrade(s)) saveSermon(s).catch(() => {});   // made before the Guide's Context and Summary had steps of their own
       container.classList.add('editing');
@@ -266,6 +267,9 @@ export function render(container, route) {
    card, guides.js heldToggle); the choice holds while the app is open. A search finds them all the same. */
 let heldShown = false;
 
+/** The minister's own preparations: not the Sundays an Apostle held with his own word, which Sunday and the service record show (apostle.js). */
+const mine = () => state.sermons.filter(s => !s.apostle);
+
 function renderList(container, q = '') {
   const search = el('input', { type: 'search', placeholder: t('Search by text, congregation or theme…'), 'aria-label': t('Search preparations'), autocomplete: 'off' });
   search.value = q;
@@ -274,10 +278,10 @@ function renderList(container, q = '') {
   function show() {
     clear(list);
     const q = search.value.trim().toLowerCase();
-    const found = state.sermons.filter(s => !q || [s.refText, s.congregation, s.theme, s.title, s.occasion, s.date].join(' ').toLowerCase().includes(q));
+    const found = mine().filter(s => !q || [s.refText, s.congregation, s.theme, s.title, s.occasion, s.date].join(' ').toLowerCase().includes(q));
     const held = q ? 0 : found.filter(s => s.status === 'held').length;
     const items = held && !heldShown ? found.filter(s => s.status !== 'held') : found;
-    if (!found.length) list.append(el('p', { class: 'muted', text: state.sermons.length ? t('Nothing matches.') : t('No preparations yet. Tap "New preparation", or select verses in the reader and choose "Prepare a service".') }));
+    if (!found.length) list.append(el('p', { class: 'muted', text: mine().length ? t('Nothing matches.') : t('No preparations yet. Tap "New preparation", or select verses in the reader and choose "Prepare a service".') }));
     else if (!items.length) list.append(el('p', { class: 'muted', text: t('All your services are held.') }));
     for (const s of items) {
       list.append(el('a', { class: 'item sermon', href: `#prepare/${s.id}` }, [
@@ -302,7 +306,7 @@ function renderList(container, q = '') {
   container.append(
     Liturgy.shortcut(),   // on a phone only: the words at the altar, which the bar has no tab for
     el('div', { class: 'docbar' }, [
-      el('h2', { text: t('Service preparations ({n})', { n: state.sermons.length }) }),
+      el('h2', { text: t('Service preparations ({n})', { n: mine().length }) }),
       el('div', { class: 'spacer' }),
       el('button', { class: 'btn small', type: 'button', text: t('New preparation'), onclick: () => newBlank() }),
     ]),
@@ -376,7 +380,7 @@ export function renderReflect(container, route) {
       el('p', { class: 'muted small', text: t('Claude reads the Church\'s guide for the evening: the title, the text word and the questions. The service it looks back on is found among your preparations, or added to them.') }),
     ]) : null].filter(Boolean));   // reading the Church's guide is Claude's work, the minister's own (lock.js); a locked device makes the slides from the preparation
   // the evenings with slides first, then the latest services held; the search finds any preparation
-  const made = state.sermons.filter(Reflect.hasSlides);
+  const made = mine().filter(Reflect.hasSlides);
   if (made.length) container.append(el('h3', { class: 'sub', text: t('Your slides') }), el('div', { class: 'list' }, made.map(item)));
   const search = el('input', { type: 'search', placeholder: t('Search by text, congregation or theme…'), 'aria-label': t('Search preparations'), autocomplete: 'off' });
   const list = el('div', { class: 'list' });
@@ -385,8 +389,8 @@ export function renderReflect(container, route) {
     clear(list);
     const q = search.value.trim().toLowerCase();
     const items = q
-      ? state.sermons.filter(s => [s.refText, s.congregation, s.theme, s.title, s.occasion, s.date].join(' ').toLowerCase().includes(q)).slice(0, 50)
-      : state.sermons.filter(s => s.date && s.date <= now && !Reflect.hasSlides(s)).slice(0, 10);   // the latest services held, newest first
+      ? mine().filter(s => [s.refText, s.congregation, s.theme, s.title, s.occasion, s.date].join(' ').toLowerCase().includes(q)).slice(0, 50)
+      : mine().filter(s => s.date && s.date <= now && !Reflect.hasSlides(s)).slice(0, 10);   // the latest services held, newest first
     if (!items.length) list.append(el('p', { class: 'muted', text: q ? t('Nothing matches.') : state.sermons.length ? t('No other services held yet.') : t('No services yet. Load the reflection guide above, or start a preparation under Prepare.') }));
     for (const s of items) list.append(item(s));
   }
@@ -417,7 +421,7 @@ function occasionFrom(name) {
 export async function newFromReflection(g) {
   const ref = Guides.refOf({ reference: g.reference });
   const sameText = x => ref && x.ref && x.ref.book === ref.book && x.ref.chapter === ref.chapter;
-  const day = g.date ? state.sermons.filter(x => x.date === g.date) : state.sermons.filter(x => sameText(x) && norm(x.title) === norm(g.title));
+  const day = g.date ? mine().filter(x => x.date === g.date) : mine().filter(x => sameText(x) && norm(x.title) === norm(g.title));
   let s = day.find(sameText) || day.find(x => norm(x.title) && norm(x.title) === norm(g.title)) || day[0] || null;
   if (s) toast(t('Your preparation for {date} is used for the slides.', { date: fmtDate(s.date, true) }));
   else {

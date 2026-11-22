@@ -466,6 +466,8 @@ nav.side .lang-switch { align-self: flex-start; margin-bottom: 4px; }
 .pill.status { background: var(--surface-2); color: var(--muted); }
 .pill.status.ready { color: var(--c-green); background: color-mix(in srgb, var(--c-green) 12%, transparent); }
 .pill.status.held { color: var(--c-slate); background: color-mix(in srgb, var(--c-slate) 12%, transparent); }
+.pill.status.away { color: var(--c-amber); background: color-mix(in srgb, var(--c-amber) 12%, transparent); }   /* a Wednesday's word that falls away after an Apostle's Sunday (guides.js placeOf) */
+.item.svc.away .when, .item.svc.away .grow { opacity: .62; }
 .chips { gap: 6px; }
 .chip { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 13px; min-height: 34px; border-radius: 999px; border: 1px solid var(--btn-line); background: var(--surface); color: var(--ink-2); cursor: pointer; transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
 .chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -1387,6 +1389,8 @@ body.showing { overflow: hidden; }
 .sunday-title { margin: 0; font-size: 17px; line-height: 1.4; }
 .sunday-state { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 10px 0 0; font-size: 14px; }
 .sunday-card .row { margin-top: 14px; }
+.sunday-card.apostle { box-shadow: inset 4px 0 0 var(--accent); }   /* a Sunday an Apostle holds with his own word (apostle.js) */
+.sunday-card.apostle .sunday-title { margin-top: 6px; }
 .sunday-empty p { margin: 0 0 6px; line-height: 1.55; }
 .sunday-held { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: -6px 0 18px; padding: 10px 14px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); font-size: 14px; line-height: 1.4; }
 .sunday-rows .more-row { width: 100%; border: 0; font: inherit; cursor: pointer; text-align: left; }
@@ -1891,7 +1895,11 @@ body.altar .shell { min-height: 0; display: block; }   /* no column for the hidd
 /* ---- the service record (record.js): NACSA's form, filled in after the service ---- */
 .record .record-head { margin: 2px 0 8px; }
 .record .record-head b { color: var(--head-ink); }
-.record .record-pick { max-width: 460px; margin: 2px 0 10px; }   /* "Which service": as wide as the form's picture on a PC, the whole width on a phone */
+.record .record-pick { max-width: 460px; margin: 2px 0 10px; }
+/* the Apostle's Sunday: who served and where the Guide's word went, or on a Sunday of the minister's own, the way to mark it (apostle.js) */
+.record .record-apostle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 10px; padding: 10px 12px; border-radius: var(--radius); background: var(--surface); }
+.record .record-apostle p { margin: 0; flex: 1 1 260px; line-height: 1.45; }
+.apostle-says { line-height: 1.5; margin: 0 0 12px; }   /* "Which service": as wide as the form's picture on a PC, the whole width on a phone */
 .record .sec h3.sub { margin-top: 14px; }
 .record-times { grid-template-columns: 1fr 1fr; margin: 0; }
 .record-total { margin: 8px 0 0; font-weight: 700; color: var(--head-ink); }

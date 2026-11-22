@@ -33,10 +33,11 @@
 import { el, clear, toast, copyText, fmtDate, today } from './ui.js';
 import { state, saveSermon } from './store.js';
 import { t, locale } from './i18n.js';
-import { formatRef } from './books.js';
+import { formatRef, parseRef } from './books.js';
 import * as Pdf from './pdf.js';
 import { serviceTimes } from './plan.js';   // the usual time of a Sunday and a midweek service
 import { formPdf, formPicture, preview as drawPaper } from './record-form.js';
+import * as Apostle from './apostle.js';   // a Sunday an Apostle holds with his own word: its record, who conducted it
 import { norm as hymnNorm, withBook } from './hymns.js';   // "hc12" → "HC 12", "e 104" → "E 104", as the Prepare boxes write them; "104" from Prepare → "HC 104"
 
 const DENOMS = [10, 20, 50, 100, 200];
@@ -69,7 +70,7 @@ export function started(s) {
   const r = recordOf(s);
   const h = s.hymns || {};
   r.hymns.opening = withBook(h.opening); r.hymns.afterText = withBook(h.sermon); r.hymns.communion = withBook(h.communion); r.hymns.closing = withBook(h.closing);
-  r.conductedBy = state.settings.name || '';
+  r.conductedBy = s.apostle ? Apostle.conductor(s) : (state.settings.name || '');   // "AP Page" on the Apostle's Sunday
   r.completedBy = state.settings.name || '';
   const day = s.date ? new Date(s.date + 'T12:00:00').getDay() : -1;
   const times = serviceTimes();
@@ -227,7 +228,7 @@ export function serviceFor(list = state.sermons, now = today()) {
 /** "Sun 22 Nov 2026 · John 1:1-3", and the congregation when it is not the usual one: a service in the list to choose from. */
 function serviceName(s) {
   const usual = state.settings.congregation || '';
-  return [s.date ? fmtDate(s.date, true) : t('No date'), s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || ''), s.congregation && s.congregation !== usual ? s.congregation : ''].filter(Boolean).join(' · ');
+  return [s.date ? fmtDate(s.date, true) : t('No date'), s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || ''), s.apostle ? Apostle.whoServes(s) : '', s.congregation && s.congregation !== usual ? s.congregation : ''].filter(Boolean).join(' · ');
 }
 
 /** "Which service": the services up to today, the latest first, and the one open (a later one, or one with no date, opened from its preparation). Nothing while there is no other to choose. */
@@ -275,13 +276,31 @@ export function render(container, route) {
   const r = s.record ? recordOf(s) : started(s);
   const h = header(s);
   const page = el('div', { class: 'record' });
-  page.append(el('div', { class: 'docbar' }, [el('h2', { text: t('Service record') }), el('span', { class: 'spacer' }), el('a', { class: 'btn small ghost', href: `#prepare/${s.id}`, text: t('Open the preparation') })]));
+  // the Apostle's Sunday has no preparation of the minister's own to open
+  page.append(el('div', { class: 'docbar' }, [el('h2', { text: t('Service record') }), el('span', { class: 'spacer' }), s.apostle ? null : el('a', { class: 'btn small ghost', href: `#prepare/${s.id}`, text: t('Open the preparation') })]));
   const pick = picker(s);
   if (pick) page.append(pick);
+  const headLine = el('div', { class: 'muted small', text: [h.kind, h.ref].filter(Boolean).join(' · ') });
   page.append(el('div', { class: 'record-head' }, [
     el('b', { text: [h.congregation, h.date].filter(Boolean).join(' · ') }),
-    el('div', { class: 'muted small', text: [h.kind, h.ref].filter(Boolean).join(' · ') }),
+    headLine,
   ]));
+  if (s.apostle) {
+    // "Apostle Page serves with his own word. The Guide's word for this Sunday, Galatians 6:9, is on Wed, 25 Nov 2026.", and the way back
+    page.append(el('div', { class: 'record-apostle' }, [
+      el('p', { text: Apostle.apostleLine(s) }),
+      Apostle.backButton(s, () => { clearTimeout(timer); location.hash = '#record'; }),
+    ]));
+  } else if (Apostle.canMark(s)) {
+    // a Sunday of the minister's own: an Apostle or a District Apostle may hold it with a word of his own
+    page.append(el('div', { class: 'record-apostle' }, [
+      el('p', { class: 'muted', text: t('Did an Apostle or District Apostle bring his own word?') }),
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Apostle\'s own word'), onclick: async () => {
+        if (timer) { clearTimeout(timer); timer = null; await save(); }   // what was just typed stays with this Sunday's record, which goes with the Sunday
+        Apostle.markSheet(s.date, e => { location.hash = '#record/' + (e ? e.id : s.id); });
+      } }),
+    ]));
+  }
   page.append(el('p', { class: 'small muted', text: t('NACSA’s service record, filled in from the preparation where it can be; what you type is kept as you go. When the service is over, send it to the WhatsApp group: the office captures it on MIS within 24 hours.') }));
 
   const inputs = {};   // 'attendance.adults' -> its input
@@ -312,8 +331,23 @@ export function render(container, route) {
   const total = () => el('p', { class: 'record-total' });
   const totals = { attendance: total(), offerings: total(), sealing: total(), ordination: total() };
 
+  // his text word, on the Apostle's Sunday: it is known once he has read it, and goes on the form and in the message
+  let word = null;
+  if (s.apostle) {
+    word = el('input', { type: 'text', value: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || ''), placeholder: t('e.g. Matthew 5:9'), autocomplete: 'off', 'aria-label': t('His text word') });
+    word.addEventListener('input', () => {
+      const v = word.value.trim();
+      s.refText = v;
+      s.ref = v ? parseRef(v) || null : null;
+      const hd = header(s);
+      headLine.textContent = [hd.kind, hd.ref].filter(Boolean).join(' · ');
+      changed();
+    });
+    word.addEventListener('change', () => { if (s.ref) word.value = formatRef(s.ref, state.settings.bookLang); });   // "mat 5:9" is written "Matthew 5:9"
+  }
   page.append(section(t('The service'), [
     el('div', { class: 'fields two' }, [
+      word ? el('label', { class: 'f full' }, [el('span', { text: t('His text word') }), word]) : null,
       field('refNo', t('Ref no')),
       el('div', { class: 'fields record-times' }, [field('start', t('Start time'), { type: 'time' }), field('end', t('End time'), { type: 'time' })]),
       field('conductedBy', t('Conducted by')),
