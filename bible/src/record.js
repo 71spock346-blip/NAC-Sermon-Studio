@@ -38,6 +38,7 @@ import * as Pdf from './pdf.js';
 import { serviceTimes } from './plan.js';   // the usual time of a Sunday and a midweek service
 import { formPdf, formPicture, preview as drawPaper } from './record-form.js';
 import * as Apostle from './apostle.js';   // a Sunday an Apostle holds with his own word: its record, who conducted it
+import * as Fill from './fill.js';   // the deacons' link: the record filled in on their phones
 import { norm as hymnNorm, withBook } from './hymns.js';   // "hc12" → "HC 12", "e 104" → "E 104", as the Prepare boxes write them; "104" from Prepare → "HC 104"
 
 const DENOMS = [10, 20, 50, 100, 200];
@@ -273,19 +274,35 @@ export function render(container, route) {
     ]));
     return;
   }
+  recordView(container, s);
+}
+
+/**
+ * One service's record on the screen: the minister's, from his preparation
+ * `s`; or with opts.fill, the page a deacon opens with the link (fill.js),
+ * where `s` stands for the service the link shows and opts.fill is
+ * {status: an element for "Sent", save(record)}. A deacon's page has no way
+ * to the preparation, no choice of service, no Apostle's word to mark, no
+ * deacons' link and no sending: only the form. Gives {el, sid, current(),
+ * apply(record)}, so the other side's lines can come into the boxes.
+ */
+export function recordView(container, s, opts = {}) {
+  const fill = opts.fill || null;
   const r = s.record ? recordOf(s) : started(s);
   const h = header(s);
-  const page = el('div', { class: 'record' });
+  const page = el('div', { class: 'record' + (fill ? ' fill' : '') });
   // the Apostle's Sunday has no preparation of the minister's own to open
-  page.append(el('div', { class: 'docbar' }, [el('h2', { text: t('Service record') }), el('span', { class: 'spacer' }), s.apostle ? null : el('a', { class: 'btn small ghost', href: `#prepare/${s.id}`, text: t('Open the preparation') })]));
-  const pick = picker(s);
+  page.append(el('div', { class: 'docbar' }, [el('h2', { text: t('Service record') }), el('span', { class: 'spacer' }), fill ? fill.status : s.apostle ? null : el('a', { class: 'btn small ghost', href: `#prepare/${s.id}`, text: t('Open the preparation') })]));
+  const pick = fill ? null : picker(s);
   if (pick) page.append(pick);
   const headLine = el('div', { class: 'muted small', text: [h.kind, h.ref].filter(Boolean).join(' · ') });
   page.append(el('div', { class: 'record-head' }, [
     el('b', { text: [h.congregation, h.date].filter(Boolean).join(' · ') }),
     headLine,
   ]));
-  if (s.apostle) {
+  if (fill) {
+    // nothing of the minister's but the record itself
+  } else if (s.apostle) {
     // "Apostle Page serves with his own word. The Guide's word for this Sunday, Galatians 6:9, is on Wed, 25 Nov 2026.", and the way back
     page.append(el('div', { class: 'record-apostle' }, [
       el('p', { text: Apostle.apostleLine(s) }),
@@ -301,7 +318,20 @@ export function render(container, route) {
       } }),
     ]));
   }
-  page.append(el('p', { class: 'small muted', text: t('NACSA’s service record, filled in from the preparation where it can be; what you type is kept as you go. When the service is over, send it to the WhatsApp group: the office captures it on MIS within 24 hours.') }));
+  page.append(el('p', { class: 'small muted', text: fill
+    ? t('NACSA’s service record, for the minister who sent you the link. What you type goes to him as you type it; he checks it and sends it to the district.')
+    : t('NACSA’s service record, filled in from the preparation where it can be; what you type is kept as you go. When the service is over, send it to the WhatsApp group: the office captures it on MIS within 24 hours.') }));
+  // the deacons' link (fill.js): made here, and whether it shows this service
+  let fillBox = null, boxKey = '';
+  const drawFillBox = () => {
+    const key = Fill.boxKey(s);
+    if (fillBox && key === boxKey) return;
+    boxKey = key;
+    const b = Fill.ownerBox(s, () => { drawFillBox(); if (Fill.linkOn()) Fill.watch(api); });
+    if (fillBox) fillBox.replaceWith(b);
+    fillBox = b;
+  };
+  if (!fill) { drawFillBox(); page.append(fillBox); }
 
   const inputs = {};   // 'attendance.adults' -> its input
   const valueAt = path => { const [a, b] = path.split('.'); return b ? r[a][b] : r[a]; };
@@ -333,7 +363,7 @@ export function render(container, route) {
 
   // his text word, on the Apostle's Sunday: it is known once he has read it, and goes on the form and in the message
   let word = null;
-  if (s.apostle) {
+  if (s.apostle && !fill) {
     word = el('input', { type: 'text', value: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || ''), placeholder: t('e.g. Matthew 5:9'), autocomplete: 'off', 'aria-label': t('His text word') });
     word.addEventListener('input', () => {
       const v = word.value.trim();
@@ -395,8 +425,11 @@ export function render(container, route) {
     });
     return b;
   };
-  const paperView = el('canvas', { class: 'record-paper', role: 'img', 'aria-label': t('The service record on the paper form') });
-  page.append(section(t('The form'), [
+  const paperView = fill ? null : el('canvas', { class: 'record-paper', role: 'img', 'aria-label': t('The service record on the paper form') });
+  const textView = fill ? null : el('pre', { class: 'record-text' });
+  const waLink = fill ? null : el('a', { class: 'btn ghost', target: '_blank', rel: 'noreferrer', text: t('Send to WhatsApp') });
+  // the paper form and the message are the minister's to send: a deacon's page has neither
+  if (!fill) page.append(section(t('The form'), [
     el('p', { class: 'small muted', text: t('Your record on NACSA’s paper form, in English as the office knows it. With Send as a picture it goes like a photo of the form: choose WhatsApp, then the group.') }),
     paperView,
     el('div', { class: 'row' }, [
@@ -405,9 +438,7 @@ export function render(container, route) {
       action(t('Two on one A4 (PDF)'), 'btn ghost', async () => { Pdf.download(recordPdf(withRecord(), { two: true })); }),
     ]),
   ]));
-  const textView = el('pre', { class: 'record-text' });
-  const waLink = el('a', { class: 'btn ghost', target: '_blank', rel: 'noreferrer', text: t('Send to WhatsApp') });
-  page.append(section(t('The message'), [
+  if (!fill) page.append(section(t('The message'), [
     el('p', { class: 'small muted', text: t('The same record as a typed message.') }),
     textView,
     el('div', { class: 'row' }, [
@@ -428,6 +459,7 @@ export function render(container, route) {
     totals.offerings.textContent = `${t('Total')}: ${rand(offeringsTotal(cur))}`;
     totals.sealing.textContent = `${t('Total')}: ${count(sealingTotal(cur))}`;
     totals.ordination.textContent = `${t('Total')}: ${count(ordinationTotal(cur))}`;
+    if (fill) return;
     const text = recordText({ ...s, record: cur });
     textView.textContent = text;
     waLink.href = 'https://wa.me/?text=' + encodeURIComponent(text);
@@ -439,8 +471,24 @@ export function render(container, route) {
     timer = setTimeout(save, SAVE_AFTER);
   }
   async function save() {
+    if (fill) { fill.save(current()); return; }
     s.record = current();
     await saveSermon(s);
+    Fill.changed(s);   // on to the deacons, when the link shows this service
+  }
+  /** The other side's lines into the boxes; the box being typed in keeps what is typed. */
+  function apply(rec) {
+    const R = recordOf({ record: rec });
+    for (const [path, input] of Object.entries(inputs)) {
+      if (input === document.activeElement) continue;
+      const [a, b] = path.split('.');
+      const v = String((b ? R[a][b] : R[a]) ?? '');
+      if (input.value !== v) input.value = v;
+    }
+    refresh();
   }
   refresh();
+  const api = { el: page, sid: s.id, current, apply, box: fill ? null : drawFillBox };
+  if (!fill && Fill.linkOn()) Fill.watch(api);
+  return api;
 }

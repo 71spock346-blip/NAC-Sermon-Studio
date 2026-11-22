@@ -44,6 +44,10 @@
  * Settings and offers to join with that code (sync.js keeps the devices the
  * same from then on). When a sync brings changes from another device, the
  * open screen is redrawn, unless the person is typing in it.
+ *
+ * #fill/<code> is the deacons' link (fill.js): the service record of the
+ * current service and nothing else. The app then starts as that one page
+ * (startFill): no menu, no bar, no sync, nothing of the device's own.
  */
 import { $, $$, applyTheme, applyRead, syncThemeColor, toast } from './ui.js';
 import { load, state, saveSetting } from './store.js';
@@ -70,6 +74,7 @@ import * as Record from './record.js';   // the service record: NACSA's form, fi
 import * as Mis from './mis.js';   // the Church's MIS: a section whose button opens the site itself
 import * as Sync from './sync.js';
 import * as Update from './update.js';   // a newer version of the app on the site: a bar offers to load it
+import * as Fill from './fill.js';   // the deacons' link: the service record filled in on their phones
 import * as Welcome from './welcome.js';   // first-time setup: five steps on a new device, once, after the splash
 
 const TABS = {
@@ -235,8 +240,30 @@ function keepData() {
   s.persisted().then(kept => kept || s.persist()).catch(() => {});
 }
 
+/**
+ * A deacon opened the minister's link (#fill/<code>): the page is the service
+ * record of the service on the link and nothing else (fill.js). The header
+ * keeps the language switch; a change of language is for this page only and
+ * is not saved. Another address opens the app as usual, from the start.
+ */
+function startFill(code) {
+  document.body.classList.add('fill');   // styles.css: no menu, no bar, the header on a PC too
+  applyTheme(state.settings.theme || 'system');
+  applyRead(state.settings.readMode || 'book');
+  const container = $('#tab-record');
+  for (const panel of $$('main .tab')) panel.hidden = panel !== container;
+  const useLang = l => { state.settings.uiLang = l; state.settings.bookLang = l; applyLang(l); document.title = t('Service record'); };   // the name in the browser's tab and in WhatsApp's own browser
+  useLang(state.settings.uiLang || 'en');
+  const page = Fill.openPage(container, code, { setLang: useLang });
+  for (const b of $$('.lang-switch button')) b.addEventListener('click', () => { if (b.dataset.lang === lang()) return; useLang(b.dataset.lang); page.redraw(); });
+  window.addEventListener('hashchange', () => location.reload());
+  hideSplash();
+}
+
 async function start() {
   await load();
+  const fill = Fill.codeFromHash();
+  if (fill) return startFill(fill);
   await Sync.init();
   applyTheme(state.settings.theme || 'system');
   applyRead(state.settings.readMode || 'book');
@@ -259,6 +286,7 @@ async function start() {
   document.addEventListener('sb-sync', onSynced);
   document.addEventListener('sb-lock', route);   // the helper was unlocked or locked here (lock.js): the screen shows or hides Claude's part
   Sync.start();
+  Fill.start();   // the deacons' link, when there is one: their lines come into the record, and it moves on to the next service
   keepData();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
