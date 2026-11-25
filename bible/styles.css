@@ -1940,12 +1940,14 @@ body.fill .shell { display: block; }
 .plan-when b { font-size: 15px; }
 .plan-what { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .plan-note { display: block; line-height: 1.35; }
+.plan-row.plan-meeting .plan-kind, .plan-row.plan-training .plan-kind, .plan-row.plan-other .plan-kind { color: var(--c-purple); font-weight: 600; }   /* a meeting or training stands apart from the services at a glance */
 .plan-event { cursor: pointer; }
 .plan-event input[type="checkbox"] { width: 22px; height: 22px; margin: 2px 2px 0 0; flex: 0 0 auto; accent-color: var(--accent); }
 .plan-event .pill.kind { margin-left: 2px; }
 .pill.kind.service { color: var(--c-blue); }
 .pill.kind.district { color: var(--c-green); }
-.pill.kind.meeting { color: var(--c-purple); }
+.pill.kind.meeting, .pill.kind.training { color: var(--c-purple); }
+.pill.kind.other { color: var(--c-slate); }
 .pill.kind.admin { color: var(--c-amber); }
 .pill.kind.own { color: var(--accent-text); }
 .plan-event-own { display: flex; flex: 1 1 auto; gap: 12px; align-items: flex-start; min-width: 0; cursor: pointer; }

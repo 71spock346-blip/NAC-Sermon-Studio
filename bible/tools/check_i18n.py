@@ -49,6 +49,8 @@ INDIRECT = [
     'Services only', 'Services and district events', 'Also meetings and deadlines', 'Nothing until I tick it',   # plan.js EVENT_CHOICES
     'Good Friday', 'Good Friday service', 'Easter Sunday', 'Easter service', 'Ascension Day', 'Ascension Day service',   # plan-lib.js FEASTS
     'Pentecost', 'Pentecost service', 'Christmas Day', 'Christmas Day service',
+    'Divine service', 'Meeting', 'Training', 'Other',   # plan-lib.js TYPE_LABEL: what a day of the month plan is
+    "Ministers' meeting", "New ministers' training", 'Youth evening',   # plan.js EXAMPLE: the name box's example by what the day is
     'Apostle', 'District Apostle',   # apostle.js BY: who serves on a Sunday with his own word
 ]
 
