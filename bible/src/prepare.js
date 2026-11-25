@@ -195,6 +195,7 @@ function blank() {
     audience: prev ? prev.audience || '' : '', people: prev ? prev.people || '' : '', humour: '', lang: '',
     ref: null, refText: '', translation: Bible.source(state.settings.translation)?.short || 'KJV', translationId: state.settings.translation, text: '',
     theme: '', core: '', guide: '', context: '', keywords: '', catechism: [], catechismText: 'full', crossRefs: '', intro: '',
+    thread: '',   // the golden thread: the one line, with a picture, that comes back under every heading (his own, or kept from Claude's build)
     points: [{ heading: '', body: '' }, { heading: '', body: '' }, { heading: '', body: '' }],
     summary: '', application: '', illustrations: '', conclusion: '', reflection: '', status: 'draft',
   };
@@ -1116,13 +1117,16 @@ function renderEditor(root, s) {
 
   // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
   step(4, t('Main points'), { line: t('The parts of the Guide\'s article, in its order, are main point 1, 2, 3.'), more: AI.unlocked()
-    ? t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear. A verse a point names, such as (John 3:16), is written out under the point, from the translation of the text word, so you can read it there.')
+    ? t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear. A verse a point names, such as (John 3:16), is written out under the point, from the translation of the text word, so you can read it there. The golden thread is the one line, with a picture, that comes back under every heading: write your own, or leave the box empty and Claude finds one.')
     : t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. A verse a point names, such as (John 3:16), is written out under the point, from the translation of the text word, so you can read it there.') },
     () => clearStep(4, t('the main points'), [], {
       clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
       restore: kept => { s.points = kept; renderPoints(); },
     }));
   container.append(wordUnder());   // the text word, to write the points on (Jerome, 2026-11-21)
+  // the golden thread (Jerome, 2026-11-25): the one line, with a picture, that comes back under every heading; his own here, or Claude finds one and "Use" keeps it
+  container.append(field(t('The golden thread'), 'thread', { line: true, cls: 'thread-f', placeholder: t('One line, and a picture, that come back under every heading'),
+    hint: AI.unlocked() ? t('Leave it empty and Claude finds one when it builds the sermon. It prints with the notes, on the sermon and on the cue cards.') : t('The one thing the whole sermon says, in a line you could say to a child. It prints with the notes, on the sermon and on the cue cards.') }));
   const buildBox = el('div', { class: 'ai-box build-box' });
   container.append(buildBox);
   async function askBuild() {
@@ -1137,8 +1141,8 @@ function renderEditor(root, s) {
     const ctrl = new AbortController();
     const b = busy(t('Asking Claude'), () => ctrl.abort());
     b.say(thoughts
-      ? t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}, with your thoughts on the main points woven in. This takes about a minute.', { who })
-      : t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}. This takes about a minute.', { who }));
+      ? t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}: one golden thread through every heading, with your thoughts on the main points woven in. This takes about a minute.', { who })
+      : t('Claude is building the sermon from the text, the message, the Guide\'s main points, your notes and the Catechism sections, for {who}: one golden thread through every heading. This takes about a minute.', { who }));
     try {
       const out = await AI.outline(s, {
         ...from,
@@ -1251,7 +1255,7 @@ function renderEditor(root, s) {
     const pdf = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Save as PDF'), onclick: () => run(x => Pdf.sermonTextPdf(x, { outline: a }), 'download') }) : null;
     const printBtn = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Print'), onclick: () => run(x => Pdf.sermonTextPdf(x, { outline: a }), 'print') }) : null;
     const hear = a ? el('button', { class: 'btn small ghost', type: 'button', text: t('Read aloud'), onclick: () => { if (sermonCard) sermonCard.read({ outline: a }); } }) : null;   // the voice reads the outline as one sermon (speech.js)
-    const pair = a ? null : hintPair({ line: t('Claude proposes how to build this sermon from the text, the Guide and your thoughts.'), more: t('Claude proposes how to build this sermon from the text, the message, your notes and your thoughts on the main points, for the people above and in your way: an introduction, the main points as the Guide gives them, the application, the conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works. You choose what to keep.') }, 'ai-hint', firstTime);
+    const pair = a ? null : hintPair({ line: t('Claude proposes how to build this sermon from the text, the Guide and your thoughts.'), more: t('Claude proposes how to build this sermon from the text, the message, your notes and your thoughts on the main points, for the people above and in your way: one golden thread that comes back under every heading, an introduction, the main points as the Guide gives them, each set in the scene of the text or in an everyday picture, the application, the conclusion, illustrations and, where it fits, a lighter moment. Each part says why it works, how the thread shows in it, and the feeling it carries: joy, hope, earnestness, remorse, where each belongs. Written so that everyone in the room feels it is for them, churchgoer or not. You choose what to keep.') }, 'ai-hint', firstTime);
     buildBox.append(el('div', { class: 'row ai-head' }, [btn, drop, pdf, printBtn, hear, a
       ? el('span', { class: 'muted small grow', text: t('Suggested {date} by {model}{who}{cost}. A starting point: the sermon is yours.', { date: fmtDate(a.at), model: AI.modelLabel(a.model), who: a.audience ? t(', for {who}', { who: t(AI.audienceLabel(a.audience)).toLowerCase() }) : '', cost: a.cost ? ', ' + AI.fmtCost(a.cost) : '' }) })
       : pair.line]), ...(pair && pair.note ? [pair.note] : []));   // append() would write a null out as the word "null"
@@ -1260,6 +1264,14 @@ function renderEditor(root, s) {
     panel.append(el('summary', { text: t('The outline') }));
     if (a.note) panel.append(el('p', { class: 'small ai-note', text: a.note }));
     panel.append(el('p', { class: 'muted small ai-how', text: howEdit() + ' ' + t('"Save as PDF" and "Print" give the whole outline as one sermon to read.') + ' ' + t('"Read aloud" has a voice read it to you.') }));
+    if (a.thread && a.thread.line) {
+      // the golden thread Claude found (or his own, given back): Use keeps it in the box above, where it prints from
+      const th = a.thread;
+      panel.append(group(t('The golden thread'), [item('', () => th.line, () => { setBox('thread', AI.threadText(th)); touch(); toast(t('Golden thread kept. It prints with the notes, on the sermon and on the cue cards.')); }, null,
+        () => [th.picture ? t('The picture: {picture}', { picture: th.picture }) : '', th.why], { on: th, body: 'line' })],
+      null, t('The one line the whole sermon says. It comes back under every heading below.')));
+      panel.lastElementChild.classList.add('ai-thread');
+    }
     if ((a.thoughts || []).length) {
       // where each of the person's thoughts went; a question still open is answered under the point itself
       panel.append(group(t('Your thoughts'), a.thoughts.map(x => el('div', { class: 'ai-item' }, [el('div', { class: 'ai-text' }, [
@@ -1269,12 +1281,12 @@ function renderEditor(root, s) {
       ])])), null, t('Where each of your thoughts went, and how.')));
     }
     if (a.intro && a.intro.text) {
-      panel.append(group(t('Introduction'), [item('', () => a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, a.intro.why, { on: a.intro, body: 'text' })]));
+      panel.append(group(t('Introduction'), [item('', () => a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, () => [a.intro.why, ...wovenLines(a, 'intro')], { on: a.intro, body: 'text' })]));
     }
     panel.append(group(t('Main points'), [...pointNotes(a), ...pointItems(a)], (a.points || []).length > 1 ? () => usePoints(a.points) : null, pointsHint(a, true)));
     panel.append(group(t('Application and conclusion'), [
-      a.application ? item(t('Application'), () => a.application, () => { add('application', a.application); toast(t('Added to Application.')); }, null, null, { on: a, body: 'application' }) : null,
-      a.conclusion ? item(t('Conclusion'), () => a.conclusion, () => { add('conclusion', a.conclusion); toast(t('Added to Conclusion.')); }, null, null, { on: a, body: 'conclusion' }) : null,
+      a.application ? item(t('Application'), () => a.application, () => { add('application', a.application); toast(t('Added to Application.')); }, null, () => wovenLines(a, 'application'), { on: a, body: 'application' }) : null,
+      a.conclusion ? item(t('Conclusion'), () => a.conclusion, () => { add('conclusion', a.conclusion); toast(t('Added to Conclusion.')); }, null, () => wovenLines(a, 'conclusion'), { on: a, body: 'conclusion' }) : null,
     ].filter(Boolean)));
     const illLine = x => `${x.title ? x.title + ': ' : ''}${x.body}`;
     panel.append(group(t('Illustrations'), (a.illustrations || []).map(x => item(() => x.title, () => x.body, () => { add('illustrations', illLine(x)); toast(t('Added to Illustrations under step 7.')); }, null, x.serves ? t('For {part}.', { part: x.serves }) : '', { on: x, title: 'title', body: 'body' })),
@@ -1635,7 +1647,7 @@ function renderEditor(root, s) {
   function item(title, body, onUse, extra, why, edit) {
     const val = v => (typeof v === 'function' ? v() : v);
     const node = el('div', { class: 'ai-item' + (edit ? ' editable' : '') });
-    const whys = () => [].concat(val(why) || []).filter(Boolean).map(w => el('div', { class: 'ai-why muted small', text: w }));
+    const whys = () => [].concat(val(why) || []).filter(Boolean).map(w => (w instanceof Node ? w : el('div', { class: 'ai-why muted small', text: w })));   // a line of text, or a line drawn already (wovenLines)
     const use = after => (onUse ? el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), onclick: () => { onUse(); if (after) after(); } }) : null);
     function show() {
       clear(node);
@@ -1704,11 +1716,24 @@ function renderEditor(root, s) {
     touch(); renderPoints();
     toast(done || t('All main points added.'), false, have.length ? () => { s.points = old; touch(); renderPoints(); } : null);
   }
-  /** The main points Claude gave, each with its why-line and, where the heading was put into the sermon's language, the Guide's words. */
+  /** The main points Claude gave, each with its why-line and, where the heading was put into the sermon's language, the Guide's words; in the outline, also how the golden thread shows in it and the feeling it carries. */
   function pointItems(a) {
     return (numberPoints(a).points || []).map(p => item(() => `${p.n}. ${p.heading}`, () => p.body, () => usePoint(p), null,
-      () => [p.why, p.source && norm(p.source) !== norm(p.heading) ? t('From the Guide: ') + p.source : ''],
+      () => [p.why, p.source && norm(p.source) !== norm(p.heading) ? t('From the Guide: ') + p.source : '', ...wovenLines(a, 'point', p.n)],
       { on: p, title: 'heading', body: 'body', prefix: `${p.n}.` }));
+  }
+  /**
+   * Under a part of the outline: how the golden thread shows in it, and the
+   * feeling it carries, as Claude built it (ai.js wovenOf); nothing for the
+   * suggestions of step 5 or an outline built before the thread.
+   */
+  function wovenLines(a, part, n = 0) {
+    const x = AI.wovenOf(a, part, n);
+    if (!x) return [];
+    return [
+      x.thread ? el('div', { class: 'ai-woven muted small' }, [el('b', { text: t('The thread here: ') }), x.thread]) : null,
+      x.feeling ? el('div', { class: 'ai-woven muted small' }, [el('b', { text: t('The feeling: ') }), x.feeling]) : null,
+    ].filter(Boolean);
   }
   /** What to know about the main points Claude gave: that there are none without the Guide, and how many of its own were left out. */
   function pointNotes(a) {

@@ -306,7 +306,11 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   the text, key words, Catechism sections, cross references and sermon thoughts, each with
   a "Use" button; "Suggest the sermon" under step 4 returns the build itself (introduction,
   main points, application, conclusion, illustrations and, where it fits, a lighter moment, each with a line on why it works),
-  drawing on the minister's own draft and notes. Under each main point the minister can write his own thought on it
+  drawing on the minister's own draft and notes. The Guide is the skeleton: one golden thread (`build.thread`, the one
+  line the sermon says with the everyday picture that carries it; the minister's own `s.thread` is kept when he wrote
+  one) is woven through every heading, each main point opens in the world of the text or in an everyday picture, and
+  `build.woven` says for every part how the thread shows in it and the feeling it carries (`ai.js weaveRules`); "Use"
+  on the thread keeps it in the box under step 4, from where it prints on the notes, the sermon and the cue cards. Under each main point the minister can write his own thought on it
   (`points[i].thought`); before the build, `readThoughts` has Claude read those thoughts and ask, in a sheet, about any
   that is unclear (the questions and answers stay under the point as `talk`, and `read` marks what Claude has seen, so
   only a changed thought is read again), then the outline weaves every thought in and reports where each went

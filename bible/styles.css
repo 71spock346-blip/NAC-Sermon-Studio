@@ -82,6 +82,7 @@
   --mark-c: #5f36ad; --mark-c-bg: #ece5fa;
   --mark-n: #8a5200; --mark-n-bg: #fbeccf;
   --c-blue: #0168b5; --c-amber: #8a5200; --c-purple: #5f36ad; --c-green: #1f6b3a; --c-red: #a3302a; --c-slate: #4b5563;
+  --gold: #8b6508;             /* the golden thread of a sermon (pdf.js GOLD): 5:1 on white */
   --shadow-card: 0 0 0 1px rgba(16, 56, 96, .07), 0 1px 2px -1px rgba(16, 56, 96, .08), 0 3px 10px rgba(16, 56, 96, .05);
   --shadow-pop: 0 0 0 1px rgba(16, 56, 96, .08), 0 18px 44px -14px rgba(16, 56, 96, .42);
   --font: Montserrat, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;   /* every letter; Easy-read swaps it */
@@ -148,6 +149,8 @@
     --mark-c: #c9b3f5; --mark-c-bg: rgba(201, 179, 245, .16);
     --mark-n: #f2c16b; --mark-n-bg: rgba(242, 193, 107, .16);
     --c-blue: #8cc4f2; --c-amber: #f2c16b; --c-purple: #c9b3f5; --c-green: #8fd4a8; --c-red: #f0867d; --c-slate: #b6bcc6;
+  --gold: #e6c15c;
+    --gold: #e6c15c;
     --shadow-card: 0 0 0 1px rgba(200, 222, 242, .09);
     --shadow-pop: 0 0 0 1px rgba(200, 222, 242, .12), 0 16px 40px -12px rgba(0, 0, 0, .7);
     --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%238cc4f2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -1062,6 +1065,9 @@ footer.copyright .elsewhere a:hover { text-decoration: underline; }
 .ai-text .num { font-weight: 700; text-decoration: none; }
 .ai-why { margin-top: 3px; font-style: italic; }
 .ai-went { margin-top: 3px; }   /* where one of the person's thoughts went, in the outline */
+.ai-woven { margin-top: 3px; font-style: normal; }   /* how the golden thread shows in a part of the outline, and the feeling it carries */
+.ai-woven b { color: var(--gold); font-weight: 700; }
+.ai-thread .ai-text { color: var(--gold); font-weight: 700; }   /* the golden thread itself, at the head of the outline */
 .ai-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 /* the Guide's article piece by piece (step 2): the Guide's words, then the plain words and the insight, then the passages and sections */
 .bd-item .ai-text { white-space: normal; }
@@ -2001,6 +2007,8 @@ body.fill .shell { display: block; }
 .read-view .read-word { font-family: var(--serif); font-style: italic; margin: 0 0 .8em; padding: 0 0 0 .8em; border-left: 3px solid var(--accent); }
 .read-view .read-theme { font-weight: 700; }
 .read-view .read-extra { color: var(--muted); font-size: .85em; margin-bottom: .2em; }
+.read-view .read-thread { color: var(--gold); font-weight: 700; margin: 0 0 .8em; }   /* the golden thread of the sermon, as the prints have it in gold */
+.read-view .read-feel { color: var(--muted); font-size: .85em; margin: -.2em 0 .4em; }   /* the feeling a part carries, from the outline */
 .read-view .read-in { margin-left: 1em; }
 [data-read="easy"] .read-view { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
 /* the verses the sermon names, written out under the box, the suggestion or the part that names them (verses.js; read.js versesBlock, prepare.js versesUnder):

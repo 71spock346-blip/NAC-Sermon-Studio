@@ -31,7 +31,7 @@ import { t, tl } from './i18n.js';
 import { fmtDate } from './ui.js';
 import { state } from './store.js';
 import * as Cat from './catechism.js';
-import { audienceOf, audienceLabel, modelLabel, langOf } from './ai.js';
+import { audienceOf, audienceLabel, modelLabel, langOf, threadText, wovenOf } from './ai.js';
 import * as S from './slides.js';
 import { findService, headingIn } from './guides.js';   // the Guide's headings over the breakdown, in the Guide's language
 import { plainParts } from './plain.js';
@@ -43,6 +43,7 @@ import { qaOf, questionOf, answerOf } from './catq.js';   // the ticked question
 export const BLUE = [1, 104, 181];      // the Church's blue (#0168B5), as on the slides and as --accent on screen
 const INK = [29, 43, 56];
 export const MUTED = [91, 107, 123];
+export const GOLD = [139, 101, 8];      // an old gold for the golden thread: dark enough to read on white paper
 const HANG = 4.5;                // mm between a bullet and its text
 
 /** The PDF library (vendor/jspdf), once the page has loaded it; also for the modules that draw on a PDF of this one's (pack.js). */
@@ -287,11 +288,12 @@ export function sermonPdf(s) {
   if (s.guide) { w.heading(tl(L, 'From the Divine Service Guide')); w.para(s.guide); verses(s.guide); }
   // 3. the introduction
   if (s.intro) { w.heading(tl(L, 'Introduction')); w.para(s.intro); verses(s.intro); }
-  // 4. the main points
+  // 4. the main points, with the golden thread that runs through them first
   const points = (s.points || []).filter(p => p.heading || p.body);
-  if (points.length) {
+  if (points.length || (s.thread || '').trim()) {
     // every point from the Guide: the heading says so, as the person's rule has it
     w.heading(points.every(p => p.guide) ? tl(L, 'Main points, from the Divine Service Guide') : tl(L, 'Main points'));
+    if ((s.thread || '').trim()) w.para(tl(L, 'The golden thread: ') + s.thread.trim(), { style: 'bold', size: 10.5, color: GOLD, after: 2 });
     points.forEach((p, i) => {
       if (p.heading) w.para(`${i + 1}. ${p.heading}`, { style: 'bold', size: 11, after: 1 });
       if (p.body) { w.para(p.body, { indent: 5 }); verses(p.body, 10); }   // a point's text stands in by 5, its verses by 10
@@ -343,10 +345,14 @@ function fromBoxes(s) {
   const points = (s.points || []).filter(p => p && ((p.heading || '').trim() || (p.body || '').trim())).map((p, i) => ({ n: i + 1, heading: (p.heading || '').trim(), body: (p.body || '').trim(), extras: [] }));
   const after = { intro: [], application: [], conclusion: [], loose: [] };
   if ((s.illustrations || '').trim()) after.loose.push({ kind: 'text', body: s.illustrations.trim() });
-  return { intro: (s.intro || '').trim(), points, summary: (s.summary || '').trim(), application: (s.application || '').trim(), conclusion: (s.conclusion || '').trim(), after, thoughts: [], outline: null };
+  return { intro: (s.intro || '').trim(), points, summary: (s.summary || '').trim(), application: (s.application || '').trim(), conclusion: (s.conclusion || '').trim(), after, thread: (s.thread || '').trim(), thoughts: [], outline: null };
 }
 
-/** The sermon as Claude built it (s.build), with the person's changes: each illustration and the lighter moment under the part it serves. */
+/**
+ * The sermon as Claude built it (s.build), with the person's changes: each
+ * illustration and the lighter moment under the part it serves, and the
+ * golden thread (the person's own line, else the one Claude found).
+ */
 function fromOutline(s, a) {
   const points = (a.points || []).map((p, i) => ({ n: p.n || i + 1, heading: (p.heading || '').trim(), body: (p.body || '').trim(), extras: [] }));
   const after = { intro: [], application: [], conclusion: [], loose: [] };
@@ -357,7 +363,29 @@ function fromOutline(s, a) {
   };
   for (const x of a.illustrations || []) if ((x.body || '').trim()) put(x.serves, { kind: 'illustration', title: (x.title || '').trim(), body: x.body.trim() });
   if (a.lighter && (a.lighter.text || '').trim()) put(a.lighter.where, { kind: 'lighter', body: a.lighter.text.trim() });
-  return { intro: ((a.intro && a.intro.text) || '').trim(), points, summary: '', application: (a.application || '').trim(), conclusion: (a.conclusion || '').trim(), after, thoughts: a.thoughts || [], outline: a };
+  return { intro: ((a.intro && a.intro.text) || '').trim(), points, summary: '', application: (a.application || '').trim(), conclusion: (a.conclusion || '').trim(), after, thread: (s.thread || '').trim() || threadText(a.thread), thoughts: a.thoughts || [], outline: a };
+}
+
+/** The feeling a part of the outline carries, as a line to print under its heading: "Hope: …"; '' when the outline does not say. */
+export function feelingLine(a, part, n = 0) {
+  const x = wovenOf(a, part, n);
+  return x && x.feeling ? x.feeling : '';
+}
+
+/**
+ * How the golden thread runs through the outline, heading by heading, as
+ * lines to print at the end: [{label, text}], with the number and the heading
+ * of a main point as its label; empty when the outline does not say.
+ */
+export function threadLines(c, L) {
+  if (!c.outline) return [];
+  const out = [];
+  const add = (label, part, n = 0) => { const x = wovenOf(c.outline, part, n); if (x && x.thread) out.push({ label, text: x.thread }); };
+  add(tl(L, 'Introduction'), 'intro');
+  for (const p of c.points) add(`${p.n}. ${p.heading}`.trim(), 'point', p.n);
+  add(tl(L, 'Application'), 'application');
+  add(tl(L, 'Conclusion'), 'conclusion');
+  return out;
 }
 
 /**
@@ -409,21 +437,31 @@ export function sermonTextPdf(s, { outline = null } = {}) {
     for (const line of doc.splitTextToSize(title, w.width)) { w.ensure(8); doc.text(line, w.m, w.y + 5); w.y += 8; }
     w.y += 2;
   }
+  // the golden thread, the one line the whole sermon says, to keep in sight while reading
+  if (c.thread) w.para(tl(L, 'The golden thread: ') + c.thread, { style: 'bold', size: 11, color: GOLD, after: 2 });
   w.rule();
+  // the feeling a part carries, under its heading, as the outline gave it (not read aloud: speech.js skips it)
+  const feel = (part, n = 0) => { const f = feelingLine(c.outline, part, n); if (f) w.para(f, { style: 'italic', size: 9.5, color: MUTED, after: 1.5 }); };
 
-  if (c.intro) { w.heading(tl(L, 'Introduction')); w.para(c.intro, read); verses(c.intro); extras(c.after.intro); }
+  if (c.intro) { w.heading(tl(L, 'Introduction')); feel('intro'); w.para(c.intro, read); verses(c.intro); extras(c.after.intro); }
   for (const p of c.points) {
     w.ensure(24);   // a point's heading and the start of its text stay on one page
     w.heading(`${p.n}. ${p.heading}`.trim());
+    feel('point', p.n);
     if (p.body) { w.para(p.body, read); verses(p.body); }
     extras(p.extras);
   }
   if (c.after.loose.length) { w.heading(tl(L, 'Illustrations')); extras(c.after.loose); }
-  if (c.application) { w.heading(tl(L, 'Application for the congregation')); w.para(c.application, read); verses(c.application); extras(c.after.application); }
+  if (c.application) { w.heading(tl(L, 'Application for the congregation')); feel('application'); w.para(c.application, read); verses(c.application); extras(c.after.application); }
   if (c.summary) { w.heading(tl(L, 'Summary')); w.para(c.summary, read); verses(c.summary); }
-  if (c.conclusion) { w.heading(tl(L, 'Conclusion')); w.para(c.conclusion, read); verses(c.conclusion); extras(c.after.conclusion); }
+  if (c.conclusion) { w.heading(tl(L, 'Conclusion')); feel('conclusion'); w.para(c.conclusion, read); verses(c.conclusion); extras(c.after.conclusion); }
   if (c.outline) {
     w.space(2);
+    const threads = threadLines(c, L);
+    if (threads.length) {
+      w.heading(tl(L, 'The golden thread, heading by heading'), 10.5);
+      for (const x of threads) w.para(`${x.label}: ${x.text}`, { size: 9.5, color: MUTED, after: 1 });
+    }
     if (c.thoughts.length) {
       w.heading(tl(L, 'Where your thoughts went'), 10.5);
       for (const x of c.thoughts) w.para(`${tl(L, 'Main point {n}', { n: x.n })}: ${x.how || x.where}${x.question ? ' ' + tl(L, 'Claude asks: ') + x.question : ''}`, { size: 9.5, color: MUTED, after: 1 });
@@ -560,6 +598,8 @@ export function drawCueCards(doc, s, { service = null } = {}) {
   if (s.text) w.para(s.text, { serif: true, style: 'italic', size: 12, after: 3 });
   if (s.theme) w.para(s.theme, { style: 'bold', size: 14, after: 2 });
   if (s.core) w.para(s.core, { size: 12, after: 3 });
+  // the golden thread, in gold, above the cues: the one line to come back to under every heading
+  if ((s.thread || '').trim()) w.para(tl(L, 'The golden thread: ') + s.thread.trim(), { style: 'bold', size: 12, color: GOLD, after: 4 });
   for (const part of cueParts(s, { service, lang: langOf(s) })) {
     const cues = cuesOf(part);
     if (!cues.length && part.key !== 'point') continue;   // a main point stands with its heading alone; the other parts only with cues
