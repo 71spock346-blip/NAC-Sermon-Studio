@@ -41,8 +41,6 @@ import { AF } from './af.js';
 import { state, db, DEFAULT_SETTINGS } from './store.js';
 import * as Pdf from './pdf.js';
 import { langOf } from './ai.js';
-import { formatRef } from './books.js';
-import { quotesFor } from './verses.js';   // the verses the sermon names: the voice reads them out under the part, as the paper has them
 
 const API = 'https://api.elevenlabs.io';
 
@@ -257,15 +255,12 @@ export function script(s, { outline = null } = {}) {
     if (!text) return;
     blocks.push((label ? label.replace(/[\s.:]+$/, '') + '.\n' : '') + text);
   };
-  // the verses a part names, read out after it, as the paper has them: "John 3 verse 16. For God so loved …" (verses.js)
-  const quoted = body => quotesFor(body, s).map(q => `${formatRef(q, state.settings.bookLang)}. ${clean(q.text, l, true)}`).join('\n\n');
   const extras = list => (list || []).map(x => {
-    const spoken = [x.body, quoted(x.body)].filter(Boolean).join('\n\n');
-    if (x.kind === 'illustration') return w('Illustration: ').trim().replace(/:$/, '') + (x.title ? ': ' + x.title : '') + '.\n' + spoken;
-    if (x.kind === 'lighter') return w('A lighter moment') + '.\n' + spoken;
-    return spoken;
+    if (x.kind === 'illustration') return w('Illustration: ').trim().replace(/:$/, '') + (x.title ? ': ' + x.title : '') + '.\n' + x.body;
+    if (x.kind === 'lighter') return w('A lighter moment') + '.\n' + x.body;
+    return x.body;
   }).filter(Boolean).join('\n\n');
-  const withExtras = (body, list) => [body, quoted(body), extras(list)].filter(Boolean).join('\n\n');
+  const withExtras = (body, list) => [body, extras(list)].filter(Boolean).join('\n\n');
 
   if (parts.ref) push('', clean(parts.ref, l) + (s.translation ? `, ${s.translation}` : '') + '.');
   if ((s.text || '').trim()) push('', clean(s.text, l, true));
@@ -273,9 +268,8 @@ export function script(s, { outline = null } = {}) {
   const c = parts.c;
   if (c.intro) push(w('Introduction'), withExtras(c.intro, c.after.intro));
   for (const p of c.points) push(w('Main point {n}').replace('{n}', p.n) + (p.heading ? ': ' + p.heading : ''), withExtras(p.body, p.extras));
-  if (c.after.loose.length) push(w('Illustrations'), extras(c.after.loose));
   if (c.application) push(w('Application for the congregation'), withExtras(c.application, c.after.application));
-  if (c.summary) push(w('Summary'), withExtras(c.summary, []));
+  if (c.summary) push(w('Summary'), c.summary);
   if (c.conclusion) push(w('Conclusion'), withExtras(c.conclusion, c.after.conclusion));
 
   return scripted(parts.empty ? '' : clean(blocks.join('\n\n'), l), l, parts.title);

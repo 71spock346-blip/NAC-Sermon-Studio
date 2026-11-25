@@ -317,13 +317,19 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   (`thoughts`). "Weave my thought into this point" under a point asks `weaveThought` for that point alone: its text
   comes back with the thought in it (or a question first, kept in `talk`), waits under the point as `weave` and goes
   in with "Use" (undoable); the rest of the sermon is left alone. `pdf.js sermonTextPdf` prints the sermon itself in reading order, from the preparation's boxes or from
-  the outline (each illustration under the point it serves), beside the sermon notes and the cue card.
-  Every verse the sermon names, "(John 1:14)", is written out under the part that names it (`src/verses.js`
-  finds the references and picks the words; `prepare.js fetchQuotes` fetches them once, from the text word's
+  the outline (each of Claude's illustrations under the point it serves), beside the sermon notes and the cue card.
+  The Illustrations box of step 7 is not part of the sermon (Read, the PDF, Altar mode, the voice): the minister
+  tells an illustration within the part it serves, so it is there already; the sermon notes still print the box.
+  Every verse the sermon names, "(John 1:14)", is at hand on the screen, not on paper: the reference is a button
+  (`read.js withRefs`, `refButton`, `verseBox`), and a tap opens the verse at the end of the sentence that names it,
+  in the Read sheet, in Altar mode and in Claude's suggestions in Prepare; under each box in Prepare a row "Verses:"
+  (`prepare.js versesUnder`) does the same. The prints and the voice leave the verses out (Jerome, 2026-11-25: they
+  are there to understand what the sermon refers to, not to be read out). `src/verses.js` finds the references and
+  picks the words (`quoteOf`, `quotesFor`); `prepare.js fetchQuotes` fetches them once, from the text word's
   translation, else another Bible in the sermon's language, else the bundled English, via `bible.js versesFrom`,
-  and keeps them in the preparation as `quotes`, so the prints, the readings, the voice and the other device have
-  them offline). Each part writes out every verse it names; a citation of the text word takes its words from step 1
-  (`s.text`), and step 4 shows the text word above the main points. A passage over six verses stays a reference, and
+  and keeps them in the preparation as `quotes`, so the screens and the other device have them offline (`read.js
+  fetchMissing` fetches what is missing when the sermon is read from Sunday or Altar mode). A citation of the text
+  word takes its words from step 1 (`s.text`), and step 4 shows the text word above the main points. A passage over six verses stays a reference, and
   a reference that is in no Bible is named under its box in Prepare ("Not found"). Opening the preparation asks the
   better Bibles again (a chapter pasted in since), and drops the words of verses no longer named.
   The main points always come from the Guide: the parts of

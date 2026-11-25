@@ -2011,22 +2011,38 @@ body.fill .shell { display: block; }
 .read-view .read-feel { color: var(--muted); font-size: .85em; margin: -.2em 0 .4em; }   /* the feeling a part carries, from the outline */
 .read-view .read-in { margin-left: 1em; }
 [data-read="easy"] .read-view { letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
-/* the verses the sermon names, written out under the box, the suggestion or the part that names them (verses.js; read.js versesBlock, prepare.js versesUnder):
-   the reference in bold, the words set like the text word, and the translation's name where it is not the sermon's own */
+/* the text word at the head of the main points (prepare.js wordUnder): the reference in bold, the words as Scripture is set */
 .verses { margin: 6px 0 2px; padding: 1px 0 1px 10px; border-left: 3px solid var(--accent); white-space: normal; }
 .verse-q { margin: 0 0 7px; font-family: var(--serif); font-style: italic; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
 .verse-q:last-child { margin-bottom: 0; }
 .verse-q .verse-ref { font-family: var(--sans); font-style: normal; font-weight: 700; color: var(--accent-text); }
 .verse-q .verse-src { font-family: var(--sans); font-style: normal; font-size: 12.5px; color: var(--muted); }
-.verse-miss { margin: 2px 0 0; }
 .verses .verse-label { margin: 0 0 1px; font-family: var(--sans); font-style: normal; font-weight: 700; }
-#tab-prepare .word-verses { margin: 2px 0 12px; }   /* the text word at the head of the main points */
-.points .point > .verses, label.f + .verses { margin: 4px 0 10px; }
-.ai-text .verses { margin: 6px 0 2px; }
-.read-view .verses { margin: -.2em 0 .9em; padding-left: .8em; }
-.read-view .verse-q { font-size: 1em; line-height: inherit; margin-bottom: .5em; }
-.read-view .verse-q .verse-src { font-size: .75em; }
+#tab-prepare .word-verses { margin: 2px 0 12px; }
 [data-read="easy"] .verse-q { font-family: inherit; font-style: normal; letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
+
+/* a Bible reference on the screen is a button: a tap opens its verse in a box at the end of its sentence, a second tap
+   closes it (read.js withRefs, refButton, verseBox); under a box of the Prepare form, a short row of them (prepare.js versesUnder) */
+.vref { color: var(--accent-text); cursor: pointer; text-decoration: underline dotted 2px; text-underline-offset: .22em; -webkit-tap-highlight-color: transparent; }
+.vref:hover, .vref.open { text-decoration-style: solid; }
+.vref.open { font-weight: 700; }
+.vref:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.vref-box:not([hidden]) + br { display: none; }   /* an open box ends its line itself */
+.vref-box { display: block; margin: .35em 0 .6em; padding: .4em .75em; border-left: 3px solid var(--accent); border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  background: var(--accent-soft); color: var(--ink-2); font-family: var(--serif); font-style: italic; font-weight: 400; font-size: .92em; line-height: 1.55;
+  white-space: normal; text-align: left; cursor: auto; }
+.vref-q { display: block; }
+.vref-q + .vref-q { margin-top: .4em; }
+.vref-box .verse-ref { font-family: var(--sans); font-style: normal; font-weight: 700; color: var(--accent-text); }
+.vref-box .verse-src { font-family: var(--sans); font-style: normal; font-size: .8em; color: var(--muted); }
+[data-read="easy"] .vref-box { font-family: inherit; font-style: normal; letter-spacing: .035em; word-spacing: .12em; line-height: 1.8; }
+.vrefs { margin: 4px 0 10px; white-space: normal; }
+.vrefs-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 0; }
+.vrefs-row .vref { display: inline-block; font-size: 15px; font-weight: 600; padding: 6px 1px; }   /* big enough to tap under a box */
+.vrefs .vref-box { margin: 6px 0 2px; font-size: 15px; }
+.verse-miss { margin: 2px 0 0; }
+.ai-text .vref-box { font-size: 15px; }
+.read-view .read-tip { color: var(--muted); font-size: .8em; margin: -.2em 0 .8em; }   /* "Tap a Bible reference to read the verse." */
 /* the cue cards on the screen: the headings underlined, each cue in its own colour and the marks in ink, as on the printed card (cues.js CUE_COLORS) */
 .cue-view .cue-head { color: var(--ink); text-decoration: underline; text-underline-offset: .15em; margin: .9em 0 .3em; font-size: 1.05em; }
 .cue-view .cue-line { font-weight: 700; line-height: 1.55; }

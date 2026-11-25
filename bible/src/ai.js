@@ -530,7 +530,7 @@ Rules:
 ${pointsRule(where.mode, 'suggest')}
 - The application: one short application for the congregation, drawn from the main points and the message, shaped for the people who will be listening (see below).
 - Answer the context questions in two to four short sentences each.
-- Where a part leans on another Bible verse, name it in brackets as book chapter:verse, such as (John 3:16): the app writes that verse out under the part for the minister to read, so quote at most a few of its words yourself.
+- Where a part leans on another Bible verse, name it in brackets as book chapter:verse, such as (John 3:16): the minister taps it in the app to read the whole verse, so quote at most a few of its words yourself.
 
 ${voiceRules(lang)}
 
@@ -917,7 +917,7 @@ ${pointsRule(where.mode, 'outline')}
 - Build on what the minister has written already: keep his direction and wording where he has one, fill what is empty, and offer an alternative only where his draft is thin. Do not repeat his text back to him. Where a main point, or the introduction, still carries the Guide's own words, as it was filled in, write it in plain words for these people (the introduction with the welcome and the hook before it).
 ${thoughts ? thoughtsRule() : ''}- Illustrations: a picture from daily life, a true-to-life example or a Bible story that makes a point visible, taken from the world of the people who are listening. When one of the minister's own notes fits, use that one and say so ("from your notes: …") rather than inventing another.
 - The lighter moment: fill it only when the humour level below allows it and something fits naturally; otherwise leave both fields empty. It may also be woven into the introduction or an illustration.
-- Where a part leans on another Bible verse, name it in brackets as book chapter:verse, such as (John 3:16): the app writes that verse out under the part for the minister to read, so quote at most a few of its words yourself.
+- Where a part leans on another Bible verse, name it in brackets as book chapter:verse, such as (John 3:16): the minister taps it in the app to read the whole verse, so quote at most a few of its words yourself.
 
 ${weaveRules(ownThread)}
 
@@ -1199,7 +1199,7 @@ ${thread ? '- The sermon has a golden thread (under THE GOLDEN THREAD): keep it 
 - In "how", say in one or two plain sentences where in the point his thought now stands and how, so he finds it.
 - Never judge his thought or his wording; he knows his people.
 - Write so he could speak it as it stands: in the voice of a minister speaking to his congregation, "we" and "us". About as long as the point was, a little longer for the thought; never a whole sermon.
-- Where a part leans on another Bible verse, name it in brackets as book chapter:verse, such as (John 3:16): the app writes that verse out under the part for the minister to read, so quote at most a few of its words yourself.
+- Where a part leans on another Bible verse, name it in brackets as book chapter:verse, such as (John 3:16): the minister taps it in the app to read the whole verse, so quote at most a few of its words yourself.
 
 ${voiceRules(lang)}
 

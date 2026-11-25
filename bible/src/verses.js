@@ -1,16 +1,19 @@
 /*
- * The verses the sermon names, written out in full.
+ * The verses the sermon names, at hand on the screen.
  *
  * A sermon leans on other verses besides the text word: "He came to us
- * Himself in Jesus Christ (John 1:14)". For the minister who reads from the
- * phone or the paper, the reference alone is not enough: the words should be
- * there to read (Jerome, 2026-11-21: "When the text word is in the sermon
- * put the whole verse in for me to read as reference, not just the book,
- * chapter and verse number"). So every verse a part of the preparation names
- * is written out under that part: under each box of the Prepare form and
- * under Claude's suggestions (prepare.js), in "The sermon" and the sermon
- * notes (pdf.js), on the screen and in Altar mode (read.js, altar.js), and
- * the voice reads them too (speech.js).
+ * Himself in Jesus Christ (John 1:14)". To understand the context, the
+ * minister wants the words of such a verse right where it is named, not a
+ * reference to look up, and not a pile of verses under the part (Jerome,
+ * 2026-11-21: "put the whole verse in for me to read"; 2026-11-25: "I just want
+ * to understand the context when we refer to a Bible verse. I don't want to
+ * find it at the bottom there. There's too many sometimes"). So on the screen
+ * a reference is a button: a tap shows its verse at the end of the sentence
+ * that names it (read.js withRefs: the sermon read on the screen and in Altar
+ * mode, Claude's suggestions in Prepare), and under the boxes of the Prepare
+ * form a short row of the references does the same (prepare.js versesUnder).
+ * The prints and the voice leave the verses out: they are for understanding,
+ * not part of the sermon.
  *
  * This module finds the references in a text, puts the Bibles to read them
  * from in order, and keeps their words with the preparation. It is pure (the
@@ -110,19 +113,25 @@ export function refsToQuote(text, { seen = null } = {}) {
 }
 
 /**
+ * The words of one reference (findRefs): the text word from step 1 (s.text,
+ * in the translation named there), else what s.quotes holds; null when they
+ * are not here yet, or the passage is too long to write out (MAX_VERSES).
+ */
+export function quoteOf(r, s) {
+  if (!r || !r.verse || (r.verseEnd || r.verse) - r.verse + 1 > MAX_VERSES) return null;
+  const key = quoteKey(r);
+  if (isWord(r, s)) return { key, book: r.book, chapter: r.chapter, verse: r.verse, verseEnd: r.verseEnd || r.verse, text: wordText(s), short: String(s.translation || '').trim(), lang: '', source: 'word' };
+  const q = ((s && s.quotes) || {})[key];
+  return q && q.text ? { key, ...q } : null;
+}
+
+/**
  * The verses a text names, with their words, in the order the text names
- * them: [{key, book, chapter, verse, verseEnd, text, short, lang, source}].
- * The text word comes from step 1 (s.text, in the translation named there);
- * every other verse from s.quotes. A verse whose words are not there yet is
- * left out.
+ * them, each once: [{key, book, chapter, verse, verseEnd, text, short, lang,
+ * source}] (quoteOf). A verse whose words are not there yet is left out.
  */
 export function quotesFor(text, s, { seen = null } = {}) {
-  const have = (s && s.quotes) || {};
-  return refsToQuote(text, { seen }).map(r => {
-    if (isWord(r, s)) return { key: r.key, book: r.book, chapter: r.chapter, verse: r.verse, verseEnd: r.verseEnd, text: wordText(s), short: String(s.translation || '').trim(), lang: '', source: 'word' };
-    const q = have[r.key];
-    return q && q.text ? { key: r.key, ...q } : null;
-  }).filter(Boolean);
+  return refsToQuote(text, { seen }).map(r => quoteOf(r, s)).filter(Boolean);
 }
 
 /**
