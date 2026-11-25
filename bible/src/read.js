@@ -18,7 +18,7 @@ import { formatRef } from './books.js';
 import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';
 import { langOf } from './ai.js';
 import { line as hymnLine } from './hymns.js';   // the hymns of the service under the service line, as the cue card has them
-import { quotesFor, langCode, sourceOrder, gather } from './verses.js';   // the verses the sermon names, written out under the part that names them
+import { findRefs, quoteOf, langCode, sourceOrder, gather } from './verses.js';   // the verses the sermon names: a tap on the reference shows its words
 import { sources, versesFrom } from './bible.js';
 
 /**
@@ -41,26 +41,27 @@ export function fillSermon(art, s, parts = sermonParts(s)) {
   const { c, ref, title } = parts;
   const L = langOf(s);   // the headings in the sermon's language, as the prints have them
   head(art, s, { ref, title: s.title || s.theme || !ref ? title : '', thread: c.thread });
-  const verses = text => versesBlock(quotesFor(text, s), { own: s.translation });   // the verses a part names, written out under it (verses.js)
+  const tipAt = art.childNodes.length;   // where the line on the references goes, once there is one
   const put = (...nodes) => art.append(...nodes.filter(Boolean));
   // `feel` names the part in the outline whose feeling stands under the heading: ['intro'] or ['point', n]
   const section = (heading, body, extras = [], feel = null) => {
     if (heading) art.append(el('h2', { text: heading }));
     const feeling = feel ? feelingLine(c.outline, feel[0], feel[1]) : '';
     if (feeling) art.append(el('p', { class: 'read-feel', text: feeling }));
-    put(...paras(body), verses(body));
+    put(...paras(body, '', s));   // a reference in the text opens its verse with a tap (withRefs)
     for (const x of extras) {
       if (x.kind === 'illustration') art.append(el('p', { class: 'read-extra' }, [el('b', { text: tl(L, 'Illustration: ') + (x.title || '') })]));
       else if (x.kind === 'lighter') art.append(el('p', { class: 'read-extra' }, [el('b', { text: tl(L, 'A lighter moment') })]));
-      put(...paras(x.body, x.kind === 'text' ? '' : 'read-in'), verses(x.body));
+      put(...paras(x.body, x.kind === 'text' ? '' : 'read-in', s));
     }
   };
   if (c.intro) section(tl(L, 'Introduction'), c.intro, c.after.intro, ['intro']);
   for (const p of c.points) section(`${p.n}. ${p.heading}`.trim(), p.body, p.extras, ['point', p.n]);
-  if (c.after.loose.length) section(tl(L, 'Illustrations'), '', c.after.loose);
   if (c.application) section(tl(L, 'Application for the congregation'), c.application, c.after.application, ['application']);
   if (c.summary) section(tl(L, 'Summary'), c.summary);
   if (c.conclusion) section(tl(L, 'Conclusion'), c.conclusion, c.after.conclusion, ['conclusion']);
+  // one line under the head says what a reference does, when the sermon names a verse whose words are here
+  if (art.querySelector('.vref')) art.insertBefore(el('p', { class: 'read-tip', text: t('Tap a Bible reference to read the verse.') }), art.childNodes[tipAt] || null);
 }
 
 /**
@@ -112,16 +113,99 @@ export function fillWord(art, s) {
   head(art, s, { ref: s.ref ? formatRef(s.ref, state.settings.bookLang) : (s.refText || '') });
 }
 
-/**
- * The verses a text names, written out under it (verses.js quotesFor): each
- * with its reference, its words, and the translation's name where it is not
- * the sermon's own (`own`), so the minister sees when a verse had to come
- * from another Bible. Null when there is nothing to write. The Prepare form
- * draws the same lines under its boxes and suggestions (verseLines).
+/*
+ * A Bible reference in the sermon's text, "(John 1:14)", is a button on the
+ * screen: a tap shows the verse's words in a box at the end of the sentence
+ * that names it, so it is read in the context of its paragraph, and a second
+ * tap puts it away (Jerome, 2026-11-25: "I just want to understand the context
+ * when we refer to a Bible verse. I don't want to find it at the bottom
+ * there"). The words are the ones kept with the preparation (verses.js
+ * quoteOf); a reference whose words are not here stays plain text. The prints
+ * and the voice leave the verses out.
  */
-export function versesBlock(quotes, { own = '' } = {}) {
-  if (!quotes.length) return null;
-  return el('div', { class: 'verses' }, verseLines(quotes, { own }));
+let boxes = 0;
+
+/** The box with a verse's words: the reference in bold, the words, and the Bible's name where it is not the sermon's own. Hidden until its button opens it. */
+export function verseBox(quotes, s, { open = false } = {}) {
+  const own = String((s && s.translation) || '').trim();
+  return el('span', { class: 'vref-box', id: 'vq' + (++boxes), hidden: !open, onclick: e => e.stopPropagation() }, quotes.map(q => el('span', { class: 'vref-q', lang: langCode(q.lang) || null }, [
+    el('b', { class: 'verse-ref', text: formatRef(q, state.settings.bookLang) }), ' ',
+    q.text,
+    q.short && q.short !== own ? el('span', { class: 'verse-src', text: ` (${q.short})` }) : null,
+  ])));
+}
+
+/**
+ * The reference that opens and closes a verse's box; `onToggle(open)` hears
+ * each tap. A span in the role of a button, so that it runs on in the line
+ * with the words around it, "(John 1:14)", as text does; Enter and the space
+ * bar work it too.
+ */
+export function refButton(label, box, onToggle = null) {
+  const toggle = e => {
+    e.preventDefault();
+    e.stopPropagation();   // in a suggestion of Claude's, a tap on the text opens it for editing: not this one
+    const open = box.hidden;
+    box.hidden = !open;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.classList.toggle('open', open);
+    if (onToggle) onToggle(open);
+  };
+  const btn = el('span', { class: 'vref', role: 'button', tabindex: '0', text: label, 'aria-expanded': box.hidden ? 'false' : 'true', 'aria-controls': box.id,
+    onclick: toggle, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') toggle(e); } });
+  btn.classList.toggle('open', !box.hidden);
+  return btn;
+}
+
+/** Where the sentence that goes on from `from` ends: after its full stop (and a closing bracket or quote), or at the end of the text. "Rev. 21:5" or "e.g. the" is no end. */
+function sentenceEnd(text, from) {
+  const end = /[.!?\u2026]+["'\u201d\u2019)\]]*(?=\s+[^\p{Ll}\d\s]|\s*$)/gu;
+  end.lastIndex = from;
+  const m = end.exec(text);
+  return m ? m.index + m[0].length : text.length;
+}
+
+/**
+ * A text with its Bible references made into buttons (refButton), each with
+ * the box of its verse at the end of its sentence (verseBox): an array of
+ * strings and nodes to append. Verses listed after one reference, "John 3:16,
+ * 18", open together with it.
+ */
+export function withRefs(text, s) {
+  const v = String(text || '');
+  const found = [];
+  for (const r of findRefs(v)) {
+    const q = quoteOf(r, s);
+    if (!q) continue;
+    const last = found[found.length - 1];
+    if (last && last.at === r.at) last.quotes.push(q);
+    else found.push({ at: r.at, end: r.at + r.match.length, quotes: [q] });
+  }
+  if (!found.length) return [v];
+  const marks = [];
+  for (const f of found) {
+    const box = verseBox(f.quotes, s);
+    marks.push({ pos: f.at, end: f.end, node: refButton(v.slice(f.at, f.end), box) }, { pos: sentenceEnd(v, f.end), end: -1, node: box });
+  }
+  marks.sort((a, b) => a.pos - b.pos);   // a box after the buttons of its sentence, in their order
+  const out = [];
+  let pos = 0;
+  // a line break right after a box (in a suggestion, whose text keeps its lines) becomes a <br>, which the open box makes
+  // unneeded (styles.css hides it then): the box ends the line itself
+  const add = to => {
+    let x = v.slice(pos, to);
+    const prev = out[out.length - 1];
+    const nl = prev && prev.classList && prev.classList.contains('vref-box') ? x.match(/^[ \t]*\n/) : null;
+    if (nl) { out.push(el('br')); x = x.slice(nl[0].length); }
+    if (x) out.push(x);
+  };
+  for (const m of marks) {
+    if (m.pos > pos) { add(m.pos); pos = m.pos; }
+    out.push(m.node);
+    if (m.end > pos) pos = m.end;
+  }
+  if (pos < v.length) add(v.length);
+  return out;
 }
 
 /**
@@ -138,15 +222,6 @@ export function fetchMissing(s, redraw) {
   gather(s, { ids, fetch: versesFrom, lang })
     .then(changed => { if (!changed) return; saveSermon(s).catch(() => {}); redraw(); })
     .catch(() => { /* the verses stay as they are: the references are still there */ });
-}
-
-/** One line per verse: the reference in bold, then the words. */
-export function verseLines(quotes, { own = '' } = {}) {
-  return quotes.map(q => el('p', { class: 'verse-q', lang: langCode(q.lang) || null }, [
-    el('b', { class: 'verse-ref', text: formatRef(q, state.settings.bookLang) }), ' ',
-    q.text,
-    q.short && q.short !== own ? el('span', { class: 'verse-src', text: ` (${q.short})` }) : null,
-  ]));
 }
 
 /* ------------------------------------------------------------- the sheet */
@@ -193,11 +268,11 @@ function head(art, s, { ref = '', title = '', theme = '', core = '', thread = ''
   if (String(thread || '').trim()) art.append(el('p', { class: 'read-thread', text: tl(langOf(s), 'The golden thread: ') + thread.trim() }));
 }
 
-/** A text as paragraphs: a blank line between them starts a new one, a single line break stays a line break. */
-function paras(text, cls = '') {
+/** A text as paragraphs: a blank line between them starts a new one, a single line break stays a line break. With the preparation `s`, a Bible reference in it opens its verse (withRefs). */
+function paras(text, cls = '', s = null) {
   return String(text || '').trim().split(/\n\s*\n/).map(x => x.trim()).filter(Boolean).map(x => {
     const p = el('p', cls ? { class: cls } : {});
-    x.split('\n').forEach((line, i) => { if (i) p.append(el('br')); p.append(line.trim()); });
+    x.split('\n').forEach((line, i) => { if (i) p.append(el('br')); p.append(...(s ? withRefs(line.trim(), s) : [line.trim()])); });
     return p;
   });
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Checks how the app finds the verses a sermon names and keeps their words (src/verses.js), without a browser:  node tools/test_verses.mjs
 import assert from 'node:assert/strict';
-import { findRefs, quoteKey, isWord, wordText, refsToQuote, quotesFor, textsOf, wanted, langCode, sourceOrder, gather, MAX_VERSES } from '../src/verses.js';
+import { findRefs, quoteKey, isWord, wordText, refsToQuote, quoteOf, quotesFor, textsOf, wanted, langCode, sourceOrder, gather, MAX_VERSES } from '../src/verses.js';
 
 let n = 0;
 const tests = [];
@@ -61,6 +61,18 @@ test('the text word, where a part names it, comes from step 1 as it stands there
   assert.equal(q.length, 1);
   assert.deepEqual([q[0].key, q[0].text, q[0].short, q[0].source], ['REV.21.5', 'And he that sat upon the throne said, Behold, I make all things new.', 'KJV', 'word']);
   assert.deepEqual(wanted({ ...s, intro: 'Revelation 21:5 and Revelation 21:6' }).map(r => r.key), ['REV.21.6']);
+});
+
+test('one reference at a time (a tap on the screen): the text word from step 1, else the words kept; none for a long passage or words not here', () => {
+  const s = { ref: { book: 'REV', chapter: 21, verse: 5, verseEnd: 5 }, text: '5 And he that sat upon the throne said, Behold, I make all things new.', translation: 'KJV',
+    quotes: { 'JHN.1.14': { book: 'JHN', chapter: 1, verse: 14, verseEnd: 14, text: 'WEB test words for John 1:14', short: 'WEB', lang: 'en', source: 'web' } } };
+  const [word, john, gone] = findRefs('As our text says (Revelation 21:5), He came (John 1:14), see John 3:3.');
+  assert.deepEqual([quoteOf(word, s).text, quoteOf(word, s).short, quoteOf(word, s).source], ['And he that sat upon the throne said, Behold, I make all things new.', 'KJV', 'word']);
+  assert.deepEqual([quoteOf(john, s).key, quoteOf(john, s).text], ['JHN.1.14', 'WEB test words for John 1:14']);
+  assert.equal(quoteOf(gone, s), null);   // not fetched yet: the reference stays plain text
+  const [long] = findRefs('Psalm 119:1-40');
+  assert.equal(quoteOf(long, { ...s, quotes: { 'PSA.119.1-40': { text: 'x' } } }), null);   // more than MAX_VERSES: read it from the Bible
+  assert.equal(quoteOf(null, s), null);
 });
 
 test('the other verses come from s.quotes, in the order of the text; one without words is left out', () => {

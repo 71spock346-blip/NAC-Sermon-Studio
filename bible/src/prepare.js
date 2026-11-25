@@ -84,7 +84,7 @@ import * as Notes from './notes.js';
 import * as Pdf from './pdf.js';
 import * as Cues from './cues.js';   // the words on the cue cards, and the lines to type them in under Print or save
 import * as Read from './read.js';   // the sermon and the cue cards on the screen
-import * as Verses from './verses.js';   // the verses the sermon names, written out under the box, the suggestion and the part that names them
+import * as Verses from './verses.js';   // the verses the sermon names: a tap on the reference shows its words
 import * as Guides from './guides.js';
 import * as AI from './ai.js';
 import * as Hymn from './hymns.js';   // the hymns of the service: four numbers under "The service", their titles from the Choir planner's index
@@ -516,16 +516,17 @@ function renderEditor(root, s) {
     inputs[key] = input;
     return el('label', { class: 'f' + (opts.cls ? ' ' + opts.cls : '') }, [opts.noClear ? title(label) : head(label, key, input), input, opts.hint ? el('span', { class: 'hint muted small', text: opts.hint }) : null]);
   }
-  /* ---- the verses the sermon names, written out (verses.js)
+  /* ---- the verses the sermon names, at hand with a tap (verses.js)
    * Every reference in the boxes and in Claude's suggestions, "(John 1:14)",
    * gets its words from the translation of the text word, else from another
    * Bible in the sermon's language, else from the bundled English
    * (verses.js sourceOrder, bible.js versesFrom), kept in s.quotes, so that
-   * the prints, the readings, the voice and the other device have them
-   * without asking again. Where a part names the text word itself, its words
-   * come from step 1. The blocks under the boxes and the suggestions draw
-   * from there (Read.verseLines) and are drawn again when the text changes
-   * and when the words arrive.
+   * the readings on the screen and the other device have them without asking
+   * again. Where a part names the text word itself, its words come from step
+   * 1. In a suggestion the reference itself opens its verse (read.js
+   * withRefs); under a box, a short row of its references does (versesUnder).
+   * They are drawn again when the text changes and when the words arrive.
+   * The prints and the voice leave the verses out (Jerome, 2026-11-25).
    */
   const verseBlocks = new Set();   // the live blocks on the page: {node, draw}
   const notFound = new Set();      // keys looked for on this visit that no Bible here has (no such verse): not asked for again until the preparation is opened again
@@ -548,29 +549,40 @@ function renderEditor(root, s) {
         const ids = quoteIds(), sig = ids.join('|');
         const changed = await Verses.gather(s, { ids, fetch: Bible.versesFrom, lang: AI.langOf(s), upgrade: sig !== lastIds, notFound });
         lastIds = sig;
-        if (changed) { save(); if (sermonCard) sermonCard.check(); }   // the voice reads the verses too: a recording made before is out of date
+        if (changed) save();
         drawVerses();
       } while (again);
     })();
     try { await fetching; } catch (e) { /* the references stay as they are */ } finally { fetching = null; }
   }
   scheduleQuotes = debounce(fetchQuotes, 800);
-  /** Before a print or a reading: the verses just typed are fetched first, waiting a few seconds at most for a slow connection. */
+  /** Before the sermon is read on the screen: the verses just typed are fetched first, waiting a few seconds at most for a slow connection. */
   const quotesReady = () => Promise.race([fetchQuotes(), new Promise(r => setTimeout(r, 4000))]);
   /**
-   * A block with the verses a text names, written out, under the box or the
-   * suggestion whose text `get` gives; drawn again as the text changes and
-   * when the words arrive, and hidden while there is nothing to show. A
-   * verse that no Bible here has (there is no such verse) is named under it.
-   * `quiet`: a tap on it stays there (in a suggestion, a tap on the text
-   * opens it for editing).
+   * Under a box, whose text `get` gives: one short row with the verses it
+   * names, each a button that opens its words below the row and closes them
+   * again (read.js refButton, verseBox), so they are there to understand the
+   * text without filling the page. Drawn again as the text changes and when
+   * the words arrive; a verse opened stays open while the box is typed in.
+   * Hidden while there is nothing to show. A verse that no Bible here has
+   * (there is no such verse) is named under the row.
    */
-  function versesUnder(get, { quiet = false } = {}) {
-    const node = el('div', { class: 'verses', hidden: true, onclick: quiet ? e => e.stopPropagation() : null });
+  function versesUnder(get) {
+    const node = el('div', { class: 'vrefs', hidden: true });
+    const opened = new Set();   // the keys of the verses opened under this box
     const b = { node, draw: () => {
       clear(node);
       const text = get();
-      node.append(...Read.verseLines(Verses.quotesFor(text, s), { own: s.translation }));
+      const have = Verses.refsToQuote(text).map(r => ({ r, q: Verses.quoteOf(r, s) })).filter(x => x.q);
+      if (have.length) {
+        const row = el('p', { class: 'vrefs-row' }, [el('span', { class: 'vrefs-label muted small', text: t('Verses:') })]);
+        const boxes = have.map(({ r, q }) => {
+          const box = Read.verseBox([q], s, { open: opened.has(r.key) });
+          row.append(Read.refButton(formatRef(r, lang), box, open => { if (open) opened.add(r.key); else opened.delete(r.key); }));
+          return box;
+        });
+        node.append(row, ...boxes);
+      }
       const missing = Verses.refsToQuote(text).filter(r => !Verses.isWord(r, s) && !(s.quotes || {})[r.key] && notFound.has(r.key));
       if (missing.length) node.append(el('p', { class: 'verse-miss muted small', text: t('Not found: {refs}', { refs: missing.map(r => formatRef(r, lang)).join(', ') }) }));
       node.hidden = !node.childElementCount;
@@ -1124,8 +1136,8 @@ function renderEditor(root, s) {
 
   // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
   step(4, t('Main points'), { line: t('The parts of the Guide\'s article, in its order, are main point 1, 2, 3.'), more: AI.unlocked()
-    ? t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear. A verse a point names, such as (John 3:16), is written out under the point, from the translation of the text word, so you can read it there. The golden thread is the one line, with a picture, that comes back under every heading: write your own, or leave the box empty and Claude finds one.')
-    : t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. A verse a point names, such as (John 3:16), is written out under the point, from the translation of the text word, so you can read it there.') },
+    ? t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point you can write your own thought on it. "Weave my thought into this point" puts it into that point only and leaves the rest as it is; "Suggest the sermon" weaves all your thoughts into the whole sermon. Claude asks you first when something is unclear. Under each point, tap a verse it names, such as John 3:16, to read it there, in the translation of the text word. The verses are not printed or read aloud. The golden thread is the one line, with a picture, that comes back under every heading: write your own, or leave the box empty and Claude finds one.')
+    : t('The parts of the Guide\'s article, each under its own heading, are main point 1, 2, 3, in the Guide\'s order. Each point stands on the text. Plain words, short sentences. Under each point, tap a verse it names, such as John 3:16, to read it there, in the translation of the text word. The verses are not printed or read aloud.') },
     () => clearStep(4, t('the main points'), [], {
       clear: () => { const kept = s.points || []; s.points = [{ heading: '', body: '' }]; renderPoints(); return kept; },
       restore: kept => { s.points = kept; renderPoints(); },
@@ -1661,9 +1673,8 @@ function renderEditor(root, s) {
       clear(node);
       node.classList.remove('editing');
       const ti = val(title), bo = val(body);
-      const text = el('div', { class: 'ai-text' }, [ti ? el('b', { text: ti }) : null, ti && bo ? ' ' : null, bo || null,
-        versesUnder(() => [val(title), val(body)].filter(v => typeof v === 'string').join('\n'), { quiet: true }),   // the verses the suggestion names, written out (a cross reference's own among them)
-        ...whys()]);
+      // a Bible reference in the suggestion opens its verse with a tap, there in the text (read.js withRefs); a cross reference's own among them
+      const text = el('div', { class: 'ai-text' }, [ti ? el('b', {}, Read.withRefs(ti, s)) : null, ti && bo ? ' ' : null, ...(bo ? Read.withRefs(bo, s) : []), ...whys()]);
       // a tap on the text opens the boxes, unless text is being selected; on a phone the keyboard waits for a tap in a box
       if (edit) text.addEventListener('click', () => { if (String(getSelection()).length) return; open(!isTouch()); });
       node.append(text, el('div', { class: 'ai-actions' }, [edit ? pencil(() => open(true)) : null, val(extra) || null, use()]));
@@ -1680,6 +1691,10 @@ function renderEditor(root, s) {
       if (focus) { const ta = wrap.querySelector(edit.body ? 'textarea:not(.oneline)' : 'textarea'); if (ta) toEnd(ta); }
     }
     show();
+    // the words of a verse it names may come after it is drawn (fetchQuotes): then its references are drawn again, as buttons
+    const named = () => Verses.quotesFor([val(title), val(body)].filter(v => typeof v === 'string').join('\n'), s).map(q => q.key).join('|');
+    let drawnWith = named();
+    verseBlocks.add({ node, draw: () => { const now = named(); if (now === drawnWith || node.classList.contains('editing')) return; drawnWith = now; show(); } });
     return node;
   }
   /**
@@ -1843,11 +1858,10 @@ function renderEditor(root, s) {
   ]));
 
   // ---- output
-  step('✓', t('Print or save'), { line: t('The sermon notes, the sermon in large type, and the cue cards for the altar.'), more: t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion, with the illustrations. The cue cards are upright A5 cards for the altar: under each heading only short cues in strong colours, with # between them, as on your own cards. Read shows the sermon or the cards on the screen in large type. Every verse the sermon names is written out under the part that names it, on the notes, in the sermon and on the screen.') });
+  step('✓', t('Print or save'), { line: t('The sermon notes, the sermon in large type, and the cue cards for the altar.'), more: t('The sermon notes carry everything above, in the order of the steps. The sermon is the text alone, in reading order and in large clear type: the text word, the introduction, the main points, the application, the summary and the conclusion. The Illustrations box is not part of it: an illustration you worked into a part is there already. The cue cards are upright A5 cards for the altar: under each heading only short cues in strong colours, with # between them, as on your own cards. Read shows the sermon or the cards on the screen in large type. On the screen, tap a Bible reference to read the verse; the papers and the voice leave the verses out.') });
   async function run(make, how) {
     try {
       await Cat.loadText().catch(() => false);
-      await quotesReady();   // the verses just typed are on the paper too
       const r = make(s);
       if (how === 'print') { Pdf.print(r); toast(t('Sending to the printer…')); }
       else if (how === 'share') Pdf.share(r).then(res => { if (res === 'downloaded') toast(t('Sharing is not available here, so the PDF was downloaded.')); });
