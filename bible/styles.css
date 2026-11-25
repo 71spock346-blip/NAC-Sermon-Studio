@@ -1981,6 +1981,13 @@ body.fill .shell { display: block; }
 .cues > .f-title { display: block; margin-bottom: 2px; font: 700 15px/1.35 var(--display); color: var(--head-ink); }
 .cues > p { margin: 0 0 6px; }
 .cues > p.a5 { margin: 8px 0 4px; }
+/* cues of the minister's own that are not in the text now (cues.js stale): said in amber, with a tap to renew or keep them */
+.cue-stale { color: var(--c-amber); font-weight: 600; margin: 2px 0 4px; }
+.cue-stale .btn { margin-left: 6px; vertical-align: baseline; }
+.cues > p.cue-stale-all { margin: 4px 0 8px; }
+/* on a phone the line keeps the full width, and "From the text" goes under it; on a PC beside it */
+.cue-rows .row.line { flex-wrap: wrap; }
+.cue-rows .row.line textarea.cue-box { flex: 1 1 300px; }
 .cue-rows { display: flex; flex-direction: column; gap: 2px; }
 .cue-rows label.f { margin: 4px 0; }
 #tab-prepare .cue-rows label.f .f-title { font-size: 13.5px; }
@@ -2047,6 +2054,10 @@ body.fill .shell { display: block; }
 .cue-view .cue-head { color: var(--ink); text-decoration: underline; text-underline-offset: .15em; margin: .9em 0 .3em; font-size: 1.05em; }
 .cue-view .cue-line { font-weight: 700; line-height: 1.55; }
 .cue-view .cue-mark { color: var(--ink); }
+.read-view .cue-stale-read { margin: 0 0 1em; padding: .55em .8em; border-left: 3px solid var(--c-amber); border-radius: 0 var(--radius-s) var(--radius-s) 0; background: color-mix(in srgb, var(--c-amber) 10%, transparent); color: var(--ink); font-size: .8em; font-weight: 400; }
+.read-view .cue-stale-read p { margin: 0 0 .5em; }
+.read-view .cue-stale-read .btn { margin: 0; }
+.cue-view .cue-stale-tag { color: var(--c-amber); font-size: .72em; font-weight: 600; margin: -.2em 0 .6em; }
 .cue.c0 { color: var(--cue-0); } .cue.c1 { color: var(--cue-1); } .cue.c2 { color: var(--cue-2); } .cue.c3 { color: var(--cue-3); }
 .cue.c4 { color: var(--cue-4); } .cue.c5 { color: var(--cue-5); } .cue.c6 { color: var(--cue-6); } .cue.c7 { color: var(--cue-7); }
 :root { --cue-0: #6a1b9a; --cue-1: #c62828; --cue-2: #1565c0; --cue-3: #2e7d32; --cue-4: #e65100; --cue-5: #00838f; --cue-6: #ad1457; --cue-7: #6d4c41; }

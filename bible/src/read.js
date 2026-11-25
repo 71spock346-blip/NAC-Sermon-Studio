@@ -15,7 +15,7 @@ import { t, tl } from './i18n.js';
 import { state, saveSetting, saveSermon } from './store.js';
 import { sermonParts, serviceLine, cueHeading, feelingLine } from './pdf.js';
 import { formatRef } from './books.js';
-import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';
+import { cueParts, cuesOf, setOwn, CUE_COLORS, MARK } from './cues.js';
 import { langOf } from './ai.js';
 import { line as hymnLine } from './hymns.js';   // the hymns of the service under the service line, as the cue card has them
 import { findRefs, quoteOf, langCode, sourceOrder, gather } from './verses.js';   // the verses the sermon names: a tap on the reference shows its words
@@ -70,10 +70,10 @@ export function fillSermon(art, s, parts = sermonParts(s)) {
  * card has them (`service`: the Guide's article the preparation is linked
  * to, whose introduction gives the cues while the minister's own is empty).
  */
-export function cues(s, { service = null } = {}) {
+export function cues(s, { service = null, onChange = null } = {}) {
   const parts = cueList(s, service);
   if (!parts.length && !(s.text || s.theme || s.core)) { toast(t('There is nothing on the cards yet: write the main points first, or type the cues under Print or save.'), true); return false; }
-  fillCues(open(t('Cue cards'), s, 'cue-view'), s, parts);
+  fillCues(open(t('Cue cards'), s, 'cue-view'), s, parts, { service, onChange });
   return true;
 }
 
@@ -82,18 +82,40 @@ export function cueList(s, service = null) {
   return cueParts(s, { service, lang: langOf(s) }).filter(p => cuesOf(p).length || p.key === 'point');
 }
 
-/** The cue cards into an article: the text word and the message, then a heading and its line of cues for each part (cueList). */
-export function fillCues(art, s, parts) {
+/**
+ * The cue cards into an article: the text word and the message, then a
+ * heading and its line of cues for each part (cueList). Where cues the
+ * minister typed are not in the sermon now (cues.js: a part is stale), a line
+ * at the head says so, with a tap that takes the cues of those parts from the
+ * sermon again and keeps the preparation (Jerome, 2026-11-25: "Cue cards and
+ * service do not correlate"); `onChange` hears it (the Prepare form draws its
+ * lines again), and `service` is the Guide's article for the cards drawn again.
+ */
+export function fillCues(art, s, parts, { service = null, onChange = null } = {}) {
   const { ref } = sermonParts(s);
+  const L = langOf(s);
   head(art, s, { ref: ref || s.title || '', theme: s.theme, core: s.core, thread: s.thread });
+  const stale = parts.filter(part => part.stale);
+  if (stale.length) {
+    art.append(el('div', { class: 'cue-stale cue-stale-read' }, [
+      el('p', { text: t('Some cues are not in your sermon now: {parts}.', { parts: stale.map(part => cueHeading(part, L)).join(', ') }) }),
+      el('button', { class: 'btn small', type: 'button', text: t('Take them from the sermon'), onclick: async () => {
+        for (const part of stale) setOwn(s, part, '');
+        await saveSermon(s);
+        fillCues(clear(art), s, cueList(s, service), { service, onChange });
+        if (onChange) onChange();
+      } }),
+    ]));
+  }
   for (const part of parts) {
-    const heading = cueHeading(part, langOf(s));
+    const heading = cueHeading(part, L);
     art.append(el('h2', { class: 'cue-head', text: /[:!?.]$/.test(heading) ? heading : heading + ':' }));
     const list = cuesOf(part);
     if (!list.length) continue;
     const line = el('p', { class: 'cue-line' });
     list.forEach((cue, i) => line.append(el('span', { class: 'cue-mark', text: MARK }), ' ', el('span', { class: `cue c${i % CUE_COLORS.length}`, text: cue }), ' '));
     art.append(line);
+    if (part.stale) art.append(el('p', { class: 'cue-stale-tag', text: t('Not in your sermon now') }));
   }
 }
 

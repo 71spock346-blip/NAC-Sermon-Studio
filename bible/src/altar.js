@@ -42,7 +42,7 @@ export function render(container, route) {
   // 1 the cue cards, with the text word at their head, as Read under "Print or save" shows them
   const cueArt = Read.article(s, 'cue-view');
   const parts = Read.cueList(s, service);
-  if (parts.length || s.text || s.theme || s.core) Read.fillCues(cueArt, s, parts);
+  if (parts.length || s.text || s.theme || s.core) Read.fillCues(cueArt, s, parts, { service });
   else cueArt.append(empty(t('Nothing on the cards yet: write the main points under Prepare, or type the cues under Print or save.'), `#prepare/${s.id}`, t('Open the preparation')));
   panes.push({ key: 'cues', name: 'Cue cards', node: cueArt });
 

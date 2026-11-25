@@ -1734,7 +1734,7 @@ function renderEditor(root, s) {
     const mine = (p, i) => (old || []).find(x => x && p.from === 'guide' && x.guide === p.n) || (old || []).find(x => x && norm(x.heading) && norm(x.heading) === norm(p.heading)) || (old || [])[i] || {};
     s.points = list.map((p, i) => {
       const was = mine(p, i);
-      return { heading: p.heading, body: p.body, ...(p.from === 'guide' ? { guide: p.n } : {}), ...(was.thought ? { thought: was.thought } : {}), ...(was.talk ? { talk: was.talk } : {}), ...(was.read ? { read: was.read } : {}), ...(was.cues ? { cues: was.cues } : {}) };
+      return { heading: p.heading, body: p.body, ...(p.from === 'guide' ? { guide: p.n } : {}), ...(was.thought ? { thought: was.thought } : {}), ...(was.talk ? { talk: was.talk } : {}), ...(was.read ? { read: was.read } : {}), ...(was.cues ? { cues: was.cues, ...(was.cuesFor ? { cuesFor: was.cuesFor } : {}) } : {}) };
     });
     touch(); renderPoints();
     toast(done || t('All main points added.'), false, have.length ? () => { s.points = old; touch(); renderPoints(); } : null);
@@ -1883,7 +1883,7 @@ function renderEditor(root, s) {
     outRow(t('Sermon notes'), Pdf.sermonPdf, true),
     outRow(t('The sermon'), Pdf.sermonTextPdf, true, async () => { await quotesReady(); Read.sermon(s); }),
     // while the person's own introduction is empty, the cards carry the Guide's (cues.js introText)
-    outRow(t('Cue cards'), x => Pdf.cueCardPdf(x, { service: cueService() }), false, () => Read.cues(s, { service: cueService() })),
+    outRow(t('Cue cards'), x => Pdf.cueCardPdf(x, { service: cueService() }), false, () => Read.cues(s, { service: cueService(), onChange: () => { if (refreshCues) refreshCues(); } })),
     // the whole preparation as a small file to another minister (prepfile.js): the share sheet on a phone, a saved file on a PC
     el('div', { class: 'row out-row' }, [
       el('span', { class: 'out-label', text: t('The whole preparation') }),
@@ -1898,42 +1898,66 @@ function renderEditor(root, s) {
     el('p', { class: 'muted small send-note', text: t('The form for the district\'s WhatsApp group: attendance, offerings, hymns, acts and blessings.') }),
   ]));
 
-  // ---- the words on the cue cards (cues.js): one line per heading. His own cues, with # between them; while a line
-  // is empty, the box shows in grey the cues the app takes from the text, and "Fill in" puts them in the line to change
+  // ---- the words on the cue cards (cues.js): one line per heading, saying what its card says. A line the minister
+  // has not changed shows the cues the app takes from the text and changes with the text; a line the minister changes
+  // is an own line and stays as it was written, and "From the text" gives it back to the app. An own line whose cues are not in
+  // the text now says so, with "Keep these" (Jerome, 2026-11-25: "Cue cards and service do not correlate": lines once
+  // filled in from the text still said "Good morning" when the sermon had become the evening's)
   const cueRows = el('div', { class: 'cue-rows' });
-  let drawn = [];   // the lines as they stand: {part, box, fill, name}
-  const typedOf = part => (part.key === 'point' ? part.p.cues : (s.cues || {})[part.key]) || '';
-  const setTyped = (part, v) => { if (part.key === 'point') part.p.cues = v; else { s.cues = s.cues || {}; s.cues[part.key] = v; } };
+  const cueAll = el('p', { class: 'cue-stale cue-stale-all', hidden: true });   // two lines or more out of step with the text: all at once
+  let drawn = [];   // the lines as they stand: {part, name, box, back, note}
   const sameLine = (a, b) => a.key === b.key && (a.key !== 'point' || a.p === b.p);
-  const ghost = part => Cues.cueLine(part.auto) || '# … # …';
+  const lineOf = part => (part.own.length ? Cues.ownLine(s, part) : Cues.cueLine(part.auto));   // what the line's card says
+  const cueParts = () => Cues.cueParts(s, { service: cueService(), lang: AI.langOf(s) });
+  const fromText = list => { for (const part of list) Cues.setOwn(s, part, ''); touch(); };
+  const quoted = list => list.map(c => `\u201c${c}\u201d`).join(', ');
+  const paint = d => {
+    const part = d.part;
+    d.name.textContent = Pdf.cueHeading(part);
+    // a line being typed in is left as it is; an emptied one shows the app's cues again once it is left (blur)
+    if (document.activeElement !== d.box) { const v = lineOf(part); if (d.box.value !== v) { d.box.value = v; fit(d.box); } }
+    d.back.hidden = !part.own.length;
+    clear(d.note);
+    d.note.hidden = !part.stale;
+    if (part.stale) d.note.append(t('Not in your text now: {cues}.', { cues: quoted(part.missing) }), ' ',
+      el('button', { class: 'btn small ghost', type: 'button', text: t('Keep these'), onclick: () => { Cues.keepOwn(s, d.part); touch(); } }));
+  };
   refreshCues = () => {
-    const parts = Cues.cueParts(s, { service: cueService(), lang: AI.langOf(s) });
+    let parts = cueParts();
+    // an own line that says just what the app says is the app's again, so that it goes on following the text
+    // (a line once filled in from the text and left as it was)
+    const typing = drawn.find(d => d.box === document.activeElement);
+    const tidy = parts.filter(part => part.own.length && Cues.sameCues(part.own, part.auto) && !(typing && sameLine(typing.part, part)));
+    if (tidy.length) { for (const part of tidy) Cues.setOwn(s, part, ''); save(); parts = cueParts(); }
+    const stale = parts.filter(part => part.stale);
+    clear(cueAll);
+    cueAll.hidden = stale.length < 2;
+    if (stale.length > 1) cueAll.append(t('{n} lines have cues that are not in your text now.', { n: stale.length }), ' ',
+      el('button', { class: 'btn small', type: 'button', text: t('All from the text'), onclick: () => fromText(stale) }));
     if (parts.length === drawn.length && parts.every((part, i) => sameLine(part, drawn[i].part))) {
-      // the same lines: only their names and the grey cues follow the text, so a line being typed in is left alone
-      drawn.forEach((d, i) => { d.part = parts[i]; d.name.textContent = Pdf.cueHeading(parts[i]); d.box.placeholder = ghost(parts[i]); d.fill.hidden = !!d.box.value.trim() || !parts[i].auto.length; });
+      drawn.forEach((d, i) => { d.part = parts[i]; paint(d); });   // the same lines: they follow the text
       return;
     }
     clear(cueRows);
     drawn = parts.map(part => {
       const d = { part };
-      d.name = el('span', { class: 'f-title', text: Pdf.cueHeading(part) });
-      d.box = lineBox({ value: typedOf(part), placeholder: ghost(part), class: 'cue-box' });
-      d.fill = el('button', { class: 'btn small ghost', type: 'button', text: t('Fill in'), onclick: () => {
-        d.box.value = Cues.cueLine(d.part.auto);
-        fit(d.box);
-        d.box.dispatchEvent(new Event('input', { bubbles: true }));
-        d.box.focus();
-      } });
-      d.box.addEventListener('input', () => { setTyped(d.part, d.box.value); d.fill.hidden = !!d.box.value.trim() || !d.part.auto.length; touch(); });
-      d.fill.hidden = !!d.box.value.trim() || !part.auto.length;
-      cueRows.append(el('label', { class: 'f cue-row' }, [d.name, el('div', { class: 'row line' }, [d.box, d.fill])]));
+      d.name = el('span', { class: 'f-title' });
+      d.box = lineBox({ placeholder: '# \u2026 # \u2026', class: 'cue-box' });
+      d.back = el('button', { class: 'btn small ghost', type: 'button', text: t('From the text'), onclick: () => fromText([d.part]) });
+      d.note = el('p', { class: 'cue-stale small', hidden: true });
+      // what is typed is an own line; the app's cues as they are, or nothing, give the line back to the app
+      d.box.addEventListener('input', () => { Cues.setOwn(s, d.part, Cues.sameCues(d.box.value, d.part.auto) ? '' : d.box.value); touch(); });
+      d.box.addEventListener('blur', () => paint(d));
+      cueRows.append(el('label', { class: 'f cue-row' }, [d.name, el('div', { class: 'row line' }, [d.box, d.back]), d.note]));
+      paint(d);
       return d;
     });
   };
   refreshCues();
   container.append(el('div', { class: 'cues' }, [
     el('span', { class: 'f-title', text: t('Words on the cards') }),
-    el('p', { class: 'muted small', text: t('On the cards, under each heading, there are only short cues: # one # for each thought #, each in its own colour. Type your own here, with # between them. A line left empty gets its cues from your text above.') }),
+    el('p', { class: 'muted small', text: t('On the cards, under each heading, there are only short cues: # one # for each thought #, each in its own colour. The app takes them from your text above, and they change when your text changes. Change a line, with # between the cues, and it stays as you wrote it; "From the text" gives it the app\'s cues again.') }),
+    cueAll,
     cueRows,
     el('p', { class: 'muted small a5', text: t('To print on A5 cards: in the print window, open More settings and choose A5 as the paper size.') }),
   ]));
