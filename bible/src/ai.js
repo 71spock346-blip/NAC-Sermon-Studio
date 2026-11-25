@@ -14,7 +14,10 @@
  *   outline(s, …)     for the same preparation: how the sermon is best built
  *                     from all of that: introduction, main points,
  *                     application, conclusion and illustrations, with the
- *                     minister's own thoughts on the main points woven in
+ *                     minister's own thoughts on the main points woven in,
+ *                     one golden thread (his, or found) running through every
+ *                     heading, each part set in its scene or an everyday
+ *                     picture, and the feeling each part carries (weaveRules)
  *   readThoughts(s, …) before the sermon is built: Claude reads those
  *                     thoughts, says where each would go, and asks the
  *                     minister where one is unclear
@@ -501,7 +504,8 @@ function peopleRules() {
 - Families with children: pictures from family life; a word the children catch and a word for the parents.
 - Older members: respect for a long life of faith; memory, loss, loneliness, health, children and grandchildren, the hope of the Lord's return. Nothing hurried.
 - All ages together: a picture everyone understands, and now and then a word for the young and a word for the old.
-Where the minister describes the people (their work, language, what they are going through), take the examples and the application from their life, not from a life they do not know.`;
+Where the minister describes the people (their work, language, what they are going through), take the examples and the application from their life, not from a life they do not know.
+Everyone in the room: speak so that a visitor who has never been to church, a child, a member of sixty years and the one who is not sure what he believes all feel this is for them too. "We" includes them all. No insider shorthand: where a Church word must be used, say in passing what it means. Name real life as it is: work, money, family, sickness, waiting, tiredness. Where the faithful are called, the one who doubts is not pushed out: give him a door, not a wall. Never "you out there", and nothing that sets the members above the rest.`;
 }
 
 /** How much humour the sermon may carry, for the level chosen for this preparation. */
@@ -552,7 +556,7 @@ export async function suggest(s, { service = null, guideTitle = '', signal, onPr
   if (broken) parts.push(broken);
   parts.push(pointsPart(where));
 
-  const own = [s.context ? `Context: ${s.context}` : '', s.keywords ? `Key words: ${s.keywords}` : '', s.crossRefs ? `Cross references: ${s.crossRefs}` : '', where.mode === 'guide' ? ownPointsLine(s, where) : ''].filter(Boolean);
+  const own = [str(s.thread) ? `The golden thread he wants to run through the sermon: ${str(s.thread)}` : '', s.context ? `Context: ${s.context}` : '', s.keywords ? `Key words: ${s.keywords}` : '', s.crossRefs ? `Cross references: ${s.crossRefs}` : '', where.mode === 'guide' ? ownPointsLine(s, where) : ''].filter(Boolean);
   if (own.length) parts.push('THE MINISTER\'S OWN NOTES SO FAR (build on them; do not repeat them)\n' + own.join('\n'));
 
   parts.push(await catechismPart(s, service));
@@ -658,7 +662,7 @@ export function pointAnchors(s, service) {
 /** The rule on the main points for the system prompt; `job` is 'suggest' or 'outline'. */
 function pointsRule(mode, job) {
   const body = job === 'outline'
-    ? 'Write the body of each point from what the Guide says under that heading: three to six short sentences in plain words, as the minister could say them, with what the text word says there and what it asks of the people.'
+    ? 'Write the body of each point from what the Guide says under that heading: five to eight short sentences in plain words, as the minister could say them: the scene of the text or an everyday picture first, then what the Guide says there, what the text word says there and what it asks of the people, with the golden thread in it.'
     : 'For each point, say in two or three short sentences what the text word gives it: which words of the text carry it, and what it means for the people.';
   const never = 'The main points of the sermon come from the Church\'s Divine Service Guide, never from you.';
   switch (mode) {
@@ -723,7 +727,7 @@ function breakdownPart(s) {
  * article points only when their "source" is in the article's text.
  */
 function alignPoints(items, { mode, anchors }, service) {
-  const given = (Array.isArray(items) ? items : []).filter(Boolean).map(p => ({ heading: str(p.heading), body: str(p.body), why: str(p.why), source: str(p.source) })).filter(p => p.heading || p.body);
+  const given = (Array.isArray(items) ? items : []).filter(Boolean).map(p => ({ heading: str(p.heading), body: str(p.body), why: str(p.why), source: str(p.source), thread: str(p.thread), feeling: str(p.feeling) })).filter(p => p.heading || p.body);
   if (mode === 'free') return { points: given.map((p, i) => ({ ...p, n: i + 1, source: '', from: '' })), dropped: 0 };
   if (mode === 'article') {
     const text = norm([service && service.introduction, ...((service && service.sections) || []).map(x => `${x.heading}\n${x.body}`), service && service.context].filter(Boolean).join('\n'));
@@ -748,7 +752,7 @@ function alignPoints(items, { mode, anchors }, service) {
   if (left.length && left.length === holes.length) { holes.forEach((i, k) => { slots[i] = left[k]; }); left.length = 0; }
   const points = anchors.map((a, i) => {
     const p = slots[i];
-    return { n: a.n, heading: (p && p.heading) || a.heading, body: p ? p.body : a.body, why: p ? p.why : '', source: a.heading, from: a.from, asGiven: !p };
+    return { n: a.n, heading: (p && p.heading) || a.heading, body: p ? p.body : a.body, why: p ? p.why : '', source: a.heading, from: a.from, asGiven: !p, thread: p ? p.thread : '', feeling: p ? p.feeling : '' };
   });
   return { points, dropped: left.length };
 }
@@ -833,20 +837,36 @@ function tidySuggestions(r, lang, qs, where, service) {
 
 /* ---------------------------------------------------------------- building the sermon */
 
+/* The two lines every part of the outline carries: how the golden thread shows in it, and the feeling it carries (see weaveRules). */
+const WOVEN_FIELDS = {
+  thread: { type: 'string', description: 'How the golden thread shows in this part, in one short sentence, so the minister finds it' },
+  feeling: { type: 'string', description: 'The feeling this part carries, in a word or two (hope, joy, earnestness, remorse, comfort, thankfulness, wonder, peace), then in a few words why it belongs here' },
+};
+
 const OUTLINE_SCHEMA = {
   type: 'object', additionalProperties: false,
-  required: ['intro', 'points', 'application', 'conclusion', 'illustrations', 'lighter', 'thoughts', 'note'],
+  required: ['thread', 'intro', 'points', 'application', 'conclusion', 'illustrations', 'lighter', 'thoughts', 'note'],
   properties: {
+    thread: {
+      type: 'object', additionalProperties: false, required: ['line', 'picture', 'why'], description: 'The golden thread that runs through the whole sermon (see the rules); the minister\'s own, kept as he wrote it, when he gave one',
+      properties: { line: { type: 'string', description: 'The one thing the whole sermon says, in one short sentence the minister could say to a child' }, picture: { type: 'string', description: 'The one everyday picture that carries the line and comes back in the parts, in a few words; empty when the line needs none' }, why: { type: 'string', description: 'One short line on where it comes from: what in the Guide\'s message and the text word gives it' } },
+    },
     intro: {
-      type: 'object', additionalProperties: false, required: ['text', 'why'], description: 'The introduction: how the sermon opens',
-      properties: { text: { type: 'string', description: 'Three to five short sentences, as the minister could speak them: the first one or two make the people feel welcome, then it opens the door to the text' }, why: { type: 'string', description: 'One short line on why this opening works for this text, this message and these people' } },
+      type: 'object', additionalProperties: false, required: ['text', 'why', 'thread', 'feeling'], description: 'The introduction: how the sermon opens',
+      properties: { text: { type: 'string', description: 'Four to six short sentences, as the minister could speak them: the first one or two make the people feel welcome, then it opens the door to the text, with the golden thread first heard' }, why: { type: 'string', description: 'One short line on why this opening works for this text, this message and these people' }, ...WOVEN_FIELDS },
     },
     points: {
       type: 'array', description: 'The main points, as the rules on the main points say: the Guide\'s, in its order; empty when the rules say to propose none',
-      items: { type: 'object', additionalProperties: false, required: ['heading', 'body', 'why', 'source'], properties: { heading: { type: 'string', description: 'The heading of the point, in the language of the sermon: the Guide\'s heading, or the minister\'s' }, body: { type: 'string', description: 'Three to six short sentences: what the Guide says under this heading, what the text says there, what it asks of us' }, why: { type: 'string', description: 'One short line on what this point does for the message' }, source: { type: 'string', description: 'The heading this point comes from, word for word as given under THE MAIN POINTS; empty only when no Guide applies' } } },
+      items: { type: 'object', additionalProperties: false, required: ['heading', 'body', 'why', 'source', 'thread', 'feeling'], properties: { heading: { type: 'string', description: 'The heading of the point, in the language of the sermon: the Guide\'s heading, or the minister\'s' }, body: { type: 'string', description: 'Five to eight short sentences: the scene of the text or an everyday picture first, then what the Guide says under this heading, what the text says there, what it asks of us, with the golden thread in it' }, why: { type: 'string', description: 'One short line on what this point does for the message' }, source: { type: 'string', description: 'The heading this point comes from, word for word as given under THE MAIN POINTS; empty only when no Guide applies' }, ...WOVEN_FIELDS } },
     },
-    application: { type: 'string', description: 'The application for the congregation: what the text asks of them this week, named for the people in front of the minister; two to four short sentences' },
-    conclusion: { type: 'string', description: 'The conclusion: sums up the main points in a sentence or two, so the message is clearly recognisable, then leads to the altar; three to five short sentences' },
+    application: {
+      type: 'object', additionalProperties: false, required: ['text', 'thread', 'feeling'], description: 'The application for the congregation',
+      properties: { text: { type: 'string', description: 'What the text asks of them this week, named for the people in front of the minister, the one who doubts among them; two to four short sentences' }, ...WOVEN_FIELDS },
+    },
+    conclusion: {
+      type: 'object', additionalProperties: false, required: ['text', 'thread', 'feeling'], description: 'The conclusion',
+      properties: { text: { type: 'string', description: 'Sums up the main points in a sentence or two, so the message is clearly recognisable, gathers the golden thread up, then leads to the altar in hope; three to five short sentences' }, ...WOVEN_FIELDS },
+    },
     illustrations: {
       type: 'array', description: 'One to three pictures, stories or examples that make a point visible, from the world of the people who are listening',
       items: { type: 'object', additionalProperties: false, required: ['title', 'body', 'serves'], properties: { title: { type: 'string', description: 'A few words' }, body: { type: 'string', description: 'The picture or story in two to five short sentences' }, serves: { type: 'string', description: 'The part of the sermon it serves, e.g. "the introduction" or "main point 2"' } } },
@@ -863,8 +883,26 @@ const OUTLINE_SCHEMA = {
   },
 };
 
-function outlineSystem(lang, humour, where, thoughts) {
-  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction. Your task is to propose how the sermon is best built from them: an introduction that opens the door, the main points as the Guide gives them, each standing on the text, an application for the congregation, a conclusion that leads to the altar, and a few illustrations. For each part say in one short line why it works here. The minister decides; he takes what serves him.
+/**
+ * How the sermon hangs together and moves (Jerome, 2026-11-25: "the guide is
+ * the skeleton"; he speaks simply, loves context and analogies, wants one
+ * golden thread woven through every heading, the feelings where each
+ * belongs, and everyday people, faithful or not, to feel part of it). `own`
+ * is the golden thread he wrote himself, '' when Claude is to find it.
+ */
+function weaveRules(own) {
+  return `The golden thread: ${own
+    ? 'the minister has written it himself; it stands under THE GOLDEN THREAD. It is his: keep his line and his picture as they are, give them back in "thread", and run them through the sermon.'
+    : 'before you write a part, find it. It is the one thing this whole sermon says, in one short sentence the minister could say to a child, found where the Guide\'s message and the text word meet; and one everyday picture that carries it (a lamp left on in the window, a key, a seed, the road home), where the text or the message gives one. Where the article was broken down earlier, its thread points the way. Put them in "thread".'}
+- The thread runs through every heading, and the Guide's headings stand exactly as they are. It is heard in the introduction. It comes back in every main point in that point's own words, as the point grows it, turns it or tests it: never the same sentence said again like a slogan. The application asks what the thread asks. The conclusion gathers it up and lays it at the altar. Where the picture serves, the same picture returns; no second picture competes with it. In every part's "thread" field say in one short sentence how the thread shows there, so that the minister finds it.
+
+Context and everyday pictures: the minister speaks simply and loves to set the scene and to compare. Every main point opens by taking the people into the text's own world (who spoke, to whom, where, what was going on then: two or three plain sentences) or into a picture from their own everyday world, before it says what the point asks of us; often both, the scene first. One comparison in a part, drawn from the life of these people (the kitchen table, the taxi, the workplace, the school gate, the clinic queue, the lights going off), said so that one who has never opened a Bible sees it at once, with one line on what it stands for. A comparison serves the point; it never becomes the point.
+
+Feeling: a sermon moves; it does not run on one note. Give each part the feeling it should carry, and write its words so that the feeling is in them without being announced: joy, hope, earnestness, remorse, comfort, thankfulness, wonder, peace, longing, courage. Place each where it belongs: remorse where the text shows us ourselves, never at the opening and never for long; earnestness where a call is made; comfort where there is loss or fear; wonder where God acts; hope and joy where God's answer comes, and at the altar. The feeling rises from the text and the Guide, never from pressure: no guilt laid on, no tears asked for, no raised voice. The sermon ends at the altar in hope and joy, never in remorse. In every part's "feeling" field name the feeling in a word or two, then in a few words why it belongs there.`;
+}
+
+function outlineSystem(lang, humour, where, thoughts, ownThread) {
+  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction: the Guide is the skeleton of the sermon. Your task is to propose how the sermon is best built on it: one golden thread that runs through every heading, an introduction that opens the door, the main points as the Guide gives them, each standing on the text and set in its scene, an application for the congregation, a conclusion that leads to the altar, and a few illustrations, with the feeling each part carries. For each part say in one short line why it works here. The minister decides; he takes what serves him.
 
 Rules:
 ${pointsRule(where.mode, 'outline')}
@@ -878,6 +916,8 @@ ${pointsRule(where.mode, 'outline')}
 ${thoughts ? thoughtsRule() : ''}- Illustrations: a picture from daily life, a true-to-life example or a Bible story that makes a point visible, taken from the world of the people who are listening. When one of the minister's own notes fits, use that one and say so ("from your notes: …") rather than inventing another.
 - The lighter moment: fill it only when the humour level below allows it and something fits naturally; otherwise leave both fields empty. It may also be woven into the introduction or an illustration.
 - Where a part leans on another Bible verse, name it in brackets as book chapter:verse, such as (John 3:16): the app writes that verse out under the part for the minister to read, so quote at most a few of its words yourself.
+
+${weaveRules(ownThread)}
 
 ${voiceRules(lang)}
 
@@ -931,6 +971,8 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   parts.push(draft.length
     ? 'THE MINISTER\'S DRAFT OF THE SERMON SO FAR (keep his direction; fill what is missing; improve only what is thin)\n' + draft.join('\n')
     : 'THE MINISTER\'S DRAFT OF THE SERMON SO FAR\nNothing written yet: propose the whole build.');
+  const ownThread = str(s.thread);
+  if (ownThread) parts.push(`THE GOLDEN THREAD, in the minister's own words (his; keep it, and run it through every heading)\n${ownThread}`);
   if (thoughts.length) parts.push(thoughtsPart(thoughts, where.mode));
 
   parts.push(await catechismPart(s, service, { index: false }));
@@ -942,26 +984,60 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   }
 
   const r = await run({
-    system: outlineSystem(lang, humour, where, thoughts.length > 0),
+    system: outlineSystem(lang, humour, where, thoughts.length > 0, ownThread),
     content: [{ type: 'text', text: parts.join('\n\n\n') }],
-    schema: OUTLINE_SCHEMA, effort: 'high', maxTokens: 12000, signal, onProgress,
+    schema: OUTLINE_SCHEMA, effort: 'high', maxTokens: 14000, signal, onProgress,
   });
   return { ...tidyOutline(r, lang, humour, where, service, thoughts), audience: audienceOf(s) };
+}
+
+/** A part of the outline that may be an object with its text, or (an older outline) the text alone: {text, thread, feeling, why}. */
+function partOf(v, key = 'text') {
+  if (v && typeof v === 'object') return { text: str(v[key]), why: str(v.why), thread: str(v.thread), feeling: str(v.feeling) };
+  return { text: str(v), why: '', thread: '', feeling: '' };
 }
 
 function tidyOutline(r, lang, humour, where, service, thoughts) {
   const d = r.data || {};
   const list = v => (Array.isArray(v) ? v.filter(Boolean) : []);
-  const intro = d.intro && typeof d.intro === 'object' ? { text: str(d.intro.text), why: str(d.intro.why) } : { text: str(d.intro), why: '' };
+  const intro = partOf(d.intro), application = partOf(d.application), conclusion = partOf(d.conclusion);
   const { points, dropped } = alignPoints(d.points, where, service);
   const illustrations = list(d.illustrations).map(x => ({ title: str(x.title), body: str(x.body), serves: str(x.serves) })).filter(x => x.body);
   const lighter = humour !== 'none' && d.lighter && typeof d.lighter === 'object' && str(d.lighter.text) ? { text: str(d.lighter.text), where: str(d.lighter.where) } : null;
+  const thread = d.thread && typeof d.thread === 'object' && str(d.thread.line) ? { line: str(d.thread.line), picture: str(d.thread.picture), why: str(d.thread.why) } : null;
+  // how the thread and the feelings run through the sermon, part by part, in its order (wovenOf finds a part's entry)
+  const woven = [
+    { part: 'intro', n: 0, thread: intro.thread, feeling: intro.feeling },
+    ...points.map(p => ({ part: 'point', n: p.n, thread: str(p.thread), feeling: str(p.feeling) })),
+    { part: 'application', n: 0, thread: application.thread, feeling: application.feeling },
+    { part: 'conclusion', n: 0, thread: conclusion.thread, feeling: conclusion.feeling },
+  ].filter(x => x.thread || x.feeling);
   return {
     at: new Date().toISOString(), model: r.model, lang, humour,
     cost: cost(r.usage, r.model),
-    intro, points, pointsFrom: where.mode, dropped, application: str(d.application), conclusion: str(d.conclusion), illustrations, lighter, note: str(d.note),
+    thread, woven,
+    intro: { text: intro.text, why: intro.why }, points, pointsFrom: where.mode, dropped, application: application.text, conclusion: conclusion.text, illustrations, lighter, note: str(d.note),
     thoughts: tidyThoughts(d.thoughts, thoughts, x => ({ where: str(x.where), how: str(x.how), question: str(x.question) })),
   };
+}
+
+/** The golden thread as one line to keep and to print: the line and, after a dash, the picture where there is one ("The Father is already on the road – a father running down the road"). */
+export function threadText(th) {
+  if (!th) return '';
+  if (typeof th === 'string') return str(th);
+  const line = str(th.line), picture = str(th.picture);
+  return picture && !norm(line).includes(norm(picture)) ? `${line.replace(/\.$/, '')} – ${picture}` : line;
+}
+
+/**
+ * How the golden thread shows in one part of an outline and the feeling the
+ * part carries: {thread, feeling} for 'intro', 'point' (with its number n),
+ * 'application' or 'conclusion'; null when the outline does not say (an
+ * outline built before, or the suggestions of step 5).
+ */
+export function wovenOf(a, part, n = 0) {
+  const x = a && Array.isArray(a.woven) ? a.woven.find(w => w.part === part && (part !== 'point' || w.n === n)) : null;
+  return x && (x.thread || x.feeling) ? x : null;
 }
 
 /* ------------------------------------------------- the minister's own thoughts on the main points */
@@ -1107,11 +1183,12 @@ const WEAVE_SCHEMA = {
   },
 };
 
-function weaveSystem(lang, humour) {
+function weaveSystem(lang, humour, thread) {
   return `You help a minister of the New Apostolic Church prepare an unscripted sermon for a divine service. He has written his own thought on one of the main points, and he wants it woven into that point. Only that point is written now: the rest of the sermon stays as he has it.
 
 Rules:
 - Write the text of THIS MAIN POINT again, with his thought (under HIS THOUGHT ON THIS POINT) woven in where it serves the point best: as the picture that opens it, as the example that makes it visible, as what it asks of us. Use his own words where they are good.
+${thread ? '- The sermon has a golden thread (under THE GOLDEN THREAD): keep it running through this point, in the point\'s own words, and keep the feeling the point carries.\n' : ''}- The minister speaks simply and loves to set the scene and to compare: where the point does not yet take the people into the text's own world or into an everyday picture of their own, let it open so, in two or three plain sentences; one comparison at most.
 - Keep his direction and his wording: what he has written under the point stays, unless a sentence must change for the thought to fit. Where the point still carries the Guide's own words, as it was filled in, write it in plain words for these people. Where nothing is written under it yet, write it in three to six short sentences: what the Guide says under this heading, what the text says there, what it asks of us, with his thought in it.
 - The heading stays as it is: the main points come from the Church's Divine Service Guide, and a thought enriches a point, it does not replace one. Write only the text under the heading, with no heading inside it.
 - Stay on this point. The other main points are given so you see the whole: do not take in what belongs to them, and do not write the introduction, the application or the conclusion.
@@ -1164,11 +1241,14 @@ export async function weaveThought(s, i, { service = null, guideTitle = '', sign
     if (!e || !str(e.q)) continue;
     talk.push(`You asked him: ${str(e.q)}`, str(e.a) ? `He answered: ${str(e.a)}` : 'He has not answered that yet.');
   }
+  // the golden thread of the sermon: his own, else the one Claude found when the sermon was built, so that this point keeps it
+  const thread = str(s.thread) || threadText(s.build && s.build.thread);
+  if (thread) parts.push(`THE GOLDEN THREAD of this sermon${str(s.thread) ? ', in his own words' : ', as it was found when the sermon was built'} (keep it running through this point)\n${thread}`);
   parts.push(`HIS THOUGHT ON THIS POINT\n${str(p.thought)}${talk.length ? '\n' + talk.join('\n') : ''}`);
   parts.push('THE TASK\nWeave his thought into this main point, as the rules say. Only this point.');
 
   const r = await run({
-    system: weaveSystem(lang, humour),
+    system: weaveSystem(lang, humour, !!thread),
     content: [{ type: 'text', text: parts.join('\n\n\n') }],
     schema: WEAVE_SCHEMA, effort: 'medium', maxTokens: 4000, signal, onProgress,
   });
