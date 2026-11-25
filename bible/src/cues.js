@@ -8,11 +8,24 @@
  *   # Israelites from Babylon, Jerusalem in ruins # got up, rebuilt city and temple # problem when we stay down
  *
  * each cue in its own colour, the # marks in ink, and no sentences or notes:
- * a cue only says where the next thought fits in (Jerome, 2026-11-18). He types
- * the cues of a part himself, with # between them; while a part has none, the
- * app takes one cue from each main thought of its text (cuePhrase: the words
- * that carry the thought, at most a few). Pure functions, no screen and no
- * store: tools/test_cues.mjs checks them in Node.
+ * a cue only says where the next thought fits in (Jerome, 2026-11-18). The app
+ * takes one cue from each main thought of a part's text (cuePhrase: the words
+ * that carry the thought, at most a few), and the cues change with the text;
+ * where the minister changes a line, it is the minister's own, with # between
+ * the cues.
+ *
+ * The cards follow the sermon (Jerome, 2026-11-25: "Cue cards and service do
+ * not correlate": lines once filled in from the text still said "Good
+ * morning" when the sermon had become the evening's). So a line the minister
+ * has not changed is not stored at all: it always says what the text says
+ * now. An own line is kept with the signature of the text it was written
+ * for (cuesFor, textSig); when that text has changed and a cue of the line is
+ * not in it any more (cuesNotIn), the part is stale, and the screens say so,
+ * with a tap to take the app's cues again (setOwn with '') or to keep the own
+ * line (keepOwn).
+ *
+ * Pure functions, no screen and no store: tools/test_cues.mjs checks them in
+ * Node.
  */
 
 /** The colours of the cues, in turn: purple, red and blue as on his own cards, then green, orange, teal, plum and brown. All strong on white paper. */
@@ -43,23 +56,108 @@ export function cuesOf(part) {
   return part.own.length ? part.own : part.auto;
 }
 
+/** Whether two lines of cues say the same, however they are spaced: each a line as typed or a list of cues. */
+export function sameCues(a, b) {
+  const x = Array.isArray(a) ? a : splitCues(a), y = Array.isArray(b) ? b : splitCues(b);
+  return x.length === y.length && x.every((c, i) => c === y[i]);
+}
+
+/** A part's own line as the minister typed it; '' while the line is the app's. */
+export function ownLine(s, part) {
+  return String((part.key === 'point' ? part.p && part.p.cues : (s.cues || {})[part.key]) || '');
+}
+
+/**
+ * Sets a part's own line (cueParts gives the part). An own line is kept
+ * with the signature of the text it was written for; '' gives the line back
+ * to the app, so that it follows the text again.
+ */
+export function setOwn(s, part, line) {
+  const v = String(line || '').trim() ? String(line) : '';
+  const sig = v ? textSig(part.text) : '';
+  if (part.key === 'point') {
+    if (!part.p) return;
+    if (v) { part.p.cues = v; part.p.cuesFor = sig; } else { delete part.p.cues; delete part.p.cuesFor; }
+    return;
+  }
+  s.cues = s.cues || {};
+  s.cuesFor = s.cuesFor || {};
+  if (v) { s.cues[part.key] = v; s.cuesFor[part.key] = sig; } else { delete s.cues[part.key]; delete s.cuesFor[part.key]; }
+}
+
+/** Keeps the minister's own cues of a part for its text as it is now: the part is not stale again until the text changes. */
+export function keepOwn(s, part) {
+  if (!ownLine(s, part).trim()) return;
+  const sig = textSig(part.text);
+  if (part.key === 'point') { if (part.p) part.p.cuesFor = sig; }
+  else { s.cuesFor = s.cuesFor || {}; s.cuesFor[part.key] = sig; }
+}
+
+/** A short signature of a text, to know whether it has changed since: its words, the spacing left aside; '' for no text. */
+export function textSig(text) {
+  const v = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!v) return '';
+  let h = 0x811c9dc5;   // FNV-1a
+  for (let i = 0; i < v.length; i++) { h ^= v.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * The cues of a list that are not in a text now: a cue is in it when every
+ * word of it that carries meaning is (the words of STOP are left aside), as
+ * it is or with another ending ("says" in "say", "started" in "start").
+ * "Good morning, brothers and sisters" is not in "Good evening, brothers and
+ * sisters".
+ */
+export function cuesNotIn(cues, text, lang = 'en') {
+  const stop = STOP[lang] || STOP.en;
+  const have = new Set(wordsOf(text));
+  return (cues || []).filter(c => wordsOf(c).filter(w => !stop.has(w)).some(w => !wordIn(w, have)));
+}
+
+/** The words of a text as the stop list has them (fold); a dash or a slash between two words parts them. */
+function wordsOf(text) {
+  return String(text || '').split(/[\s/\u2013\u2014-]+/).map(fold).filter(Boolean);
+}
+
+/** Whether a word is among `have`: as it is, or, from four letters, with the same first letters (up to five); a word of three letters only as it is or with an s. */
+function wordIn(w, have) {
+  if (have.has(w)) return true;
+  if (w.length < 3) return false;
+  for (const h of have) {
+    if (h.length < 3) continue;
+    const n = Math.min(5, w.length, h.length);
+    if (n >= 4 ? w.slice(0, n) === h.slice(0, n) : (w === h + 's' || h === w + 's')) return true;
+  }
+  return false;
+}
+
 /**
  * The parts of a preparation's cue cards, in the order of the sermon:
  *   { key: 'intro' | 'point' | 'application' | 'conclusion', own: [cue], auto: [cue],
  *     i and p (a main point's place and the point itself), heading (a point's),
- *     guide (true for an introduction taken from the Guide's) }
+ *     guide (true for an introduction taken from the Guide's),
+ *     text (the part's text, a point's with its heading and the minister's thought),
+ *     missing (the own cues that are not in the text now), stale }
  * `own` are the cues the minister typed for the part, `auto` the ones the app
- * takes from its text (cuesOf gives the ones to print). Every part is listed,
+ * takes from its text (cuesOf gives the ones to print). A part is `stale` when
+ * an own cue is not in its text now and the minister has not kept them for
+ * this text (keepOwn): the text changed after they were written. Every part is listed,
  * with or without cues, so that the lines under "Print or save" can be drawn
  * from it; a main point only when it has a heading, text or cues of its own.
  * `service`: the Guide's article the preparation is linked to, whose
  * introduction stands in for the minister's while his is empty.
  */
 export function cueParts(s, { service = null, lang = 'en' } = {}) {
-  const typed = s.cues || {};
+  const typed = s.cues || {}, sigs = s.cuesFor || {};
   const parts = [];
+  const checked = (part, sig) => {
+    part.missing = part.own.length ? cuesNotIn(part.own, part.text, lang) : [];
+    part.stale = part.missing.length > 0 && (sig || '') !== textSig(part.text);
+    return part;
+  };
   const intro = introText(s, service);
-  parts.push({ key: 'intro', guide: !!(intro && intro.guide), own: splitCues(typed.intro), auto: intro ? autoCues(intro.text, lang) : [] });
+  parts.push(checked({ key: 'intro', guide: !!(intro && intro.guide), own: splitCues(typed.intro), auto: intro ? autoCues(intro.text, lang) : [], text: intro ? intro.text : '' }, sigs.intro));
   (s.points || []).forEach((p, i) => {
     if (!p) return;
     // a point without a heading is headed by its first line
@@ -69,9 +167,10 @@ export function cueParts(s, { service = null, lang = 'en' } = {}) {
     if (!heading && !body.trim() && !own.length) return;
     // his own thought on the point gives the last cue, so that he brings it in
     const thought = sentences(lines(p.thought).join(' '))[0] || '';
-    parts.push({ key: 'point', i, p, heading, own, auto: [...autoCues(body, lang), cuePhrase(thought, lang)].filter(Boolean) });
+    const text = [p.heading, p.body, p.thought].map(x => String(x || '').trim()).filter(Boolean).join('\n');
+    parts.push(checked({ key: 'point', i, p, heading, own, auto: [...autoCues(body, lang), cuePhrase(thought, lang)].filter(Boolean), text }, p.cuesFor));
   });
-  for (const key of ['application', 'conclusion']) parts.push({ key, own: splitCues(typed[key]), auto: autoCues(s[key], lang) });
+  for (const key of ['application', 'conclusion']) parts.push(checked({ key, own: splitCues(typed[key]), auto: autoCues(s[key], lang), text: String(s[key] || '') }, sigs[key]));
   return parts;
 }
 

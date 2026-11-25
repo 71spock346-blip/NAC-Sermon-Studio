@@ -507,6 +507,13 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   introduction and each main point with its main thoughts under it, picked by `mainThoughts`, and
   the minister's own thought in blue; a point never splits over two cards; while the minister's own
   introduction is empty, the Guide's stands there, marked as the Guide's) with the vendored jsPDF.
+  The words on the cue cards (`src/cues.js`) are the app's cues from the text, which change
+  as the text changes and are not stored, or the minister's own line where one was changed
+  (`s.cues`, a point's `cues`), kept with the signature of the text it was written for
+  (`cuesFor`, `textSig`). An own line whose cues are no longer in the text (`cuesNotIn`) is
+  `stale`: the lines under "Print or save", the cue cards in Read and Altar mode say so, with a
+  tap to take the text's cues again or to keep them (Jerome, 2026-11-25: "Cue cards and
+  service do not correlate").
 - **Read aloud.** `src/speech.js` has an ElevenLabs voice read the sermon, the same text
   as "The sermon" (`pdf.js sermonParts`), straight from the browser with the person's own
   key (`settings.voiceKey`, kept on the device like the other keys). The text goes in

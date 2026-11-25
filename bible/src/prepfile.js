@@ -36,8 +36,8 @@ export const FILE_APP = 'nac-study-bible-preparation';
 const KEYS = ['date', 'congregation', 'occasion', 'title', 'hymns', 'audience', 'people', 'lang',
   'ref', 'refText', 'translation', 'translationId', 'text',
   'theme', 'core', 'guide', 'context', 'keywords', 'catechism', 'catq', 'catechismText', 'crossRefs',
-  'intro', 'summary', 'application', 'illustrations', 'conclusion', 'cues'];
-const TEXT = new Set(KEYS.filter(k => !['hymns', 'ref', 'catechism', 'catq', 'cues'].includes(k)));   // the keys that hold one string
+  'intro', 'summary', 'application', 'illustrations', 'conclusion', 'cues', 'cuesFor'];
+const TEXT = new Set(KEYS.filter(k => !['hymns', 'ref', 'catechism', 'catq', 'cues', 'cuesFor'].includes(k)));   // the keys that hold one string
 const str = v => (typeof v === 'string' ? v : (v === undefined || v === null ? '' : String(v)));
 const has = v => !!str(v).trim();
 
@@ -60,11 +60,11 @@ export function pack(p) {
       if (v.verseEnd) s.ref.verseEnd = Number(v.verseEnd) || 0;
     } else if (k === 'catechism' && Array.isArray(v)) s.catechism = v.filter(c => c && typeof c === 'object').map(c => ({ n: typeof c.n === 'number' ? c.n : str(c.n), title: str(c.title) }));
     else if (k === 'catq' && Array.isArray(v)) s.catq = v.filter(c => c && typeof c === 'object' && Number(c.qn) > 0).map(c => ({ qn: Number(c.qn), title: str(c.title) }));   // the questions of the Catechism in questions and answers
-    else if (k === 'cues' && typeof v === 'object') { s.cues = {}; for (const [key, val] of Object.entries(v)) if (typeof val === 'string') s.cues[key] = val; }
+    else if ((k === 'cues' || k === 'cuesFor') && typeof v === 'object') { s[k] = {}; for (const [key, val] of Object.entries(v)) if (typeof val === 'string') s[k][key] = val; }   // the minister's own cues, and the signature of the text each line was written for (cues.js)
   }
   s.points = (Array.isArray(p.points) ? p.points : []).filter(x => x && typeof x === 'object').map(x => {
     const q = { heading: str(x.heading), body: str(x.body) };
-    if (has(x.cues)) q.cues = str(x.cues);
+    if (has(x.cues)) { q.cues = str(x.cues); if (has(x.cuesFor)) q.cuesFor = str(x.cuesFor); }
     if (has(x.thought)) q.thought = str(x.thought);
     if (x.guide) q.guide = typeof x.guide === 'number' ? x.guide : true;   // the "Guide" mark: the point came from the Guide's article
     return q;

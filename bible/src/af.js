@@ -637,8 +637,16 @@ export const AF = {
   "Cue cards": "Preekkaarte",
   // the words on the cue cards (cues.js, prepare.js under Print or save) and the readings on the screen (read.js)
   "Words on the cards": "Woorde op die kaarte",
-  "On the cards, under each heading, there are only short cues: # one # for each thought #, each in its own colour. Type your own here, with # between them. A line left empty gets its cues from your text above.": "Op die kaarte staan onder elke opskrif net kort wenke: # een # vir elke gedagte #, elk in sy eie kleur. Tik jou eie hier, met # tussenin. 'n Leë reël kry sy wenke uit jou teks hierbo.",
-  "Fill in": "Vul in",
+  "On the cards, under each heading, there are only short cues: # one # for each thought #, each in its own colour. The app takes them from your text above, and they change when your text changes. Change a line, with # between the cues, and it stays as you wrote it; \"From the text\" gives it the app's cues again.": "Op die kaarte staan onder elke opskrif net kort wenke: # een # vir elke gedagte #, elk in sy eie kleur. Die app neem hulle uit jou teks hierbo, en hulle verander wanneer jou teks verander. Verander 'n reël, met # tussen die wenke, en dit bly soos jy dit geskryf het; \"Uit die teks\" gee dit weer die app se wenke.",
+  "From the text": "Uit die teks",
+  // a line of the minister's own whose cues are not in the text now (cues.js stale)
+  "Not in your text now: {cues}.": "Nie nou in jou teks nie: {cues}.",
+  "Keep these": "Hou hierdie",
+  "{n} lines have cues that are not in your text now.": "{n} reëls het wenke wat nie nou in jou teks is nie.",
+  "All from the text": "Almal uit die teks",
+  "Some cues are not in your sermon now: {parts}.": "Party wenke is nie nou in jou preek nie: {parts}.",
+  "Take them from the sermon": "Neem hulle uit die preek",
+  "Not in your sermon now": "Nie nou in jou preek nie",
   "To print on A5 cards: in the print window, open More settings and choose A5 as the paper size.": "Om op A5-kaarte te druk: maak in die drukvenster Meer instellings oop en kies A5 as die papiergrootte.",
   "There is nothing to read yet: write the introduction, the main points, the application or the conclusion first.": "Daar is nog niks om te lees nie: skryf eers die inleiding, die hoofpunte, die toepassing of die slot.",
   "There is nothing on the cards yet: write the main points first, or type the cues under Print or save.": "Daar is nog niks op die kaarte nie: skryf eers die hoofpunte, of tik die wenke onder Druk of stoor.",
