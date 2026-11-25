@@ -1097,8 +1097,10 @@ function renderEditor(root, s) {
     versesUnder(() => s.guide),
   );
 
-  // ---- 3. the introduction: the sermon opens as the Guide's article does; the Guide's own introduction can be read beside it
-  step(3, t('Introduction'), { line: t('As in the Guide: make the people feel welcome and open the door to the text.') },
+  // ---- 3. the introduction: the Guide's own introduction is the skeleton here too (Read shows it, Use puts it in the box); after the welcome comes the hook the whole sermon answers (Jerome, 2026-11-25)
+  step(3, t('Introduction'), { line: t('As in the Guide: welcome the people, then a hook that grabs them and leads the rest of the sermon.'), more: AI.unlocked()
+    ? t('The Guide\'s own introduction is the skeleton here too: "Use" puts it in your box, to say in your own words, and Claude stands on it when it suggests the sermon. After the welcome comes the hook: one or two sentences that make the people sit up and want to hear the rest, such as a question they cannot answer yet, a scene from their own week or something in the text that surprises, and the whole sermon then answers it. The golden thread is first heard here. The outline shows the hook under the introduction.')
+    : t('The Guide\'s own introduction is the skeleton here too: "Use" puts it in your box, to say in your own words. After the welcome comes the hook: one or two sentences that make the people sit up and want to hear the rest, such as a question they cannot answer yet, a scene from their own week or something in the text that surprises, and the whole sermon then answers it. The golden thread is first heard here.') },
     () => clearStep(3, t('the introduction'), ['intro']));
   const introLink = Guides.findService(s);
   const guideIntro = introLink ? (introLink.service.introduction || '').trim() : '';
@@ -1108,12 +1110,17 @@ function renderEditor(root, s) {
       if (art.hidden) { if (!art.firstChild) art.append(Guides.articlePart(guideIntro, introLink.guide.language)); art.hidden = false; readBtn.textContent = t('Hide'); readBtn.setAttribute('aria-expanded', 'true'); }
       else { art.hidden = true; readBtn.textContent = t('Read'); readBtn.setAttribute('aria-expanded', 'false'); }
     } });
+    // Use puts the Guide's words in the box, as "Take the main points from the Guide" does under step 4: he builds on them in his own words
+    const useBtn = el('button', { class: 'btn small ghost', type: 'button', text: t('Use'), 'aria-label': t('Use the Guide\'s introduction'), onclick: () => {
+      add('intro', guideIntro);
+      toast(t('The Guide\'s introduction is in your box. Say it in your own words, with the welcome and the hook before it.'));
+    } });
     container.append(el('div', { class: 'guide-row' }, [
-      el('div', { class: 'row line guide-link' }, [el('span', { class: 'small grow' }, [el('b', { text: t('The Guide\'s introduction') })]), readBtn]),
+      el('div', { class: 'row line guide-link' }, [el('span', { class: 'small grow' }, [el('b', { text: t('The Guide\'s introduction') })]), readBtn, useBtn]),
       art,
     ]));
   }
-  container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('How you will begin: a question, a picture from daily life, the setting of the text') }), versesUnder(() => s.intro));
+  container.append(field(t('Your introduction'), 'intro', { rows: 4, placeholder: t('A welcome, then the hook: a question, a picture from their week, a surprise in the text, that the whole sermon answers') }), versesUnder(() => s.intro));
 
   // ---- 4. the main points: the parts of the Guide's article, in its order (they always come from the Guide)
   step(4, t('Main points'), { line: t('The parts of the Guide\'s article, in its order, are main point 1, 2, 3.'), more: AI.unlocked()
@@ -1281,7 +1288,8 @@ function renderEditor(root, s) {
       ])])), null, t('Where each of your thoughts went, and how.')));
     }
     if (a.intro && a.intro.text) {
-      panel.append(group(t('Introduction'), [item('', () => a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, () => [a.intro.why, ...wovenLines(a, 'intro')], { on: a.intro, body: 'text' })]));
+      panel.append(group(t('Introduction'), [item('', () => a.intro.text, () => { add('intro', a.intro.text); toast(t('Added to Introduction.')); }, null, () => [...hookLine(a), a.intro.why, ...wovenLines(a, 'intro')], { on: a.intro, body: 'text' })],
+        null, a.intro.hook ? t('The welcome first, then the hook the whole sermon answers.') : ''));
     }
     panel.append(group(t('Main points'), [...pointNotes(a), ...pointItems(a)], (a.points || []).length > 1 ? () => usePoints(a.points) : null, pointsHint(a, true)));
     panel.append(group(t('Application and conclusion'), [
@@ -1734,6 +1742,11 @@ function renderEditor(root, s) {
       x.thread ? el('div', { class: 'ai-woven muted small' }, [el('b', { text: t('The thread here: ') }), x.thread]) : null,
       x.feeling ? el('div', { class: 'ai-woven muted small' }, [el('b', { text: t('The feeling: ') }), x.feeling]) : null,
     ].filter(Boolean);
+  }
+  /** Under the introduction of the outline: the hook, the line that grabs the people and that the whole sermon answers (ai.js, the rules on the introduction); nothing for an outline built before it. */
+  function hookLine(a) {
+    const hook = a.intro && a.intro.hook;
+    return hook ? [el('div', { class: 'ai-woven muted small' }, [el('b', { text: t('The hook: ') }), hook])] : [];
   }
   /** What to know about the main points Claude gave: that there are none without the Guide, and how many of its own were left out. */
   function pointNotes(a) {
