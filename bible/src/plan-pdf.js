@@ -58,7 +58,7 @@ export async function programmePdf(plan, settings, services, events) {
   const title = `${cong} – ${t('Monthly programme')} – ${month}`;
   const byDate = Object.fromEntries(services.map(s => [s.date, s]));
   const extras = {};   // date -> the district's events of that day (not the service)
-  for (const e of events) if (e.kind !== 'service') (extras[e.date] = extras[e.date] || []).push(e);
+  for (const e of events) if (!e.service) (extras[e.date] = extras[e.date] || []).push(e);
 
   // ---- the head
   const art = await emblem();
@@ -95,18 +95,22 @@ export async function programmePdf(plan, settings, services, events) {
       const s = byDate[date];
       doc.setDrawColor(LINE[0], LINE[1], LINE[2]);
       if (!inside) { doc.setFillColor(OUTSIDE[0], OUTSIDE[1], OUTSIDE[2]); doc.rect(x, top, colW, rowH, 'FD'); continue; }
-      if (s && !s.off) { doc.setFillColor(PALE[0], PALE[1], PALE[2]); doc.rect(x, top, colW, rowH, 'FD'); }
+      if (s && !s.off && L.isService(s)) { doc.setFillColor(PALE[0], PALE[1], PALE[2]); doc.rect(x, top, colW, rowH, 'FD'); }   // a service day is shaded; a meeting's is not
       else doc.rect(x, top, colW, rowH, 'S');
       font(doc, 9, 'bold', inside ? INK : MUTED);
       doc.text(String(L.dateOf(date).getDate()), x + colW - 1.8, top + 4, { align: 'right' });
       let cy = top + 4;
       const lines = [];   // [text, size, style, color]
       if (s) {
-        if (s.off) lines.push([t('No service'), 7.5, 'italic', MUTED]);
-        else {
+        const who = s.off ? '' : L.whoLabel(s.who, plan, settings);
+        if (s.off) { if (L.isService(s)) lines.push([t('No service'), 7.5, 'italic', MUTED]); }
+        else if (L.isService(s)) {
           lines.push([`${L.serviceTitle(s)} ${s.time}`.trim(), 8, 'bold', BLUE]);
-          const who = L.whoLabel(s.who, plan, settings);
           lines.push(who ? [who, 8, 'bold', INK] : [t('still open'), 7.5, 'italic', AMBER]);
+        } else {
+          // a meeting, a training: its name and time in ink, not the blue of a service, and who leads it when the rector said
+          lines.push([`${L.serviceTitle(s)} ${s.time}`.trim(), 8, 'bold', INK]);
+          if (who) lines.push([who, 8, 'bold', INK]);
         }
         for (const n of s.notes) if (!s.off || !/no .*service/i.test(n)) lines.push([n, 6.8, 'normal', INK]);
         if (s.note) lines.push([s.note, 6.8, 'normal', INK]);
@@ -146,7 +150,7 @@ export async function programmePdf(plan, settings, services, events) {
   doc.text(winAnsi(t('{congregation} · made {date} with the Study Bible', { congregation: cong, date: new Date().toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' }) })), M, H - 4);
 
   // ---- the second page: everything in full
-  const rest = events.filter(e => e.kind !== 'service');
+  const rest = events.filter(e => !e.service);
   if (cut || rest.length) {
     doc.addPage('a4', 'portrait');
     const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight();

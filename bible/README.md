@@ -599,7 +599,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
 - `src/more.js` – the phone's More tab: the nine sections its bar has no room for, in groups, Handbooks first and the Tools under their heading
 - `src/mis.js` – the MIS section: opens the Church's site over the installed app, or in a tab of its own from a browser
 - `src/reminders.js` – the Reminders tab; `src/reminders-lib.js` (the listing PDFs, the roster, phone numbers, the dates coming up), `src/reminders-templates.js` (the greetings), `src/reminders-ics.js` (the calendar file), `src/reminders-sheet.js` (Excel out and back)
-- `src/plan.js` – the Month plan tab; `src/plan-lib.js` (the district's sheet as a plan: the days, the service days, the events, the calendar feed, the message), `src/plan-xlsx.js` (reading the .xlsx and writing the congregation's column into it, without a library), `src/plan-pdf.js` (the month as a one-page programme)
+- `src/plan.js` – the Month plan tab; `src/plan-lib.js` (the district's sheet as a plan: the days, the service days and what each is (a service, or the meeting or training the sheet's note describes), the events, the calendar feed, the message), `src/plan-xlsx.js` (reading the .xlsx and writing the congregation's column into it, without a library), `src/plan-pdf.js` (the month as a one-page programme)
 - `src/ai.js` – Claude: the request, the prompts and their JSON schemas
 - `src/guides.js` – the Divine Service Guides read by Claude: the card in Prepare, prefilling a preparation, the article
 - `src/pdf.js` – printed outputs
