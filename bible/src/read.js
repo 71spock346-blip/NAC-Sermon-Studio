@@ -13,7 +13,7 @@
 import { el, clear, sheet, seg, toast, SIZES } from './ui.js';
 import { t, tl } from './i18n.js';
 import { state, saveSetting, saveSermon } from './store.js';
-import { sermonParts, serviceLine, cueHeading } from './pdf.js';
+import { sermonParts, serviceLine, cueHeading, feelingLine } from './pdf.js';
 import { formatRef } from './books.js';
 import { cueParts, cuesOf, CUE_COLORS, MARK } from './cues.js';
 import { langOf } from './ai.js';
@@ -40,11 +40,14 @@ export function sermon(s, { outline = null } = {}) {
 export function fillSermon(art, s, parts = sermonParts(s)) {
   const { c, ref, title } = parts;
   const L = langOf(s);   // the headings in the sermon's language, as the prints have them
-  head(art, s, { ref, title: s.title || s.theme || !ref ? title : '' });
+  head(art, s, { ref, title: s.title || s.theme || !ref ? title : '', thread: c.thread });
   const verses = text => versesBlock(quotesFor(text, s), { own: s.translation });   // the verses a part names, written out under it (verses.js)
   const put = (...nodes) => art.append(...nodes.filter(Boolean));
-  const section = (heading, body, extras = []) => {
+  // `feel` names the part in the outline whose feeling stands under the heading: ['intro'] or ['point', n]
+  const section = (heading, body, extras = [], feel = null) => {
     if (heading) art.append(el('h2', { text: heading }));
+    const feeling = feel ? feelingLine(c.outline, feel[0], feel[1]) : '';
+    if (feeling) art.append(el('p', { class: 'read-feel', text: feeling }));
     put(...paras(body), verses(body));
     for (const x of extras) {
       if (x.kind === 'illustration') art.append(el('p', { class: 'read-extra' }, [el('b', { text: tl(L, 'Illustration: ') + (x.title || '') })]));
@@ -52,12 +55,12 @@ export function fillSermon(art, s, parts = sermonParts(s)) {
       put(...paras(x.body, x.kind === 'text' ? '' : 'read-in'), verses(x.body));
     }
   };
-  if (c.intro) section(tl(L, 'Introduction'), c.intro, c.after.intro);
-  for (const p of c.points) section(`${p.n}. ${p.heading}`.trim(), p.body, p.extras);
+  if (c.intro) section(tl(L, 'Introduction'), c.intro, c.after.intro, ['intro']);
+  for (const p of c.points) section(`${p.n}. ${p.heading}`.trim(), p.body, p.extras, ['point', p.n]);
   if (c.after.loose.length) section(tl(L, 'Illustrations'), '', c.after.loose);
-  if (c.application) section(tl(L, 'Application for the congregation'), c.application, c.after.application);
+  if (c.application) section(tl(L, 'Application for the congregation'), c.application, c.after.application, ['application']);
   if (c.summary) section(tl(L, 'Summary'), c.summary);
-  if (c.conclusion) section(tl(L, 'Conclusion'), c.conclusion, c.after.conclusion);
+  if (c.conclusion) section(tl(L, 'Conclusion'), c.conclusion, c.after.conclusion, ['conclusion']);
 }
 
 /**
@@ -81,7 +84,7 @@ export function cueList(s, service = null) {
 /** The cue cards into an article: the text word and the message, then a heading and its line of cues for each part (cueList). */
 export function fillCues(art, s, parts) {
   const { ref } = sermonParts(s);
-  head(art, s, { ref: ref || s.title || '', theme: s.theme, core: s.core });
+  head(art, s, { ref: ref || s.title || '', theme: s.theme, core: s.core, thread: s.thread });
   for (const part of parts) {
     const heading = cueHeading(part, langOf(s));
     art.append(el('h2', { class: 'cue-head', text: /[:!?.]$/.test(heading) ? heading : heading + ':' }));
@@ -177,8 +180,8 @@ function open(name, s, cls = '') {
   return art;
 }
 
-/** The head of a reading, as the PDFs have it: the service line, the Bible reference, the text word, then the title or the message. */
-function head(art, s, { ref = '', title = '', theme = '', core = '' }) {
+/** The head of a reading, as the PDFs have it: the service line, the Bible reference, the text word, then the title or the message, and the golden thread of the sermon. */
+function head(art, s, { ref = '', title = '', theme = '', core = '', thread = '' }) {
   if (serviceLine(s)) art.append(el('p', { class: 'read-svc', text: serviceLine(s) }));
   const hymns = hymnLine(s, langOf(s), { titles: false });
   if (hymns) art.append(el('p', { class: 'read-hymns', text: hymns }));
@@ -187,6 +190,7 @@ function head(art, s, { ref = '', title = '', theme = '', core = '' }) {
   if (title) art.append(el('h1', { text: title }));
   if (String(theme || '').trim()) art.append(el('p', { class: 'read-theme', text: theme.trim() }));
   if (String(core || '').trim()) art.append(...paras(core));
+  if (String(thread || '').trim()) art.append(el('p', { class: 'read-thread', text: tl(langOf(s), 'The golden thread: ') + thread.trim() }));
 }
 
 /** A text as paragraphs: a blank line between them starts a new one, a single line break stays a line break. */
