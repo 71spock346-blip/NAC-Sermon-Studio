@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/service-record", "destination": "/api/record?lang=en" },
+    { "source": "/service-record/:name", "destination": "/api/record?lang=en&name=:name" },
+    { "source": "/diensrekord", "destination": "/api/record?lang=af" },
+    { "source": "/diensrekord/:name", "destination": "/api/record?lang=af&name=:name" }
+  ]
+}

@@ -1926,6 +1926,10 @@ body.altar .shell { min-height: 0; display: block; }   /* no column for the hidd
 .record .fill-box p { margin: 0; flex: 1 1 260px; line-height: 1.45; }
 .record .fill-box.on { box-shadow: inset 3px 0 0 var(--c-green); }   /* the link is on: a green edge, as a light that is lit */
 .fill-url { font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; word-break: break-all; background: var(--card); border-radius: var(--radius); padding: 10px 12px; margin: 6px 0; user-select: all; }
+.fill-msg { background: var(--card); border-radius: var(--radius); padding: 10px 12px; margin: 6px 0 12px; }   /* the message as WhatsApp carries it: the heading, what to do, the link */
+.fill-msg p { margin: 0 0 4px; line-height: 1.45; }
+.fill-msg .fill-msg-head { font-weight: 700; }
+.fill-msg .fill-url { background: none; padding: 0; margin: 4px 0 0; }
 /* on the deacon's page, "Sent at 10:47." stays in sight at the foot of the screen while the form is scrolled */
 .fill-status { position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 30; max-width: calc(100vw - 24px); padding: 7px 14px; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow-pop); font-weight: 600; }
 .fill-status:empty { display: none; }
@@ -1934,6 +1938,8 @@ body.fill { --tabbar: 0px; --update-h: 0px; }   /* no bar under the thumb on the
 body.fill main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }   /* room under the last box for "Sent at" */
 body.fill nav.side, body.fill .update-bar, body.fill header.top .actions > a { display: none !important; }   /* no menu, no new-version bar, no Help: the record alone */
 body.fill .shell { display: block; }
+body.fill header.top h1 { white-space: normal; line-height: 1.2; }   /* Service Record and the congregation's name: two lines on a narrow phone rather than cut off */
+body.fill header.top .actions { flex: none; }   /* the language switch keeps its two buttons side by side; the title wraps instead */
 @media (min-width: 760px) { body.fill header.top { display: flex; } body.fill main { padding-top: 24px; } }   /* a PC has the header too, for the language switch, since the menu that holds it is gone */
 .record.fill .sec:last-child { margin-bottom: 8px; }
 @media (max-width: 759.98px) { .rem-stat .n { font-size: 21px; } .rem-stat { padding: 9px 10px; } }

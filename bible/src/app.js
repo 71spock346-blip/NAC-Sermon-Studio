@@ -252,9 +252,15 @@ function startFill(code) {
   applyRead(state.settings.readMode || 'book');
   const container = $('#tab-record');
   for (const panel of $$('main .tab')) panel.hidden = panel !== container;
-  const useLang = l => { state.settings.uiLang = l; state.settings.bookLang = l; applyLang(l); document.title = t('Service record'); };   // the name in the browser's tab and in WhatsApp's own browser
+  // the page's title, in the header (where the app's name stands) and in the browser's tab: Service Record Gezina
+  const name = $('header.top h1 [data-t]');
+  if (name) name.removeAttribute('data-t');
+  let place = '';
+  const together = s => s.replace(/ /g, '\u00a0');   // "Service Record" stays on one line; on a narrow phone the name goes to the next
+  const showTitle = () => { const title = Fill.heading(place); document.title = title; if (name) name.textContent = title.replace(t('Service Record'), together(t('Service Record'))); };
+  const useLang = l => { state.settings.uiLang = l; state.settings.bookLang = l; applyLang(l); showTitle(); };
   useLang(state.settings.uiLang || 'en');
-  const page = Fill.openPage(container, code, { setLang: useLang });
+  const page = Fill.openPage(container, code, { setLang: useLang, setPlace: p => { place = p; showTitle(); } });
   for (const b of $$('.lang-switch button')) b.addEventListener('click', () => { if (b.dataset.lang === lang()) return; useLang(b.dataset.lang); page.redraw(); });
   window.addEventListener('hashchange', () => location.reload());
   hideSplash();
