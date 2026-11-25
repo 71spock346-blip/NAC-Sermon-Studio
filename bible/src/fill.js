@@ -15,7 +15,11 @@
  * from the link's code (PBKDF2, AES-GCM) and kept by the app's own sync
  * server (api/sync) as the part "record" under a hash of the code. The server
  * cannot read it, and the code never reaches it: it stands after the # of the
- * link. Anyone who has the link can fill in the record, so it goes to the
+ * link. The link reads as a page of the congregation (25 Nov: "it must not
+ * look like it's going to take them to some strange file"):
+ * /service-record/Gezina#<code>, whose card in WhatsApp says "Service Record
+ * Gezina" (api/record.js); that page goes on to #fill/<code>, which opens the
+ * deacon's page here. Anyone who has the link can fill in the record, so it goes to the
  * deacons only; "Stop the link" deletes the copy on the server, and the link
  * then says it was stopped.
  *
@@ -61,8 +65,23 @@ export function codeFromHash(hash = location.hash) {
   const m = /^#\/?fill\/([A-Z2-9]{20})$/.exec(String(hash || '').trim());
   return m ? m[1] : '';
 }
-/** The link the deacons open. */
-export const linkFor = code => `${location.origin}${location.pathname.replace(/[^/]*$/, '')}#fill/${code}`;
+/** The congregation the link is for: the minister's own (Settings, You), else the one of the service on it. */
+const placeName = s => String(state.settings.congregation || (s && s.congregation) || '').trim();
+/** The congregation as the address carries it: Pretoria East -> Pretoria-East, only letters, digits, full stops and apostrophes kept (api/record.js reads it back). */
+const slug = name => encodeURIComponent(String(name || '').normalize('NFC').replace(/[^\p{L}\p{N}\s.'’-]/gu, '').trim().replace(/[\s-]+/g, '-').slice(0, 40).replace(/-+$/, ''));
+/** The heading of the message and of the deacon's page: Service Record Gezina (Diensrekord Gezina). */
+export const heading = name => (name ? t('Service Record {congregation}', { congregation: name }) : t('Service Record'));
+/**
+ * The link the deacons open: /service-record/Gezina#<code>, in Afrikaans /diensrekord/Gezina#<code>.
+ * WhatsApp fetches that page for its card, which says "Service Record Gezina" with the Church's emblem
+ * (api/record.js), and the page goes on to #fill/<code> here. The code stays after the #, so it never
+ * reaches the server. A link of the first shape (#fill/<code>) still opens.
+ */
+export const linkFor = (code, name = placeName()) => {
+  const root = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}`;
+  const part = slug(name);
+  return `${root}${lang() === 'af' ? 'diensrekord' : 'service-record'}${part ? '/' + part : ''}#${code}`;
+};
 /** The minister's link, when there is one: {code, at}. */
 const link = () => (state.settings.fillLink && state.settings.fillLink.code ? state.settings.fillLink : null);
 export const linkOn = () => !!link();
@@ -331,22 +350,27 @@ async function stopLink() {
   await saveSetting('fillSeen', null);
 }
 
-/** The words the WhatsApp message carries with the link. */
-const message = code => [t('The service record of {congregation}: please open this link and fill it in after the service.', { congregation: state.settings.congregation || t('our congregation') }), linkFor(code)].join('\n');
+/** The WhatsApp message: the heading in bold, what to do, and the link. */
+const message = (code, name) => [`*${heading(name)}*`, t('Please open this link after the service and fill in the record.'), linkFor(code, name)].join('\n');
 
 /** The sheet with the link: send it on WhatsApp, copy it, or stop it. */
 function linkSheet(redraw) {
   const ln = link();
   if (!ln) return;
   const sh = sheet(t('The deacons\' link'));
-  const url = linkFor(ln.code);
   const seen = seenFor(ln.code);
   const s = seen && state.sermons.find(x => x.id === seen.sid);
+  const name = placeName(s);
+  const url = linkFor(ln.code, name);
   sh.body.append(
     el('p', { text: s ? t('The link shows the service record of {date}. When the next service has come, it moves on to that one by itself.', { date: fmtDate(s.date, true) }) : t('The link shows the service record of the current service: today\'s, or the last one held.') }),
-    el('p', { class: 'fill-url', text: url }),
+    el('div', { class: 'fill-msg' }, [   // the message as WhatsApp carries it
+      el('p', { class: 'fill-msg-head', text: heading(name) }),
+      el('p', { text: t('Please open this link after the service and fill in the record.') }),
+      el('p', { class: 'fill-url', text: url }),
+    ]),
     el('div', { class: 'row' }, [
-      el('a', { class: 'btn rem-wa', href: 'https://wa.me/?text=' + encodeURIComponent(message(ln.code)), target: '_blank', rel: 'noreferrer', text: t('Send on WhatsApp') }),
+      el('a', { class: 'btn rem-wa', href: 'https://wa.me/?text=' + encodeURIComponent(message(ln.code, name)), target: '_blank', rel: 'noreferrer', text: t('Send on WhatsApp') }),
       el('button', { class: 'btn ghost', type: 'button', text: t('Copy the link'), onclick: async () => { toast((await copyText(url)) ? t('Copied.') : t('Could not copy.')); } }),
     ]),
     el('p', { class: 'small muted', text: t('Anyone who has the link can fill in the record, so send it only to your deacons. Stop it if it goes further, or when a deacon leaves; then make a new one.') }),
@@ -416,7 +440,7 @@ export function ownerBox(s, redraw) {
  * One look at the server or one send at a time (busy), so that neither works
  * from what the other has just changed.
  */
-export function openPage(container, code, { setLang } = {}) {
+export function openPage(container, code, { setLang, setPlace } = {}) {
   let etag = '', data = null, base = null, page = null, note = null, sentAt = null, shownHead = '';
   let sendT = null, pollT = null, busy = false, chosenLang = false;
   const pacing = pace();
@@ -448,6 +472,7 @@ export function openPage(container, code, { setLang } = {}) {
   function draw(rec) {
     note = null;
     shownHead = JSON.stringify(data.head || {});
+    if (setPlace) setPlace((data.head && data.head.congregation) || '');   // the page's title: Service Record Gezina
     clear(container);
     page = Record.recordView(container, asPrep({ ...data, record: rec || data.record }), { fill: { status, save: () => { pacing.stir(); clearTimeout(sendT); say(t('Sending…')); sendT = setTimeout(send, SEND_AFTER); } } });
   }
