@@ -852,8 +852,8 @@ const OUTLINE_SCHEMA = {
       properties: { line: { type: 'string', description: 'The one thing the whole sermon says, in one short sentence the minister could say to a child' }, picture: { type: 'string', description: 'The one everyday picture that carries the line and comes back in the parts, in a few words; empty when the line needs none' }, why: { type: 'string', description: 'One short line on where it comes from: what in the Guide\'s message and the text word gives it' } },
     },
     intro: {
-      type: 'object', additionalProperties: false, required: ['text', 'why', 'thread', 'feeling'], description: 'The introduction: how the sermon opens',
-      properties: { text: { type: 'string', description: 'Four to six short sentences, as the minister could speak them: the first one or two make the people feel welcome, then it opens the door to the text, with the golden thread first heard' }, why: { type: 'string', description: 'One short line on why this opening works for this text, this message and these people' }, ...WOVEN_FIELDS },
+      type: 'object', additionalProperties: false, required: ['text', 'hook', 'why', 'thread', 'feeling'], description: 'The introduction: how the sermon opens (see the rules on the introduction)',
+      properties: { text: { type: 'string', description: 'Five to seven short sentences, as the minister could speak them: a sentence or two of welcome, then the hook, then the thought of the Guide\'s own Introduction in plain words, opening the door to the first main point, with the golden thread first heard' }, hook: { type: 'string', description: 'The hook in one short line: what in the opening makes the people sit up, and what the whole sermon then answers' }, why: { type: 'string', description: 'One short line on why this opening works for this text, this message and these people' }, ...WOVEN_FIELDS },
     },
     points: {
       type: 'array', description: 'The main points, as the rules on the main points say: the Guide\'s, in its order; empty when the rules say to propose none',
@@ -902,17 +902,19 @@ Feeling: a sermon moves; it does not run on one note. Give each part the feeling
 }
 
 function outlineSystem(lang, humour, where, thoughts, ownThread) {
-  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction: the Guide is the skeleton of the sermon. Your task is to propose how the sermon is best built on it: one golden thread that runs through every heading, an introduction that opens the door, the main points as the Guide gives them, each standing on the text and set in its scene, an application for the congregation, a conclusion that leads to the altar, and a few illustrations, with the feeling each part carries. For each part say in one short line why it works here. The minister decides; he takes what serves him.
+  return `You help a minister of the New Apostolic Church build an unscripted sermon for a divine service. The Bible text and the message of the service are given; the message comes from the Church's Divine Service Guide and sets the direction: the Guide is the skeleton of the sermon. Your task is to propose how the sermon is best built on it: one golden thread that runs through every heading, an introduction that stands on the Guide's own introduction and opens, after the welcome, with a hook the whole sermon answers, the main points as the Guide gives them, each standing on the text and set in its scene, an application for the congregation, a conclusion that leads to the altar, and a few illustrations, with the feeling each part carries. For each part say in one short line why it works here. The minister decides; he takes what serves him.
 
 Rules:
 ${pointsRule(where.mode, 'outline')}
 - The introduction, the application, the conclusion and the illustrations are yours to propose, but each stands on those main points and on the message: the introduction opens the door to the first point, the application and the conclusion gather the points up, and every illustration serves one of them. Nothing pulls away from them.
-- As the Church's Guide for Ministers asks of every sermon (4.5.4): the introduction first makes the people feel welcome, in a sentence or two in the minister's own warm words, before it opens the door to the text; the conclusion sums up the main points briefly, in their order, so the message is clearly recognisable, before it leads to the altar.
+- The introduction stands on the Guide's own Introduction where the article gives one (under THE ARTICLE IN THE DIVINE SERVICE GUIDE, after "Introduction:"): the Guide is the skeleton here too. Take its thought and its direction and say them in the minister's plain words for these people; never leave it out, never copy it word for word, and add nothing that pulls away from it. Where the Guide gives no introduction, build it from the text and the message.
+- As the Church's Guide for Ministers asks of every sermon (4.5.4), the introduction first makes the people feel welcome, in a sentence or two in the minister's own warm words. Then comes the hook: one or two sentences that make the people sit up and want to hear the rest, taken from the Guide's introduction or from the text (a question they cannot answer yet, a scene they know from their own week, something in the text that surprises, a tension the sermon will resolve). It grabs because it is true and because it is about them, never a trick. The whole sermon answers the hook, the golden thread is first heard in it, and it leads straight to the first main point. Put the hook in "hook", in one short line, so the minister finds it.
+- The conclusion sums up the main points briefly, in their order, so the message is clearly recognisable (Guide for Ministers 4.5.4), before it leads to the altar.
 - Stay faithful to the Bible text and to the doctrine of the New Apostolic Church as the Catechism states it. Where the Catechism text given below speaks to the matter, let it shape the body of the points. Do not state what a Catechism section says unless its text is given; where you draw on it, say it in plain words.
 - The message of the service gives the direction: the whole outline serves it and does not pull the text elsewhere.
 - A New Apostolic sermon is preached freely, lasts fifteen to twenty minutes at most, and leads the congregation to the forgiveness of sins and Holy Communion: the conclusion ends there. In a divine service for the departed, the departed are included in the hope and the intercession.
 - Write every part so the minister could speak it as it stands: in the voice of a minister speaking to his congregation, "we" and "us", no headings inside the text.
-- Build on what the minister has written already: keep his direction and wording where he has one, fill what is empty, and offer an alternative only where his draft is thin. Do not repeat his text back to him. Where a main point still carries the Guide's own words, as it was filled in, write it in plain words for these people.
+- Build on what the minister has written already: keep his direction and wording where he has one, fill what is empty, and offer an alternative only where his draft is thin. Do not repeat his text back to him. Where a main point, or the introduction, still carries the Guide's own words, as it was filled in, write it in plain words for these people (the introduction with the welcome and the hook before it).
 ${thoughts ? thoughtsRule() : ''}- Illustrations: a picture from daily life, a true-to-life example or a Bible story that makes a point visible, taken from the world of the people who are listening. When one of the minister's own notes fits, use that one and say so ("from your notes: …") rather than inventing another.
 - The lighter moment: fill it only when the humour level below allows it and something fits naturally; otherwise leave both fields empty. It may also be woven into the introduction or an illustration.
 - Where a part leans on another Bible verse, name it in brackets as book chapter:verse, such as (John 3:16): the app writes that verse out under the part for the minister to read, so quote at most a few of its words yourself.
@@ -991,10 +993,10 @@ export async function outline(s, { service = null, guideTitle = '', signal, onPr
   return { ...tidyOutline(r, lang, humour, where, service, thoughts), audience: audienceOf(s) };
 }
 
-/** A part of the outline that may be an object with its text, or (an older outline) the text alone: {text, thread, feeling, why}. */
+/** A part of the outline that may be an object with its text, or (an older outline) the text alone: {text, hook, thread, feeling, why} (`hook` only on the introduction). */
 function partOf(v, key = 'text') {
-  if (v && typeof v === 'object') return { text: str(v[key]), why: str(v.why), thread: str(v.thread), feeling: str(v.feeling) };
-  return { text: str(v), why: '', thread: '', feeling: '' };
+  if (v && typeof v === 'object') return { text: str(v[key]), hook: str(v.hook), why: str(v.why), thread: str(v.thread), feeling: str(v.feeling) };
+  return { text: str(v), hook: '', why: '', thread: '', feeling: '' };
 }
 
 function tidyOutline(r, lang, humour, where, service, thoughts) {
@@ -1016,7 +1018,7 @@ function tidyOutline(r, lang, humour, where, service, thoughts) {
     at: new Date().toISOString(), model: r.model, lang, humour,
     cost: cost(r.usage, r.model),
     thread, woven,
-    intro: { text: intro.text, why: intro.why }, points, pointsFrom: where.mode, dropped, application: application.text, conclusion: conclusion.text, illustrations, lighter, note: str(d.note),
+    intro: { text: intro.text, why: intro.why, hook: intro.hook }, points, pointsFrom: where.mode, dropped, application: application.text, conclusion: conclusion.text, illustrations, lighter, note: str(d.note),
     thoughts: tidyThoughts(d.thoughts, thoughts, x => ({ where: str(x.where), how: str(x.how), question: str(x.question) })),
   };
 }

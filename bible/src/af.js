@@ -378,7 +378,9 @@ export const AF = {
   "Title and message": "Titel en boodskap",
   // ---- one line per step, the longer note behind "?" (prepare.js hintPair)
   "More about this": "Meer hieroor",
-  "As in the Guide: make the people feel welcome and open the door to the text.": "Soos in die Handleiding: laat die mense welkom voel en maak die deur na die teks oop.",
+  "As in the Guide: welcome the people, then a hook that grabs them and leads the rest of the sermon.": "Soos in die Handleiding: verwelkom die mense, dan 'n haak wat hulle vasvang en die res van die preek lei.",
+  "The Guide's own introduction is the skeleton here too: \"Use\" puts it in your box, to say in your own words, and Claude stands on it when it suggests the sermon. After the welcome comes the hook: one or two sentences that make the people sit up and want to hear the rest, such as a question they cannot answer yet, a scene from their own week or something in the text that surprises, and the whole sermon then answers it. The golden thread is first heard here. The outline shows the hook under the introduction.": "Die Handleiding se eie inleiding is ook hier die geraamte: \"Gebruik\" sit dit in jou boks, om in jou eie woorde te sê, en Claude staan daarop wanneer dit die preek voorstel. Na die verwelkoming kom die haak: een of twee sinne wat die mense laat regop sit en die res wil hoor, soos 'n vraag wat hulle nog nie kan antwoord nie, 'n toneel uit hul eie week of iets in die teks wat verras, en die hele preek antwoord dit dan. Die goue draad word hier die eerste keer gehoor. Die preekskets wys die haak onder die inleiding.",
+  "The Guide's own introduction is the skeleton here too: \"Use\" puts it in your box, to say in your own words. After the welcome comes the hook: one or two sentences that make the people sit up and want to hear the rest, such as a question they cannot answer yet, a scene from their own week or something in the text that surprises, and the whole sermon then answers it. The golden thread is first heard here.": "Die Handleiding se eie inleiding is ook hier die geraamte: \"Gebruik\" sit dit in jou boks, om in jou eie woorde te sê. Na die verwelkoming kom die haak: een of twee sinne wat die mense laat regop sit en die res wil hoor, soos 'n vraag wat hulle nog nie kan antwoord nie, 'n toneel uit hul eie week of iets in die teks wat verras, en die hele preek antwoord dit dan. Die goue draad word hier die eerste keer gehoor.",
   "An evening when the congregation looks back on this service and talks about it.": "'n Aand waarop die gemeente terugkyk na hierdie godsdiens en daaroor praat.",
   "Claude takes the Guide's article apart, sentence by sentence, in plain words.": "Claude haal die Handleiding se artikel uitmekaar, sin vir sin, in gewone woorde.",
   "Claude proposes how to build this sermon from the text, the Guide and your thoughts.": "Claude stel voor hoe om hierdie preek uit die teks, die Handleiding en jou gedagtes te bou.",
@@ -453,8 +455,12 @@ export const AF = {
   // step 3: the introduction
   "Introduction": "Inleiding",
   "The Guide's introduction": "Die Handleiding se inleiding",
+  "Use the Guide's introduction": "Gebruik die Handleiding se inleiding",
+  "The Guide's introduction is in your box. Say it in your own words, with the welcome and the hook before it.": "Die Handleiding se inleiding is in jou boks. Sê dit in jou eie woorde, met die verwelkoming en die haak vooraf.",
+  "The hook: ": "Die haak: ",
+  "The welcome first, then the hook the whole sermon answers.": "Eers die verwelkoming, dan die haak wat die hele preek antwoord.",
   "Your introduction": "Jou inleiding",
-  "How you will begin: a question, a picture from daily life, the setting of the text": "Hoe jy gaan begin: 'n vraag, 'n beeld uit die daaglikse lewe, die agtergrond van die teks",
+  "A welcome, then the hook: a question, a picture from their week, a surprise in the text, that the whole sermon answers": "'n Verwelkoming, dan die haak: 'n vraag, 'n beeld uit hul week, 'n verrassing in die teks, wat die hele preek antwoord",
 
   // step 4: the main points
   "Main points": "Hoofpunte",

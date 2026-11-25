@@ -310,7 +310,7 @@ stays in whichever translation is chosen; the Catechism's text and index are Eng
   line the sermon says with the everyday picture that carries it; the minister's own `s.thread` is kept when he wrote
   one) is woven through every heading, each main point opens in the world of the text or in an everyday picture, and
   `build.woven` says for every part how the thread shows in it and the feeling it carries (`ai.js weaveRules`); "Use"
-  on the thread keeps it in the box under step 4, from where it prints on the notes, the sermon and the cue cards. Under each main point the minister can write his own thought on it
+  on the thread keeps it in the box under step 4, from where it prints on the notes, the sermon and the cue cards. The introduction stands on the Guide's own introduction and opens, after the welcome, with a hook the whole sermon answers (`build.intro.hook`, shown under the introduction in the outline; "Use" on the Guide's introduction under step 3 puts its words in the box to build on). Under each main point the minister can write his own thought on it
   (`points[i].thought`); before the build, `readThoughts` has Claude read those thoughts and ask, in a sheet, about any
   that is unclear (the questions and answers stay under the point as `talk`, and `read` marks what Claude has seen, so
   only a changed thought is read again), then the outline weaves every thought in and reports where each went
