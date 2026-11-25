@@ -6,7 +6,9 @@
  * (plan-lib.js, through the sheet's own XML: plan-xlsx.js) and lists the
  * congregation's service days: every Sunday and Wednesday, the feast days of
  * the Church year (Christmas Day on whatever weekday it falls), any other
- * day the sheet marks, and any he adds. For each he picks who holds it: himself, one of his
+ * day the sheet marks, and any he adds. For each he says what it is (a
+ * divine service, or a meeting, a training or something else held in the
+ * congregation: the sheet's note decides to begin with) and picks who holds it: himself, one of his
  * priests, the District Rector or the Apostle when the sheet puts them in
  * the congregation that day, or a name typed in. Then "Send to the priests"
  * gives the district's own file with his column filled in, the month as a
@@ -140,14 +142,14 @@ async function openFile(file) {
   return row;
 }
 
-/** The district's file with the congregation's column written in: the code of who holds each service, nothing on a day with no service. */
+/** The district's file with the congregation's column written in: the code of who holds each service, nothing on a day with no service or with a meeting. */
 async function excelFile(row) {
   const { plan, services } = compute(row);
   const values = {};
   for (const s of services) {
     const day = plan.days.find(d => d.date === s.date);
     if (!day) continue;
-    values[day.rows[0]] = s.off ? '' : s.who;
+    values[day.rows[0]] = s.off || !L.isService(s) ? '' : s.who;
   }
   const bytes = fromBase64(row.file);
   const cols = plan.columns;
@@ -281,8 +283,8 @@ function openCard(first) {
     note.hidden = false; note.textContent = t('Reading {file}…', { file: f.name });
     try {
       const row = await openFile(f);
-      const { services } = compute(row);
-      toast(tn(services.length, '{month} read: {n} service day.', '{month} read: {n} service days.', { month: L.monthLabel(row.month, row.year, lang()) }));
+      const n = compute(row).services.filter(L.isService).length;   // the services; a meeting the sheet announces is on the list too, but is not one
+      toast(tn(n, '{month} read: {n} service day.', '{month} read: {n} service days.', { month: L.monthLabel(row.month, row.year, lang()) }));
       location.hash = '#plan/' + row.id.slice(5);
       render(box, ['plan', row.id.slice(5)]);
     } catch (e) { note.textContent = e.message || t('That file could not be read.'); note.classList.add('error'); }
@@ -299,18 +301,23 @@ function openCard(first) {
 
 /* ---- the services */
 
+/** The days of the list that still need someone: a service with nobody to hold it (a meeting needs nobody). */
+const stillOpen = services => services.filter(s => !s.off && !s.who && L.isService(s)).length;
+
 function servicesCard(row, c) {
   const list = el('div', { class: 'list plan-list' });
   for (const s of c.services) {
     const who = L.whoLabel(s.who, c.plan, c.settings);
+    const service = L.isService(s);
     const notes = [...s.notes, s.note].filter(Boolean);
-    const state_ = s.off ? el('span', { class: 'pill status held', text: t('No service') })
+    // the pill: who holds it; "Choose who" only on a service, since a meeting needs nobody
+    const state_ = s.off ? el('span', { class: 'pill status held', text: service ? t('No service') : t('Called off') })
       : who ? el('span', { class: 'pill status ready', text: who })
-        : el('span', { class: 'pill warn', text: t('Choose who') });
-    list.append(el('button', { class: 'item plan-row' + (s.off ? ' off' : ''), type: 'button', onclick: () => rowSheet(row, s.date) }, [
+        : service ? el('span', { class: 'pill warn', text: t('Choose who') }) : null;
+    list.append(el('button', { class: 'item plan-row' + (s.off ? ' off' : '') + (service ? '' : ' plan-' + s.type), type: 'button', onclick: () => rowSheet(row, s.date) }, [
       el('span', { class: 'plan-when' }, [
         el('b', { text: L.shortDate(s.date, locale()) }),
-        el('span', { class: 'muted small', text: s.off ? L.serviceName(s) : `${L.serviceName(s)} · ${s.time}` }),
+        el('span', { class: 'muted small plan-kind', text: s.off ? L.serviceName(s) : `${L.serviceName(s)} · ${s.time}` }),
       ]),
       el('span', { class: 'grow plan-what' }, [
         state_,
@@ -321,14 +328,28 @@ function servicesCard(row, c) {
       el('span', { class: 'chev', 'aria-hidden': 'true', text: '›' }),
     ]));
   }
-  const open = c.services.filter(s => !s.off && !s.who).length;
-  const add = el('button', { class: 'btn small ghost', type: 'button', text: t('Add a service'), onclick: () => addDaySheet(row, c) });
-  return section(t('Services'), [
+  const open = stillOpen(c.services);
+  const add = el('button', { class: 'btn small ghost', type: 'button', text: t('Add a day'), onclick: () => addDaySheet(row, c) });
+  return section(t('Services and meetings'), [
     el('p', { class: 'small', text: open
-      ? tn(open, 'Tap a service to say who holds it. {n} still has nobody.', 'Tap a service to say who holds it. {n} still have nobody.')
-      : t('Tap a service to change who holds it, its time, or to mark a day without a service.') }),
+      ? tn(open, 'Tap a day to say what it is and who holds it. {n} service still has nobody.', 'Tap a day to say what it is and who holds it. {n} services still have nobody.')
+      : t('Tap a day to change what it is, who holds it or its time.') }),
     list,
   ], { actions: [add] });
+}
+
+/** An example for the name box, by what the day is (keys of the Afrikaans table; check_i18n.py lists them as indirect). */
+const EXAMPLE = { service: 'Divine service', meeting: "Ministers' meeting", training: "New ministers' training", other: 'Youth evening' };
+
+/** The chips that say what a day is: a divine service, a meeting, a training, something else. */
+function kindChips(current, onPick) {
+  const box = el('div', { class: 'row chips plan-chips' });
+  const draw = type => {
+    clear(box);
+    for (const k of L.TYPES) box.append(el('button', { type: 'button', class: 'chip' + (k === type ? ' on' : ''), text: L.typeLabel(k), onclick: () => { if (k !== type) { draw(k); onPick(k); } } }));
+  };
+  draw(current);
+  return box;
 }
 
 function rowSheet(row, date) {
@@ -337,20 +358,23 @@ function rowSheet(row, date) {
   if (!s) return;
   const sh = sheet(`${L.shortDate(date, locale())} · ${L.serviceName(s)}`);
   const choice = () => (row.services || {})[date] || {};
+  let type = s.type;   // what the day is now: the rector's choice, else what the sheet's note made of it
+  const service = () => type === 'service';
   // who: the rector's own people, the leader the sheet puts here today, the Apostle's transmission (AVT), or a name typed in
   const chips = el('div', { class: 'row chips plan-chips' });
   const other = el('input', { type: 'text', placeholder: t('Name, as the priests should see it'), value: '', autocomplete: 'off', hidden: true });
   const options = [...c.settings.roster.map(r => [r.code, r.label || L.ministerLabel(r)])];
   for (const v of s.visiting) if (v.code && !options.some(o => o[0].toUpperCase() === v.code.toUpperCase())) options.push([v.code, `${v.label} (${t('visiting')})`]);
-  options.push(['AVT', t('AVT (transmission)')]);   // the Apostle's service transmitted to all congregations: nobody holds it here
-  const known = options.some(o => o[0].toUpperCase() === (s.who || '').toUpperCase());
+  const avt = ['AVT', t('AVT (transmission)')];   // the Apostle's service transmitted to all congregations: nobody holds it here (a service, so not for a meeting)
+  const known = [...options, avt].some(o => o[0].toUpperCase() === (s.who || '').toUpperCase());
   const draw = () => {
     clear(chips);
     const who = (choice().who ?? s.auto.who) || '';
-    for (const [code, label] of options) chips.append(el('button', { type: 'button', class: 'chip' + (who.toUpperCase() === code.toUpperCase() ? ' on' : ''), text: label, onclick: async () => { other.hidden = true; await saveChoice(row, date, { who: code }); draw(); redraw(); } }));
-    const typed = who && !options.some(o => o[0].toUpperCase() === who.toUpperCase());
+    const list = service() ? [...options, avt] : options;
+    for (const [code, label] of list) chips.append(el('button', { type: 'button', class: 'chip' + (who.toUpperCase() === code.toUpperCase() ? ' on' : ''), text: label, onclick: async () => { other.hidden = true; await saveChoice(row, date, { who: code }); draw(); redraw(); } }));
+    const typed = who && !list.some(o => o[0].toUpperCase() === who.toUpperCase());
     chips.append(el('button', { type: 'button', class: 'chip' + (typed || !other.hidden ? ' on' : ''), text: typed ? who : t('Someone else'), onclick: () => { other.hidden = false; other.value = typed ? who : ''; other.focus(); } }));
-    chips.append(el('button', { type: 'button', class: 'chip' + (!who ? ' on' : ''), text: t('Nobody yet'), onclick: async () => { other.hidden = true; await saveChoice(row, date, { who: '' }); draw(); redraw(); } }));
+    chips.append(el('button', { type: 'button', class: 'chip' + (!who ? ' on' : ''), text: service() ? t('Nobody yet') : t('Nobody'), onclick: async () => { other.hidden = true; await saveChoice(row, date, { who: '' }); draw(); redraw(); } }));
   };
   other.addEventListener('change', async () => { await saveChoice(row, date, { who: other.value.trim() }); draw(); redraw(); });
   if (!known && s.who) { other.hidden = false; other.value = s.who; }
@@ -359,13 +383,32 @@ function rowSheet(row, date) {
   time.addEventListener('change', async () => { await saveChoice(row, date, { time: time.value }); redraw(); });
   const off = el('input', { type: 'checkbox', id: 'plan-off' }); off.checked = s.off;
   off.addEventListener('change', async () => { await saveChoice(row, date, { off: off.checked }); redraw(); });
+  const offText = document.createTextNode('');
   const note = el('textarea', { rows: '2', placeholder: t('A line for the priests about this day (optional)') });
   note.value = s.note;
   note.addEventListener('change', async () => { await saveChoice(row, date, { note: note.value.trim() }); redraw(); });
-  // a day the rector added himself: what it is, and a way to take it off again
+  // its name, in the rector's words: for a meeting, a training, and any day that is not a Sunday, a Wednesday or a feast day
+  const name = el('input', { type: 'text', value: s.name, autocomplete: 'off' });
+  name.addEventListener('change', async () => { await saveChoice(row, date, { name: name.value.trim() }); syncType(); redraw(); });
+  const nameField = field(t('Its name (optional)'), name);
+  const whoHead = el('h3', { class: 'sub' });
+  // what the day is decides the words around it: who holds a service, who leads a meeting; a service is closed, a meeting called off
+  const syncType = () => {
+    whoHead.textContent = service() ? t('Who holds it') : t('Who leads it (optional)');
+    offText.textContent = service() ? t('No service on this day') : t('Called off');
+    nameField.hidden = service() && s.kind !== 'extra';
+    name.placeholder = t(EXAMPLE[type]);
+    sh.head.querySelector('h2').textContent = `${L.shortDate(date, locale())} · ${L.serviceName({ ...s, type, name: name.value.trim() })}`;
+  };
+  syncType();
+  const kinds = kindChips(type, async k => {
+    type = k;
+    await saveChoice(row, date, { type: k });
+    draw(); syncType(); redraw();
+    if (k === 'other' && !name.value) name.focus();
+  });
+  // a day the rector added himself: a way to take it off again
   const added = s.kind === 'extra' && s.added;
-  const name = added ? el('input', { type: 'text', value: s.name, placeholder: t('Divine service'), autocomplete: 'off' }) : null;
-  if (name) name.addEventListener('change', async () => { await saveChoice(row, date, { name: name.value.trim() }); redraw(); });
   const remove = added ? el('button', { class: 'btn ghost danger', type: 'button', text: t('Take this day off'), onclick: async () => {
     row.extraDays = (row.extraDays || []).filter(x => x !== date);
     const rest = { ...(row.services || {}) };
@@ -380,22 +423,27 @@ function rowSheet(row, date) {
     s.notes.length ? el('div', { class: 'plan-sheet-notes' }, [el('p', { class: 'eyebrow', text: t('The district says') }), ...s.notes.map(n => el('p', { class: 'small', text: n }))]) : null,
     s.visiting.length ? el('p', { class: 'small', text: t('{who} at {congregation}', { who: s.visiting.map(v => v.label).join(', '), congregation: c.settings.congregation }) }) : null,
     s.feast ? el('p', { class: 'small', text: t('{day}: a divine service is held on this day, whatever the weekday. If there is none this year, tick No service below.', { day: L.dayName(s) }) }) : null,
-    el('h3', { class: 'sub', text: t('Who holds it') }),
+    el('h3', { class: 'sub', text: t('What is it') }),
+    kinds,
+    nameField,
+    whoHead,
     chips,
     other,
-    name ? field(t('What (optional)'), name) : null,
     el('div', { class: 'fields two' }, [field(t('Time'), time)]),
-    el('label', { class: 'check', for: 'plan-off' }, [off, ' ', t('No service on this day')]),
+    el('label', { class: 'check', for: 'plan-off' }, [off, ' ', offText]),
     field(t('Note'), note),
     el('div', { class: 'row end' }, [remove, el('button', { class: 'btn', type: 'button', text: t('Done'), onclick: () => sh.close() })]),
   ].filter(Boolean));
 }
 
-/** A divine service on a day the list does not have: its date, its time and, if the rector likes, a name. Then its row's sheet opens to say who holds it. */
+/** A day the list does not have: its date, what it is (a divine service, a meeting, a training), its time and, if the rector likes, a name. Then its row's sheet opens to say who holds it. */
 function addDaySheet(row, c) {
-  const sh = sheet(t('Add a service'));
+  const sh = sheet(t('Add a day'));
   const date = el('input', { type: 'date', min: c.plan.first, max: c.plan.last, value: '' });
-  const name = el('input', { type: 'text', placeholder: t('Divine service'), autocomplete: 'off' });
+  let type = 'service';
+  const name = el('input', { type: 'text', placeholder: t(EXAMPLE.service), autocomplete: 'off' });
+  const hint = el('span', { class: 'hint muted small', text: t('Leave it empty for an ordinary divine service.') });
+  const kinds = kindChips(type, k => { type = k; name.placeholder = t(EXAMPLE[k]); hint.hidden = k !== 'service'; });
   const time = el('input', { type: 'time', value: c.settings.midweekTime });
   // the time follows the day: a weekend or a public holiday in the morning like a Sunday, a working day in the evening like a Wednesday
   date.addEventListener('change', () => {
@@ -406,16 +454,18 @@ function addDaySheet(row, c) {
     time.value = (L.dow(d) === 0 || L.dow(d) === 6 || holiday ? c.settings.sundayTime : c.settings.midweekTime) || time.value;
   });
   sh.body.append(
-    el('p', { class: 'small', text: t('A divine service on a day the list does not have, such as a special service the district announces. Christmas Day, Good Friday and Ascension Day are on the list by themselves.') }),
+    el('p', { class: 'small', text: t('A day the list does not have: a special service the district announces, a ministers\' meeting, a training. Christmas Day, Good Friday and Ascension Day are on the list by themselves.') }),
+    el('h3', { class: 'sub', text: t('What is it') }),
+    kinds,
     el('div', { class: 'fields two' }, [field(t('Date'), date), field(t('Time'), time)]),
-    field(t('What (optional)'), name, t('Leave it empty for an ordinary divine service.')),
+    el('label', { class: 'f' }, [t('Its name (optional)'), name, hint]),
     el('div', { class: 'row end' }, [el('button', { class: 'btn', type: 'button', text: t('Add'), onclick: async () => {
       const d = date.value;
       if (!d) { toast(t('Choose the day first.'), true); date.focus(); return; }
       if (d < c.plan.first || d > c.plan.last) { toast(t('That day is not in this month\'s sheet.'), true); return; }
       if (c.services.some(s => s.date === d)) { toast(t('That day is on the list already.')); sh.close(); rowSheet(row, d); return; }
       if (!(row.extraDays || []).includes(d)) row.extraDays = [...(row.extraDays || []), d];
-      row.services = { ...(row.services || {}), [d]: { ...((row.services || {})[d] || {}), off: false, name: name.value.trim(), time: time.value } };
+      row.services = { ...(row.services || {}), [d]: { ...((row.services || {})[d] || {}), off: false, type, name: name.value.trim(), time: time.value } };
       await savePlan(row);
       queueFeed();
       sh.close();
@@ -429,7 +479,7 @@ function addDaySheet(row, c) {
 
 function eventsCard(row, c) {
   const list = el('div', { class: 'list plan-list' });
-  const KIND = { service: t('Service'), district: t('District'), meeting: t('Meeting'), admin: t('Deadline'), own: t('Own') };
+  const KIND = { service: t('Service'), district: t('District'), meeting: t('Meeting'), training: t('Training'), other: t('Other'), admin: t('Deadline'), own: t('Own') };
   for (const e of c.list) {
     const id = 'ev-' + e.id.replace(/[^a-z0-9]+/gi, '-');
     const tick = el('input', { type: 'checkbox', id });
@@ -492,7 +542,7 @@ function ownSheet(row, c, id) {
 /* ---- sending */
 
 function sendCard(row, c) {
-  const open = c.services.filter(s => !s.off && !s.who).length;
+  const open = stillOpen(c.services);
   const excel = el('button', { class: 'btn', type: 'button', text: t('Excel file'), onclick: async () => {
     excel.disabled = true;
     try {

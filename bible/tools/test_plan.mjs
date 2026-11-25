@@ -195,7 +195,8 @@ await test('Easter and the feast days of the Church year', async () => {
  * A made-up December programme as a grid: Sun 22 Nov 2026 to Sun 3 Jan
  * 2027, the public holidays marked in the leaders' columns as the district
  * marks them, Christmas Day on the Friday. `cells` = {date: {col: value}}
- * changes a day's row.
+ * changes a day's row; `more: [{col: value}]` in it adds rows for the same
+ * date, as the district does when a day has several notes.
  */
 function decemberGrid(cells = {}) {
   const grid = [];
@@ -216,7 +217,9 @@ function decemberGrid(cells = {}) {
     if (holiday.includes(d)) [3, 4, 5].forEach(c => set(r, c, 'Public Holiday'));
     if (d === '2026-12-08') set(r, 5, 'Sunnyside');
     if (comments[d]) set(r, 7, comments[d]);
-    for (const [c, v] of Object.entries(cells[d] || {})) set(r, Number(c), v);
+    const { more = [], ...own } = cells[d] || {};
+    for (const [c, v] of Object.entries(own)) set(r, Number(c), v);
+    for (const extra of more) { r++; set(r, 1, DAY[L.dow(d)]); set(r, 2, Number(d.slice(8))); for (const [c, v] of Object.entries(extra)) set(r, Number(c), v); }
   }
   return grid;
 }
@@ -323,6 +326,125 @@ await test('a day the rector adds, with a name and a time; a day the sheet has n
   assert.equal(col.kind, 'extra');
   assert.equal(col.who, 'C1');
   assert.equal(col.added, false);
+});
+
+/* ---- what a day is: a leader's day for a meeting or a training */
+
+/** The DR in the congregation on a Monday for a ministers' meeting, on a Thursday for a training (with two other meetings that evening), and on another Thursday while a module runs elsewhere. */
+const meetings = L.parseProgramme(decemberGrid({
+  '2026-11-30': { 5: 'Sunnyside', 7: 'Meeting all Ministers. Sunnyside 19:30.' },
+  '2026-12-03': { 5: 'Sunnyside', 7: 'Meeting / Training all New Ministers. Sunnyside 19:30. All Ministers ordained in the last two years.', more: [{ 7: 'S Smit: DSSC Meeting 19:00 - 20:00' }, { 7: 'T Steyn: Meeting with all Young People Leaders at 19:00 online' }] },
+  '2026-12-10': { 5: 'Sunnyside', 7: 'Module for Rectors at Olympus 09:00 - 13:00' },
+}), { congregation: 'Sunnyside' });
+
+await test('a leader\'s day for a meeting or a training is that, not a service; the rector may say otherwise', async () => {
+  assert.deepEqual(meetings.problems, []);
+  assert.equal(meetings.days.find(d => d.date === '2026-12-03').comments.length, 3);
+  const list = L.serviceDays(meetings, decSettings);
+  const mon = list.find(s => s.date === '2026-11-30');
+  assert.equal(mon.kind, 'extra');
+  assert.equal(mon.type, 'meeting');
+  assert.equal(mon.auto.type, 'meeting');
+  assert.equal(mon.who, '1', 'the DR leads it');
+  assert.equal(mon.time, '19:30');
+  assert.equal(L.serviceName(mon), 'Meeting');
+  assert.equal(L.serviceTitle(mon), 'Meeting');
+  assert.equal(L.isService(mon), false);
+  const thu = list.find(s => s.date === '2026-12-03');
+  assert.equal(thu.type, 'training');
+  assert.equal(thu.notes.length, 3);
+  assert.equal(L.serviceName(thu), 'Training');
+  assert.equal(list.find(s => s.date === '2026-12-10').type, 'service', 'the module is at Olympus: the DR holds a service here');
+  assert.equal(list.find(s => s.date === '2026-12-08').type, 'service', 'a leader\'s day without a note is a service');
+  assert.ok(list.filter(s => s.dow === 0 || s.dow === 3 || s.feast).every(s => s.type === 'service'), 'every Sunday, Wednesday and feast day is a service');
+  assert.ok(list.every(s => L.TYPES.includes(s.type)));
+  // the rector's choice over the sheet: a service after all, something else with a name, a Sunday as a meeting
+  const chosen = L.serviceDays({ ...meetings, services: { '2026-11-30': { type: 'service' }, '2026-12-03': { type: 'other', name: 'Youth evening' }, '2026-12-06': { type: 'meeting' } } }, decSettings);
+  assert.equal(chosen.find(s => s.date === '2026-11-30').type, 'service');
+  assert.equal(chosen.find(s => s.date === '2026-11-30').auto.type, 'meeting');
+  const other = chosen.find(s => s.date === '2026-12-03');
+  assert.equal(other.type, 'other');
+  assert.equal(L.serviceName(other), 'Youth evening');
+  assert.equal(L.serviceTitle(other), 'Youth evening');
+  assert.equal(chosen.find(s => s.date === '2026-12-06').type, 'meeting');
+  assert.equal(L.serviceDays({ ...meetings, services: { '2026-11-30': { type: 'party' } } }, decSettings).find(s => s.date === '2026-11-30').type, 'meeting', 'an unknown kind falls back to the sheet');
+  assert.equal(L.serviceDays({ ...meetings, services: { '2026-11-30': { who: 'C1' } } }, decSettings).find(s => s.date === '2026-11-30').type, 'meeting', 'a choice of who leaves what it is alone');
+  // a day the rector adds as a training
+  const added = L.serviceDays({ ...meetings, extraDays: ['2026-12-12'], services: { '2026-12-12': { off: false, type: 'training', time: '09:00' } } }, decSettings).find(s => s.date === '2026-12-12');
+  assert.equal(added.type, 'training');
+  assert.equal(added.added, true);
+  assert.equal(L.serviceName(added), 'Training');
+  assert.equal(L.typeLabel('training'), 'Training');
+  assert.equal(L.typeLabel('nonsense'), 'Divine service');
+  // what the notes say, on their own
+  assert.equal(L.dayType(['Meeting all Ministers. Sunnyside 19:30.'], 'Sunnyside'), 'meeting');
+  assert.equal(L.dayType(['Meeting / Training all New Ministers. Sunnyside 19:30.'], 'Sunnyside'), 'training');
+  assert.equal(L.dayType(['Divine Service Sunnyside 19:30, ministers\' meeting after'], 'Sunnyside'), 'service', 'a service with a meeting after it is a service');
+  assert.equal(L.dayType(['S Smit: DSSC Meeting 19:00 - 20:00'], 'Sunnyside'), 'service', 'someone else\'s meeting says nothing about this congregation');
+  assert.equal(L.dayType(['Meeting all Ministers 19:30'], 'Sunnyside'), 'meeting', 'the ministers\' meeting with no place named is here');
+  assert.equal(L.dayType(['Module for Rectors at Olympus 09:00'], 'Sunnyside', ['olympus', 'sunnyside']), 'service');
+  assert.equal(L.dayType(['Module for Rectors at Olympus 09:00'], 'Sunnyside', []), 'service', 'a place named is another place');
+  assert.equal(L.dayType(['Module for new ministers 19:30'], 'Sunnyside', []), 'training', 'the ministers\' module with no place named is here');
+  assert.equal(L.dayType(['Rectors\' meeting at Gezina Hall 19:30'], 'Gezina', ['olympus']), 'meeting', 'the congregation named wins');
+  assert.equal(L.dayType(['No service at Sunnyside'], 'Sunnyside'), 'service');
+  assert.equal(L.dayType(['Bedienaarsvergadering Sunnyside 19:30'], 'Sunnyside'), 'meeting');
+  assert.equal(L.dayType(['Opleiding vir nuwe ampsdraers 19:30'], 'Sunnyside'), 'training');
+  assert.equal(L.dayType([], 'Sunnyside'), 'service');
+});
+
+await test('a meeting in the calendar, in the message and on the programme: its note belongs to it, nobody is asked for it', async () => {
+  const list = L.serviceDays(meetings, decSettings);
+  const ev = L.events(meetings, decSettings, list);
+  const mon = ev.filter(e => e.date === '2026-11-30');
+  assert.equal(mon.length, 1, 'the note about the meeting is the meeting, not a second event');
+  assert.equal(mon[0].kind, 'meeting');
+  assert.equal(mon[0].id, '2026-11-30|service', 'the day\'s own event keeps its id whatever it is, so a tick and the calendar\'s entry stay');
+  assert.ok(mon[0].service);
+  assert.equal(mon[0].title, 'Meeting – Sunnyside (DR K Brown)');
+  assert.ok(mon[0].detail.includes('Meeting all Ministers'));
+  const thu = ev.filter(e => e.date === '2026-12-03');
+  assert.equal(thu.find(e => e.service).kind, 'training');
+  assert.equal(thu.find(e => e.service).title, 'Training – Sunnyside (DR K Brown)');
+  assert.deepEqual(thu.filter(e => !e.service).map(e => e.start), ['19:00', '19:00'], 'the two meetings at 19:00 are events of their own');
+  assert.equal(ev.find(e => e.date === '2026-12-10' && e.service).kind, 'service');
+  assert.ok(ev.some(e => e.date === '2026-12-10' && e.kind === 'meeting' && e.title.startsWith('Module')), 'the module elsewhere is an event of its own');
+  // the defaults: a meeting of the list follows the meetings' setting
+  assert.equal(ev.find(e => e.date === '2026-11-30').on, true);
+  assert.equal(L.events(meetings, { ...decSettings, eventDefaults: 'services' }, list).find(e => e.date === '2026-11-30').on, false);
+  assert.equal(L.events(meetings, { ...decSettings, eventDefaults: 'district' }, list).find(e => e.date === '2026-11-30').on, false);
+  assert.equal(L.events(meetings, { ...decSettings, eventDefaults: 'district' }, list).find(e => e.date === '2026-12-10' && e.service).on, true);
+  // an hour and a half in the feed
+  const ics = L.buildFeed([{ events: ev }], { name: 'Sunnyside', now: new Date('2026-11-25T12:00:00Z') });
+  assert.ok(ics.includes('DTSTART:20261130T173000Z'));
+  assert.ok(ics.includes('DTEND:20261130T190000Z'));
+  assert.ok(ics.includes('SUMMARY:Meeting – Sunnyside (DR K Brown)'));
+  assert.ok(ics.includes('DTEND:20261210T183000Z'), 'the Thursday service lasts an hour');
+  // the message: a meeting with its name, who leads it and the district\'s note; the other meetings under District
+  const text = L.messageText(meetings, decSettings, list, ev, 'en-ZA', 'en');
+  assert.ok(text.includes('Mon 30 Nov 19:30 – Meeting – DR K Brown – Meeting all Ministers. Sunnyside 19:30.'), text);
+  assert.ok(text.includes('Thu 3 Dec 19:30 – Training – DR K Brown – Meeting / Training all New Ministers.'), text);
+  assert.ok(text.includes('Thu 3 Dec 19:00 – S Smit: DSSC Meeting 19:00 - 20:00'), text);
+  assert.ok(text.includes('Thu 10 Dec 19:30 – DR K Brown'), text);
+  assert.ok(!list.filter(s => !s.off && !s.who && L.isService(s)).some(s => s.date === '2026-11-30'));
+  // a meeting with nobody is not "still open"; one called off is left out of everything, the other meetings of its day stay
+  const nobody = L.serviceDays({ ...meetings, services: { '2026-11-30': { who: '' }, '2026-12-03': { off: true } } }, decSettings);
+  const nobodyEv = L.events(meetings, decSettings, nobody);
+  const nobodyText = L.messageText(meetings, decSettings, nobody, nobodyEv, 'en-ZA', 'en');
+  assert.ok(nobodyText.includes('Mon 30 Nov 19:30 – Meeting – Meeting all Ministers'), nobodyText);
+  assert.ok(!nobodyText.includes('still open – Meeting'));
+  assert.ok(!nobodyText.includes('Thu 3 Dec 19:30'), nobodyText);
+  assert.ok(!nobodyText.includes('Thu 3 Dec – No service'), nobodyText);
+  assert.ok(!nobodyEv.some(e => e.date === '2026-12-03' && e.service));
+  assert.equal(nobodyEv.filter(e => e.date === '2026-12-03').length, 2, 'a called-off training takes its note with it; the two other meetings stay');
+  assert.ok(!nobodyText.includes('Training all New Ministers'), nobodyText);
+  const closedSunday = L.events(meetings, decSettings, L.serviceDays({ ...meetings, services: { '2026-12-27': { off: true } } }, decSettings));
+  assert.ok(closedSunday.some(e => e.date === '2026-12-27' && e.title === 'Close of Year Service'), 'a closed service leaves the day\'s note as an event, as before');
+  assert.ok(!nobody.filter(s => !s.off && !s.who && L.isService(s)).some(s => s.date === '2026-11-30'));
+  // a named meeting
+  const named = L.serviceDays({ ...meetings, services: { '2026-11-30': { name: "Ministers' meeting" } } }, decSettings);
+  const namedEv = L.events(meetings, decSettings, named);
+  assert.equal(namedEv.find(e => e.date === '2026-11-30').title, "Ministers' meeting – Sunnyside (DR K Brown)");
+  assert.ok(L.messageText(meetings, decSettings, named, namedEv, 'en-ZA', 'en').includes("Mon 30 Nov 19:30 – Ministers' meeting – DR K Brown – Meeting all Ministers. Sunnyside 19:30."));
 });
 
 /* ---- the events */
